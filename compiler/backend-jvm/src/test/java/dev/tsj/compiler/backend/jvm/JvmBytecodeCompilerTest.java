@@ -1634,6 +1634,132 @@ class JvmBytecodeCompilerTest {
     }
 
     @Test
+    void rejectsDynamicImportWithFeatureDiagnosticMetadata() throws Exception {
+        final Path sourceFile = tempDir.resolve("dynamic-import.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                const loader = import("./dep.ts");
+                console.log(loader);
+                """,
+                UTF_8
+        );
+
+        final JvmCompilationException exception = org.junit.jupiter.api.Assertions.assertThrows(
+                JvmCompilationException.class,
+                () -> new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out28"))
+        );
+
+        assertUnsupportedFeature(
+                exception,
+                "TSJ15-DYNAMIC-IMPORT",
+                "Use static relative imports"
+        );
+        assertEquals(1, exception.line());
+        assertEquals(sourceFile.toAbsolutePath().normalize().toString(), exception.sourceFile());
+    }
+
+    @Test
+    void rejectsEvalWithFeatureDiagnosticMetadata() throws Exception {
+        final Path sourceFile = tempDir.resolve("eval.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                const value = eval("1 + 2");
+                console.log(value);
+                """,
+                UTF_8
+        );
+
+        final JvmCompilationException exception = org.junit.jupiter.api.Assertions.assertThrows(
+                JvmCompilationException.class,
+                () -> new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out29"))
+        );
+
+        assertUnsupportedFeature(
+                exception,
+                "TSJ15-EVAL",
+                "runtime code evaluation"
+        );
+        assertEquals(1, exception.line());
+        assertEquals(sourceFile.toAbsolutePath().normalize().toString(), exception.sourceFile());
+    }
+
+    @Test
+    void rejectsFunctionConstructorWithFeatureDiagnosticMetadata() throws Exception {
+        final Path sourceFile = tempDir.resolve("function-constructor.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                const factory = new Function("return 7;");
+                console.log(factory());
+                """,
+                UTF_8
+        );
+
+        final JvmCompilationException exception = org.junit.jupiter.api.Assertions.assertThrows(
+                JvmCompilationException.class,
+                () -> new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out30"))
+        );
+
+        assertUnsupportedFeature(
+                exception,
+                "TSJ15-FUNCTION-CONSTRUCTOR",
+                "runtime code evaluation"
+        );
+        assertEquals(1, exception.line());
+        assertEquals(sourceFile.toAbsolutePath().normalize().toString(), exception.sourceFile());
+    }
+
+    @Test
+    void rejectsProxyConstructorWithFeatureDiagnosticMetadata() throws Exception {
+        final Path sourceFile = tempDir.resolve("proxy.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                const target = { value: 1 };
+                const proxy = new Proxy(target, {});
+                console.log(proxy.value);
+                """,
+                UTF_8
+        );
+
+        final JvmCompilationException exception = org.junit.jupiter.api.Assertions.assertThrows(
+                JvmCompilationException.class,
+                () -> new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out31"))
+        );
+
+        assertUnsupportedFeature(
+                exception,
+                "TSJ15-PROXY",
+                "Proxy semantics are outside MVP"
+        );
+        assertEquals(2, exception.line());
+        assertEquals(sourceFile.toAbsolutePath().normalize().toString(), exception.sourceFile());
+    }
+
+    @Test
+    void reportsUnsupportedFeatureLocationFromImportedModule() throws Exception {
+        final Path module = tempDir.resolve("dep.ts");
+        final Path entry = tempDir.resolve("main.ts");
+        Files.writeString(module, "const v = eval(\"2 + 3\");\nconsole.log(v);\n", UTF_8);
+        Files.writeString(entry, "import \"./dep.ts\";\nconsole.log(\"main\");\n", UTF_8);
+
+        final JvmCompilationException exception = org.junit.jupiter.api.Assertions.assertThrows(
+                JvmCompilationException.class,
+                () -> new JvmBytecodeCompiler().compile(entry, tempDir.resolve("out32"))
+        );
+
+        assertUnsupportedFeature(
+                exception,
+                "TSJ15-EVAL",
+                "runtime code evaluation"
+        );
+        assertEquals(1, exception.line());
+        assertEquals(module.toAbsolutePath().normalize().toString(), exception.sourceFile());
+    }
+
+    @Test
     void emitsVerifierSafeClassThatCanBeLoadedReflectively() throws Exception {
         final Path sourceFile = tempDir.resolve("loadable.ts");
         Files.writeString(
@@ -1650,5 +1776,18 @@ class JvmBytecodeCompilerTest {
 
         assertEquals(artifact.className(), mainClass.getName());
         assertTrue(Files.exists(artifact.classFile()));
+    }
+
+    private static void assertUnsupportedFeature(
+            final JvmCompilationException exception,
+            final String featureId,
+            final String guidanceSnippet
+    ) {
+        assertEquals("TSJ-BACKEND-UNSUPPORTED", exception.code());
+        assertEquals(featureId, exception.featureId());
+        assertTrue(exception.getMessage().contains(featureId));
+        assertTrue(exception.getMessage().contains(guidanceSnippet));
+        assertTrue(exception.guidance() != null && exception.guidance().contains(guidanceSnippet));
+        assertTrue(exception.sourceFile() != null && !exception.sourceFile().isBlank());
     }
 }

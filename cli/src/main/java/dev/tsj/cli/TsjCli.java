@@ -569,11 +569,20 @@ public final class TsjCli {
     ) {
         final Map<String, String> context = new LinkedHashMap<>();
         context.put("entry", entryPath.toString());
+        if (compilationException.sourceFile() != null && !compilationException.sourceFile().isBlank()) {
+            context.put("file", compilationException.sourceFile());
+        }
         if (compilationException.line() != null) {
             context.put("line", Integer.toString(compilationException.line()));
         }
         if (compilationException.column() != null) {
             context.put("column", Integer.toString(compilationException.column()));
+        }
+        if (compilationException.featureId() != null && !compilationException.featureId().isBlank()) {
+            context.put("featureId", compilationException.featureId());
+        }
+        if (compilationException.guidance() != null && !compilationException.guidance().isBlank()) {
+            context.put("guidance", compilationException.guidance());
         }
         return Map.copyOf(context);
     }

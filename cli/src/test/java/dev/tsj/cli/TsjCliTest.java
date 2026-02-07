@@ -1324,6 +1324,151 @@ class TsjCliTest {
     }
 
     @Test
+    void compileDynamicImportIncludesUnsupportedFeatureContext() throws Exception {
+        final Path entryFile = tempDir.resolve("dynamic-import.ts");
+        Files.writeString(
+                entryFile,
+                """
+                const loader = import("./dep.ts");
+                console.log(loader);
+                """,
+                UTF_8
+        );
+
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+
+        final int exitCode = TsjCli.execute(
+                new String[]{"compile", entryFile.toString(), "--out", tempDir.resolve("bad-out2").toString()},
+                new PrintStream(stdout),
+                new PrintStream(stderr)
+        );
+
+        final String stderrText = stderr.toString(UTF_8);
+        assertEquals(1, exitCode);
+        assertTrue(stderrText.contains("\"code\":\"TSJ-BACKEND-UNSUPPORTED\""));
+        assertTrue(stderrText.contains("\"featureId\":\"TSJ15-DYNAMIC-IMPORT\""));
+        assertTrue(stderrText.contains("\"file\":\"" + entryFile.toAbsolutePath().normalize() + "\""));
+        assertTrue(stderrText.contains("\"line\":\"1\""));
+        assertTrue(stderrText.contains("\"column\":\"16\""));
+        assertTrue(stderrText.contains("Use static relative imports"));
+        assertEquals("", stdout.toString(UTF_8));
+    }
+
+    @Test
+    void compileEvalIncludesUnsupportedFeatureContext() throws Exception {
+        final Path entryFile = tempDir.resolve("eval.ts");
+        Files.writeString(
+                entryFile,
+                """
+                const value = eval("1 + 2");
+                console.log(value);
+                """,
+                UTF_8
+        );
+
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+
+        final int exitCode = TsjCli.execute(
+                new String[]{"compile", entryFile.toString(), "--out", tempDir.resolve("bad-out3").toString()},
+                new PrintStream(stdout),
+                new PrintStream(stderr)
+        );
+
+        final String stderrText = stderr.toString(UTF_8);
+        assertEquals(1, exitCode);
+        assertTrue(stderrText.contains("\"featureId\":\"TSJ15-EVAL\""));
+        assertTrue(stderrText.contains("\"file\":\"" + entryFile.toAbsolutePath().normalize() + "\""));
+        assertTrue(stderrText.contains("\"line\":\"1\""));
+        assertTrue(stderrText.contains("runtime code evaluation"));
+        assertEquals("", stdout.toString(UTF_8));
+    }
+
+    @Test
+    void compileProxyIncludesUnsupportedFeatureContext() throws Exception {
+        final Path entryFile = tempDir.resolve("proxy.ts");
+        Files.writeString(
+                entryFile,
+                """
+                const target = { value: 1 };
+                const proxy = new Proxy(target, {});
+                console.log(proxy.value);
+                """,
+                UTF_8
+        );
+
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+
+        final int exitCode = TsjCli.execute(
+                new String[]{"compile", entryFile.toString(), "--out", tempDir.resolve("bad-out4").toString()},
+                new PrintStream(stdout),
+                new PrintStream(stderr)
+        );
+
+        final String stderrText = stderr.toString(UTF_8);
+        assertEquals(1, exitCode);
+        assertTrue(stderrText.contains("\"featureId\":\"TSJ15-PROXY\""));
+        assertTrue(stderrText.contains("\"line\":\"2\""));
+        assertTrue(stderrText.contains("Proxy semantics are outside MVP"));
+        assertEquals("", stdout.toString(UTF_8));
+    }
+
+    @Test
+    void compileFunctionConstructorIncludesUnsupportedFeatureContext() throws Exception {
+        final Path entryFile = tempDir.resolve("function-constructor.ts");
+        Files.writeString(
+                entryFile,
+                """
+                const factory = Function("return 7;");
+                console.log(factory());
+                """,
+                UTF_8
+        );
+
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+
+        final int exitCode = TsjCli.execute(
+                new String[]{"compile", entryFile.toString(), "--out", tempDir.resolve("bad-out5").toString()},
+                new PrintStream(stdout),
+                new PrintStream(stderr)
+        );
+
+        final String stderrText = stderr.toString(UTF_8);
+        assertEquals(1, exitCode);
+        assertTrue(stderrText.contains("\"featureId\":\"TSJ15-FUNCTION-CONSTRUCTOR\""));
+        assertTrue(stderrText.contains("\"line\":\"1\""));
+        assertTrue(stderrText.contains("runtime code evaluation"));
+        assertEquals("", stdout.toString(UTF_8));
+    }
+
+    @Test
+    void compileUnsupportedFeatureInImportedModuleUsesModulePathInDiagnostic() throws Exception {
+        final Path moduleFile = tempDir.resolve("dep.ts");
+        final Path entryFile = tempDir.resolve("main.ts");
+        Files.writeString(moduleFile, "const value = eval(\"2 + 3\");\nconsole.log(value);\n", UTF_8);
+        Files.writeString(entryFile, "import \"./dep.ts\";\nconsole.log(\"main\");\n", UTF_8);
+
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+
+        final int exitCode = TsjCli.execute(
+                new String[]{"compile", entryFile.toString(), "--out", tempDir.resolve("bad-out6").toString()},
+                new PrintStream(stdout),
+                new PrintStream(stderr)
+        );
+
+        final String stderrText = stderr.toString(UTF_8);
+        assertEquals(1, exitCode);
+        assertTrue(stderrText.contains("\"featureId\":\"TSJ15-EVAL\""));
+        assertTrue(stderrText.contains("\"file\":\"" + moduleFile.toAbsolutePath().normalize() + "\""));
+        assertTrue(stderrText.contains("\"line\":\"1\""));
+        assertEquals("", stdout.toString(UTF_8));
+    }
+
+    @Test
     void moduleFingerprintContainsCompilerAndRuntimeModules() {
         assertEquals(
                 "compiler-frontend|compiler-ir|compiler-backend-jvm|runtime",

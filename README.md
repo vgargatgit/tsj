@@ -21,6 +21,7 @@ Current implementation status includes:
 16. Promise combinators (`all`, `race`, `allSettled`, `any`) with array-literal inputs and differential fixtures (`TSJ-13e`)
 17. Top-level await lowering for entry/module initialization order with async diagnostics for unsupported await placements (`TSJ-13f`)
 18. Runtime stack-trace source mapping with `--ts-stacktrace` CLI rendering in TypeScript coordinates (`TSJ-14`)
+19. Unsupported feature policy gates for MVP non-goals (`dynamic import`, `eval`, `Function` constructor, `Proxy`) with feature-ID diagnostics (`TSJ-15`)
 
 ## Repository Layout
 
@@ -113,6 +114,7 @@ TSJ-13d extends async/promise error semantics with Promise `catch` + `finally` s
 TSJ-13e adds Promise combinators (`all`, `race`, `allSettled`, `any`) and minimal array literal lowering for combinator inputs.
 TSJ-13f adds top-level await lowering for entry + module initialization ordering (including transitive imports) and explicit diagnostics for unsupported await-in-while-condition placement.
 TSJ-14 adds generated-class source maps and optional `--ts-stacktrace` TypeScript frame rendering for runtime failures.
+TSJ-15 adds explicit non-goal feature gates with structured diagnostics (`featureId`, guidance, and source coordinates) and a documented matrix at `docs/unsupported-feature-matrix.md`.
 
 ## Frontend and IR Tools
 
@@ -169,6 +171,7 @@ Seed fixture:
 - Story-to-architecture mapping: `docs/story-architecture-map.md`
 - Runtime contracts: `docs/contracts/runtime-contracts-v0.1.md`
 - Source-map format: `docs/source-map-format.md`
+- Unsupported feature matrix: `docs/unsupported-feature-matrix.md`
 
 ## Development Approach
 

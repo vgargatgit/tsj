@@ -49,6 +49,18 @@ public final class JvmBytecodeCompiler {
             "transient", "try", "void", "volatile", "while", "_", "null", "true", "false"
     );
     private static final String SOURCE_MARKER_PREFIX = "// TSJ-SOURCE\t";
+    private static final String FEATURE_DYNAMIC_IMPORT = "TSJ15-DYNAMIC-IMPORT";
+    private static final String FEATURE_EVAL = "TSJ15-EVAL";
+    private static final String FEATURE_FUNCTION_CONSTRUCTOR = "TSJ15-FUNCTION-CONSTRUCTOR";
+    private static final String FEATURE_PROXY = "TSJ15-PROXY";
+    private static final String GUIDANCE_DYNAMIC_IMPORT =
+            "Use static relative imports (`import { x } from \"./m.ts\"`) in TSJ MVP.";
+    private static final String GUIDANCE_EVAL =
+            "Replace runtime code evaluation with explicit functions or precompiled modules.";
+    private static final String GUIDANCE_FUNCTION_CONSTRUCTOR =
+            "Replace runtime code evaluation with explicit functions or precompiled modules.";
+    private static final String GUIDANCE_PROXY =
+            "Proxy semantics are outside MVP; use explicit object wrappers for supported behavior.";
 
     private static final String OUTPUT_PACKAGE = "dev.tsj.generated";
 
@@ -1228,6 +1240,23 @@ public final class JvmBytecodeCompiler {
                 final Token member = consumeIdentifier("Expected member name after `.` in constructor expression.");
                 constructor = new MemberAccessExpression(constructor, member.text());
             }
+            final String constructorName = resolveGlobalConstructorName(constructor);
+            if ("Proxy".equals(constructorName)) {
+                throw unsupportedFeature(
+                        current(),
+                        FEATURE_PROXY,
+                        "`new Proxy(...)` is unsupported in TSJ MVP.",
+                        GUIDANCE_PROXY
+                );
+            }
+            if ("Function".equals(constructorName)) {
+                throw unsupportedFeature(
+                        current(),
+                        FEATURE_FUNCTION_CONSTRUCTOR,
+                        "Function constructor is unsupported in TSJ MVP.",
+                        GUIDANCE_FUNCTION_CONSTRUCTOR
+                );
+            }
             consumeSymbol("(", "Expected `(` after constructor expression in `new`.");
             final List<Expression> arguments = new ArrayList<>();
             if (!checkSymbol(")")) {
@@ -1246,6 +1275,25 @@ public final class JvmBytecodeCompiler {
                     expression = new MemberAccessExpression(expression, member.text());
                     continue;
                 }
+                if (checkSymbol("(")) {
+                    if (expression instanceof VariableExpression variable && "eval".equals(variable.name())) {
+                        throw unsupportedFeature(
+                                current(),
+                                FEATURE_EVAL,
+                                "`eval(...)` is unsupported in TSJ MVP.",
+                                GUIDANCE_EVAL
+                        );
+                    }
+                    if (expression instanceof VariableExpression variable
+                            && "Function".equals(variable.name())) {
+                        throw unsupportedFeature(
+                                current(),
+                                FEATURE_FUNCTION_CONSTRUCTOR,
+                                "Function constructor is unsupported in TSJ MVP.",
+                                GUIDANCE_FUNCTION_CONSTRUCTOR
+                        );
+                    }
+                }
                 if (matchSymbol("(")) {
                     final List<Expression> arguments = new ArrayList<>();
                     if (!checkSymbol(")")) {
@@ -1263,6 +1311,23 @@ public final class JvmBytecodeCompiler {
         }
 
         private Expression parsePrimary() {
+            if (current().type() == TokenType.KEYWORD && "import".equals(current().text())) {
+                final Token importToken = advance();
+                if (checkSymbol("(")) {
+                    throw unsupportedFeature(
+                            importToken,
+                            FEATURE_DYNAMIC_IMPORT,
+                            "dynamic import() is unsupported in TSJ MVP.",
+                            GUIDANCE_DYNAMIC_IMPORT
+                    );
+                }
+                throw new JvmCompilationException(
+                        "TSJ-BACKEND-UNSUPPORTED",
+                        "Unsupported import form in TSJ-12 bootstrap: import",
+                        importToken.line(),
+                        importToken.column()
+                );
+            }
             if (matchKeyword("async")) {
                 if (matchKeyword("function")) {
                     return parseFunctionExpression(true);
@@ -1564,6 +1629,40 @@ public final class JvmBytecodeCompiler {
                     token.line(),
                     token.column()
             );
+        }
+
+        private JvmCompilationException unsupportedFeature(
+                final Token token,
+                final String featureId,
+                final String summary,
+                final String guidance
+        ) {
+            final SourceLocation sourceLocation = bundleResult.sourceLocationFor(token.line(), token.column());
+            final Integer line = sourceLocation != null ? sourceLocation.line() : token.line();
+            final Integer column = sourceLocation != null ? sourceLocation.column() : token.column();
+            final String sourceFile = sourceLocation != null ? sourceLocation.sourceFile().toString() : null;
+            return new JvmCompilationException(
+                    "TSJ-BACKEND-UNSUPPORTED",
+                    summary + " [featureId=" + featureId + "]. Guidance: " + guidance,
+                    line,
+                    column,
+                    sourceFile,
+                    featureId,
+                    guidance
+            );
+        }
+
+        private String resolveGlobalConstructorName(final Expression expression) {
+            if (expression instanceof VariableExpression variable) {
+                return variable.name();
+            }
+            if (expression instanceof MemberAccessExpression member) {
+                if (member.receiver() instanceof VariableExpression variable
+                        && "globalThis".equals(variable.name())) {
+                    return member.member();
+                }
+            }
+            return null;
         }
 
         private boolean checkSymbol(final String symbol) {

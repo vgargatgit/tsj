@@ -312,6 +312,13 @@
   - Compiler detects non-MVP features (e.g. Proxy, eval, dynamic import) and emits errors.
   - Diagnostics include file/line, feature ID, and guidance.
   - Tests verify detection coverage for all documented non-goals in feature matrix.
+- Notes:
+  - TSJ-15 now enforces unsupported-feature failures with stable feature IDs:
+    `TSJ15-DYNAMIC-IMPORT`, `TSJ15-EVAL`, `TSJ15-FUNCTION-CONSTRUCTOR`, and `TSJ15-PROXY`.
+  - `TSJ-BACKEND-UNSUPPORTED` diagnostics now include `file`, `line`, `column`, `featureId`, and `guidance`
+    when triggered by TSJ-15 feature gates.
+  - Non-goal matrix is documented in `docs/unsupported-feature-matrix.md`.
+  - Coverage exists at backend and CLI layers for direct and imported-module failures.
 - Dependencies: TSJ-0, TSJ-4.
 
 ### TSJ-19: Interop bridge generation (opt-in)

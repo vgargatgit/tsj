@@ -68,6 +68,7 @@
   - Unsupported features fail at compile time with specific diagnostics.
   - No partial fallback execution for unsupported semantics.
   - Maintain compatibility-level feature matrix.
+  - MVP non-goal matrix is tracked in `docs/unsupported-feature-matrix.md`.
 - Deferred:
   - Best-effort runtime polyfill fallback for non-trivial semantics.
 

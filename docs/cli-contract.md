@@ -37,6 +37,8 @@ Failure diagnostics:
 - `TSJ-COMPILE-002` unsupported input extension
 - `TSJ-COMPILE-500` artifact write error
 - backend diagnostics like `TSJ-BACKEND-*` for unsupported syntax or JVM compile failures
+  - TSJ-15 unsupported-feature failures use `TSJ-BACKEND-UNSUPPORTED` with context:
+    `file`, `line`, `column`, `featureId`, `guidance`.
 
 ### `tsj run <entry.ts> [--out <dir>] [--ts-stacktrace]`
 Behavior:
