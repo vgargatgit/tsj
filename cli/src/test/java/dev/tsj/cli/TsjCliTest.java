@@ -1469,6 +1469,80 @@ class TsjCliTest {
     }
 
     @Test
+    void interopCommandGeneratesAllowlistedBridges() throws Exception {
+        final Path specFile = tempDir.resolve("interop.properties");
+        final Path outDir = tempDir.resolve("interop-out");
+        Files.writeString(
+                specFile,
+                """
+                allowlist=java.lang.Math#max
+                targets=java.lang.Math#max
+                """,
+                UTF_8
+        );
+
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+
+        final int exitCode = TsjCli.execute(
+                new String[]{"interop", specFile.toString(), "--out", outDir.toString()},
+                new PrintStream(stdout),
+                new PrintStream(stderr)
+        );
+
+        assertEquals(0, exitCode);
+        assertTrue(stdout.toString(UTF_8).contains("\"code\":\"TSJ-INTEROP-SUCCESS\""));
+        assertTrue(stdout.toString(UTF_8).contains("\"generatedCount\":\"1\""));
+        assertEquals("", stderr.toString(UTF_8));
+    }
+
+    @Test
+    void interopCommandReportsDisallowedTargetDiagnostic() throws Exception {
+        final Path specFile = tempDir.resolve("interop.properties");
+        final Path outDir = tempDir.resolve("interop-out2");
+        Files.writeString(
+                specFile,
+                """
+                allowlist=java.lang.Math#max
+                targets=java.lang.System#exit
+                """,
+                UTF_8
+        );
+
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+
+        final int exitCode = TsjCli.execute(
+                new String[]{"interop", specFile.toString(), "--out", outDir.toString()},
+                new PrintStream(stdout),
+                new PrintStream(stderr)
+        );
+
+        final String stderrText = stderr.toString(UTF_8);
+        assertEquals(1, exitCode);
+        assertTrue(stderrText.contains("\"code\":\"TSJ-INTEROP-DISALLOWED\""));
+        assertTrue(stderrText.contains("\"featureId\":\"TSJ19-ALLOWLIST\""));
+        assertTrue(stderrText.contains("java.lang.System#exit"));
+        assertEquals("", stdout.toString(UTF_8));
+    }
+
+    @Test
+    void interopCommandRequiresSpecFilePath() {
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+
+        final int exitCode = TsjCli.execute(
+                new String[]{"interop"},
+                new PrintStream(stdout),
+                new PrintStream(stderr)
+        );
+
+        assertEquals(2, exitCode);
+        assertTrue(stderr.toString(UTF_8).contains("\"code\":\"TSJ-CLI-008\""));
+        assertEquals("", stdout.toString(UTF_8));
+    }
+
+    @Test
     void moduleFingerprintContainsCompilerAndRuntimeModules() {
         assertEquals(
                 "compiler-frontend|compiler-ir|compiler-backend-jvm|runtime",

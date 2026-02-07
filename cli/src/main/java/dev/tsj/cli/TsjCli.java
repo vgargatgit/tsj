@@ -3,6 +3,8 @@ package dev.tsj.cli;
 import dev.tsj.cli.fixtures.FixtureHarness;
 import dev.tsj.cli.fixtures.FixtureRunResult;
 import dev.tsj.compiler.backend.jvm.BackendJvmModule;
+import dev.tsj.compiler.backend.jvm.InteropBridgeArtifact;
+import dev.tsj.compiler.backend.jvm.InteropBridgeGenerator;
 import dev.tsj.compiler.backend.jvm.JvmBytecodeCompiler;
 import dev.tsj.compiler.backend.jvm.JvmBytecodeRunner;
 import dev.tsj.compiler.backend.jvm.JvmCompilationException;
@@ -35,6 +37,7 @@ public final class TsjCli {
     private static final String COMMAND_COMPILE = "compile";
     private static final String COMMAND_RUN = "run";
     private static final String COMMAND_FIXTURES = "fixtures";
+    private static final String COMMAND_INTEROP = "interop";
     private static final String OPTION_OUT = "--out";
     private static final String OPTION_TS_STACKTRACE = "--ts-stacktrace";
     private static final String DEFAULT_RUN_OUT_DIR = ".tsj-build";
@@ -64,7 +67,7 @@ public final class TsjCli {
             if (args.length == 0) {
                 throw CliFailure.usage(
                         "TSJ-CLI-001",
-                        "Missing command. Expected `compile` or `run`."
+                        "Missing command. Expected `compile`, `run`, `fixtures`, or `interop`."
                 );
             }
 
@@ -72,9 +75,10 @@ public final class TsjCli {
                 case COMMAND_COMPILE -> handleCompile(args, stdout);
                 case COMMAND_RUN -> handleRun(args, stdout, stderr);
                 case COMMAND_FIXTURES -> handleFixtures(args, stdout);
+                case COMMAND_INTEROP -> handleInterop(args, stdout);
                 default -> throw CliFailure.usage(
                         "TSJ-CLI-002",
-                        "Unknown command `" + args[0] + "`. Expected `compile`, `run`, or `fixtures`."
+                        "Unknown command `" + args[0] + "`. Expected `compile`, `run`, `fixtures`, or `interop`."
                 );
             };
         } catch (final CliFailure failure) {
@@ -215,6 +219,41 @@ public final class TsjCli {
                 )
         );
         return failed == 0 ? 0 : 1;
+    }
+
+    private static int handleInterop(final String[] args, final PrintStream stdout) {
+        if (args.length < 2) {
+            throw CliFailure.usage(
+                    "TSJ-CLI-008",
+                    "Missing interop spec file. Usage: tsj interop <interop.properties> --out <dir>"
+            );
+        }
+        final Path specPath = Path.of(args[1]);
+        final ParsedOutOption parsedOut = parseOutOption(args, 2, true);
+
+        final InteropBridgeArtifact artifact;
+        try {
+            artifact = new InteropBridgeGenerator().generate(specPath, parsedOut.outDir);
+        } catch (final JvmCompilationException compilationException) {
+            throw CliFailure.runtime(
+                    compilationException.code(),
+                    compilationException.getMessage(),
+                    backendFailureContext(specPath, compilationException)
+            );
+        }
+
+        emitDiagnostic(
+                stdout,
+                "INFO",
+                "TSJ-INTEROP-SUCCESS",
+                "Interop bridge generation complete.",
+                Map.of(
+                        "spec", specPath.toString(),
+                        "outDir", parsedOut.outDir.toString(),
+                        "generatedCount", Integer.toString(artifact.sourceFiles().size())
+                )
+        );
+        return 0;
     }
 
     private static ParsedOutOption parseOutOption(

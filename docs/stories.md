@@ -327,6 +327,18 @@
   - Bridge generator creates stubs for allowlisted Java classes/methods.
   - `TsValue` codec conversions validated for primitives and object references.
   - Disallowed interop targets fail with explicit diagnostics.
+- Notes:
+  - Added opt-in bridge generation command:
+    `tsj interop <interop.properties> --out <dir>`.
+  - Interop spec format and validation are documented in `docs/interop-bridge-spec.md`.
+  - Runtime now includes interop codec/invocation helpers:
+    `TsjInteropCodec` and `TsjJavaInterop`.
+  - Bridge generation enforces allowlist failures with explicit code `TSJ-INTEROP-DISALLOWED`
+    and feature ID `TSJ19-ALLOWLIST`.
+  - TDD coverage includes:
+    `runtime/src/test/java/dev/tsj/runtime/TsjInteropCodecTest.java`,
+    `compiler/backend-jvm/src/test/java/dev/tsj/compiler/backend/jvm/InteropBridgeGeneratorTest.java`,
+    and CLI coverage in `cli/src/test/java/dev/tsj/cli/TsjCliTest.java`.
 - Dependencies: TSJ-0, TSJ-10.
 
 ## Epic F: Quality and Performance

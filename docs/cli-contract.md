@@ -60,6 +60,26 @@ Failure diagnostics:
 - `TSJ-RUN-*` runtime class load/execute failures
 - compile-phase failure codes from `tsj compile`
 
+### `tsj interop <interop.properties> --out <dir>`
+Behavior:
+1. Reads opt-in interop bridge spec (`allowlist` and optional `targets`).
+2. Validates each requested target is allowlisted.
+3. Validates target classes/methods exist and are static Java methods.
+4. Generates bridge source stubs under:
+   - `<out>/dev/tsj/generated/interop/*.java`
+5. Emits bridge metadata:
+   - `<out>/interop-bridges.properties`
+6. Emits structured JSON diagnostics.
+
+Success diagnostic:
+- `TSJ-INTEROP-SUCCESS`
+
+Failure diagnostics:
+- `TSJ-CLI-008` missing interop spec path
+- `TSJ-INTEROP-INPUT` spec read/write failures
+- `TSJ-INTEROP-INVALID` malformed target or missing class/method
+- `TSJ-INTEROP-DISALLOWED` requested target not in allowlist
+
 ### `tsj fixtures <fixturesRoot>`
 Behavior:
 1. Loads all fixture directories under `<fixturesRoot>`.

@@ -22,6 +22,7 @@ Current implementation status includes:
 17. Top-level await lowering for entry/module initialization order with async diagnostics for unsupported await placements (`TSJ-13f`)
 18. Runtime stack-trace source mapping with `--ts-stacktrace` CLI rendering in TypeScript coordinates (`TSJ-14`)
 19. Unsupported feature policy gates for MVP non-goals (`dynamic import`, `eval`, `Function` constructor, `Proxy`) with feature-ID diagnostics (`TSJ-15`)
+20. Opt-in interop bridge generation with allowlist enforcement and runtime codec helpers (`TSJ-19`)
 
 ## Repository Layout
 
@@ -98,6 +99,14 @@ mvn -B -ntp -pl cli -am exec:java \
   -Dexec.args="fixtures tests/fixtures"
 ```
 
+Generate Java interop bridges from allowlisted targets:
+
+```bash
+mvn -B -ntp -pl cli -am exec:java \
+  -Dexec.mainClass=dev.tsj.cli.TsjCli \
+  -Dexec.args="interop path/to/interop.properties --out build/interop"
+```
+
 CLI command contract is in `docs/cli-contract.md`.
 
 TSJ-7 compile now emits generated classes under `<out>/classes`, and `tsj run` executes the generated JVM class before emitting run diagnostics.
@@ -115,6 +124,7 @@ TSJ-13e adds Promise combinators (`all`, `race`, `allSettled`, `any`) and minima
 TSJ-13f adds top-level await lowering for entry + module initialization ordering (including transitive imports) and explicit diagnostics for unsupported await-in-while-condition placement.
 TSJ-14 adds generated-class source maps and optional `--ts-stacktrace` TypeScript frame rendering for runtime failures.
 TSJ-15 adds explicit non-goal feature gates with structured diagnostics (`featureId`, guidance, and source coordinates) and a documented matrix at `docs/unsupported-feature-matrix.md`.
+TSJ-19 adds opt-in interop bridge generation from allowlisted Java targets and runtime `TsjInteropCodec` conversions for Java boundary calls.
 
 ## Frontend and IR Tools
 
@@ -172,6 +182,7 @@ Seed fixture:
 - Runtime contracts: `docs/contracts/runtime-contracts-v0.1.md`
 - Source-map format: `docs/source-map-format.md`
 - Unsupported feature matrix: `docs/unsupported-feature-matrix.md`
+- Interop bridge spec: `docs/interop-bridge-spec.md`
 
 ## Development Approach
 
