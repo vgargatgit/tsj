@@ -220,6 +220,32 @@ class FixtureHarnessTest {
         assertEquals("", result.tsjResult().diff());
     }
 
+    @Test
+    void harnessSupportsAsyncArrowFixture() throws Exception {
+        final Path fixtureDir = writeAsyncArrowFixture("async-arrow");
+        final FixtureSpec fixture = FixtureLoader.loadFixture(fixtureDir);
+
+        final FixtureRunResult result = new FixtureHarness().runFixture(fixture);
+
+        assertTrue(result.passed());
+        assertTrue(result.nodeToTsjMatched());
+        assertEquals("", result.nodeResult().diff());
+        assertEquals("", result.tsjResult().diff());
+    }
+
+    @Test
+    void harnessSupportsAsyncObjectMethodFixture() throws Exception {
+        final Path fixtureDir = writeAsyncObjectMethodFixture("async-object-method");
+        final FixtureSpec fixture = FixtureLoader.loadFixture(fixtureDir);
+
+        final FixtureRunResult result = new FixtureHarness().runFixture(fixture);
+
+        assertTrue(result.passed());
+        assertTrue(result.nodeToTsjMatched());
+        assertEquals("", result.nodeResult().diff());
+        assertEquals("", result.tsjResult().diff());
+    }
+
     private Path writeFixture(final String name, final boolean assertNodeMatchesTsj) throws IOException {
         final Path fixtureDir = tempDir.resolve(name);
         final Path inputDir = fixtureDir.resolve("input");
@@ -821,6 +847,111 @@ class FixtureHarnessTest {
         );
 
         final String expectedOutput = "sync\nsum=6\ndone=6\n";
+        Files.writeString(expectedDir.resolve("node.stdout"), expectedOutput, UTF_8);
+        Files.writeString(expectedDir.resolve("node.stderr"), "", UTF_8);
+        Files.writeString(expectedDir.resolve("tsj.stdout"), expectedOutput, UTF_8);
+        Files.writeString(expectedDir.resolve("tsj.stderr"), "", UTF_8);
+
+        final String properties = String.join(
+                "\n",
+                "name=" + name,
+                "entry=input/main.ts",
+                "expected.node.exitCode=0",
+                "expected.node.stdout=expected/node.stdout",
+                "expected.node.stderr=expected/node.stderr",
+                "expected.node.stdoutMode=exact",
+                "expected.node.stderrMode=exact",
+                "expected.tsj.exitCode=0",
+                "expected.tsj.stdout=expected/tsj.stdout",
+                "expected.tsj.stderr=expected/tsj.stderr",
+                "expected.tsj.stdoutMode=contains",
+                "expected.tsj.stderrMode=exact",
+                "assert.nodeMatchesTsj=true",
+                ""
+        );
+        Files.writeString(fixtureDir.resolve("fixture.properties"), properties, UTF_8);
+        return fixtureDir;
+    }
+
+    private Path writeAsyncArrowFixture(final String name) throws IOException {
+        final Path fixtureDir = tempDir.resolve(name);
+        final Path inputDir = fixtureDir.resolve("input");
+        final Path expectedDir = fixtureDir.resolve("expected");
+        Files.createDirectories(inputDir);
+        Files.createDirectories(expectedDir);
+
+        Files.writeString(
+                inputDir.resolve("main.ts"),
+                """
+                const inc = async (value: number) => (await Promise.resolve(value)) + 1;
+
+                function onDone(result: number) {
+                  console.log("done=" + result);
+                  return result;
+                }
+
+                inc(5).then(onDone);
+                console.log("sync");
+                """,
+                UTF_8
+        );
+
+        final String expectedOutput = "sync\ndone=6\n";
+        Files.writeString(expectedDir.resolve("node.stdout"), expectedOutput, UTF_8);
+        Files.writeString(expectedDir.resolve("node.stderr"), "", UTF_8);
+        Files.writeString(expectedDir.resolve("tsj.stdout"), expectedOutput, UTF_8);
+        Files.writeString(expectedDir.resolve("tsj.stderr"), "", UTF_8);
+
+        final String properties = String.join(
+                "\n",
+                "name=" + name,
+                "entry=input/main.ts",
+                "expected.node.exitCode=0",
+                "expected.node.stdout=expected/node.stdout",
+                "expected.node.stderr=expected/node.stderr",
+                "expected.node.stdoutMode=exact",
+                "expected.node.stderrMode=exact",
+                "expected.tsj.exitCode=0",
+                "expected.tsj.stdout=expected/tsj.stdout",
+                "expected.tsj.stderr=expected/tsj.stderr",
+                "expected.tsj.stdoutMode=contains",
+                "expected.tsj.stderrMode=exact",
+                "assert.nodeMatchesTsj=true",
+                ""
+        );
+        Files.writeString(fixtureDir.resolve("fixture.properties"), properties, UTF_8);
+        return fixtureDir;
+    }
+
+    private Path writeAsyncObjectMethodFixture(final String name) throws IOException {
+        final Path fixtureDir = tempDir.resolve(name);
+        final Path inputDir = fixtureDir.resolve("input");
+        final Path expectedDir = fixtureDir.resolve("expected");
+        Files.createDirectories(inputDir);
+        Files.createDirectories(expectedDir);
+
+        Files.writeString(
+                inputDir.resolve("main.ts"),
+                """
+                const ops = {
+                  async compute(seed: number) {
+                    const value = await Promise.resolve(seed + 2);
+                    return value * 3;
+                  }
+                };
+
+                function onDone(result: number) {
+                  console.log("done=" + result);
+                  return result;
+                }
+
+                ops.compute(2).then(onDone);
+                console.log("sync");
+                """,
+                UTF_8
+        );
+
+        final String expectedOutput = "sync\ndone=12\n";
         Files.writeString(expectedDir.resolve("node.stdout"), expectedOutput, UTF_8);
         Files.writeString(expectedDir.resolve("node.stderr"), "", UTF_8);
         Files.writeString(expectedDir.resolve("tsj.stdout"), expectedOutput, UTF_8);

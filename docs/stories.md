@@ -220,6 +220,15 @@
   - Support async class methods and async object literal methods.
   - Support `await` in expression positions beyond standalone statement/initializer forms.
   - Unsupported placements fail with targeted diagnostics.
+- Notes:
+  - Current implementation pass adds parser/codegen support for:
+    async function expressions, async arrow functions, async class methods, and async object-literal methods.
+  - Async lowering now normalizes supported await-containing expressions into explicit await sites
+    before continuation emission (e.g. return expressions, binary/call/object-literal value positions, async if conditions).
+  - Fixture coverage includes `tests/fixtures/tsj13b-async-arrow` and `tests/fixtures/tsj13b-async-object-method`.
+  - Known deviations in this pass:
+    async while conditions with `await` remain unsupported;
+    async methods in class/object declarations are only supported in standard method form (not generator/getter/setter variants).
 - Dependencies: TSJ-13a, TSJ-9.
 
 ### TSJ-13c: Promise resolution procedure and thenable assimilation

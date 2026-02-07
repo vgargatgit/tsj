@@ -95,6 +95,7 @@ TSJ-11 extends object runtime behavior with prototype mutation validation, `dele
 TSJ-12 extends compile/run with bootstrap multi-file module loading for relative imports, deterministic dependency-first initialization, and baseline live-binding behavior for supported patterns.
 TSJ-13 adds `async function` + `await` lowering over `TsjPromise`, throw-to-rejection normalization, and async sequencing tests that validate post-sync microtask ordering.
 TSJ-13a extends async lowering with control-flow continuations for `if`/`while` blocks containing multiple standalone await suspension points.
+TSJ-13b extends async language coverage with function expressions, arrow functions, async class/object methods, and await normalization across supported expression positions in async bodies.
 
 ## Frontend and IR Tools
 
@@ -130,6 +131,8 @@ Seed fixture:
 - `tests/fixtures/tsj13-async-reject`
 - `tests/fixtures/tsj13a-async-if`
 - `tests/fixtures/tsj13a-async-while`
+- `tests/fixtures/tsj13b-async-arrow`
+- `tests/fixtures/tsj13b-async-object-method`
 
 ## Project Planning Docs
 

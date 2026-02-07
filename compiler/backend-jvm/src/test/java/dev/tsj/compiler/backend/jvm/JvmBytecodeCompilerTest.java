@@ -726,29 +726,34 @@ class JvmBytecodeCompilerTest {
     }
 
     @Test
-    void rejectsAwaitInAsyncIfConditionForNow() throws Exception {
+    void supportsAwaitInAsyncIfCondition() throws Exception {
         final Path sourceFile = tempDir.resolve("async-if-condition-await.ts");
         Files.writeString(
                 sourceFile,
                 """
-                async function bad() {
+                async function choose() {
                   if (await Promise.resolve(true)) {
                     return 1;
                   }
                   return 0;
                 }
 
-                bad().then(console.log);
+                function onDone(value: number) {
+                  console.log("done=" + value);
+                  return value;
+                }
+
+                choose().then(onDone);
+                console.log("sync");
                 """,
                 UTF_8
         );
 
-        final JvmCompilationException exception = org.junit.jupiter.api.Assertions.assertThrows(
-                JvmCompilationException.class,
-                () -> new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out22h"))
-        );
-        assertEquals("TSJ-BACKEND-UNSUPPORTED", exception.code());
-        assertTrue(exception.getMessage().contains("condition"));
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out22h"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals("sync\ndone=1\n", stdout.toString(UTF_8));
     }
 
     @Test
@@ -852,6 +857,180 @@ class JvmBytecodeCompilerTest {
         );
         assertEquals("TSJ-BACKEND-UNSUPPORTED", exception.code());
         assertTrue(exception.getMessage().contains("while condition"));
+    }
+
+    @Test
+    void supportsAsyncFunctionExpressionWithAwaitInBinaryExpression() throws Exception {
+        final Path sourceFile = tempDir.resolve("async-fn-expression.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                const compute = async function(seed: number) {
+                  return (await Promise.resolve(seed + 1)) + 2;
+                };
+
+                function onDone(value: number) {
+                  console.log("done=" + value);
+                  return value;
+                }
+
+                compute(4).then(onDone);
+                console.log("sync");
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out22l"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals("sync\ndone=7\n", stdout.toString(UTF_8));
+    }
+
+    @Test
+    void supportsAsyncArrowFunctionWithAwaitExpressionBody() throws Exception {
+        final Path sourceFile = tempDir.resolve("async-arrow.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                const inc = async (value: number) => (await Promise.resolve(value)) + 1;
+
+                function onDone(result: number) {
+                  console.log("done=" + result);
+                  return result;
+                }
+
+                inc(5).then(onDone);
+                console.log("sync");
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out22m"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals("sync\ndone=6\n", stdout.toString(UTF_8));
+    }
+
+    @Test
+    void supportsAsyncClassMethodWithAwaitInReturnExpression() throws Exception {
+        final Path sourceFile = tempDir.resolve("async-class-method.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                class Worker {
+                  async compute(seed: number) {
+                    return (await Promise.resolve(seed + 1)) * 2;
+                  }
+                }
+
+                function onDone(value: number) {
+                  console.log("done=" + value);
+                  return value;
+                }
+
+                const worker = new Worker();
+                worker.compute(3).then(onDone);
+                console.log("sync");
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out22n"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals("sync\ndone=8\n", stdout.toString(UTF_8));
+    }
+
+    @Test
+    void supportsAsyncObjectMethodWithAwaitInInitializerAndReturn() throws Exception {
+        final Path sourceFile = tempDir.resolve("async-object-method.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                const ops = {
+                  async compute(seed: number) {
+                    const value = await Promise.resolve(seed + 2);
+                    return value * 3;
+                  }
+                };
+
+                function onDone(result: number) {
+                  console.log("done=" + result);
+                  return result;
+                }
+
+                ops.compute(2).then(onDone);
+                console.log("sync");
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out22o"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals("sync\ndone=12\n", stdout.toString(UTF_8));
+    }
+
+    @Test
+    void supportsAwaitInsideCallArgumentsAndObjectLiteralValues() throws Exception {
+        final Path sourceFile = tempDir.resolve("await-expression-positions.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                function add(a: number, b: number) {
+                  return a + b;
+                }
+
+                async function run() {
+                  const payload = {
+                    left: await Promise.resolve(2),
+                    right: await Promise.resolve(3)
+                  };
+                  const total = add(await Promise.resolve(payload.left), await Promise.resolve(payload.right));
+                  console.log("total=" + total);
+                  return total;
+                }
+
+                function onDone(value: number) {
+                  console.log("done=" + value);
+                  return value;
+                }
+
+                run().then(onDone);
+                console.log("sync");
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out22p"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals("sync\ntotal=5\ndone=5\n", stdout.toString(UTF_8));
+    }
+
+    @Test
+    void rejectsAwaitInsideNonAsyncArrowFunction() throws Exception {
+        final Path sourceFile = tempDir.resolve("await-non-async-arrow.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                const read = (seed: number) => await Promise.resolve(seed + 1);
+                console.log(read(1));
+                """,
+                UTF_8
+        );
+
+        final JvmCompilationException exception = org.junit.jupiter.api.Assertions.assertThrows(
+                JvmCompilationException.class,
+                () -> new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out22q"))
+        );
+        assertEquals("TSJ-BACKEND-UNSUPPORTED", exception.code());
+        assertTrue(exception.getMessage().contains("await"));
     }
 
     @Test

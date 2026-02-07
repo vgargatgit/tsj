@@ -451,7 +451,8 @@ public final class JvmBytecodeCompiler {
                     || "<=".equals(two)
                     || ">=".equals(two)
                     || "&&".equals(two)
-                    || "||".equals(two)) {
+                    || "||".equals(two)
+                    || "=>".equals(two)) {
                 tokens.add(new Token(TokenType.SYMBOL, two, line, column));
                 index += 2;
                 column += 2;
@@ -580,7 +581,7 @@ public final class JvmBytecodeCompiler {
     ) {
     }
 
-    private record ClassMethod(String name, List<String> parameters, List<Statement> body) {
+    private record ClassMethod(String name, List<String> parameters, List<Statement> body, boolean async) {
     }
 
     private sealed interface Expression permits
@@ -593,6 +594,7 @@ public final class JvmBytecodeCompiler {
             ThisExpression,
             UnaryExpression,
             AwaitExpression,
+            FunctionExpression,
             BinaryExpression,
             CallExpression,
             MemberAccessExpression,
@@ -625,6 +627,10 @@ public final class JvmBytecodeCompiler {
     }
 
     private record AwaitExpression(Expression expression) implements Expression {
+    }
+
+    private record FunctionExpression(List<String> parameters, List<Statement> body, boolean async)
+            implements Expression {
     }
 
     private record BinaryExpression(Expression left, String operator, Expression right) implements Expression {
@@ -809,8 +815,17 @@ public final class JvmBytecodeCompiler {
             final List<ClassMethod> methods = new ArrayList<>();
             ClassMethod constructorMethod = null;
             while (!checkSymbol("}") && !isAtEnd()) {
+                final boolean asyncMethod = matchKeyword("async");
                 final Token memberName = consumeIdentifier("Expected class member name.");
                 if (matchSymbol(":")) {
+                    if (asyncMethod) {
+                        throw new JvmCompilationException(
+                                "TSJ-BACKEND-UNSUPPORTED",
+                                "Async class fields are unsupported in TSJ-13b subset.",
+                                memberName.line(),
+                                memberName.column()
+                        );
+                    }
                     skipTypeAnnotation();
                     consumeSymbol(";", "Expected `;` after class field declaration.");
                     fields.add(memberName.text());
@@ -832,8 +847,21 @@ public final class JvmBytecodeCompiler {
                     skipTypeAnnotation();
                 }
                 final List<Statement> body = parseBlock(true);
-                final ClassMethod method = new ClassMethod(memberName.text(), List.copyOf(parameters), List.copyOf(body));
+                final ClassMethod method = new ClassMethod(
+                        memberName.text(),
+                        List.copyOf(parameters),
+                        List.copyOf(body),
+                        asyncMethod
+                );
                 if ("constructor".equals(memberName.text())) {
+                    if (asyncMethod) {
+                        throw new JvmCompilationException(
+                                "TSJ-BACKEND-UNSUPPORTED",
+                                "Async constructors are unsupported in TSJ-13b subset.",
+                                memberName.line(),
+                                memberName.column()
+                        );
+                    }
                     if (constructorMethod != null) {
                         throw new JvmCompilationException(
                                 "TSJ-BACKEND-UNSUPPORTED",
@@ -1048,6 +1076,31 @@ public final class JvmBytecodeCompiler {
         }
 
         private Expression parsePrimary() {
+            if (matchKeyword("async")) {
+                if (matchKeyword("function")) {
+                    return parseFunctionExpression(true);
+                }
+                if (current().type() == TokenType.IDENTIFIER
+                        && lookAhead(1).type() == TokenType.SYMBOL
+                        && "=>".equals(lookAhead(1).text())) {
+                    final Token parameter = advance();
+                    consumeSymbol("=>", "Expected `=>` after async arrow parameter.");
+                    return parseArrowFunctionExpression(List.of(parameter.text()), true);
+                }
+                if (checkSymbol("(") && looksLikeParenthesizedArrowFunction()) {
+                    return parseArrowFunctionExpressionFromParenthesized(true);
+                }
+                final Token token = current();
+                throw new JvmCompilationException(
+                        "TSJ-BACKEND-UNSUPPORTED",
+                        "Unsupported async expression form in TSJ-13b subset.",
+                        token.line(),
+                        token.column()
+                );
+            }
+            if (matchKeyword("function")) {
+                return parseFunctionExpression(false);
+            }
             if (matchType(TokenType.NUMBER)) {
                 return new NumberLiteral(previous().text());
             }
@@ -1069,8 +1122,15 @@ public final class JvmBytecodeCompiler {
             if (matchKeyword("this")) {
                 return new ThisExpression();
             }
+            if (checkSymbol("(") && looksLikeParenthesizedArrowFunction()) {
+                return parseArrowFunctionExpressionFromParenthesized(false);
+            }
             if (matchType(TokenType.IDENTIFIER)) {
-                return new VariableExpression(previous().text());
+                final Token identifier = previous();
+                if (matchSymbol("=>")) {
+                    return parseArrowFunctionExpression(List.of(identifier.text()), false);
+                }
+                return new VariableExpression(identifier.text());
             }
             if (matchSymbol("{")) {
                 return parseObjectLiteral();
@@ -1093,11 +1153,24 @@ public final class JvmBytecodeCompiler {
             final List<ObjectLiteralEntry> entries = new ArrayList<>();
             if (!checkSymbol("}")) {
                 do {
+                    if (current().type() == TokenType.KEYWORD
+                            && "async".equals(current().text())
+                            && lookAhead(1).type() == TokenType.IDENTIFIER
+                            && lookAhead(2).type() == TokenType.SYMBOL
+                            && "(".equals(lookAhead(2).text())) {
+                        advance();
+                        final Token methodName = consumeIdentifier("Expected async object method name.");
+                        entries.add(new ObjectLiteralEntry(methodName.text(), parseMethodFunctionExpression(true)));
+                        continue;
+                    }
+
                     final String key;
                     if (matchType(TokenType.IDENTIFIER)) {
                         key = previous().text();
                     } else if (matchType(TokenType.STRING)) {
                         key = previous().text();
+                    } else if (matchKeyword("async")) {
+                        key = "async";
                     } else {
                         final Token token = current();
                         throw new JvmCompilationException(
@@ -1107,12 +1180,131 @@ public final class JvmBytecodeCompiler {
                                 token.column()
                         );
                     }
-                    consumeSymbol(":", "Expected `:` after object literal property name.");
-                    entries.add(new ObjectLiteralEntry(key, parseExpression()));
+                    if (matchSymbol(":")) {
+                        entries.add(new ObjectLiteralEntry(key, parseExpression()));
+                    } else if (checkSymbol("(")) {
+                        entries.add(new ObjectLiteralEntry(key, parseMethodFunctionExpression(false)));
+                    } else {
+                        final Token token = current();
+                        throw new JvmCompilationException(
+                                "TSJ-BACKEND-PARSE",
+                                "Expected `:` or `(` after object literal property name.",
+                                token.line(),
+                                token.column()
+                        );
+                    }
                 } while (matchSymbol(","));
             }
             consumeSymbol("}", "Expected `}` to close object literal.");
             return new ObjectLiteralExpression(List.copyOf(entries));
+        }
+
+        private FunctionExpression parseFunctionExpression(final boolean asyncFunction) {
+            if (current().type() == TokenType.IDENTIFIER
+                    && lookAhead(1).type() == TokenType.SYMBOL
+                    && "(".equals(lookAhead(1).text())) {
+                advance();
+            }
+            consumeSymbol("(", "Expected `(` after function keyword.");
+            final List<String> parameters = new ArrayList<>();
+            if (!checkSymbol(")")) {
+                do {
+                    final Token parameter = consumeIdentifier("Expected parameter name.");
+                    parameters.add(parameter.text());
+                    if (matchSymbol(":")) {
+                        skipTypeAnnotation();
+                    }
+                } while (matchSymbol(","));
+            }
+            consumeSymbol(")", "Expected `)` after function parameter list.");
+            if (matchSymbol(":")) {
+                skipTypeAnnotation();
+            }
+            final List<Statement> body = parseBlock(true);
+            return new FunctionExpression(List.copyOf(parameters), List.copyOf(body), asyncFunction);
+        }
+
+        private FunctionExpression parseArrowFunctionExpressionFromParenthesized(final boolean asyncFunction) {
+            consumeSymbol("(", "Expected `(` before arrow parameters.");
+            final List<String> parameters = new ArrayList<>();
+            if (!checkSymbol(")")) {
+                do {
+                    final Token parameter = consumeIdentifier("Expected arrow function parameter name.");
+                    parameters.add(parameter.text());
+                    if (matchSymbol(":")) {
+                        skipTypeAnnotation();
+                    }
+                } while (matchSymbol(","));
+            }
+            consumeSymbol(")", "Expected `)` after arrow parameters.");
+            if (matchSymbol(":")) {
+                skipTypeAnnotation();
+            }
+            consumeSymbol("=>", "Expected `=>` after arrow parameters.");
+            return parseArrowFunctionExpression(parameters, asyncFunction);
+        }
+
+        private FunctionExpression parseArrowFunctionExpression(
+                final List<String> parameters,
+                final boolean asyncFunction
+        ) {
+            final List<Statement> body = parseArrowFunctionBody();
+            return new FunctionExpression(List.copyOf(parameters), List.copyOf(body), asyncFunction);
+        }
+
+        private List<Statement> parseArrowFunctionBody() {
+            if (checkSymbol("{")) {
+                return parseBlock(true);
+            }
+            return List.of(new ReturnStatement(parseExpression()));
+        }
+
+        private FunctionExpression parseMethodFunctionExpression(final boolean asyncFunction) {
+            consumeSymbol("(", "Expected `(` after object method name.");
+            final List<String> parameters = new ArrayList<>();
+            if (!checkSymbol(")")) {
+                do {
+                    final Token parameter = consumeIdentifier("Expected method parameter name.");
+                    parameters.add(parameter.text());
+                    if (matchSymbol(":")) {
+                        skipTypeAnnotation();
+                    }
+                } while (matchSymbol(","));
+            }
+            consumeSymbol(")", "Expected `)` after method parameters.");
+            if (matchSymbol(":")) {
+                skipTypeAnnotation();
+            }
+            final List<Statement> body = parseBlock(true);
+            return new FunctionExpression(List.copyOf(parameters), List.copyOf(body), asyncFunction);
+        }
+
+        private boolean looksLikeParenthesizedArrowFunction() {
+            int cursor = index;
+            if (tokens.get(cursor).type() != TokenType.SYMBOL || !"(".equals(tokens.get(cursor).text())) {
+                return false;
+            }
+            int depth = 0;
+            while (cursor < tokens.size()) {
+                final Token token = tokens.get(cursor);
+                if (token.type() == TokenType.SYMBOL) {
+                    if ("(".equals(token.text())) {
+                        depth++;
+                    } else if (")".equals(token.text())) {
+                        depth--;
+                        if (depth == 0) {
+                            cursor++;
+                            break;
+                        }
+                    }
+                }
+                cursor++;
+            }
+            if (depth != 0 || cursor >= tokens.size()) {
+                return false;
+            }
+            final Token next = tokens.get(cursor);
+            return next.type() == TokenType.SYMBOL && "=>".equals(next.text());
         }
 
         private boolean isConsoleLogStart() {
@@ -1455,11 +1647,13 @@ public final class JvmBytecodeCompiler {
                     .append(") -> {\n");
 
             final EmissionContext functionContext = new EmissionContext(context);
+            final List<Statement> normalizedBody =
+                    normalizeAsyncStatementsForAwaitExpressions(functionContext, declaration.body());
             emitParameterCells(builder, functionContext, declaration.parameters(), argsVar, indent + "    ");
-            predeclareAsyncLocalBindings(builder, functionContext, declaration.body(), indent + "    ");
+            predeclareAsyncLocalBindings(builder, functionContext, normalizedBody, indent + "    ");
 
             builder.append(indent).append("    try {\n");
-            emitAsyncStatements(builder, functionContext, declaration.body(), indent + "        ");
+            emitAsyncStatements(builder, functionContext, normalizedBody, indent + "        ");
             builder.append(indent).append("    } catch (RuntimeException __tsjAsyncError) {\n");
             builder.append(indent)
                     .append("        return dev.tsj.runtime.TsjRuntime.promiseReject(")
@@ -1551,10 +1745,23 @@ public final class JvmBytecodeCompiler {
             final EmissionContext methodContext =
                     new EmissionContext(context, thisVar, superClassExpression, constructor);
             emitParameterCells(builder, methodContext, method.parameters(), argsVar, indent + "    ");
-            emitStatements(builder, methodContext, method.body(), indent + "    ", true);
-            if (method.body().isEmpty()
-                    || !(method.body().get(method.body().size() - 1) instanceof ReturnStatement)) {
-                builder.append(indent).append("    return null;\n");
+            if (!constructor && method.async()) {
+                final List<Statement> normalizedBody =
+                        normalizeAsyncStatementsForAwaitExpressions(methodContext, method.body());
+                predeclareAsyncLocalBindings(builder, methodContext, normalizedBody, indent + "    ");
+                builder.append(indent).append("    try {\n");
+                emitAsyncStatements(builder, methodContext, normalizedBody, indent + "        ");
+                builder.append(indent).append("    } catch (RuntimeException __tsjAsyncError) {\n");
+                builder.append(indent)
+                        .append("        return dev.tsj.runtime.TsjRuntime.promiseReject(")
+                        .append("dev.tsj.runtime.TsjRuntime.normalizeThrown(__tsjAsyncError));\n");
+                builder.append(indent).append("    }\n");
+            } else {
+                emitStatements(builder, methodContext, method.body(), indent + "    ", true);
+                if (method.body().isEmpty()
+                        || !(method.body().get(method.body().size() - 1) instanceof ReturnStatement)) {
+                    builder.append(indent).append("    return null;\n");
+                }
             }
             builder.append(indent).append("});\n");
         }
@@ -1582,6 +1789,210 @@ public final class JvmBytecodeCompiler {
                         .append(index)
                         .append("] : null);\n");
             }
+        }
+
+        private String emitFunctionExpression(
+                final EmissionContext context,
+                final FunctionExpression functionExpression
+        ) {
+            final String argsVar = context.allocateGeneratedName("lambdaArgs");
+            final StringBuilder functionBuilder = new StringBuilder();
+            functionBuilder.append("((dev.tsj.runtime.TsjCallable) (Object... ")
+                    .append(argsVar)
+                    .append(") -> {\n");
+
+            final EmissionContext functionContext = new EmissionContext(context);
+            emitParameterCells(functionBuilder, functionContext, functionExpression.parameters(), argsVar, "    ");
+
+            if (functionExpression.async()) {
+                final List<Statement> normalizedBody =
+                        normalizeAsyncStatementsForAwaitExpressions(functionContext, functionExpression.body());
+                predeclareAsyncLocalBindings(functionBuilder, functionContext, normalizedBody, "    ");
+                functionBuilder.append("    try {\n");
+                emitAsyncStatements(functionBuilder, functionContext, normalizedBody, "        ");
+                functionBuilder.append("    } catch (RuntimeException __tsjAsyncError) {\n");
+                functionBuilder.append("        return dev.tsj.runtime.TsjRuntime.promiseReject(")
+                        .append("dev.tsj.runtime.TsjRuntime.normalizeThrown(__tsjAsyncError));\n");
+                functionBuilder.append("    }\n");
+            } else {
+                emitStatements(functionBuilder, functionContext, functionExpression.body(), "    ", true);
+                if (functionExpression.body().isEmpty()
+                        || !(functionExpression.body().get(functionExpression.body().size() - 1) instanceof ReturnStatement)) {
+                    functionBuilder.append("    return null;\n");
+                }
+            }
+
+            functionBuilder.append("})");
+            return functionBuilder.toString();
+        }
+
+        private List<Statement> normalizeAsyncStatementsForAwaitExpressions(
+                final EmissionContext context,
+                final List<Statement> statements
+        ) {
+            final List<Statement> normalized = new ArrayList<>();
+            for (Statement statement : statements) {
+                normalized.addAll(rewriteAsyncStatementForAwait(context, statement));
+            }
+            return List.copyOf(normalized);
+        }
+
+        private List<Statement> rewriteAsyncStatementForAwait(
+                final EmissionContext context,
+                final Statement statement
+        ) {
+            if (statement instanceof VariableDeclaration declaration) {
+                final AwaitExpressionRewrite rewritten = rewriteAsyncExpressionForAwait(context, declaration.expression());
+                final List<Statement> expanded = new ArrayList<>(rewritten.hoistedStatements());
+                expanded.add(new VariableDeclaration(declaration.name(), rewritten.expression()));
+                return List.copyOf(expanded);
+            }
+            if (statement instanceof AssignmentStatement assignment) {
+                if (expressionContainsAwait(assignment.target())) {
+                    throw new JvmCompilationException(
+                            "TSJ-BACKEND-UNSUPPORTED",
+                            "Await is unsupported in assignment target."
+                    );
+                }
+                final AwaitExpressionRewrite rewritten = rewriteAsyncExpressionForAwait(context, assignment.expression());
+                final List<Statement> expanded = new ArrayList<>(rewritten.hoistedStatements());
+                expanded.add(new AssignmentStatement(assignment.target(), rewritten.expression()));
+                return List.copyOf(expanded);
+            }
+            if (statement instanceof ReturnStatement returnStatement) {
+                final AwaitExpressionRewrite rewritten = rewriteAsyncExpressionForAwait(context, returnStatement.expression());
+                final List<Statement> expanded = new ArrayList<>(rewritten.hoistedStatements());
+                expanded.add(new ReturnStatement(rewritten.expression()));
+                return List.copyOf(expanded);
+            }
+            if (statement instanceof ThrowStatement throwStatement) {
+                final AwaitExpressionRewrite rewritten = rewriteAsyncExpressionForAwait(context, throwStatement.expression());
+                final List<Statement> expanded = new ArrayList<>(rewritten.hoistedStatements());
+                expanded.add(new ThrowStatement(rewritten.expression()));
+                return List.copyOf(expanded);
+            }
+            if (statement instanceof ConsoleLogStatement logStatement) {
+                final AwaitExpressionRewrite rewritten = rewriteAsyncExpressionForAwait(context, logStatement.expression());
+                final List<Statement> expanded = new ArrayList<>(rewritten.hoistedStatements());
+                expanded.add(new ConsoleLogStatement(rewritten.expression()));
+                return List.copyOf(expanded);
+            }
+            if (statement instanceof ExpressionStatement expressionStatement) {
+                final AwaitExpressionRewrite rewritten =
+                        rewriteAsyncExpressionForAwait(context, expressionStatement.expression());
+                final List<Statement> expanded = new ArrayList<>(rewritten.hoistedStatements());
+                expanded.add(new ExpressionStatement(rewritten.expression()));
+                return List.copyOf(expanded);
+            }
+            if (statement instanceof IfStatement ifStatement) {
+                final AwaitExpressionRewrite rewrittenCondition =
+                        rewriteAsyncExpressionForAwait(context, ifStatement.condition());
+                final EmissionContext thenContext = new EmissionContext(context);
+                final EmissionContext elseContext = new EmissionContext(context);
+                final List<Statement> rewrittenThen =
+                        normalizeAsyncStatementsForAwaitExpressions(thenContext, ifStatement.thenBlock());
+                final List<Statement> rewrittenElse =
+                        normalizeAsyncStatementsForAwaitExpressions(elseContext, ifStatement.elseBlock());
+                final List<Statement> expanded = new ArrayList<>(rewrittenCondition.hoistedStatements());
+                expanded.add(new IfStatement(rewrittenCondition.expression(), rewrittenThen, rewrittenElse));
+                return List.copyOf(expanded);
+            }
+            if (statement instanceof WhileStatement whileStatement) {
+                if (expressionContainsAwait(whileStatement.condition())) {
+                    throw new JvmCompilationException(
+                            "TSJ-BACKEND-UNSUPPORTED",
+                            "`await` in async while condition is unsupported in TSJ-13b."
+                    );
+                }
+                final EmissionContext bodyContext = new EmissionContext(context);
+                final List<Statement> rewrittenBody =
+                        normalizeAsyncStatementsForAwaitExpressions(bodyContext, whileStatement.body());
+                return List.of(new WhileStatement(whileStatement.condition(), rewrittenBody));
+            }
+            return List.of(statement);
+        }
+
+        private AwaitExpressionRewrite rewriteAsyncExpressionForAwait(
+                final EmissionContext context,
+                final Expression expression
+        ) {
+            if (expression instanceof AwaitExpression awaitExpression) {
+                final AwaitExpressionRewrite rewrittenInner =
+                        rewriteAsyncExpressionForAwait(context, awaitExpression.expression());
+                final String tempName = context.allocateGeneratedName("awaitExpr");
+                final List<Statement> hoisted = new ArrayList<>(rewrittenInner.hoistedStatements());
+                hoisted.add(new VariableDeclaration(tempName, new AwaitExpression(rewrittenInner.expression())));
+                return new AwaitExpressionRewrite(new VariableExpression(tempName), List.copyOf(hoisted));
+            }
+            if (expression instanceof UnaryExpression unaryExpression) {
+                final AwaitExpressionRewrite rewrittenOperand =
+                        rewriteAsyncExpressionForAwait(context, unaryExpression.expression());
+                return new AwaitExpressionRewrite(
+                        new UnaryExpression(unaryExpression.operator(), rewrittenOperand.expression()),
+                        rewrittenOperand.hoistedStatements()
+                );
+            }
+            if (expression instanceof BinaryExpression binaryExpression) {
+                final AwaitExpressionRewrite rewrittenLeft =
+                        rewriteAsyncExpressionForAwait(context, binaryExpression.left());
+                final AwaitExpressionRewrite rewrittenRight =
+                        rewriteAsyncExpressionForAwait(context, binaryExpression.right());
+                final List<Statement> hoisted = new ArrayList<>(rewrittenLeft.hoistedStatements());
+                hoisted.addAll(rewrittenRight.hoistedStatements());
+                return new AwaitExpressionRewrite(
+                        new BinaryExpression(rewrittenLeft.expression(), binaryExpression.operator(), rewrittenRight.expression()),
+                        List.copyOf(hoisted)
+                );
+            }
+            if (expression instanceof CallExpression callExpression) {
+                final AwaitExpressionRewrite rewrittenCallee =
+                        rewriteAsyncExpressionForAwait(context, callExpression.callee());
+                final List<Expression> rewrittenArguments = new ArrayList<>();
+                final List<Statement> hoisted = new ArrayList<>(rewrittenCallee.hoistedStatements());
+                for (Expression argument : callExpression.arguments()) {
+                    final AwaitExpressionRewrite rewrittenArgument = rewriteAsyncExpressionForAwait(context, argument);
+                    hoisted.addAll(rewrittenArgument.hoistedStatements());
+                    rewrittenArguments.add(rewrittenArgument.expression());
+                }
+                return new AwaitExpressionRewrite(
+                        new CallExpression(rewrittenCallee.expression(), List.copyOf(rewrittenArguments)),
+                        List.copyOf(hoisted)
+                );
+            }
+            if (expression instanceof MemberAccessExpression memberAccessExpression) {
+                final AwaitExpressionRewrite rewrittenReceiver =
+                        rewriteAsyncExpressionForAwait(context, memberAccessExpression.receiver());
+                return new AwaitExpressionRewrite(
+                        new MemberAccessExpression(rewrittenReceiver.expression(), memberAccessExpression.member()),
+                        rewrittenReceiver.hoistedStatements()
+                );
+            }
+            if (expression instanceof NewExpression newExpression) {
+                final AwaitExpressionRewrite rewrittenConstructor =
+                        rewriteAsyncExpressionForAwait(context, newExpression.constructor());
+                final List<Expression> rewrittenArguments = new ArrayList<>();
+                final List<Statement> hoisted = new ArrayList<>(rewrittenConstructor.hoistedStatements());
+                for (Expression argument : newExpression.arguments()) {
+                    final AwaitExpressionRewrite rewrittenArgument = rewriteAsyncExpressionForAwait(context, argument);
+                    hoisted.addAll(rewrittenArgument.hoistedStatements());
+                    rewrittenArguments.add(rewrittenArgument.expression());
+                }
+                return new AwaitExpressionRewrite(
+                        new NewExpression(rewrittenConstructor.expression(), List.copyOf(rewrittenArguments)),
+                        List.copyOf(hoisted)
+                );
+            }
+            if (expression instanceof ObjectLiteralExpression objectLiteralExpression) {
+                final List<ObjectLiteralEntry> rewrittenEntries = new ArrayList<>();
+                final List<Statement> hoisted = new ArrayList<>();
+                for (ObjectLiteralEntry entry : objectLiteralExpression.entries()) {
+                    final AwaitExpressionRewrite rewrittenValue = rewriteAsyncExpressionForAwait(context, entry.value());
+                    hoisted.addAll(rewrittenValue.hoistedStatements());
+                    rewrittenEntries.add(new ObjectLiteralEntry(entry.key(), rewrittenValue.expression()));
+                }
+                return new AwaitExpressionRewrite(new ObjectLiteralExpression(List.copyOf(rewrittenEntries)), List.copyOf(hoisted));
+            }
+            return new AwaitExpressionRewrite(expression, List.of());
         }
 
         private void predeclareAsyncLocalBindings(
@@ -2224,6 +2635,9 @@ public final class JvmBytecodeCompiler {
                         "Unsupported unary operator: " + unaryExpression.operator()
                 );
             }
+            if (expression instanceof FunctionExpression functionExpression) {
+                return emitFunctionExpression(context, functionExpression);
+            }
             if (expression instanceof AwaitExpression) {
                 throw new JvmCompilationException(
                         "TSJ-BACKEND-UNSUPPORTED",
@@ -2363,6 +2777,12 @@ public final class JvmBytecodeCompiler {
                             + "\");"
             );
             return fieldName;
+        }
+
+        private record AwaitExpressionRewrite(
+                Expression expression,
+                List<Statement> hoistedStatements
+        ) {
         }
 
         private enum AwaitSiteKind {

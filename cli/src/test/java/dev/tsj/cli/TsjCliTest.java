@@ -483,6 +483,86 @@ class TsjCliTest {
     }
 
     @Test
+    void runExecutesAsyncArrowProgram() throws Exception {
+        final Path entryFile = tempDir.resolve("async-arrow.ts");
+        Files.writeString(
+                entryFile,
+                """
+                const inc = async (value: number) => (await Promise.resolve(value)) + 1;
+
+                function onDone(result: number) {
+                  console.log("done=" + result);
+                  return result;
+                }
+
+                inc(5).then(onDone);
+                console.log("sync");
+                """,
+                UTF_8
+        );
+
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+
+        final int exitCode = TsjCli.execute(
+                new String[]{"run", entryFile.toString(), "--out", tempDir.resolve("async-arrow-out").toString()},
+                new PrintStream(stdout),
+                new PrintStream(stderr)
+        );
+
+        assertEquals(0, exitCode);
+        assertTrue(stdout.toString(UTF_8).contains("sync"));
+        assertTrue(stdout.toString(UTF_8).contains("done=6"));
+        assertTrue(stdout.toString(UTF_8).contains("\"code\":\"TSJ-RUN-SUCCESS\""));
+        assertEquals("", stderr.toString(UTF_8));
+    }
+
+    @Test
+    void runExecutesAsyncObjectMethodProgram() throws Exception {
+        final Path entryFile = tempDir.resolve("async-object-method.ts");
+        Files.writeString(
+                entryFile,
+                """
+                const ops = {
+                  async compute(seed: number) {
+                    const value = await Promise.resolve(seed + 2);
+                    return value * 3;
+                  }
+                };
+
+                function onDone(result: number) {
+                  console.log("done=" + result);
+                  return result;
+                }
+
+                ops.compute(2).then(onDone);
+                console.log("sync");
+                """,
+                UTF_8
+        );
+
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+
+        final int exitCode = TsjCli.execute(
+                new String[]{
+                        "run",
+                        entryFile.toString(),
+                        "--out",
+                        tempDir.resolve("async-object-method-out").toString()
+                },
+                new PrintStream(stdout),
+                new PrintStream(stderr)
+        );
+
+        assertEquals(0, exitCode);
+        assertTrue(stdout.toString(UTF_8).contains("sync"));
+        assertTrue(stdout.toString(UTF_8).contains("done=12"));
+        assertTrue(stdout.toString(UTF_8).contains("\"code\":\"TSJ-RUN-SUCCESS\""));
+        assertEquals("", stderr.toString(UTF_8));
+    }
+
+    @Test
     void runExecutesProgramWithRelativeNamedImports() throws Exception {
         final Path helperFile = tempDir.resolve("helper.ts");
         final Path entryFile = tempDir.resolve("main.ts");
