@@ -17,6 +17,9 @@ Current implementation status includes:
 12. Dynamic object runtime upgrades with prototype links, delete semantics, shape tokens, and monomorphic property read caches (`TSJ-11`)
 13. Multi-file module bootstrap via relative ESM import bundling, deterministic dependency initialization order, and live-binding-safe fixture coverage (`TSJ-12`)
 14. Promise runtime + async/await lowering with deterministic microtask sequencing and rejection propagation (`TSJ-13`)
+15. Async/promise error semantics with Promise `catch` + `finally` behavior and unhandled rejection emission (`TSJ-13d`)
+16. Promise combinators (`all`, `race`, `allSettled`, `any`) with array-literal inputs and differential fixtures (`TSJ-13e`)
+17. Top-level await lowering for entry/module initialization order with async diagnostics for unsupported await placements (`TSJ-13f`)
 
 ## Repository Layout
 
@@ -96,6 +99,10 @@ TSJ-12 extends compile/run with bootstrap multi-file module loading for relative
 TSJ-13 adds `async function` + `await` lowering over `TsjPromise`, throw-to-rejection normalization, and async sequencing tests that validate post-sync microtask ordering.
 TSJ-13a extends async lowering with control-flow continuations for `if`/`while` blocks containing multiple standalone await suspension points.
 TSJ-13b extends async language coverage with function expressions, arrow functions, async class/object methods, and await normalization across supported expression positions in async bodies.
+TSJ-13c extends promise runtime semantics with thenable assimilation, self-resolution protection, first-settle-wins handling, and chained thenable adoption.
+TSJ-13d extends async/promise error semantics with Promise `catch` + `finally` support and runtime unhandled rejection emission.
+TSJ-13e adds Promise combinators (`all`, `race`, `allSettled`, `any`) and minimal array literal lowering for combinator inputs.
+TSJ-13f adds top-level await lowering for entry + module initialization ordering (including transitive imports) and explicit diagnostics for unsupported await-in-while-condition placement.
 
 ## Frontend and IR Tools
 
@@ -133,6 +140,17 @@ Seed fixture:
 - `tests/fixtures/tsj13a-async-while`
 - `tests/fixtures/tsj13b-async-arrow`
 - `tests/fixtures/tsj13b-async-object-method`
+- `tests/fixtures/tsj13c-thenable`
+- `tests/fixtures/tsj13c-thenable-reject`
+- `tests/fixtures/tsj13d-catch-finally`
+- `tests/fixtures/tsj13d-finally-reject`
+- `tests/fixtures/tsj13e-all-race`
+- `tests/fixtures/tsj13e-allsettled-any`
+- `tests/fixtures/tsj13e-any-reject`
+- `tests/fixtures/tsj13f-top-level-await`
+- `tests/fixtures/tsj13f-top-level-await-modules`
+- `tests/fixtures/tsj13f-top-level-await-transitive`
+- `tests/fixtures/tsj13f-top-level-await-while-unsupported`
 
 ## Project Planning Docs
 

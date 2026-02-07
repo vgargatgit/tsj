@@ -10,17 +10,29 @@ public final class TsjPromise extends TsjObject {
     private PromiseState state;
     private Object settledValue;
     private final List<Reaction> reactions;
+    private boolean handled;
+    private boolean unhandledRejectionCheckScheduled;
+    private boolean unhandledRejectionReported;
 
     public TsjPromise() {
         super(null);
         this.state = PromiseState.PENDING;
         this.settledValue = TsjUndefined.INSTANCE;
         this.reactions = new ArrayList<>();
+        this.handled = false;
+        this.unhandledRejectionCheckScheduled = false;
+        this.unhandledRejectionReported = false;
         setOwn("then", (TsjMethod) (thisObject, args) -> ((TsjPromise) thisObject).then(args));
         setOwn(
                 "catch",
                 (TsjMethod) (thisObject, args) -> ((TsjPromise) thisObject).then(
                         TsjUndefined.INSTANCE,
+                        args.length > 0 ? args[0] : TsjUndefined.INSTANCE
+                )
+        );
+        setOwn(
+                "finally",
+                (TsjMethod) (thisObject, args) -> ((TsjPromise) thisObject).finallyPromise(
                         args.length > 0 ? args[0] : TsjUndefined.INSTANCE
                 )
         );
@@ -41,6 +53,169 @@ public final class TsjPromise extends TsjObject {
         return promise;
     }
 
+    public static TsjPromise all(final Object iterable) {
+        final List<Object> values;
+        try {
+            values = TsjRuntime.asArrayLikeList(iterable, "all");
+        } catch (final RuntimeException runtimeException) {
+            return rejected(TsjRuntime.normalizeThrown(runtimeException));
+        }
+        if (values.isEmpty()) {
+            return resolved(TsjRuntime.arrayLiteral());
+        }
+        final TsjPromise result = new TsjPromise();
+        final Object[] resolvedValues = new Object[values.size()];
+        final int[] remaining = new int[]{values.size()};
+        final boolean[] settled = new boolean[]{false};
+        for (int index = 0; index < values.size(); index++) {
+            final int slot = index;
+            resolved(values.get(index)).then(
+                    (TsjCallable) args -> {
+                        if (settled[0]) {
+                            return TsjUndefined.INSTANCE;
+                        }
+                        resolvedValues[slot] = args.length > 0 ? args[0] : TsjUndefined.INSTANCE;
+                        remaining[0]--;
+                        if (remaining[0] == 0) {
+                            settled[0] = true;
+                            result.resolveInternal(TsjRuntime.arrayLiteral(resolvedValues));
+                        }
+                        return TsjUndefined.INSTANCE;
+                    },
+                    (TsjCallable) args -> {
+                        if (settled[0]) {
+                            return TsjUndefined.INSTANCE;
+                        }
+                        settled[0] = true;
+                        result.rejectInternal(args.length > 0 ? args[0] : TsjUndefined.INSTANCE);
+                        return TsjUndefined.INSTANCE;
+                    }
+            );
+        }
+        return result;
+    }
+
+    public static TsjPromise race(final Object iterable) {
+        final List<Object> values;
+        try {
+            values = TsjRuntime.asArrayLikeList(iterable, "race");
+        } catch (final RuntimeException runtimeException) {
+            return rejected(TsjRuntime.normalizeThrown(runtimeException));
+        }
+        final TsjPromise result = new TsjPromise();
+        if (values.isEmpty()) {
+            return result;
+        }
+        final boolean[] settled = new boolean[]{false};
+        for (Object value : values) {
+            resolved(value).then(
+                    (TsjCallable) args -> {
+                        if (settled[0]) {
+                            return TsjUndefined.INSTANCE;
+                        }
+                        settled[0] = true;
+                        result.resolveInternal(args.length > 0 ? args[0] : TsjUndefined.INSTANCE);
+                        return TsjUndefined.INSTANCE;
+                    },
+                    (TsjCallable) args -> {
+                        if (settled[0]) {
+                            return TsjUndefined.INSTANCE;
+                        }
+                        settled[0] = true;
+                        result.rejectInternal(args.length > 0 ? args[0] : TsjUndefined.INSTANCE);
+                        return TsjUndefined.INSTANCE;
+                    }
+            );
+        }
+        return result;
+    }
+
+    public static TsjPromise allSettled(final Object iterable) {
+        final List<Object> values;
+        try {
+            values = TsjRuntime.asArrayLikeList(iterable, "allSettled");
+        } catch (final RuntimeException runtimeException) {
+            return rejected(TsjRuntime.normalizeThrown(runtimeException));
+        }
+        if (values.isEmpty()) {
+            return resolved(TsjRuntime.arrayLiteral());
+        }
+        final TsjPromise result = new TsjPromise();
+        final Object[] settledResults = new Object[values.size()];
+        final int[] remaining = new int[]{values.size()};
+        for (int index = 0; index < values.size(); index++) {
+            final int slot = index;
+            resolved(values.get(index)).then(
+                    (TsjCallable) args -> {
+                        settledResults[slot] = TsjRuntime.objectLiteral(
+                                "status", "fulfilled",
+                                "value", args.length > 0 ? args[0] : TsjUndefined.INSTANCE
+                        );
+                        remaining[0]--;
+                        if (remaining[0] == 0) {
+                            result.resolveInternal(TsjRuntime.arrayLiteral(settledResults));
+                        }
+                        return TsjUndefined.INSTANCE;
+                    },
+                    (TsjCallable) args -> {
+                        settledResults[slot] = TsjRuntime.objectLiteral(
+                                "status", "rejected",
+                                "reason", args.length > 0 ? args[0] : TsjUndefined.INSTANCE
+                        );
+                        remaining[0]--;
+                        if (remaining[0] == 0) {
+                            result.resolveInternal(TsjRuntime.arrayLiteral(settledResults));
+                        }
+                        return TsjUndefined.INSTANCE;
+                    }
+            );
+        }
+        return result;
+    }
+
+    public static TsjPromise any(final Object iterable) {
+        final List<Object> values;
+        try {
+            values = TsjRuntime.asArrayLikeList(iterable, "any");
+        } catch (final RuntimeException runtimeException) {
+            return rejected(TsjRuntime.normalizeThrown(runtimeException));
+        }
+        final TsjPromise result = new TsjPromise();
+        if (values.isEmpty()) {
+            result.rejectInternal(aggregateError(new Object[0]));
+            return result;
+        }
+        final Object[] rejectionReasons = new Object[values.size()];
+        final int[] remaining = new int[]{values.size()};
+        final boolean[] settled = new boolean[]{false};
+        for (int index = 0; index < values.size(); index++) {
+            final int slot = index;
+            resolved(values.get(index)).then(
+                    (TsjCallable) args -> {
+                        if (settled[0]) {
+                            return TsjUndefined.INSTANCE;
+                        }
+                        settled[0] = true;
+                        result.resolveInternal(args.length > 0 ? args[0] : TsjUndefined.INSTANCE);
+                        return TsjUndefined.INSTANCE;
+                    },
+                    (TsjCallable) args -> {
+                        if (settled[0]) {
+                            return TsjUndefined.INSTANCE;
+                        }
+                        rejectionReasons[slot] = args.length > 0 ? args[0] : TsjUndefined.INSTANCE;
+                        remaining[0]--;
+                        if (remaining[0] == 0) {
+                            settled[0] = true;
+                            result.rejectInternal(aggregateError(rejectionReasons));
+                        }
+                        return TsjUndefined.INSTANCE;
+                    }
+            );
+        }
+        return result;
+    }
+
     public TsjPromise then(final Object... callbacks) {
         final Object onFulfilled = callbacks.length > 0 ? callbacks[0] : TsjUndefined.INSTANCE;
         final Object onRejected = callbacks.length > 1 ? callbacks[1] : TsjUndefined.INSTANCE;
@@ -48,6 +223,7 @@ public final class TsjPromise extends TsjObject {
     }
 
     public TsjPromise then(final Object onFulfilled, final Object onRejected) {
+        handled = true;
         final TsjPromise next = new TsjPromise();
         final Reaction reaction = new Reaction(onFulfilled, onRejected, next);
         if (state == PromiseState.PENDING) {
@@ -58,6 +234,22 @@ public final class TsjPromise extends TsjObject {
         return next;
     }
 
+    public TsjPromise finallyPromise(final Object onFinally) {
+        if (!(onFinally instanceof TsjCallable callable)) {
+            return then(TsjUndefined.INSTANCE, TsjUndefined.INSTANCE);
+        }
+        return then(
+                (TsjCallable) args -> TsjPromise.resolved(callable.call()).then(
+                        (TsjCallable) ignored -> args[0],
+                        TsjUndefined.INSTANCE
+                ),
+                (TsjCallable) args -> TsjPromise.resolved(callable.call()).then(
+                        (TsjCallable) ignored -> TsjPromise.rejected(args[0]),
+                        TsjUndefined.INSTANCE
+                )
+        );
+    }
+
     private void resolveInternal(final Object value) {
         if (state != PromiseState.PENDING) {
             return;
@@ -66,18 +258,48 @@ public final class TsjPromise extends TsjObject {
             rejectInternal(new IllegalStateException("Promise cannot resolve itself."));
             return;
         }
-        if (value instanceof TsjPromise promiseValue) {
-            promiseValue.then(
-                    (TsjCallable) args -> {
-                        resolveInternal(args.length > 0 ? args[0] : TsjUndefined.INSTANCE);
-                        return TsjUndefined.INSTANCE;
-                    },
-                    (TsjCallable) args -> {
-                        rejectInternal(args.length > 0 ? args[0] : TsjUndefined.INSTANCE);
+        if (value instanceof TsjObject thenableCandidate) {
+            final Object thenMember;
+            try {
+                thenMember = thenableCandidate.get("then");
+            } catch (final RuntimeException runtimeException) {
+                rejectInternal(TsjRuntime.normalizeThrown(runtimeException));
+                return;
+            }
+
+            if (thenMember instanceof TsjMethod method || thenMember instanceof TsjCallable) {
+                final boolean[] alreadySettled = new boolean[]{false};
+                final TsjCallable resolveCallback = args -> {
+                    if (alreadySettled[0]) {
                         return TsjUndefined.INSTANCE;
                     }
-            );
-            return;
+                    alreadySettled[0] = true;
+                    resolveInternal(args.length > 0 ? args[0] : TsjUndefined.INSTANCE);
+                    return TsjUndefined.INSTANCE;
+                };
+                final TsjCallable rejectCallback = args -> {
+                    if (alreadySettled[0]) {
+                        return TsjUndefined.INSTANCE;
+                    }
+                    alreadySettled[0] = true;
+                    rejectInternal(args.length > 0 ? args[0] : TsjUndefined.INSTANCE);
+                    return TsjUndefined.INSTANCE;
+                };
+
+                try {
+                    if (thenMember instanceof TsjMethod thenMethod) {
+                        thenMethod.call(thenableCandidate, resolveCallback, rejectCallback);
+                    } else {
+                        ((TsjCallable) thenMember).call(resolveCallback, rejectCallback);
+                    }
+                } catch (final RuntimeException runtimeException) {
+                    if (!alreadySettled[0]) {
+                        alreadySettled[0] = true;
+                        rejectInternal(TsjRuntime.normalizeThrown(runtimeException));
+                    }
+                }
+                return;
+            }
         }
         state = PromiseState.FULFILLED;
         settledValue = value;
@@ -91,6 +313,7 @@ public final class TsjPromise extends TsjObject {
         state = PromiseState.REJECTED;
         settledValue = reason;
         schedulePendingReactions();
+        scheduleUnhandledRejectionCheck();
     }
 
     private void schedulePendingReactions() {
@@ -103,6 +326,20 @@ public final class TsjPromise extends TsjObject {
 
     private void scheduleReaction(final Reaction reaction) {
         TsjRuntime.enqueueMicrotask(() -> runReaction(reaction));
+    }
+
+    private void scheduleUnhandledRejectionCheck() {
+        if (handled || unhandledRejectionCheckScheduled) {
+            return;
+        }
+        unhandledRejectionCheckScheduled = true;
+        TsjRuntime.enqueueMicrotask(() -> {
+            unhandledRejectionCheckScheduled = false;
+            if (state == PromiseState.REJECTED && !handled && !unhandledRejectionReported) {
+                unhandledRejectionReported = true;
+                TsjRuntime.reportUnhandledPromiseRejection(settledValue);
+            }
+        });
     }
 
     private void runReaction(final Reaction reaction) {
@@ -132,5 +369,13 @@ public final class TsjPromise extends TsjObject {
     }
 
     private record Reaction(Object onFulfilled, Object onRejected, TsjPromise next) {
+    }
+
+    private static Object aggregateError(final Object[] reasons) {
+        return TsjRuntime.objectLiteral(
+                "name", "AggregateError",
+                "message", "All promises were rejected",
+                "errors", TsjRuntime.arrayLiteral(reasons)
+        );
     }
 }

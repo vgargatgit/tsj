@@ -52,8 +52,13 @@ public final class JvmBytecodeRunner {
     }
 
     public void run(final JvmCompiledArtifact artifact, final PrintStream stdout) {
+        run(artifact, stdout, System.err);
+    }
+
+    public void run(final JvmCompiledArtifact artifact, final PrintStream stdout, final PrintStream stderr) {
         Objects.requireNonNull(artifact, "artifact");
         Objects.requireNonNull(stdout, "stdout");
+        Objects.requireNonNull(stderr, "stderr");
 
         final URL classPathUrl;
         try {
@@ -75,15 +80,19 @@ public final class JvmBytecodeRunner {
             final Class<?> mainClass = Class.forName(artifact.className(), true, classLoader);
             final Method mainMethod = mainClass.getMethod("main", String[].class);
             final PrintStream originalOut = System.out;
+            final PrintStream originalErr = System.err;
             synchronized (System.class) {
                 try {
                     System.setOut(stdout);
+                    System.setErr(stderr);
                     mainMethod.invoke(null, (Object) new String[0]);
                 } finally {
                     System.setOut(originalOut);
+                    System.setErr(originalErr);
                 }
             }
             stdout.flush();
+            stderr.flush();
         } catch (final ClassNotFoundException classNotFoundException) {
             throw new JvmCompilationException(
                     "TSJ-RUN-003",

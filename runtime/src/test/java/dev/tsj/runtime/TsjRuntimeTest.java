@@ -115,6 +115,15 @@ class TsjRuntimeTest {
     }
 
     @Test
+    void arrayLiteralSupportsLengthAndIndexedProperties() {
+        final Object array = TsjRuntime.arrayLiteral("a", "b", 3);
+        assertEquals(3, TsjRuntime.getProperty(array, "length"));
+        assertEquals("a", TsjRuntime.getProperty(array, "0"));
+        assertEquals("b", TsjRuntime.getProperty(array, "1"));
+        assertEquals(3, TsjRuntime.getProperty(array, "2"));
+    }
+
+    @Test
     void getPropertyReturnsUndefinedForMissingKey() {
         final Object object = TsjRuntime.objectLiteral("name", "tsj");
         assertEquals(TsjRuntime.undefined(), TsjRuntime.getProperty(object, "missing"));
@@ -257,6 +266,17 @@ class TsjRuntimeTest {
 
         assertTrue(chained instanceof TsjPromise);
         assertTrue(passThroughRejection instanceof TsjPromise);
+    }
+
+    @Test
+    void promiseBuiltinExposesCombinators() {
+        final Object builtin = TsjRuntime.promiseBuiltin();
+        final Object iterable = TsjRuntime.arrayLiteral(TsjRuntime.promiseResolve(1), TsjRuntime.promiseResolve(2));
+
+        assertTrue(TsjRuntime.invokeMember(builtin, "all", iterable) instanceof TsjPromise);
+        assertTrue(TsjRuntime.invokeMember(builtin, "race", iterable) instanceof TsjPromise);
+        assertTrue(TsjRuntime.invokeMember(builtin, "allSettled", iterable) instanceof TsjPromise);
+        assertTrue(TsjRuntime.invokeMember(builtin, "any", iterable) instanceof TsjPromise);
     }
 
     @Test

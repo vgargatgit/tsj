@@ -309,6 +309,348 @@ class TsjCliTest {
     }
 
     @Test
+    void runExecutesThenableAssimilationProgram() throws Exception {
+        final Path entryFile = tempDir.resolve("promise-thenable.ts");
+        Files.writeString(
+                entryFile,
+                """
+                const thenable = {
+                  then(resolve: any, reject: any) {
+                    resolve(41);
+                    reject("bad");
+                    resolve(99);
+                  }
+                };
+
+                Promise.resolve(thenable)
+                  .then((value: number) => {
+                    console.log("value=" + value);
+                    return value + 1;
+                  })
+                  .then((value: number) => {
+                    console.log("next=" + value);
+                    return value;
+                  });
+                console.log("sync");
+                """,
+                UTF_8
+        );
+
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+
+        final int exitCode = TsjCli.execute(
+                new String[]{"run", entryFile.toString(), "--out", tempDir.resolve("promise-thenable-out").toString()},
+                new PrintStream(stdout),
+                new PrintStream(stderr)
+        );
+
+        assertEquals(0, exitCode);
+        assertTrue(stdout.toString(UTF_8).contains("sync"));
+        assertTrue(stdout.toString(UTF_8).contains("value=41"));
+        assertTrue(stdout.toString(UTF_8).contains("next=42"));
+        assertTrue(stdout.toString(UTF_8).contains("\"code\":\"TSJ-RUN-SUCCESS\""));
+        assertEquals("", stderr.toString(UTF_8));
+    }
+
+    @Test
+    void runExecutesThenableRejectRejectionProgram() throws Exception {
+        final Path entryFile = tempDir.resolve("promise-thenable-reject.ts");
+        Files.writeString(
+                entryFile,
+                """
+                const badThenable = {
+                  then(resolve: any, reject: any) {
+                    reject("boom");
+                    resolve(99);
+                  }
+                };
+
+                Promise.resolve(badThenable).then(
+                  undefined,
+                  (reason: string) => {
+                    console.log("error=" + reason);
+                    return reason;
+                  }
+                );
+                console.log("sync");
+                """,
+                UTF_8
+        );
+
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+
+        final int exitCode = TsjCli.execute(
+                new String[]{
+                        "run",
+                        entryFile.toString(),
+                        "--out",
+                        tempDir.resolve("promise-thenable-reject-out").toString()
+                },
+                new PrintStream(stdout),
+                new PrintStream(stderr)
+        );
+
+        assertEquals(0, exitCode);
+        assertTrue(stdout.toString(UTF_8).contains("sync"));
+        assertTrue(stdout.toString(UTF_8).contains("error=boom"));
+        assertTrue(stdout.toString(UTF_8).contains("\"code\":\"TSJ-RUN-SUCCESS\""));
+        assertEquals("", stderr.toString(UTF_8));
+    }
+
+    @Test
+    void runExecutesPromiseCatchFinallyProgram() throws Exception {
+        final Path entryFile = tempDir.resolve("promise-catch-finally.ts");
+        Files.writeString(
+                entryFile,
+                """
+                Promise.reject("boom")
+                  .catch((reason: string) => {
+                    console.log("catch=" + reason);
+                    return 7;
+                  })
+                  .finally(() => {
+                    console.log("finally");
+                    return 999;
+                  })
+                  .then((value: number) => {
+                    console.log("value=" + value);
+                    return value;
+                  });
+                console.log("sync");
+                """,
+                UTF_8
+        );
+
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+
+        final int exitCode = TsjCli.execute(
+                new String[]{"run", entryFile.toString(), "--out", tempDir.resolve("promise-catch-finally-out").toString()},
+                new PrintStream(stdout),
+                new PrintStream(stderr)
+        );
+
+        assertEquals(0, exitCode);
+        assertTrue(stdout.toString(UTF_8).contains("sync"));
+        assertTrue(stdout.toString(UTF_8).contains("catch=boom"));
+        assertTrue(stdout.toString(UTF_8).contains("finally"));
+        assertTrue(stdout.toString(UTF_8).contains("value=7"));
+        assertTrue(stdout.toString(UTF_8).contains("\"code\":\"TSJ-RUN-SUCCESS\""));
+        assertEquals("", stderr.toString(UTF_8));
+    }
+
+    @Test
+    void runExecutesPromiseFinallyRejectionOverrideProgram() throws Exception {
+        final Path entryFile = tempDir.resolve("promise-finally-reject.ts");
+        Files.writeString(
+                entryFile,
+                """
+                Promise.resolve(1)
+                  .finally(() => Promise.reject("fin"))
+                  .then(
+                    (value: number) => {
+                      console.log("value=" + value);
+                      return value;
+                    },
+                    (reason: string) => {
+                      console.log("error=" + reason);
+                      return reason;
+                    }
+                  );
+                console.log("sync");
+                """,
+                UTF_8
+        );
+
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+
+        final int exitCode = TsjCli.execute(
+                new String[]{
+                        "run",
+                        entryFile.toString(),
+                        "--out",
+                        tempDir.resolve("promise-finally-reject-out").toString()
+                },
+                new PrintStream(stdout),
+                new PrintStream(stderr)
+        );
+
+        assertEquals(0, exitCode);
+        assertTrue(stdout.toString(UTF_8).contains("sync"));
+        assertTrue(stdout.toString(UTF_8).contains("error=fin"));
+        assertTrue(stdout.toString(UTF_8).contains("\"code\":\"TSJ-RUN-SUCCESS\""));
+        assertEquals("", stderr.toString(UTF_8));
+    }
+
+    @Test
+    void runEmitsUnhandledPromiseRejectionToStderr() throws Exception {
+        final Path entryFile = tempDir.resolve("promise-unhandled-reject.ts");
+        Files.writeString(
+                entryFile,
+                """
+                Promise.reject("boom");
+                console.log("sync");
+                """,
+                UTF_8
+        );
+
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+
+        final int exitCode = TsjCli.execute(
+                new String[]{
+                        "run",
+                        entryFile.toString(),
+                        "--out",
+                        tempDir.resolve("promise-unhandled-reject-out").toString()
+                },
+                new PrintStream(stdout),
+                new PrintStream(stderr)
+        );
+
+        assertEquals(0, exitCode);
+        assertTrue(stdout.toString(UTF_8).contains("sync"));
+        assertTrue(stdout.toString(UTF_8).contains("\"code\":\"TSJ-RUN-SUCCESS\""));
+        assertTrue(stderr.toString(UTF_8).contains("TSJ-UNHANDLED-REJECTION: boom"));
+    }
+
+    @Test
+    void runExecutesPromiseAllAndRaceProgram() throws Exception {
+        final Path entryFile = tempDir.resolve("promise-all-race.ts");
+        Files.writeString(
+                entryFile,
+                """
+                Promise.all([Promise.resolve(1), Promise.resolve(2), 3]).then((values: any) => {
+                  console.log("all=" + values.length);
+                  return values;
+                });
+
+                Promise.race([Promise.resolve("win"), Promise.reject("lose")]).then(
+                  (value: string) => {
+                    console.log("race=" + value);
+                    return value;
+                  },
+                  (reason: string) => {
+                    console.log("race-err=" + reason);
+                    return reason;
+                  }
+                );
+                console.log("sync");
+                """,
+                UTF_8
+        );
+
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+
+        final int exitCode = TsjCli.execute(
+                new String[]{"run", entryFile.toString(), "--out", tempDir.resolve("promise-all-race-out").toString()},
+                new PrintStream(stdout),
+                new PrintStream(stderr)
+        );
+
+        assertEquals(0, exitCode);
+        assertTrue(stdout.toString(UTF_8).contains("sync"));
+        assertTrue(stdout.toString(UTF_8).contains("all=3"));
+        assertTrue(stdout.toString(UTF_8).contains("race=win"));
+        assertTrue(stdout.toString(UTF_8).contains("\"code\":\"TSJ-RUN-SUCCESS\""));
+        assertEquals("", stderr.toString(UTF_8));
+    }
+
+    @Test
+    void runExecutesPromiseAllSettledAndAnyProgram() throws Exception {
+        final Path entryFile = tempDir.resolve("promise-allsettled-any.ts");
+        Files.writeString(
+                entryFile,
+                """
+                Promise.allSettled([Promise.resolve(1), Promise.reject("x")]).then((entries: any) => {
+                  console.log("settled=" + entries.length);
+                  return entries;
+                });
+
+                Promise.any([Promise.reject("a"), Promise.resolve("ok")]).then(
+                  (value: string) => {
+                    console.log("any=" + value);
+                    return value;
+                  },
+                  (reason: any) => {
+                    console.log("any-err=" + reason.name);
+                    return reason;
+                  }
+                );
+                console.log("sync");
+                """,
+                UTF_8
+        );
+
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+
+        final int exitCode = TsjCli.execute(
+                new String[]{
+                        "run",
+                        entryFile.toString(),
+                        "--out",
+                        tempDir.resolve("promise-allsettled-any-out").toString()
+                },
+                new PrintStream(stdout),
+                new PrintStream(stderr)
+        );
+
+        assertEquals(0, exitCode);
+        assertTrue(stdout.toString(UTF_8).contains("sync"));
+        assertTrue(stdout.toString(UTF_8).contains("settled=2"));
+        assertTrue(stdout.toString(UTF_8).contains("any=ok"));
+        assertTrue(stdout.toString(UTF_8).contains("\"code\":\"TSJ-RUN-SUCCESS\""));
+        assertEquals("", stderr.toString(UTF_8));
+    }
+
+    @Test
+    void runExecutesPromiseAnyAggregateErrorProgram() throws Exception {
+        final Path entryFile = tempDir.resolve("promise-any-reject.ts");
+        Files.writeString(
+                entryFile,
+                """
+                Promise.any([Promise.reject("a"), Promise.reject("b")]).then(
+                  (value: string) => {
+                    console.log("any=" + value);
+                    return value;
+                  },
+                  (reason: any) => {
+                    console.log("anyErr=" + reason.name + ":" + reason.errors.length);
+                    return reason;
+                  }
+                );
+                console.log("sync");
+                """,
+                UTF_8
+        );
+
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+
+        final int exitCode = TsjCli.execute(
+                new String[]{
+                        "run",
+                        entryFile.toString(),
+                        "--out",
+                        tempDir.resolve("promise-any-reject-out").toString()
+                },
+                new PrintStream(stdout),
+                new PrintStream(stderr)
+        );
+
+        assertEquals(0, exitCode);
+        assertTrue(stdout.toString(UTF_8).contains("sync"));
+        assertTrue(stdout.toString(UTF_8).contains("anyErr=AggregateError:2"));
+        assertTrue(stdout.toString(UTF_8).contains("\"code\":\"TSJ-RUN-SUCCESS\""));
+        assertEquals("", stderr.toString(UTF_8));
+    }
+
+    @Test
     void runExecutesAsyncAwaitProgram() throws Exception {
         final Path entryFile = tempDir.resolve("async.ts");
         Files.writeString(
@@ -599,6 +941,153 @@ class TsjCliTest {
         assertTrue(stdout.toString(UTF_8).contains("import=12"));
         assertTrue(stdout.toString(UTF_8).contains("\"code\":\"TSJ-RUN-SUCCESS\""));
         assertEquals("", stderr.toString(UTF_8));
+    }
+
+    @Test
+    void runExecutesProgramWithTopLevelAwaitInEntry() throws Exception {
+        final Path entryFile = tempDir.resolve("tla-main.ts");
+        Files.writeString(
+                entryFile,
+                """
+                console.log("before");
+                const value = await Promise.resolve(1);
+                console.log("after=" + value);
+                """,
+                UTF_8
+        );
+
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+
+        final int exitCode = TsjCli.execute(
+                new String[]{"run", entryFile.toString(), "--out", tempDir.resolve("tla-entry-out").toString()},
+                new PrintStream(stdout),
+                new PrintStream(stderr)
+        );
+
+        assertEquals(0, exitCode);
+        assertTrue(stdout.toString(UTF_8).contains("before"));
+        assertTrue(stdout.toString(UTF_8).contains("after=1"));
+        assertTrue(stdout.toString(UTF_8).contains("\"code\":\"TSJ-RUN-SUCCESS\""));
+        assertEquals("", stderr.toString(UTF_8));
+    }
+
+    @Test
+    void runExecutesProgramWithTopLevelAwaitAcrossModules() throws Exception {
+        final Path depFile = tempDir.resolve("dep.ts");
+        final Path entryFile = tempDir.resolve("main.ts");
+        Files.writeString(
+                depFile,
+                """
+                export let status = "init";
+                status = await Promise.resolve("ready");
+                console.log("dep=" + status);
+                """,
+                UTF_8
+        );
+        Files.writeString(
+                entryFile,
+                """
+                import { status } from "./dep.ts";
+                console.log("main=" + status);
+                """,
+                UTF_8
+        );
+
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+
+        final int exitCode = TsjCli.execute(
+                new String[]{"run", entryFile.toString(), "--out", tempDir.resolve("tla-modules-out").toString()},
+                new PrintStream(stdout),
+                new PrintStream(stderr)
+        );
+
+        assertEquals(0, exitCode);
+        assertTrue(stdout.toString(UTF_8).contains("dep=ready"));
+        assertTrue(stdout.toString(UTF_8).contains("main=ready"));
+        assertTrue(stdout.toString(UTF_8).contains("\"code\":\"TSJ-RUN-SUCCESS\""));
+        assertEquals("", stderr.toString(UTF_8));
+    }
+
+    @Test
+    void runExecutesProgramWithTopLevelAwaitAcrossTransitiveModules() throws Exception {
+        final Path moduleA = tempDir.resolve("a.ts");
+        final Path moduleB = tempDir.resolve("b.ts");
+        final Path entryFile = tempDir.resolve("main.ts");
+        Files.writeString(
+                moduleA,
+                """
+                export let value = 0;
+                value = await Promise.resolve(5);
+                console.log("a=" + value);
+                """,
+                UTF_8
+        );
+        Files.writeString(
+                moduleB,
+                """
+                import { value } from "./a.ts";
+                export function read() {
+                  return value;
+                }
+                console.log("b=" + value);
+                """,
+                UTF_8
+        );
+        Files.writeString(
+                entryFile,
+                """
+                import { read } from "./b.ts";
+                console.log("main=" + read());
+                """,
+                UTF_8
+        );
+
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+
+        final int exitCode = TsjCli.execute(
+                new String[]{"run", entryFile.toString(), "--out", tempDir.resolve("tla-transitive-out").toString()},
+                new PrintStream(stdout),
+                new PrintStream(stderr)
+        );
+
+        assertEquals(0, exitCode);
+        assertTrue(stdout.toString(UTF_8).contains("a=5"));
+        assertTrue(stdout.toString(UTF_8).contains("b=5"));
+        assertTrue(stdout.toString(UTF_8).contains("main=5"));
+        assertTrue(stdout.toString(UTF_8).contains("\"code\":\"TSJ-RUN-SUCCESS\""));
+        assertEquals("", stderr.toString(UTF_8));
+    }
+
+    @Test
+    void runRejectsTopLevelAwaitInWhileConditionForNow() throws Exception {
+        final Path entryFile = tempDir.resolve("tla-while.ts");
+        Files.writeString(
+                entryFile,
+                """
+                let i = 0;
+                while (await Promise.resolve(i < 1)) {
+                  i = i + 1;
+                }
+                console.log(i);
+                """,
+                UTF_8
+        );
+
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+
+        final int exitCode = TsjCli.execute(
+                new String[]{"run", entryFile.toString(), "--out", tempDir.resolve("tla-while-out").toString()},
+                new PrintStream(stdout),
+                new PrintStream(stderr)
+        );
+
+        assertEquals(1, exitCode);
+        assertTrue(stderr.toString(UTF_8).contains("\"code\":\"TSJ-BACKEND-UNSUPPORTED\""));
+        assertTrue(stderr.toString(UTF_8).contains("while condition"));
     }
 
     @Test

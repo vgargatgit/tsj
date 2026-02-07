@@ -1,0 +1,4 @@
+sync
+catch=boom
+finally
+value=7

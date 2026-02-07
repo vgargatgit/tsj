@@ -16,6 +16,7 @@ import java.util.List;
  */
 public final class FixtureHarness {
     private static final String NODE_BINARY = "node";
+    private static final String NODE_NO_WARNINGS_FLAG = "--no-warnings";
     private static final String NODE_TS_FLAG = "--experimental-strip-types";
 
     public List<FixtureRunResult> runAll(final Path fixturesRoot) {
@@ -45,6 +46,7 @@ public final class FixtureHarness {
         final CommandResult actual = runExternal(
                 List.of(
                         NODE_BINARY,
+                        NODE_NO_WARNINGS_FLAG,
                         NODE_TS_FLAG,
                         fixture.entryFile().toString()
                 ),

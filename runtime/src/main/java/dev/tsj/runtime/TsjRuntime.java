@@ -1,7 +1,11 @@
 package dev.tsj.runtime;
 
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Deque;
+import java.util.List;
+import java.util.Objects;
+import java.util.function.Consumer;
 
 /**
  * Runtime helpers used by TSJ-generated JVM classes in TSJ-9 subset.
@@ -9,6 +13,7 @@ import java.util.Deque;
 public final class TsjRuntime {
     private static final Deque<Runnable> MICROTASK_QUEUE = new ArrayDeque<>();
     private static final TsjObject PROMISE_BUILTIN = createPromiseBuiltin();
+    private static Consumer<Object> unhandledRejectionReporter = TsjRuntime::defaultUnhandledRejectionReporter;
 
     private TsjRuntime() {
     }
@@ -39,6 +44,18 @@ public final class TsjRuntime {
             final Object onRejected
     ) {
         return promiseResolve(promiseLike).then(onFulfilled, onRejected);
+    }
+
+    static void reportUnhandledPromiseRejection(final Object reason) {
+        unhandledRejectionReporter.accept(reason);
+    }
+
+    static void setUnhandledRejectionReporter(final Consumer<Object> reporter) {
+        unhandledRejectionReporter = Objects.requireNonNull(reporter, "reporter");
+    }
+
+    static void resetUnhandledRejectionReporter() {
+        unhandledRejectionReporter = TsjRuntime::defaultUnhandledRejectionReporter;
     }
 
     public static RuntimeException raise(final Object value) {
@@ -98,6 +115,15 @@ public final class TsjRuntime {
             object.setOwn(key, keyValuePairs[index + 1]);
         }
         return object;
+    }
+
+    public static Object arrayLiteral(final Object... elements) {
+        final TsjObject array = new TsjObject(null);
+        for (int index = 0; index < elements.length; index++) {
+            array.setOwn(Integer.toString(index), elements[index]);
+        }
+        array.setOwn("length", Integer.valueOf(elements.length));
+        return array;
     }
 
     public static Object getProperty(final Object target, final String key) {
@@ -342,6 +368,45 @@ public final class TsjRuntime {
                 "reject",
                 (TsjMethod) (thisObject, args) -> TsjPromise.rejected(args.length > 0 ? args[0] : TsjUndefined.INSTANCE)
         );
+        promise.setOwn(
+                "all",
+                (TsjMethod) (thisObject, args) -> TsjPromise.all(args.length > 0 ? args[0] : TsjUndefined.INSTANCE)
+        );
+        promise.setOwn(
+                "race",
+                (TsjMethod) (thisObject, args) -> TsjPromise.race(args.length > 0 ? args[0] : TsjUndefined.INSTANCE)
+        );
+        promise.setOwn(
+                "allSettled",
+                (TsjMethod) (thisObject, args) -> TsjPromise.allSettled(args.length > 0 ? args[0] : TsjUndefined.INSTANCE)
+        );
+        promise.setOwn(
+                "any",
+                (TsjMethod) (thisObject, args) -> TsjPromise.any(args.length > 0 ? args[0] : TsjUndefined.INSTANCE)
+        );
         return promise;
+    }
+
+    static List<Object> asArrayLikeList(final Object iterable, final String combinatorName) {
+        if (!(iterable instanceof TsjObject arrayLike)) {
+            throw new IllegalArgumentException("Promise." + combinatorName + " expects an array-like input in TSJ-13e.");
+        }
+        final double lengthNumber = toNumber(arrayLike.get("length"));
+        if (Double.isNaN(lengthNumber) || lengthNumber < 0 || lengthNumber != Math.rint(lengthNumber)) {
+            throw new IllegalArgumentException("Promise." + combinatorName + " requires a finite non-negative length.");
+        }
+        if (lengthNumber > Integer.MAX_VALUE) {
+            throw new IllegalArgumentException("Promise." + combinatorName + " input is too large.");
+        }
+        final int length = (int) lengthNumber;
+        final List<Object> values = new ArrayList<>(length);
+        for (int index = 0; index < length; index++) {
+            values.add(arrayLike.get(Integer.toString(index)));
+        }
+        return values;
+    }
+
+    private static void defaultUnhandledRejectionReporter(final Object reason) {
+        System.err.println("TSJ-UNHANDLED-REJECTION: " + toDisplayString(reason));
     }
 }

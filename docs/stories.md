@@ -237,6 +237,13 @@
   - Runtime implements Promise resolution procedure with thenable assimilation.
   - Self-resolution and double-resolution protections match expected JS behavior.
   - Error propagation across chained thenables matches Node differential expectations.
+- Notes:
+  - `TsjPromise` now applies Promise resolution semantics for thenables by reading `then` from object values,
+    invoking callable `then` handlers, and adopting nested thenable outcomes.
+  - Resolution guardrails are implemented and tested for self-resolution and first-settle-wins behavior.
+  - Runtime TDD coverage includes thenable throw-before-settlement rejection, nested thenable adoption,
+    non-callable `then` handling, and callback-returned thenable chaining.
+  - Differential fixture coverage includes `tests/fixtures/tsj13c-thenable` and `tests/fixtures/tsj13c-thenable-reject`.
 - Dependencies: TSJ-13, TSJ-10.
 
 ### TSJ-13d: Async error semantics and rejection handling parity
@@ -245,6 +252,13 @@
   - `catch` and `finally` semantics match JS behavior in async and Promise chains.
   - Unhandled rejection behavior is defined, emitted, and test-covered.
   - Async error paths are differentially tested against Node.
+- Notes:
+  - Promise `catch` and `finally` runtime behavior is now implemented for value pass-through,
+    rejection preservation, and `finally` rejection override semantics.
+  - TSJ runtime emits `TSJ-UNHANDLED-REJECTION: <reason>` when rejected promises remain unhandled
+    after the microtask turn.
+  - Differential fixture coverage includes `tests/fixtures/tsj13d-catch-finally` and
+    `tests/fixtures/tsj13d-finally-reject`.
 - Dependencies: TSJ-13a, TSJ-13c, TSJ-14.
 
 ### TSJ-13e: Promise combinators
@@ -253,6 +267,13 @@
   - Implement `Promise.all`, `Promise.race`, `Promise.allSettled`, and `Promise.any`.
   - Ordering and short-circuit semantics match Node.
   - Differential fixtures cover success and rejection edge cases for each combinator.
+- Notes:
+  - Runtime now implements combinator semantics for `Promise.all`, `Promise.race`, `Promise.allSettled`, and `Promise.any`.
+  - TSJ parser/backend now supports array literals for combinator input lowering in TSJ-13e subset.
+  - TSJ-13e combinators currently consume TSJ array-like inputs (including array literals); full generic iterator
+    protocol parity remains a follow-up.
+  - Differential fixture coverage includes `tests/fixtures/tsj13e-all-race`,
+    `tests/fixtures/tsj13e-allsettled-any`, and `tests/fixtures/tsj13e-any-reject`.
 - Dependencies: TSJ-13c.
 
 ### TSJ-13f: Top-level await and async conformance/diagnostics
@@ -261,6 +282,15 @@
   - Module loader/runtime supports top-level await execution ordering across dependency graphs.
   - Differential async conformance suite is expanded for module + control-flow async semantics.
   - Diagnostics include async-specific guidance and source-mapped async stack traces.
+- Notes:
+  - JVM backend now detects top-level await and lowers entry/module initialization through async continuation flow.
+  - Module initialization ordering with top-level await is covered for direct and transitive import graphs.
+  - Differential fixture coverage includes `tests/fixtures/tsj13f-top-level-await`,
+    `tests/fixtures/tsj13f-top-level-await-modules`,
+    `tests/fixtures/tsj13f-top-level-await-transitive`, and
+    `tests/fixtures/tsj13f-top-level-await-while-unsupported`.
+  - Async diagnostics now include explicit unsupported placement guidance for `await` in while conditions.
+  - Source-mapped async stack traces remain future work under TSJ-14.
 - Dependencies: TSJ-12, TSJ-13a, TSJ-14, TSJ-16.
 
 ### TSJ-14: Error model and stack trace source mapping

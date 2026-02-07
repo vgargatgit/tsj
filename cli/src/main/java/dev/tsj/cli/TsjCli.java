@@ -66,7 +66,7 @@ public final class TsjCli {
 
             return switch (args[0]) {
                 case COMMAND_COMPILE -> handleCompile(args, stdout);
-                case COMMAND_RUN -> handleRun(args, stdout);
+                case COMMAND_RUN -> handleRun(args, stdout, stderr);
                 case COMMAND_FIXTURES -> handleFixtures(args, stdout);
                 default -> throw CliFailure.usage(
                         "TSJ-CLI-002",
@@ -128,7 +128,7 @@ public final class TsjCli {
         return 0;
     }
 
-    private static int handleRun(final String[] args, final PrintStream stdout) {
+    private static int handleRun(final String[] args, final PrintStream stdout, final PrintStream stderr) {
         if (args.length < 2) {
             throw CliFailure.usage(
                     "TSJ-CLI-004",
@@ -139,7 +139,7 @@ public final class TsjCli {
         final ParsedOutOption parsedOut = parseOutOption(args, 2, false);
         final Path outDir = parsedOut.outDir != null ? parsedOut.outDir : Path.of(DEFAULT_RUN_OUT_DIR);
         final CompiledArtifact artifact = compileArtifact(entryPath, outDir);
-        executeArtifact(artifact, stdout);
+        executeArtifact(artifact, stdout, stderr);
         return 0;
     }
 
@@ -303,7 +303,11 @@ public final class TsjCli {
         }
     }
 
-    private static void executeArtifact(final CompiledArtifact artifact, final PrintStream stdout) {
+    private static void executeArtifact(
+            final CompiledArtifact artifact,
+            final PrintStream stdout,
+            final PrintStream stderr
+    ) {
         final Properties properties = new Properties();
         try (InputStream inputStream = Files.newInputStream(artifact.artifactPath)) {
             properties.load(inputStream);
@@ -318,7 +322,7 @@ public final class TsjCli {
         final String entry = properties.getProperty("entry", artifact.entryPath.toString());
         final JvmCompiledArtifact executable = resolveExecutableArtifact(artifact, properties, entry);
         try {
-            new JvmBytecodeRunner().run(executable, stdout);
+            new JvmBytecodeRunner().run(executable, stdout, stderr);
         } catch (final JvmCompilationException compilationException) {
             throw CliFailure.runtime(
                     compilationException.code(),

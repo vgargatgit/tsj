@@ -459,7 +459,7 @@ public final class JvmBytecodeCompiler {
                 continue;
             }
             final String one = Character.toString(current);
-            if ("(){};,.+-*/<>!=:".contains(one)) {
+            if ("(){}[];,.+-*/<>!=:".contains(one)) {
                 tokens.add(new Token(TokenType.SYMBOL, one, line, column));
                 index++;
                 column++;
@@ -599,6 +599,7 @@ public final class JvmBytecodeCompiler {
             CallExpression,
             MemberAccessExpression,
             NewExpression,
+            ArrayLiteralExpression,
             ObjectLiteralExpression {
     }
 
@@ -643,6 +644,9 @@ public final class JvmBytecodeCompiler {
     }
 
     private record NewExpression(Expression constructor, List<Expression> arguments) implements Expression {
+    }
+
+    private record ArrayLiteralExpression(List<Expression> elements) implements Expression {
     }
 
     private record ObjectLiteralExpression(List<ObjectLiteralEntry> entries) implements Expression {
@@ -1135,6 +1139,9 @@ public final class JvmBytecodeCompiler {
             if (matchSymbol("{")) {
                 return parseObjectLiteral();
             }
+            if (matchSymbol("[")) {
+                return parseArrayLiteral();
+            }
             if (matchSymbol("(")) {
                 final Expression expression = parseExpression();
                 consumeSymbol(")", "Expected `)` after grouped expression.");
@@ -1197,6 +1204,17 @@ public final class JvmBytecodeCompiler {
             }
             consumeSymbol("}", "Expected `}` to close object literal.");
             return new ObjectLiteralExpression(List.copyOf(entries));
+        }
+
+        private ArrayLiteralExpression parseArrayLiteral() {
+            final List<Expression> elements = new ArrayList<>();
+            if (!checkSymbol("]")) {
+                do {
+                    elements.add(parseExpression());
+                } while (matchSymbol(","));
+            }
+            consumeSymbol("]", "Expected `]` to close array literal.");
+            return new ArrayLiteralExpression(List.copyOf(elements));
         }
 
         private FunctionExpression parseFunctionExpression(final boolean asyncFunction) {
@@ -1440,7 +1458,11 @@ public final class JvmBytecodeCompiler {
         private String generate() {
             final StringBuilder mainBody = new StringBuilder();
             final EmissionContext mainContext = new EmissionContext(null);
-            emitStatements(mainBody, mainContext, program.statements(), "        ", false);
+            if (requiresTopLevelAwaitLowering(program.statements())) {
+                emitTopLevelAwaitStatements(mainBody, mainContext, program.statements(), "        ");
+            } else {
+                emitStatements(mainBody, mainContext, program.statements(), "        ", false);
+            }
             mainBody.append("        dev.tsj.runtime.TsjRuntime.flushMicrotasks();\n");
 
             final StringBuilder builder = new StringBuilder();
@@ -1473,16 +1495,7 @@ public final class JvmBytecodeCompiler {
                 final String indent,
                 final boolean insideFunction
         ) {
-            for (Statement statement : statements) {
-                if (statement instanceof FunctionDeclarationStatement declarationStatement) {
-                    final FunctionDeclaration declaration = declarationStatement.declaration();
-                    final String cellName = context.predeclareBinding(declaration.name());
-                    builder.append(indent)
-                            .append("final dev.tsj.runtime.TsjCell ")
-                            .append(cellName)
-                            .append(" = new dev.tsj.runtime.TsjCell(null);\n");
-                }
-            }
+            predeclareFunctionBindings(builder, context, statements, indent);
 
             for (Statement statement : statements) {
                 if (statement instanceof FunctionDeclarationStatement declarationStatement) {
@@ -1596,6 +1609,56 @@ public final class JvmBytecodeCompiler {
                         "TSJ-BACKEND-UNSUPPORTED",
                         "Unsupported statement node in code generation: " + statement.getClass().getSimpleName()
                 );
+            }
+        }
+
+        private void emitTopLevelAwaitStatements(
+                final StringBuilder builder,
+                final EmissionContext context,
+                final List<Statement> statements,
+                final String indent
+        ) {
+            final List<Statement> normalized = normalizeAsyncStatementsForAwaitExpressions(context, statements);
+            predeclareFunctionBindings(builder, context, normalized, indent);
+            predeclareAsyncLocalBindings(builder, context, normalized, indent);
+
+            final String topLevelArgs = context.allocateGeneratedName("topLevelArgs");
+            builder.append(indent)
+                    .append("dev.tsj.runtime.TsjRuntime.promiseThen(")
+                    .append("dev.tsj.runtime.TsjRuntime.promiseResolve(")
+                    .append("dev.tsj.runtime.TsjRuntime.undefined()), ")
+                    .append("(dev.tsj.runtime.TsjCallable) (Object... ")
+                    .append(topLevelArgs)
+                    .append(") -> {\n");
+            emitAsyncStatements(builder, context, normalized, indent + "    ");
+            builder.append(indent)
+                    .append("}, dev.tsj.runtime.TsjRuntime.undefined());\n");
+        }
+
+        private boolean requiresTopLevelAwaitLowering(final List<Statement> statements) {
+            for (Statement statement : statements) {
+                if (statementContainsAwait(statement)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        private void predeclareFunctionBindings(
+                final StringBuilder builder,
+                final EmissionContext context,
+                final List<Statement> statements,
+                final String indent
+        ) {
+            for (Statement statement : statements) {
+                if (statement instanceof FunctionDeclarationStatement declarationStatement) {
+                    final FunctionDeclaration declaration = declarationStatement.declaration();
+                    final String cellName = context.predeclareBinding(declaration.name());
+                    builder.append(indent)
+                            .append("final dev.tsj.runtime.TsjCell ")
+                            .append(cellName)
+                            .append(" = new dev.tsj.runtime.TsjCell(null);\n");
+                }
             }
         }
 
@@ -1992,6 +2055,16 @@ public final class JvmBytecodeCompiler {
                 }
                 return new AwaitExpressionRewrite(new ObjectLiteralExpression(List.copyOf(rewrittenEntries)), List.copyOf(hoisted));
             }
+            if (expression instanceof ArrayLiteralExpression arrayLiteralExpression) {
+                final List<Expression> rewrittenElements = new ArrayList<>();
+                final List<Statement> hoisted = new ArrayList<>();
+                for (Expression element : arrayLiteralExpression.elements()) {
+                    final AwaitExpressionRewrite rewrittenElement = rewriteAsyncExpressionForAwait(context, element);
+                    hoisted.addAll(rewrittenElement.hoistedStatements());
+                    rewrittenElements.add(rewrittenElement.expression());
+                }
+                return new AwaitExpressionRewrite(new ArrayLiteralExpression(List.copyOf(rewrittenElements)), List.copyOf(hoisted));
+            }
             return new AwaitExpressionRewrite(expression, List.of());
         }
 
@@ -2300,6 +2373,14 @@ public final class JvmBytecodeCompiler {
                 final Statement statement,
                 final String indent
         ) {
+            if (statement instanceof FunctionDeclarationStatement declarationStatement) {
+                emitFunctionAssignment(builder, context, declarationStatement.declaration(), indent);
+                return;
+            }
+            if (statement instanceof ClassDeclarationStatement classDeclarationStatement) {
+                emitClassDeclaration(builder, context, classDeclarationStatement.declaration(), indent);
+                return;
+            }
             if (statement instanceof VariableDeclaration declaration) {
                 assertNoAwait(declaration.expression(), "`await` is only supported as standalone expression.");
                 final String cellName = context.resolveBinding(declaration.name());
@@ -2456,29 +2537,11 @@ public final class JvmBytecodeCompiler {
                 return false;
             }
             if (statement instanceof FunctionDeclarationStatement declarationStatement) {
-                for (Statement nested : declarationStatement.declaration().body()) {
-                    if (statementContainsAwait(nested)) {
-                        return true;
-                    }
-                }
                 return false;
             }
             if (statement instanceof ClassDeclarationStatement classDeclarationStatement) {
-                final ClassDeclaration declaration = classDeclarationStatement.declaration();
-                if (declaration.constructorMethod() != null) {
-                    for (Statement nested : declaration.constructorMethod().body()) {
-                        if (statementContainsAwait(nested)) {
-                            return true;
-                        }
-                    }
-                }
-                for (ClassMethod method : declaration.methods()) {
-                    for (Statement nested : method.body()) {
-                        if (statementContainsAwait(nested)) {
-                            return true;
-                        }
-                    }
-                }
+                // Await inside class method bodies does not imply top-level await.
+                return false;
             }
             return false;
         }
@@ -2522,6 +2585,14 @@ public final class JvmBytecodeCompiler {
             if (expression instanceof ObjectLiteralExpression objectLiteralExpression) {
                 for (ObjectLiteralEntry entry : objectLiteralExpression.entries()) {
                     if (expressionContainsAwait(entry.value())) {
+                        return true;
+                    }
+                }
+                return false;
+            }
+            if (expression instanceof ArrayLiteralExpression arrayLiteralExpression) {
+                for (Expression element : arrayLiteralExpression.elements()) {
+                    if (expressionContainsAwait(element)) {
                         return true;
                     }
                 }
@@ -2707,6 +2778,16 @@ public final class JvmBytecodeCompiler {
                     return "dev.tsj.runtime.TsjRuntime.objectLiteral()";
                 }
                 return "dev.tsj.runtime.TsjRuntime.objectLiteral(" + String.join(", ", keyValueSegments) + ")";
+            }
+            if (expression instanceof ArrayLiteralExpression arrayLiteralExpression) {
+                final List<String> renderedElements = new ArrayList<>();
+                for (Expression element : arrayLiteralExpression.elements()) {
+                    renderedElements.add(emitExpression(context, element));
+                }
+                if (renderedElements.isEmpty()) {
+                    return "dev.tsj.runtime.TsjRuntime.arrayLiteral()";
+                }
+                return "dev.tsj.runtime.TsjRuntime.arrayLiteral(" + String.join(", ", renderedElements) + ")";
             }
             if (expression instanceof CallExpression callExpression) {
                 final List<String> renderedArgs = new ArrayList<>();

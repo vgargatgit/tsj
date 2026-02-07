@@ -575,6 +575,228 @@ class JvmBytecodeCompilerTest {
     }
 
     @Test
+    void supportsThenableAssimilationAndFirstSettleWins() throws Exception {
+        final Path sourceFile = tempDir.resolve("promise-thenable.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                const thenable = {
+                  then(resolve: any, reject: any) {
+                    resolve(41);
+                    reject("bad");
+                    resolve(99);
+                  }
+                };
+
+                Promise.resolve(thenable)
+                  .then((value: number) => {
+                    console.log("value=" + value);
+                    return value + 1;
+                  })
+                  .then((value: number) => {
+                    console.log("next=" + value);
+                    return value;
+                  });
+                console.log("sync");
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out22b2"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals("sync\nvalue=41\nnext=42\n", stdout.toString(UTF_8));
+    }
+
+    @Test
+    void supportsThenableRejectBeforeSettlementAsRejection() throws Exception {
+        final Path sourceFile = tempDir.resolve("promise-thenable-reject.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                const badThenable = {
+                  then(resolve: any, reject: any) {
+                    reject("boom");
+                    resolve(99);
+                  }
+                };
+
+                Promise.resolve(badThenable).then(
+                  undefined,
+                  (reason: string) => {
+                    console.log("error=" + reason);
+                    return reason;
+                  }
+                );
+                console.log("sync");
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out22b3"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals("sync\nerror=boom\n", stdout.toString(UTF_8));
+    }
+
+    @Test
+    void supportsPromiseCatchAndFinallyPassThrough() throws Exception {
+        final Path sourceFile = tempDir.resolve("promise-catch-finally.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                Promise.reject("boom")
+                  .catch((reason: string) => {
+                    console.log("catch=" + reason);
+                    return 7;
+                  })
+                  .finally(() => {
+                    console.log("finally");
+                    return 999;
+                  })
+                  .then((value: number) => {
+                    console.log("value=" + value);
+                    return value;
+                  });
+                console.log("sync");
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out22b4"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals("sync\ncatch=boom\nfinally\nvalue=7\n", stdout.toString(UTF_8));
+    }
+
+    @Test
+    void supportsPromiseFinallyRejectionOverride() throws Exception {
+        final Path sourceFile = tempDir.resolve("promise-finally-reject.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                Promise.resolve(1)
+                  .finally(() => Promise.reject("fin"))
+                  .then(
+                    (value: number) => {
+                      console.log("value=" + value);
+                      return value;
+                    },
+                    (reason: string) => {
+                      console.log("error=" + reason);
+                      return reason;
+                    }
+                  );
+                console.log("sync");
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out22b5"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals("sync\nerror=fin\n", stdout.toString(UTF_8));
+    }
+
+    @Test
+    void supportsPromiseAllAndRaceCombinators() throws Exception {
+        final Path sourceFile = tempDir.resolve("promise-all-race.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                Promise.all([Promise.resolve(1), Promise.resolve(2), 3]).then((values: any) => {
+                  console.log("all=" + values.length);
+                  return values;
+                });
+
+                Promise.race([Promise.resolve("win"), Promise.reject("lose")]).then(
+                  (value: string) => {
+                    console.log("race=" + value);
+                    return value;
+                  },
+                  (reason: string) => {
+                    console.log("race-err=" + reason);
+                    return reason;
+                  }
+                );
+                console.log("sync");
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out22b6"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals("sync\nall=3\nrace=win\n", stdout.toString(UTF_8));
+    }
+
+    @Test
+    void supportsPromiseAllSettledAndAnyCombinators() throws Exception {
+        final Path sourceFile = tempDir.resolve("promise-allsettled-any.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                Promise.allSettled([Promise.resolve(1), Promise.reject("x")]).then((entries: any) => {
+                  console.log("settled=" + entries.length);
+                  return entries;
+                });
+
+                Promise.any([Promise.reject("a"), Promise.resolve("ok")]).then(
+                  (value: string) => {
+                    console.log("any=" + value);
+                    return value;
+                  },
+                  (reason: any) => {
+                    console.log("any-err=" + reason.name);
+                    return reason;
+                  }
+                );
+                console.log("sync");
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out22b7"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals("sync\nsettled=2\nany=ok\n", stdout.toString(UTF_8));
+    }
+
+    @Test
+    void supportsPromiseAnyAggregateErrorWhenAllReject() throws Exception {
+        final Path sourceFile = tempDir.resolve("promise-any-reject.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                Promise.any([Promise.reject("a"), Promise.reject("b")]).then(
+                  (value: string) => {
+                    console.log("any=" + value);
+                    return value;
+                  },
+                  (reason: any) => {
+                    console.log("anyErr=" + reason.name + ":" + reason.errors.length);
+                    return reason;
+                  }
+                );
+                console.log("sync");
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out22b8"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals("sync\nanyErr=AggregateError:2\n", stdout.toString(UTF_8));
+    }
+
+    @Test
     void supportsAsyncFunctionAwaitAndThenSequencing() throws Exception {
         final Path sourceFile = tempDir.resolve("async-await.ts");
         Files.writeString(
@@ -1163,6 +1385,119 @@ class JvmBytecodeCompilerTest {
         new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
 
         assertEquals("v=0\nv=1\n", stdout.toString(UTF_8));
+    }
+
+    @Test
+    void supportsTopLevelAwaitInSingleFileProgram() throws Exception {
+        final Path sourceFile = tempDir.resolve("tla-single.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                console.log("before");
+                const value = await Promise.resolve(1);
+                console.log("after=" + value);
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out25a"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals("before\nafter=1\n", stdout.toString(UTF_8));
+    }
+
+    @Test
+    void supportsTopLevelAwaitAcrossImportedDependencyInitializationOrder() throws Exception {
+        final Path dep = tempDir.resolve("dep.ts");
+        final Path entry = tempDir.resolve("main.ts");
+        Files.writeString(
+                dep,
+                """
+                export let status = "init";
+                status = await Promise.resolve("ready");
+                console.log("dep=" + status);
+                """,
+                UTF_8
+        );
+        Files.writeString(
+                entry,
+                """
+                import { status } from "./dep.ts";
+                console.log("main=" + status);
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(entry, tempDir.resolve("out25b"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals("dep=ready\nmain=ready\n", stdout.toString(UTF_8));
+    }
+
+    @Test
+    void supportsTopLevelAwaitAcrossTransitiveModuleDependencies() throws Exception {
+        final Path moduleA = tempDir.resolve("a.ts");
+        final Path moduleB = tempDir.resolve("b.ts");
+        final Path entry = tempDir.resolve("main.ts");
+        Files.writeString(
+                moduleA,
+                """
+                export let value = 0;
+                value = await Promise.resolve(5);
+                console.log("a=" + value);
+                """,
+                UTF_8
+        );
+        Files.writeString(
+                moduleB,
+                """
+                import { value } from "./a.ts";
+                export function read() {
+                  return value;
+                }
+                console.log("b=" + value);
+                """,
+                UTF_8
+        );
+        Files.writeString(
+                entry,
+                """
+                import { read } from "./b.ts";
+                console.log("main=" + read());
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(entry, tempDir.resolve("out25c"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals("a=5\nb=5\nmain=5\n", stdout.toString(UTF_8));
+    }
+
+    @Test
+    void rejectsTopLevelAwaitInWhileConditionForNow() throws Exception {
+        final Path sourceFile = tempDir.resolve("tla-while-condition.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                let i = 0;
+                while (await Promise.resolve(i < 1)) {
+                  i = i + 1;
+                }
+                console.log(i);
+                """,
+                UTF_8
+        );
+
+        final JvmCompilationException exception = org.junit.jupiter.api.Assertions.assertThrows(
+                JvmCompilationException.class,
+                () -> new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out25d"))
+        );
+        assertEquals("TSJ-BACKEND-UNSUPPORTED", exception.code());
+        assertTrue(exception.getMessage().contains("while condition"));
     }
 
     @Test
