@@ -1,7 +1,7 @@
 package dev.tsj.runtime;
 
 /**
- * Runtime helpers used by TSJ-generated JVM classes in TSJ-7 subset.
+ * Runtime helpers used by TSJ-generated JVM classes in TSJ-9 subset.
  */
 public final class TsjRuntime {
     private TsjRuntime() {
@@ -16,6 +16,59 @@ public final class TsjRuntime {
             return callable.call(args);
         }
         throw new IllegalArgumentException("Value is not callable: " + toDisplayString(callee));
+    }
+
+    public static TsjClass asClass(final Object value) {
+        if (value instanceof TsjClass tsjClass) {
+            return tsjClass;
+        }
+        throw new IllegalArgumentException("Value is not a class: " + toDisplayString(value));
+    }
+
+    public static Object construct(final Object constructor, final Object... args) {
+        if (constructor instanceof TsjClass tsjClass) {
+            return tsjClass.construct(args);
+        }
+        throw new IllegalArgumentException("Value is not constructable: " + toDisplayString(constructor));
+    }
+
+    public static Object objectLiteral(final Object... keyValuePairs) {
+        if (keyValuePairs.length % 2 != 0) {
+            throw new IllegalArgumentException("Object literal arguments must be key/value pairs.");
+        }
+        final TsjObject object = new TsjObject(null);
+        for (int index = 0; index < keyValuePairs.length; index += 2) {
+            final Object keyValue = keyValuePairs[index];
+            final String key = keyValue == null ? "null" : keyValue.toString();
+            object.setOwn(key, keyValuePairs[index + 1]);
+        }
+        return object;
+    }
+
+    public static Object getProperty(final Object target, final String key) {
+        if (target instanceof TsjObject tsjObject) {
+            return tsjObject.get(key);
+        }
+        throw new IllegalArgumentException("Cannot get property `" + key + "` from " + toDisplayString(target));
+    }
+
+    public static Object setProperty(final Object target, final String key, final Object value) {
+        if (target instanceof TsjObject tsjObject) {
+            tsjObject.set(key, value);
+            return value;
+        }
+        throw new IllegalArgumentException("Cannot set property `" + key + "` on " + toDisplayString(target));
+    }
+
+    public static Object invokeMember(final Object target, final String methodName, final Object... args) {
+        if (target instanceof TsjObject tsjObject) {
+            final Object member = tsjObject.get(methodName);
+            if (member instanceof TsjMethod method) {
+                return method.call(tsjObject, args);
+            }
+            return call(member, args);
+        }
+        throw new IllegalArgumentException("Cannot invoke member `" + methodName + "` on " + toDisplayString(target));
     }
 
     public static Object add(final Object left, final Object right) {

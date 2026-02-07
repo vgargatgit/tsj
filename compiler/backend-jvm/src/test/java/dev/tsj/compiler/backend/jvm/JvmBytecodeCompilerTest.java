@@ -296,6 +296,214 @@ class JvmBytecodeCompilerTest {
     }
 
     @Test
+    void supportsClassConstructorFieldAndMethod() throws Exception {
+        final Path sourceFile = tempDir.resolve("class-basic.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                class Counter {
+                  value: number;
+
+                  constructor(seed: number) {
+                    this.value = seed;
+                  }
+
+                  inc(step: number) {
+                    this.value = this.value + step;
+                    return this.value;
+                  }
+                }
+
+                const counter = new Counter(10);
+                console.log("class=" + counter.inc(5));
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out13"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals("class=15\n", stdout.toString(UTF_8));
+    }
+
+    @Test
+    void supportsInheritanceWithSuperCallAndBaseMethod() throws Exception {
+        final Path sourceFile = tempDir.resolve("class-inheritance.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                class Base {
+                  value: number;
+                  constructor(seed: number) {
+                    this.value = seed;
+                  }
+                  read() {
+                    return this.value;
+                  }
+                }
+
+                class Derived extends Base {
+                  constructor(seed: number) {
+                    super(seed + 1);
+                  }
+                  doubled() {
+                    return this.value * 2;
+                  }
+                }
+
+                const d = new Derived(4);
+                console.log("inherit=" + d.read() + "," + d.doubled());
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out14"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals("inherit=5,10\n", stdout.toString(UTF_8));
+    }
+
+    @Test
+    void supportsObjectLiteralPropertyAccessAndAssignment() throws Exception {
+        final Path sourceFile = tempDir.resolve("object-literal.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                const item = { count: 2, name: "box" };
+                item.count = item.count + 3;
+                console.log("obj=" + item.name + ":" + item.count);
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out15"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals("obj=box:5\n", stdout.toString(UTF_8));
+    }
+
+    @Test
+    void supportsInheritedBaseMethodWithoutOverride() throws Exception {
+        final Path sourceFile = tempDir.resolve("inherit-base-method.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                class Base {
+                  value: number;
+                  constructor(seed: number) {
+                    this.value = seed;
+                  }
+                  read() {
+                    return this.value;
+                  }
+                }
+
+                class Derived extends Base {
+                  constructor(seed: number) {
+                    super(seed + 3);
+                  }
+                }
+
+                const d = new Derived(4);
+                console.log("base=" + d.read());
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out16"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals("base=7\n", stdout.toString(UTF_8));
+    }
+
+    @Test
+    void supportsDerivedMethodOverride() throws Exception {
+        final Path sourceFile = tempDir.resolve("inherit-override.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                class Base {
+                  value: number;
+                  constructor(seed: number) {
+                    this.value = seed;
+                  }
+                  read() {
+                    return this.value;
+                  }
+                }
+
+                class Derived extends Base {
+                  constructor(seed: number) {
+                    super(seed);
+                  }
+                  read() {
+                    return this.value + 100;
+                  }
+                }
+
+                const d = new Derived(5);
+                console.log("override=" + d.read());
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out17"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals("override=105\n", stdout.toString(UTF_8));
+    }
+
+    @Test
+    void supportsEmptyObjectLiteralAndLatePropertyWrites() throws Exception {
+        final Path sourceFile = tempDir.resolve("object-empty.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                const payload = {};
+                payload.count = 1;
+                payload.label = "ok";
+                payload.count = payload.count + 2;
+                console.log("late=" + payload.label + ":" + payload.count);
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out18"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals("late=ok:3\n", stdout.toString(UTF_8));
+    }
+
+    @Test
+    void rejectsSuperCallOutsideConstructor() throws Exception {
+        final Path sourceFile = tempDir.resolve("invalid-super.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                function bad() {
+                  super(1);
+                }
+
+                bad();
+                """,
+                UTF_8
+        );
+
+        final JvmCompilationException exception = org.junit.jupiter.api.Assertions.assertThrows(
+                JvmCompilationException.class,
+                () -> new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out19"))
+        );
+        assertEquals("TSJ-BACKEND-UNSUPPORTED", exception.code());
+        assertTrue(exception.getMessage().contains("super(...)"));
+    }
+
+    @Test
     void rejectsUnsupportedForLoopInTsj7() throws Exception {
         final Path sourceFile = tempDir.resolve("for-loop.ts");
         Files.writeString(

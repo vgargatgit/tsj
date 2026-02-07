@@ -12,6 +12,7 @@ Current implementation status includes:
 7. MIR CFG + lexical capture metadata for nested scopes/closures (`TSJ-6`)
 8. JVM backend subset compile/run path for arithmetic, control flow, and function calls (`TSJ-7`)
 9. JVM closure lowering for nested functions and captured variables (`TSJ-8`)
+10. JVM class/object lowering for constructors, inheritance basics, and object literals (`TSJ-9`)
 
 ## Repository Layout
 
@@ -84,6 +85,7 @@ CLI command contract is in `docs/cli-contract.md`.
 
 TSJ-7 compile now emits generated classes under `<out>/classes`, and `tsj run` executes the generated JVM class before emitting run diagnostics.
 TSJ-8 extends the same path with lexical closure support for nested function declarations and mutable captured locals.
+TSJ-9 extends the same path with class constructors/methods, inheritance via `extends`/`super(...)`, and object literal property access/assignment.
 
 ## Frontend and IR Tools
 
@@ -109,6 +111,8 @@ Seed fixture:
 - `tests/fixtures/smoke-hello`
 - `tests/fixtures/tsj7-control-flow`
 - `tests/fixtures/tsj8-closure-counter`
+- `tests/fixtures/tsj9-class-inheritance`
+- `tests/fixtures/tsj9-object-literal`
 
 ## Project Planning Docs
 

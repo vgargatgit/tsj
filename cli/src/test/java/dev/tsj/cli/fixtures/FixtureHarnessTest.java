@@ -90,6 +90,32 @@ class FixtureHarnessTest {
         assertEquals("", result.tsjResult().diff());
     }
 
+    @Test
+    void harnessSupportsClassAndInheritanceFixture() throws Exception {
+        final Path fixtureDir = writeClassFixture("class-inheritance");
+        final FixtureSpec fixture = FixtureLoader.loadFixture(fixtureDir);
+
+        final FixtureRunResult result = new FixtureHarness().runFixture(fixture);
+
+        assertTrue(result.passed());
+        assertTrue(result.nodeToTsjMatched());
+        assertEquals("", result.nodeResult().diff());
+        assertEquals("", result.tsjResult().diff());
+    }
+
+    @Test
+    void harnessSupportsObjectLiteralFixture() throws Exception {
+        final Path fixtureDir = writeObjectFixture("object-literal");
+        final FixtureSpec fixture = FixtureLoader.loadFixture(fixtureDir);
+
+        final FixtureRunResult result = new FixtureHarness().runFixture(fixture);
+
+        assertTrue(result.passed());
+        assertTrue(result.nodeToTsjMatched());
+        assertEquals("", result.nodeResult().diff());
+        assertEquals("", result.tsjResult().diff());
+    }
+
     private Path writeFixture(final String name, final boolean assertNodeMatchesTsj) throws IOException {
         final Path fixtureDir = tempDir.resolve(name);
         final Path inputDir = fixtureDir.resolve("input");
@@ -195,6 +221,110 @@ class FixtureHarnessTest {
         Files.writeString(expectedDir.resolve("node.stdout"), "closure=7\n", UTF_8);
         Files.writeString(expectedDir.resolve("node.stderr"), "", UTF_8);
         Files.writeString(expectedDir.resolve("tsj.stdout"), "closure=7\n", UTF_8);
+        Files.writeString(expectedDir.resolve("tsj.stderr"), "", UTF_8);
+
+        final String properties = String.join(
+                "\n",
+                "name=" + name,
+                "entry=input/main.ts",
+                "expected.node.exitCode=0",
+                "expected.node.stdout=expected/node.stdout",
+                "expected.node.stderr=expected/node.stderr",
+                "expected.node.stdoutMode=exact",
+                "expected.node.stderrMode=exact",
+                "expected.tsj.exitCode=0",
+                "expected.tsj.stdout=expected/tsj.stdout",
+                "expected.tsj.stderr=expected/tsj.stderr",
+                "expected.tsj.stdoutMode=contains",
+                "expected.tsj.stderrMode=exact",
+                "assert.nodeMatchesTsj=true",
+                ""
+        );
+        Files.writeString(fixtureDir.resolve("fixture.properties"), properties, UTF_8);
+        return fixtureDir;
+    }
+
+    private Path writeClassFixture(final String name) throws IOException {
+        final Path fixtureDir = tempDir.resolve(name);
+        final Path inputDir = fixtureDir.resolve("input");
+        final Path expectedDir = fixtureDir.resolve("expected");
+        Files.createDirectories(inputDir);
+        Files.createDirectories(expectedDir);
+
+        Files.writeString(
+                inputDir.resolve("main.ts"),
+                """
+                class Base {
+                  value: number;
+                  constructor(seed: number) {
+                    this.value = seed;
+                  }
+                  read() {
+                    return this.value;
+                  }
+                }
+
+                class Derived extends Base {
+                  constructor(seed: number) {
+                    super(seed + 2);
+                  }
+                  triple() {
+                    return this.value * 3;
+                  }
+                }
+
+                const d = new Derived(3);
+                console.log("class=" + d.read() + ":" + d.triple());
+                """,
+                UTF_8
+        );
+
+        Files.writeString(expectedDir.resolve("node.stdout"), "class=5:15\n", UTF_8);
+        Files.writeString(expectedDir.resolve("node.stderr"), "", UTF_8);
+        Files.writeString(expectedDir.resolve("tsj.stdout"), "class=5:15\n", UTF_8);
+        Files.writeString(expectedDir.resolve("tsj.stderr"), "", UTF_8);
+
+        final String properties = String.join(
+                "\n",
+                "name=" + name,
+                "entry=input/main.ts",
+                "expected.node.exitCode=0",
+                "expected.node.stdout=expected/node.stdout",
+                "expected.node.stderr=expected/node.stderr",
+                "expected.node.stdoutMode=exact",
+                "expected.node.stderrMode=exact",
+                "expected.tsj.exitCode=0",
+                "expected.tsj.stdout=expected/tsj.stdout",
+                "expected.tsj.stderr=expected/tsj.stderr",
+                "expected.tsj.stdoutMode=contains",
+                "expected.tsj.stderrMode=exact",
+                "assert.nodeMatchesTsj=true",
+                ""
+        );
+        Files.writeString(fixtureDir.resolve("fixture.properties"), properties, UTF_8);
+        return fixtureDir;
+    }
+
+    private Path writeObjectFixture(final String name) throws IOException {
+        final Path fixtureDir = tempDir.resolve(name);
+        final Path inputDir = fixtureDir.resolve("input");
+        final Path expectedDir = fixtureDir.resolve("expected");
+        Files.createDirectories(inputDir);
+        Files.createDirectories(expectedDir);
+
+        Files.writeString(
+                inputDir.resolve("main.ts"),
+                """
+                const payload = { label: "ok", count: 2 };
+                payload.count = payload.count + 4;
+                console.log("object=" + payload.label + ":" + payload.count);
+                """,
+                UTF_8
+        );
+
+        Files.writeString(expectedDir.resolve("node.stdout"), "object=ok:6\n", UTF_8);
+        Files.writeString(expectedDir.resolve("node.stderr"), "", UTF_8);
+        Files.writeString(expectedDir.resolve("tsj.stdout"), "object=ok:6\n", UTF_8);
         Files.writeString(expectedDir.resolve("tsj.stderr"), "", UTF_8);
 
         final String properties = String.join(

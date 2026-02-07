@@ -21,12 +21,13 @@ import java.util.Set;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 /**
- * TSJ-8 JVM backend compiler for expression/statement subset with lexical closures.
+ * TSJ-9 JVM backend compiler for expression/statement subset with closures and class/object support.
  */
 public final class JvmBytecodeCompiler {
     private static final Set<String> KEYWORDS = Set.of(
             "function", "const", "let", "var", "if", "else", "while", "return",
-            "true", "false", "null", "for", "export", "import", "from"
+            "true", "false", "null", "for", "export", "import", "from",
+            "class", "extends", "this", "super", "new"
     );
     private static final Set<String> JAVA_KEYWORDS = Set.of(
             "abstract", "assert", "boolean", "break", "byte", "case", "catch", "char",
@@ -398,8 +399,10 @@ public final class JvmBytecodeCompiler {
             VariableDeclaration,
             AssignmentStatement,
             FunctionDeclarationStatement,
+            ClassDeclarationStatement,
             IfStatement,
             WhileStatement,
+            SuperCallStatement,
             ReturnStatement,
             ConsoleLogStatement,
             ExpressionStatement {
@@ -408,10 +411,13 @@ public final class JvmBytecodeCompiler {
     private record VariableDeclaration(String name, Expression expression) implements Statement {
     }
 
-    private record AssignmentStatement(String name, Expression expression) implements Statement {
+    private record AssignmentStatement(Expression target, Expression expression) implements Statement {
     }
 
     private record FunctionDeclarationStatement(FunctionDeclaration declaration) implements Statement {
+    }
+
+    private record ClassDeclarationStatement(ClassDeclaration declaration) implements Statement {
     }
 
     private record IfStatement(Expression condition, List<Statement> thenBlock, List<Statement> elseBlock)
@@ -419,6 +425,9 @@ public final class JvmBytecodeCompiler {
     }
 
     private record WhileStatement(Expression condition, List<Statement> body) implements Statement {
+    }
+
+    private record SuperCallStatement(List<Expression> arguments) implements Statement {
     }
 
     private record ReturnStatement(Expression expression) implements Statement {
@@ -433,15 +442,31 @@ public final class JvmBytecodeCompiler {
     private record FunctionDeclaration(String name, List<String> parameters, List<Statement> body) {
     }
 
+    private record ClassDeclaration(
+            String name,
+            String superClassName,
+            List<String> fieldNames,
+            ClassMethod constructorMethod,
+            List<ClassMethod> methods
+    ) {
+    }
+
+    private record ClassMethod(String name, List<String> parameters, List<Statement> body) {
+    }
+
     private sealed interface Expression permits
             NumberLiteral,
             StringLiteral,
             BooleanLiteral,
             NullLiteral,
             VariableExpression,
+            ThisExpression,
             UnaryExpression,
             BinaryExpression,
-            CallExpression {
+            CallExpression,
+            MemberAccessExpression,
+            NewExpression,
+            ObjectLiteralExpression {
     }
 
     private record NumberLiteral(String value) implements Expression {
@@ -459,6 +484,9 @@ public final class JvmBytecodeCompiler {
     private record VariableExpression(String name) implements Expression {
     }
 
+    private record ThisExpression() implements Expression {
+    }
+
     private record UnaryExpression(String operator, Expression expression) implements Expression {
     }
 
@@ -466,6 +494,18 @@ public final class JvmBytecodeCompiler {
     }
 
     private record CallExpression(Expression callee, List<Expression> arguments) implements Expression {
+    }
+
+    private record MemberAccessExpression(Expression receiver, String member) implements Expression {
+    }
+
+    private record NewExpression(Expression constructor, List<Expression> arguments) implements Expression {
+    }
+
+    private record ObjectLiteralExpression(List<ObjectLiteralEntry> entries) implements Expression {
+    }
+
+    private record ObjectLiteralEntry(String key, Expression value) {
     }
 
     private static final class Parser {
@@ -485,6 +525,10 @@ public final class JvmBytecodeCompiler {
                         statements.add(new FunctionDeclarationStatement(parseFunctionDeclaration()));
                         continue;
                     }
+                    if (matchKeyword("class")) {
+                        statements.add(new ClassDeclarationStatement(parseClassDeclaration()));
+                        continue;
+                    }
                     if (matchKeyword("const") || matchKeyword("let") || matchKeyword("var")) {
                         statements.add(parseVariableDeclaration());
                         continue;
@@ -492,7 +536,7 @@ public final class JvmBytecodeCompiler {
                     final Token token = current();
                     throw new JvmCompilationException(
                             "TSJ-BACKEND-UNSUPPORTED",
-                            "Unsupported export form in TSJ-8 subset.",
+                            "Unsupported export form in TSJ-9 subset.",
                             token.line(),
                             token.column()
                     );
@@ -509,18 +553,24 @@ public final class JvmBytecodeCompiler {
             if (matchKeyword("function")) {
                 return new FunctionDeclarationStatement(parseFunctionDeclaration());
             }
+            if (matchKeyword("class")) {
+                return new ClassDeclarationStatement(parseClassDeclaration());
+            }
             if (matchKeyword("if")) {
                 return parseIfStatement(insideFunction);
             }
             if (matchKeyword("while")) {
                 return parseWhileStatement(insideFunction);
             }
+            if (matchKeyword("super")) {
+                return parseSuperCallStatement();
+            }
             if (matchKeyword("return")) {
                 if (!insideFunction) {
                     final Token token = previous();
                     throw new JvmCompilationException(
                             "TSJ-BACKEND-UNSUPPORTED",
-                            "Top-level `return` is unsupported in TSJ-8 subset.",
+                            "Top-level `return` is unsupported in TSJ-9 subset.",
                             token.line(),
                             token.column()
                     );
@@ -530,19 +580,25 @@ public final class JvmBytecodeCompiler {
             if (isConsoleLogStart()) {
                 return parseConsoleLog();
             }
-            if (current().type() == TokenType.KEYWORD) {
+            if (current().type() == TokenType.KEYWORD && !isExpressionStartKeyword(current().text())) {
                 final Token token = current();
                 throw new JvmCompilationException(
                         "TSJ-BACKEND-UNSUPPORTED",
-                        "Unsupported statement in TSJ-8 subset: " + token.text(),
+                        "Unsupported statement in TSJ-9 subset: " + token.text(),
                         token.line(),
                         token.column()
                 );
             }
-            if (isAssignmentStart()) {
-                return parseAssignment();
-            }
+            return parseExpressionOrAssignmentStatement();
+        }
+
+        private Statement parseExpressionOrAssignmentStatement() {
             final Expression expression = parseExpression();
+            if (matchSymbol("=")) {
+                final Expression right = parseExpression();
+                consumeSymbol(";", "Expected `;` after assignment.");
+                return new AssignmentStatement(expression, right);
+            }
             consumeSymbol(";", "Expected `;` after expression statement.");
             return new ExpressionStatement(expression);
         }
@@ -568,6 +624,65 @@ public final class JvmBytecodeCompiler {
             return new FunctionDeclaration(nameToken.text(), List.copyOf(parameters), List.copyOf(body));
         }
 
+        private ClassDeclaration parseClassDeclaration() {
+            final Token className = consumeIdentifier("Expected class name after `class`.");
+            String superClassName = null;
+            if (matchKeyword("extends")) {
+                superClassName = consumeIdentifier("Expected base class name after `extends`.").text();
+            }
+            consumeSymbol("{", "Expected `{` to start class body.");
+            final List<String> fields = new ArrayList<>();
+            final List<ClassMethod> methods = new ArrayList<>();
+            ClassMethod constructorMethod = null;
+            while (!checkSymbol("}") && !isAtEnd()) {
+                final Token memberName = consumeIdentifier("Expected class member name.");
+                if (matchSymbol(":")) {
+                    skipTypeAnnotation();
+                    consumeSymbol(";", "Expected `;` after class field declaration.");
+                    fields.add(memberName.text());
+                    continue;
+                }
+                consumeSymbol("(", "Expected `(` after class method name.");
+                final List<String> parameters = new ArrayList<>();
+                if (!checkSymbol(")")) {
+                    do {
+                        final Token parameter = consumeIdentifier("Expected parameter name.");
+                        parameters.add(parameter.text());
+                        if (matchSymbol(":")) {
+                            skipTypeAnnotation();
+                        }
+                    } while (matchSymbol(","));
+                }
+                consumeSymbol(")", "Expected `)` after class method parameters.");
+                if (matchSymbol(":")) {
+                    skipTypeAnnotation();
+                }
+                final List<Statement> body = parseBlock(true);
+                final ClassMethod method = new ClassMethod(memberName.text(), List.copyOf(parameters), List.copyOf(body));
+                if ("constructor".equals(memberName.text())) {
+                    if (constructorMethod != null) {
+                        throw new JvmCompilationException(
+                                "TSJ-BACKEND-UNSUPPORTED",
+                                "Duplicate class constructor declaration: " + className.text(),
+                                memberName.line(),
+                                memberName.column()
+                        );
+                    }
+                    constructorMethod = method;
+                } else {
+                    methods.add(method);
+                }
+            }
+            consumeSymbol("}", "Expected `}` to close class body.");
+            return new ClassDeclaration(
+                    className.text(),
+                    superClassName,
+                    List.copyOf(fields),
+                    constructorMethod,
+                    List.copyOf(methods)
+            );
+        }
+
         private VariableDeclaration parseVariableDeclaration() {
             final Token name = consumeIdentifier("Expected variable name after declaration keyword.");
             if (matchSymbol(":")) {
@@ -577,14 +692,6 @@ public final class JvmBytecodeCompiler {
             final Expression expression = parseExpression();
             consumeSymbol(";", "Expected `;` after variable declaration.");
             return new VariableDeclaration(name.text(), expression);
-        }
-
-        private AssignmentStatement parseAssignment() {
-            final Token name = consumeIdentifier("Expected assignment target.");
-            consumeSymbol("=", "Expected `=` in assignment.");
-            final Expression expression = parseExpression();
-            consumeSymbol(";", "Expected `;` after assignment.");
-            return new AssignmentStatement(name.text(), expression);
         }
 
         private IfStatement parseIfStatement(final boolean insideFunction) {
@@ -607,6 +714,19 @@ public final class JvmBytecodeCompiler {
             return new WhileStatement(condition, body);
         }
 
+        private SuperCallStatement parseSuperCallStatement() {
+            consumeSymbol("(", "Expected `(` after `super`.");
+            final List<Expression> arguments = new ArrayList<>();
+            if (!checkSymbol(")")) {
+                do {
+                    arguments.add(parseExpression());
+                } while (matchSymbol(","));
+            }
+            consumeSymbol(")", "Expected `)` after super call arguments.");
+            consumeSymbol(";", "Expected `;` after super call.");
+            return new SuperCallStatement(List.copyOf(arguments));
+        }
+
         private ReturnStatement parseReturnStatement() {
             final Expression expression = parseExpression();
             consumeSymbol(";", "Expected `;` after return expression.");
@@ -620,7 +740,7 @@ public final class JvmBytecodeCompiler {
             if (!"log".equals(logToken.text())) {
                 throw new JvmCompilationException(
                         "TSJ-BACKEND-UNSUPPORTED",
-                        "Only console.log is supported in TSJ-8 subset.",
+                        "Only console.log is supported in TSJ-9 subset.",
                         logToken.line(),
                         logToken.column()
                 );
@@ -694,20 +814,52 @@ public final class JvmBytecodeCompiler {
                 final String operator = previous().text();
                 return new UnaryExpression(operator, parseUnary());
             }
+            if (matchKeyword("new")) {
+                return parseNewExpression();
+            }
             return parseCall();
         }
 
         private Expression parseCall() {
-            Expression expression = parsePrimary();
-            while (matchSymbol("(")) {
-                final List<Expression> arguments = new ArrayList<>();
-                if (!checkSymbol(")")) {
-                    do {
-                        arguments.add(parseExpression());
-                    } while (matchSymbol(","));
+            return parsePostfix(parsePrimary());
+        }
+
+        private Expression parseNewExpression() {
+            Expression constructor = parsePrimary();
+            while (matchSymbol(".")) {
+                final Token member = consumeIdentifier("Expected member name after `.` in constructor expression.");
+                constructor = new MemberAccessExpression(constructor, member.text());
+            }
+            consumeSymbol("(", "Expected `(` after constructor expression in `new`.");
+            final List<Expression> arguments = new ArrayList<>();
+            if (!checkSymbol(")")) {
+                do {
+                    arguments.add(parseExpression());
+                } while (matchSymbol(","));
+            }
+            consumeSymbol(")", "Expected `)` after constructor arguments.");
+            return parsePostfix(new NewExpression(constructor, List.copyOf(arguments)));
+        }
+
+        private Expression parsePostfix(Expression expression) {
+            while (true) {
+                if (matchSymbol(".")) {
+                    final Token member = consumeIdentifier("Expected property name after `.`.");
+                    expression = new MemberAccessExpression(expression, member.text());
+                    continue;
                 }
-                consumeSymbol(")", "Expected `)` after call arguments.");
-                expression = new CallExpression(expression, List.copyOf(arguments));
+                if (matchSymbol("(")) {
+                    final List<Expression> arguments = new ArrayList<>();
+                    if (!checkSymbol(")")) {
+                        do {
+                            arguments.add(parseExpression());
+                        } while (matchSymbol(","));
+                    }
+                    consumeSymbol(")", "Expected `)` after call arguments.");
+                    expression = new CallExpression(expression, List.copyOf(arguments));
+                    continue;
+                }
+                break;
             }
             return expression;
         }
@@ -728,8 +880,14 @@ public final class JvmBytecodeCompiler {
             if (matchKeyword("null")) {
                 return new NullLiteral();
             }
+            if (matchKeyword("this")) {
+                return new ThisExpression();
+            }
             if (matchType(TokenType.IDENTIFIER)) {
                 return new VariableExpression(previous().text());
+            }
+            if (matchSymbol("{")) {
+                return parseObjectLiteral();
             }
             if (matchSymbol("(")) {
                 final Expression expression = parseExpression();
@@ -745,6 +903,32 @@ public final class JvmBytecodeCompiler {
             );
         }
 
+        private ObjectLiteralExpression parseObjectLiteral() {
+            final List<ObjectLiteralEntry> entries = new ArrayList<>();
+            if (!checkSymbol("}")) {
+                do {
+                    final String key;
+                    if (matchType(TokenType.IDENTIFIER)) {
+                        key = previous().text();
+                    } else if (matchType(TokenType.STRING)) {
+                        key = previous().text();
+                    } else {
+                        final Token token = current();
+                        throw new JvmCompilationException(
+                                "TSJ-BACKEND-PARSE",
+                                "Expected object literal property name.",
+                                token.line(),
+                                token.column()
+                        );
+                    }
+                    consumeSymbol(":", "Expected `:` after object literal property name.");
+                    entries.add(new ObjectLiteralEntry(key, parseExpression()));
+                } while (matchSymbol(","));
+            }
+            consumeSymbol("}", "Expected `}` to close object literal.");
+            return new ObjectLiteralExpression(List.copyOf(entries));
+        }
+
         private boolean isConsoleLogStart() {
             return current().type() == TokenType.IDENTIFIER
                     && "console".equals(current().text())
@@ -754,10 +938,12 @@ public final class JvmBytecodeCompiler {
                     && "log".equals(lookAhead(2).text());
         }
 
-        private boolean isAssignmentStart() {
-            return current().type() == TokenType.IDENTIFIER
-                    && lookAhead(1).type() == TokenType.SYMBOL
-                    && "=".equals(lookAhead(1).text());
+        private boolean isExpressionStartKeyword(final String keyword) {
+            return "true".equals(keyword)
+                    || "false".equals(keyword)
+                    || "null".equals(keyword)
+                    || "this".equals(keyword)
+                    || "new".equals(keyword);
         }
 
         private void skipTypeAnnotation() {
@@ -904,6 +1090,10 @@ public final class JvmBytecodeCompiler {
                     emitFunctionAssignment(builder, context, declarationStatement.declaration(), indent);
                     continue;
                 }
+                if (statement instanceof ClassDeclarationStatement classDeclarationStatement) {
+                    emitClassDeclaration(builder, context, classDeclarationStatement.declaration(), indent);
+                    continue;
+                }
                 if (statement instanceof VariableDeclaration declaration) {
                     final String cellName = context.declareBinding(declaration.name());
                     builder.append(indent)
@@ -915,12 +1105,7 @@ public final class JvmBytecodeCompiler {
                     continue;
                 }
                 if (statement instanceof AssignmentStatement assignment) {
-                    final String cellName = context.resolveBinding(assignment.name());
-                    builder.append(indent)
-                            .append(cellName)
-                            .append(".set(")
-                            .append(emitExpression(context, assignment.expression()))
-                            .append(");\n");
+                    emitAssignment(builder, context, assignment, indent);
                     continue;
                 }
                 if (statement instanceof ConsoleLogStatement logStatement) {
@@ -972,11 +1157,15 @@ public final class JvmBytecodeCompiler {
                     builder.append(indent).append("}\n");
                     continue;
                 }
+                if (statement instanceof SuperCallStatement superCallStatement) {
+                    emitSuperConstructorCall(builder, context, superCallStatement, indent);
+                    continue;
+                }
                 if (statement instanceof ReturnStatement returnStatement) {
                     if (!insideFunction) {
                         throw new JvmCompilationException(
                                 "TSJ-BACKEND-UNSUPPORTED",
-                                "Return statements are only valid inside functions in TSJ-8."
+                                "Return statements are only valid inside functions in TSJ-9."
                         );
                     }
                     builder.append(indent)
@@ -1014,11 +1203,120 @@ public final class JvmBytecodeCompiler {
                     .append(") -> {\n");
 
             final EmissionContext functionContext = new EmissionContext(context);
-            for (int index = 0; index < declaration.parameters().size(); index++) {
-                final String parameterName = declaration.parameters().get(index);
-                final String parameterCell = functionContext.declareBinding(parameterName);
+            emitParameterCells(builder, functionContext, declaration.parameters(), argsVar, indent + "    ");
+
+            emitStatements(builder, functionContext, declaration.body(), indent + "    ", true);
+            if (declaration.body().isEmpty()
+                    || !(declaration.body().get(declaration.body().size() - 1) instanceof ReturnStatement)) {
+                builder.append(indent).append("    return null;\n");
+            }
+
+            builder.append(indent).append("});\n");
+        }
+
+        private void emitClassDeclaration(
+                final StringBuilder builder,
+                final EmissionContext context,
+                final ClassDeclaration declaration,
+                final String indent
+        ) {
+            final String classCellName = context.declareBinding(declaration.name());
+            final String classVar = context.allocateGeneratedName(sanitizeIdentifier(declaration.name()) + "_class");
+            final String superClassExpression = declaration.superClassName() == null
+                    ? null
+                    : context.resolveBinding(declaration.superClassName()) + ".get()";
+            final String superClassArg = superClassExpression == null
+                    ? "null"
+                    : "dev.tsj.runtime.TsjRuntime.asClass(" + superClassExpression + ")";
+
+            builder.append(indent)
+                    .append("final dev.tsj.runtime.TsjCell ")
+                    .append(classCellName)
+                    .append(" = new dev.tsj.runtime.TsjCell(null);\n");
+            builder.append(indent)
+                    .append("final dev.tsj.runtime.TsjClass ")
+                    .append(classVar)
+                    .append(" = new dev.tsj.runtime.TsjClass(\"")
+                    .append(escapeJava(declaration.name()))
+                    .append("\", ")
+                    .append(superClassArg)
+                    .append(");\n");
+            builder.append(indent)
+                    .append(classCellName)
+                    .append(".set(")
+                    .append(classVar)
+                    .append(");\n");
+
+            if (declaration.constructorMethod() != null) {
+                emitClassMethod(
+                        builder,
+                        context,
+                        classVar,
+                        declaration.constructorMethod(),
+                        true,
+                        superClassExpression,
+                        indent
+                );
+            }
+            for (ClassMethod method : declaration.methods()) {
+                emitClassMethod(builder, context, classVar, method, false, superClassExpression, indent);
+            }
+        }
+
+        private void emitClassMethod(
+                final StringBuilder builder,
+                final EmissionContext context,
+                final String classVar,
+                final ClassMethod method,
+                final boolean constructor,
+                final String superClassExpression,
+                final String indent
+        ) {
+            final String thisVar = context.allocateGeneratedName("thisObject");
+            final String argsVar = context.allocateGeneratedName("methodArgs");
+            if (constructor) {
                 builder.append(indent)
-                        .append("    final dev.tsj.runtime.TsjCell ")
+                        .append(classVar)
+                        .append(".setConstructor((dev.tsj.runtime.TsjObject ")
+                        .append(thisVar)
+                        .append(", Object... ")
+                        .append(argsVar)
+                        .append(") -> {\n");
+            } else {
+                builder.append(indent)
+                        .append(classVar)
+                        .append(".defineMethod(\"")
+                        .append(escapeJava(method.name()))
+                        .append("\", (dev.tsj.runtime.TsjObject ")
+                        .append(thisVar)
+                        .append(", Object... ")
+                        .append(argsVar)
+                        .append(") -> {\n");
+            }
+
+            final EmissionContext methodContext =
+                    new EmissionContext(context, thisVar, superClassExpression, constructor);
+            emitParameterCells(builder, methodContext, method.parameters(), argsVar, indent + "    ");
+            emitStatements(builder, methodContext, method.body(), indent + "    ", true);
+            if (method.body().isEmpty()
+                    || !(method.body().get(method.body().size() - 1) instanceof ReturnStatement)) {
+                builder.append(indent).append("    return null;\n");
+            }
+            builder.append(indent).append("});\n");
+        }
+
+        private void emitParameterCells(
+                final StringBuilder builder,
+                final EmissionContext context,
+                final List<String> parameters,
+                final String argsVar,
+                final String indent
+        ) {
+            for (int index = 0; index < parameters.size(); index++) {
+                final String parameterName = parameters.get(index);
+                final String parameterCell = context.declareBinding(parameterName);
+                builder.append(indent)
+                        .append("final dev.tsj.runtime.TsjCell ")
                         .append(parameterCell)
                         .append(" = new dev.tsj.runtime.TsjCell(")
                         .append(argsVar)
@@ -1030,14 +1328,70 @@ public final class JvmBytecodeCompiler {
                         .append(index)
                         .append("] : null);\n");
             }
+        }
 
-            emitStatements(builder, functionContext, declaration.body(), indent + "    ", true);
-            if (declaration.body().isEmpty()
-                    || !(declaration.body().get(declaration.body().size() - 1) instanceof ReturnStatement)) {
-                builder.append(indent).append("    return null;\n");
+        private void emitAssignment(
+                final StringBuilder builder,
+                final EmissionContext context,
+                final AssignmentStatement assignment,
+                final String indent
+        ) {
+            final String valueExpression = emitExpression(context, assignment.expression());
+            if (assignment.target() instanceof VariableExpression variableExpression) {
+                final String cellName = context.resolveBinding(variableExpression.name());
+                builder.append(indent)
+                        .append(cellName)
+                        .append(".set(")
+                        .append(valueExpression)
+                        .append(");\n");
+                return;
             }
+            if (assignment.target() instanceof MemberAccessExpression memberAccessExpression) {
+                builder.append(indent)
+                        .append("dev.tsj.runtime.TsjRuntime.setProperty(")
+                        .append(emitExpression(context, memberAccessExpression.receiver()))
+                        .append(", \"")
+                        .append(escapeJava(memberAccessExpression.member()))
+                        .append("\", ")
+                        .append(valueExpression)
+                        .append(");\n");
+                return;
+            }
+            throw new JvmCompilationException(
+                    "TSJ-BACKEND-UNSUPPORTED",
+                    "Unsupported assignment target in TSJ-9 subset: "
+                            + assignment.target().getClass().getSimpleName()
+            );
+        }
 
-            builder.append(indent).append("});\n");
+        private void emitSuperConstructorCall(
+                final StringBuilder builder,
+                final EmissionContext context,
+                final SuperCallStatement superCallStatement,
+                final String indent
+        ) {
+            if (!context.isConstructorContext()) {
+                throw new JvmCompilationException(
+                        "TSJ-BACKEND-UNSUPPORTED",
+                        "`super(...)` is only valid in class constructors in TSJ-9 subset."
+                );
+            }
+            final String superClassExpression = context.resolveSuperClassExpression();
+            if (superClassExpression == null) {
+                throw new JvmCompilationException(
+                        "TSJ-BACKEND-UNSUPPORTED",
+                        "Cannot use `super(...)` in a class without a base class in TSJ-9 subset."
+                );
+            }
+            builder.append(indent)
+                    .append("dev.tsj.runtime.TsjRuntime.asClass(")
+                    .append(superClassExpression)
+                    .append(").invokeConstructor(")
+                    .append(context.resolveThisReference());
+            for (Expression argument : superCallStatement.arguments()) {
+                builder.append(", ").append(emitExpression(context, argument));
+            }
+            builder.append(");\n");
         }
 
         private String emitExpression(final EmissionContext context, final Expression expression) {
@@ -1058,6 +1412,9 @@ public final class JvmBytecodeCompiler {
             }
             if (expression instanceof VariableExpression variableExpression) {
                 return context.resolveBinding(variableExpression.name()) + ".get()";
+            }
+            if (expression instanceof ThisExpression) {
+                return context.resolveThisReference();
             }
             if (expression instanceof UnaryExpression unaryExpression) {
                 if ("-".equals(unaryExpression.operator())) {
@@ -1099,12 +1456,59 @@ public final class JvmBytecodeCompiler {
                     );
                 };
             }
+            if (expression instanceof MemberAccessExpression memberAccessExpression) {
+                return "dev.tsj.runtime.TsjRuntime.getProperty("
+                        + emitExpression(context, memberAccessExpression.receiver())
+                        + ", \""
+                        + escapeJava(memberAccessExpression.member())
+                        + "\")";
+            }
+            if (expression instanceof NewExpression newExpression) {
+                final String constructor = emitExpression(context, newExpression.constructor());
+                final List<String> renderedArgs = new ArrayList<>();
+                for (Expression argument : newExpression.arguments()) {
+                    renderedArgs.add(emitExpression(context, argument));
+                }
+                if (renderedArgs.isEmpty()) {
+                    return "dev.tsj.runtime.TsjRuntime.construct(" + constructor + ")";
+                }
+                return "dev.tsj.runtime.TsjRuntime.construct("
+                        + constructor
+                        + ", "
+                        + String.join(", ", renderedArgs)
+                        + ")";
+            }
+            if (expression instanceof ObjectLiteralExpression objectLiteralExpression) {
+                final List<String> keyValueSegments = new ArrayList<>();
+                for (ObjectLiteralEntry entry : objectLiteralExpression.entries()) {
+                    keyValueSegments.add("\"" + escapeJava(entry.key()) + "\"");
+                    keyValueSegments.add(emitExpression(context, entry.value()));
+                }
+                if (keyValueSegments.isEmpty()) {
+                    return "dev.tsj.runtime.TsjRuntime.objectLiteral()";
+                }
+                return "dev.tsj.runtime.TsjRuntime.objectLiteral(" + String.join(", ", keyValueSegments) + ")";
+            }
             if (expression instanceof CallExpression callExpression) {
-                final String callee = emitExpression(context, callExpression.callee());
                 final List<String> renderedArgs = new ArrayList<>();
                 for (Expression argument : callExpression.arguments()) {
                     renderedArgs.add(emitExpression(context, argument));
                 }
+                if (callExpression.callee() instanceof MemberAccessExpression memberAccessExpression) {
+                    final String receiver = emitExpression(context, memberAccessExpression.receiver());
+                    final String methodName = "\"" + escapeJava(memberAccessExpression.member()) + "\"";
+                    if (renderedArgs.isEmpty()) {
+                        return "dev.tsj.runtime.TsjRuntime.invokeMember(" + receiver + ", " + methodName + ")";
+                    }
+                    return "dev.tsj.runtime.TsjRuntime.invokeMember("
+                            + receiver
+                            + ", "
+                            + methodName
+                            + ", "
+                            + String.join(", ", renderedArgs)
+                            + ")";
+                }
+                final String callee = emitExpression(context, callExpression.callee());
                 if (renderedArgs.isEmpty()) {
                     return "dev.tsj.runtime.TsjRuntime.call(" + callee + ")";
                 }
@@ -1147,11 +1551,31 @@ public final class JvmBytecodeCompiler {
             private final EmissionContext parent;
             private final Map<String, String> bindings;
             private final Set<String> generatedNames;
+            private final String thisReference;
+            private final String superClassExpression;
+            private final boolean constructorContext;
 
             private EmissionContext(final EmissionContext parent) {
+                this(
+                        parent,
+                        parent != null ? parent.thisReference : null,
+                        parent != null ? parent.superClassExpression : null,
+                        parent != null && parent.constructorContext
+                );
+            }
+
+            private EmissionContext(
+                    final EmissionContext parent,
+                    final String thisReference,
+                    final String superClassExpression,
+                    final boolean constructorContext
+            ) {
                 this.parent = parent;
                 this.bindings = new LinkedHashMap<>();
                 this.generatedNames = new LinkedHashSet<>();
+                this.thisReference = thisReference;
+                this.superClassExpression = superClassExpression;
+                this.constructorContext = constructorContext;
             }
 
             private String predeclareBinding(final String sourceName) {
@@ -1187,7 +1611,7 @@ public final class JvmBytecodeCompiler {
                 }
                 throw new JvmCompilationException(
                         "TSJ-BACKEND-UNSUPPORTED",
-                        "Unresolved identifier in TSJ-8 subset: " + sourceName
+                        "Unresolved identifier in TSJ-9 subset: " + sourceName
                 );
             }
 
@@ -1216,6 +1640,33 @@ public final class JvmBytecodeCompiler {
                     return parent.isNameUsed(value);
                 }
                 return false;
+            }
+
+            private boolean isConstructorContext() {
+                return constructorContext;
+            }
+
+            private String resolveThisReference() {
+                if (thisReference != null) {
+                    return thisReference;
+                }
+                if (parent != null) {
+                    return parent.resolveThisReference();
+                }
+                throw new JvmCompilationException(
+                        "TSJ-BACKEND-UNSUPPORTED",
+                        "`this` is only valid inside class methods in TSJ-9 subset."
+                );
+            }
+
+            private String resolveSuperClassExpression() {
+                if (superClassExpression != null) {
+                    return superClassExpression;
+                }
+                if (parent != null) {
+                    return parent.resolveSuperClassExpression();
+                }
+                return null;
             }
         }
     }

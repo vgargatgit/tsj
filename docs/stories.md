@@ -117,6 +117,10 @@
   - Class constructors, fields, and methods compile and run.
   - Object literal property access and assignment works in runtime model.
   - Fixtures for inheritance basics pass.
+- Notes:
+  - TSJ-9 backend parser/codegen supports `class`, `extends`, `new`, `this`, and constructor `super(...)` calls.
+  - Runtime model uses `TsjClass` + `TsjObject` with prototype-based method dispatch and property mutation helpers.
+  - Fixture coverage includes `tests/fixtures/tsj9-class-inheritance` and `tests/fixtures/tsj9-object-literal`.
 - Dependencies: TSJ-7.
 
 ## Epic D: Runtime Compatibility Layer

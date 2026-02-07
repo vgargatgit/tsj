@@ -69,4 +69,114 @@ class TsjRuntimeTest {
         );
         assertTrue(exception.getMessage().contains("Value is not callable"));
     }
+
+    @Test
+    void objectLiteralSupportsGetAndSetProperty() {
+        final Object object = TsjRuntime.objectLiteral("name", "tsj", "count", 1);
+        assertEquals("tsj", TsjRuntime.getProperty(object, "name"));
+        assertEquals(1, TsjRuntime.getProperty(object, "count"));
+
+        TsjRuntime.setProperty(object, "count", 2);
+        assertEquals(2, TsjRuntime.getProperty(object, "count"));
+    }
+
+    @Test
+    void constructAndInvokeMemberSupportClassMethodsAndInheritance() {
+        final TsjClass base = new TsjClass("Base", null);
+        base.setConstructor((thisObject, args) -> {
+            TsjRuntime.setProperty(thisObject, "value", args.length > 0 ? args[0] : 0);
+            return null;
+        });
+        base.defineMethod("read", (thisObject, args) -> TsjRuntime.getProperty(thisObject, "value"));
+
+        final TsjClass derived = new TsjClass("Derived", base);
+        derived.setConstructor((thisObject, args) -> {
+            base.invokeConstructor(thisObject, args);
+            TsjRuntime.setProperty(
+                    thisObject,
+                    "value",
+                    TsjRuntime.add(TsjRuntime.getProperty(thisObject, "value"), 1)
+            );
+            return null;
+        });
+        derived.defineMethod(
+                "doubleValue",
+                (thisObject, args) -> TsjRuntime.multiply(TsjRuntime.getProperty(thisObject, "value"), 2)
+        );
+
+        final Object instance = TsjRuntime.construct(derived, 4);
+        assertEquals(5, TsjRuntime.invokeMember(instance, "read"));
+        assertEquals(10, TsjRuntime.invokeMember(instance, "doubleValue"));
+    }
+
+    @Test
+    void invokeMemberFailsWhenOwnDataPropertyShadowsPrototypeMethod() {
+        final TsjClass base = new TsjClass("Base", null);
+        base.defineMethod("read", (thisObject, args) -> TsjRuntime.getProperty(thisObject, "read"));
+
+        final Object instance = TsjRuntime.construct(base);
+        TsjRuntime.setProperty(instance, "read", 5);
+
+        final IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> TsjRuntime.invokeMember(instance, "read")
+        );
+        assertTrue(exception.getMessage().contains("not callable"));
+    }
+
+    @Test
+    void constructRejectsNonClassValues() {
+        final IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> TsjRuntime.construct("bad")
+        );
+        assertTrue(exception.getMessage().contains("not constructable"));
+    }
+
+    @Test
+    void constructFallsBackToSuperclassConstructorWhenSubclassHasNoConstructor() {
+        final TsjClass base = new TsjClass("Base", null);
+        base.setConstructor((thisObject, args) -> {
+            TsjRuntime.setProperty(thisObject, "value", args[0]);
+            return null;
+        });
+
+        final TsjClass derived = new TsjClass("Derived", base);
+        final Object instance = TsjRuntime.construct(derived, 9);
+
+        assertEquals(9, TsjRuntime.getProperty(instance, "value"));
+    }
+
+    @Test
+    void objectLiteralRejectsOddKeyValueArgumentCount() {
+        final IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> TsjRuntime.objectLiteral("name", "tsj", "dangling")
+        );
+        assertTrue(exception.getMessage().contains("key/value pairs"));
+    }
+
+    @Test
+    void getAndSetPropertyRejectNonObjectReceivers() {
+        final IllegalArgumentException getException = assertThrows(
+                IllegalArgumentException.class,
+                () -> TsjRuntime.getProperty("bad", "x")
+        );
+        assertTrue(getException.getMessage().contains("Cannot get property"));
+
+        final IllegalArgumentException setException = assertThrows(
+                IllegalArgumentException.class,
+                () -> TsjRuntime.setProperty("bad", "x", 1)
+        );
+        assertTrue(setException.getMessage().contains("Cannot set property"));
+    }
+
+    @Test
+    void invokeMemberRejectsMissingReceiverType() {
+        final IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> TsjRuntime.invokeMember("bad", "x")
+        );
+        assertTrue(exception.getMessage().contains("Cannot invoke member"));
+    }
 }

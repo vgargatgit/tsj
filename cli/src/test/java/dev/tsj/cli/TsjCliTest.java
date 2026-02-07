@@ -130,6 +130,91 @@ class TsjCliTest {
     }
 
     @Test
+    void runExecutesClassAndObjectProgram() throws Exception {
+        final Path entryFile = tempDir.resolve("class-object.ts");
+        Files.writeString(
+                entryFile,
+                """
+                class User {
+                  name: string;
+                  constructor(name: string) {
+                    this.name = name;
+                  }
+                  tag() {
+                    return "@" + this.name;
+                  }
+                }
+
+                const u = new User("tsj");
+                const payload = { label: "ok", count: 2 };
+                payload.count = payload.count + 1;
+                console.log("model=" + u.tag() + ":" + payload.count);
+                """,
+                UTF_8
+        );
+
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+
+        final int exitCode = TsjCli.execute(
+                new String[]{"run", entryFile.toString(), "--out", tempDir.resolve("class-out").toString()},
+                new PrintStream(stdout),
+                new PrintStream(stderr)
+        );
+
+        assertEquals(0, exitCode);
+        assertTrue(stdout.toString(UTF_8).contains("model=@tsj:3"));
+        assertTrue(stdout.toString(UTF_8).contains("\"code\":\"TSJ-RUN-SUCCESS\""));
+        assertEquals("", stderr.toString(UTF_8));
+    }
+
+    @Test
+    void runExecutesInheritanceProgram() throws Exception {
+        final Path entryFile = tempDir.resolve("inheritance.ts");
+        Files.writeString(
+                entryFile,
+                """
+                class Base {
+                  value: number;
+                  constructor(seed: number) {
+                    this.value = seed;
+                  }
+                  read() {
+                    return this.value;
+                  }
+                }
+
+                class Derived extends Base {
+                  constructor(seed: number) {
+                    super(seed + 2);
+                  }
+                  doubled() {
+                    return this.value * 2;
+                  }
+                }
+
+                const d = new Derived(4);
+                console.log("inherit=" + d.read() + ":" + d.doubled());
+                """,
+                UTF_8
+        );
+
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+
+        final int exitCode = TsjCli.execute(
+                new String[]{"run", entryFile.toString(), "--out", tempDir.resolve("inherit-out").toString()},
+                new PrintStream(stdout),
+                new PrintStream(stderr)
+        );
+
+        assertEquals(0, exitCode);
+        assertTrue(stdout.toString(UTF_8).contains("inherit=6:12"));
+        assertTrue(stdout.toString(UTF_8).contains("\"code\":\"TSJ-RUN-SUCCESS\""));
+        assertEquals("", stderr.toString(UTF_8));
+    }
+
+    @Test
     void compileMissingOutFlagReturnsStructuredError() throws Exception {
         final Path entryFile = tempDir.resolve("main.ts");
         Files.writeString(entryFile, "const x = 1;\n", UTF_8);

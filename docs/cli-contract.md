@@ -7,6 +7,8 @@ Behavior:
 1. Validates input file exists and has `.ts`/`.tsx` extension.
 2. Compiles supported TSJ-7 subset into JVM classes.
    - TSJ-8 extends supported subset with nested function declarations and lexical closures.
+   - TSJ-9 extends supported subset with class/object features:
+     class declarations, `extends`/`super(...)`, `new`, `this` member access, and object literals.
 3. Creates output directory if missing.
 4. Emits class output directory:
    - `<out>/classes`
