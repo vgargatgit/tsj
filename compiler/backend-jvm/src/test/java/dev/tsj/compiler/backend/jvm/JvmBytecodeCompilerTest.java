@@ -10,6 +10,7 @@ import java.nio.file.Path;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class JvmBytecodeCompilerTest {
@@ -569,6 +570,182 @@ class JvmBytecodeCompilerTest {
 
         assertTrue(javaSource.contains("TsjPropertyAccessCache"));
         assertTrue(javaSource.contains("TsjRuntime.getPropertyCached("));
+    }
+
+    @Test
+    void foldsConstantArithmeticExpressionsWhenOptimizationsAreEnabled() throws Exception {
+        final Path sourceFile = tempDir.resolve("constant-folding.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                const value = 1 + 2 * 3;
+                console.log("value=" + value);
+                """,
+                UTF_8
+        );
+
+        final Path optimizedOut = tempDir.resolve("opt-on");
+        final JvmCompiledArtifact optimizedArtifact = new JvmBytecodeCompiler().compile(sourceFile, optimizedOut);
+        final String optimizedSource = generatedJavaSource(optimizedOut, optimizedArtifact);
+
+        final Path baselineOut = tempDir.resolve("opt-off");
+        final JvmCompiledArtifact baselineArtifact = new JvmBytecodeCompiler().compile(
+                sourceFile,
+                baselineOut,
+                JvmOptimizationOptions.disabled()
+        );
+        final String baselineSource = generatedJavaSource(baselineOut, baselineArtifact);
+
+        assertTrue(optimizedSource.contains("Integer.valueOf(7)"));
+        assertFalse(optimizedSource.contains("TsjRuntime.multiply("));
+        assertTrue(baselineSource.contains("TsjRuntime.multiply("));
+    }
+
+    @Test
+    void eliminatesUnreachableStatementsAfterReturnWhenDceIsEnabled() throws Exception {
+        final Path sourceFile = tempDir.resolve("dead-after-return.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                function pick() {
+                  return 1;
+                  console.log("dead-branch");
+                }
+                console.log("value=" + pick());
+                """,
+                UTF_8
+        );
+
+        final Path optimizedOut = tempDir.resolve("dce-on");
+        final JvmCompiledArtifact optimizedArtifact = new JvmBytecodeCompiler().compile(sourceFile, optimizedOut);
+        final String optimizedSource = generatedJavaSource(optimizedOut, optimizedArtifact);
+        assertFalse(optimizedSource.contains("dead-branch"));
+
+        final Path baselineOut = tempDir.resolve("dce-off");
+        final JvmCompiledArtifact baselineArtifact = new JvmBytecodeCompiler().compile(
+                sourceFile,
+                baselineOut,
+                JvmOptimizationOptions.disabled()
+        );
+        final String baselineSource = generatedJavaSource(baselineOut, baselineArtifact);
+        assertFalse(baselineSource.contains("dead-branch"));
+    }
+
+    @Test
+    void removesWhileFalseLoopWhenDceIsEnabled() throws Exception {
+        final Path sourceFile = tempDir.resolve("while-false.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                let value = 1;
+                while (false) {
+                  value = value + 1;
+                }
+                console.log("value=" + value);
+                """,
+                UTF_8
+        );
+
+        final Path optimizedOut = tempDir.resolve("while-dce-on");
+        final JvmCompiledArtifact optimizedArtifact = new JvmBytecodeCompiler().compile(sourceFile, optimizedOut);
+        final String optimizedSource = generatedJavaSource(optimizedOut, optimizedArtifact);
+
+        final Path baselineOut = tempDir.resolve("while-dce-off");
+        final JvmCompiledArtifact baselineArtifact = new JvmBytecodeCompiler().compile(
+                sourceFile,
+                baselineOut,
+                JvmOptimizationOptions.disabled()
+        );
+        final String baselineSource = generatedJavaSource(baselineOut, baselineArtifact);
+
+        assertFalse(optimizedSource.contains("while (dev.tsj.runtime.TsjRuntime.truthy(Boolean.FALSE))"));
+        assertTrue(baselineSource.contains("while (dev.tsj.runtime.TsjRuntime.truthy(Boolean.FALSE))"));
+    }
+
+    @Test
+    void optimizationBenchmarkShowsGeneratedSourceReductionAcrossFixtureSet() throws Exception {
+        final Path fixturesRoot = tempDir.resolve("tsj17-fixtures");
+        Files.createDirectories(fixturesRoot);
+
+        final Path fixtureOne = fixturesRoot.resolve("fixture-one.ts");
+        Files.writeString(
+                fixtureOne,
+                """
+                function score() {
+                  const base = 1 + 2 + 3 + 4;
+                  if (false) {
+                    console.log("dead-one");
+                  }
+                  return base;
+                }
+                console.log("score=" + score());
+                """,
+                UTF_8
+        );
+
+        final Path fixtureTwo = fixturesRoot.resolve("fixture-two.ts");
+        Files.writeString(
+                fixtureTwo,
+                """
+                let acc = 0;
+                while (false) {
+                  acc = acc + 100;
+                }
+                if (true) {
+                  acc = acc + (5 * 6);
+                } else {
+                  acc = acc + 999;
+                }
+                console.log("acc=" + acc);
+                """,
+                UTF_8
+        );
+
+        final Path fixtureThree = fixturesRoot.resolve("fixture-three.ts");
+        Files.writeString(
+                fixtureThree,
+                """
+                async function run() {
+                  const left = await Promise.resolve(2 + 3);
+                  if (false) {
+                    console.log("dead-async");
+                  }
+                  return left + (10 - 7);
+                }
+                function onDone(value: number) {
+                  console.log("value=" + value);
+                  return value;
+                }
+                run().then(onDone);
+                """,
+                UTF_8
+        );
+
+        final JvmBytecodeCompiler compiler = new JvmBytecodeCompiler();
+        int optimizedBytes = 0;
+        int baselineBytes = 0;
+        int optimizedOps = 0;
+        int baselineOps = 0;
+        for (Path fixture : new Path[]{fixtureOne, fixtureTwo, fixtureThree}) {
+            final Path optimizedOut = tempDir.resolve("bench-opt-" + fixture.getFileName().toString());
+            final JvmCompiledArtifact optimizedArtifact = compiler.compile(fixture, optimizedOut);
+            final String optimizedSource = generatedJavaSource(optimizedOut, optimizedArtifact);
+            optimizedBytes += optimizedSource.getBytes(UTF_8).length;
+            optimizedOps += runtimeOperationCount(optimizedSource);
+
+            final Path baselineOut = tempDir.resolve("bench-base-" + fixture.getFileName().toString());
+            final JvmCompiledArtifact baselineArtifact = compiler.compile(
+                    fixture,
+                    baselineOut,
+                    JvmOptimizationOptions.disabled()
+            );
+            final String baselineSource = generatedJavaSource(baselineOut, baselineArtifact);
+            baselineBytes += baselineSource.getBytes(UTF_8).length;
+            baselineOps += runtimeOperationCount(baselineSource);
+        }
+
+        assertTrue(optimizedBytes < baselineBytes);
+        assertTrue(optimizedOps < baselineOps);
     }
 
     @Test
@@ -1789,5 +1966,22 @@ class JvmBytecodeCompilerTest {
         assertTrue(exception.getMessage().contains(guidanceSnippet));
         assertTrue(exception.guidance() != null && exception.guidance().contains(guidanceSnippet));
         assertTrue(exception.sourceFile() != null && !exception.sourceFile().isBlank());
+    }
+
+    private static String generatedJavaSource(final Path outDir, final JvmCompiledArtifact artifact) throws Exception {
+        final String simpleName = artifact.className().substring(artifact.className().lastIndexOf('.') + 1);
+        final Path generatedSource = outDir.resolve("generated-src/dev/tsj/generated/" + simpleName + ".java");
+        return Files.readString(generatedSource, UTF_8);
+    }
+
+    private static int runtimeOperationCount(final String javaSource) {
+        final String marker = "dev.tsj.runtime.TsjRuntime.";
+        int count = 0;
+        int index = javaSource.indexOf(marker);
+        while (index >= 0) {
+            count++;
+            index = javaSource.indexOf(marker, index + marker.length());
+        }
+        return count;
     }
 }

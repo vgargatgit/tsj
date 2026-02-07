@@ -24,6 +24,7 @@ Current implementation status includes:
 19. Unsupported feature policy gates for MVP non-goals (`dynamic import`, `eval`, `Function` constructor, `Proxy`) with feature-ID diagnostics (`TSJ-15`)
 20. Opt-in interop bridge generation with allowlist enforcement and runtime codec helpers (`TSJ-19`)
 21. Differential conformance suite execution with minimized repro output and feature coverage report generation (`TSJ-16`)
+22. Baseline optimizer pass with constant folding + dead-code elimination, benchmarked reduction on fixture-like workloads, and CLI optimization toggles (`TSJ-17`)
 
 ## Repository Layout
 
@@ -76,12 +77,28 @@ mvn -B -ntp -pl cli -am exec:java \
   -Dexec.args="compile path/to/main.ts --out build"
 ```
 
+Disable TSJ-17 optimizer passes for debugging/regression checks:
+
+```bash
+mvn -B -ntp -pl cli -am exec:java \
+  -Dexec.mainClass=dev.tsj.cli.TsjCli \
+  -Dexec.args="compile path/to/main.ts --out build --no-optimize"
+```
+
 Run TSJ bootstrap execution path:
 
 ```bash
 mvn -B -ntp -pl cli -am exec:java \
   -Dexec.mainClass=dev.tsj.cli.TsjCli \
   -Dexec.args="run path/to/main.ts --out build"
+```
+
+Run with optimizer disabled:
+
+```bash
+mvn -B -ntp -pl cli -am exec:java \
+  -Dexec.mainClass=dev.tsj.cli.TsjCli \
+  -Dexec.args="run path/to/main.ts --out build --no-optimize"
 ```
 
 Run with TypeScript stack-trace rendering on runtime failure:
@@ -127,6 +144,7 @@ TSJ-14 adds generated-class source maps and optional `--ts-stacktrace` TypeScrip
 TSJ-15 adds explicit non-goal feature gates with structured diagnostics (`featureId`, guidance, and source coordinates) and a documented matrix at `docs/unsupported-feature-matrix.md`.
 TSJ-19 adds opt-in interop bridge generation from allowlisted Java targets and runtime `TsjInteropCodec` conversions for Java boundary calls.
 TSJ-16 adds explicit differential suite execution outputs with minimized failure repro details and feature coverage report generation (`tests/fixtures/tsj-fixture-coverage.json`).
+TSJ-17 adds baseline compiler optimizations (constant folding + dead-code elimination), CLI toggles (`--optimize`, `--no-optimize`), and benchmark assertions that verify generated output reduction.
 
 ## Frontend and IR Tools
 

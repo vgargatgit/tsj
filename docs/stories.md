@@ -365,6 +365,16 @@
   - Constant folding and dead code elimination passes implemented.
   - Benchmarks show measurable improvement on fixture set.
   - Optimization toggles available via CLI flags.
+- Notes:
+  - Backend now applies a TSJ-17 optimization pass before Java emission with:
+    constant folding for unary/binary literal expressions and baseline dead-code elimination
+    (unreachable statements after `return`/`throw`, `while(false)`, and constant-condition `if` branch pruning).
+  - CLI compile/run commands now expose optimization toggles:
+    `--optimize` (default) and `--no-optimize`.
+  - Benchmark coverage is enforced in
+    `compiler/backend-jvm/src/test/java/dev/tsj/compiler/backend/jvm/JvmBytecodeCompilerTest.java`
+    via `optimizationBenchmarkShowsGeneratedSourceReductionAcrossFixtureSet`, which compares
+    generated-source bytes and runtime-operation counts across a fixture-like set.
 - Dependencies: TSJ-6, TSJ-7.
 
 ### TSJ-18: Performance benchmark suite and SLA draft

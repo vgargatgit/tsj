@@ -10,6 +10,7 @@ import dev.tsj.compiler.backend.jvm.JvmBytecodeCompiler;
 import dev.tsj.compiler.backend.jvm.JvmBytecodeRunner;
 import dev.tsj.compiler.backend.jvm.JvmCompilationException;
 import dev.tsj.compiler.backend.jvm.JvmCompiledArtifact;
+import dev.tsj.compiler.backend.jvm.JvmOptimizationOptions;
 import dev.tsj.compiler.frontend.FrontendModule;
 import dev.tsj.compiler.ir.IrModule;
 import dev.tsj.runtime.RuntimeModule;
@@ -41,6 +42,8 @@ public final class TsjCli {
     private static final String COMMAND_INTEROP = "interop";
     private static final String OPTION_OUT = "--out";
     private static final String OPTION_TS_STACKTRACE = "--ts-stacktrace";
+    private static final String OPTION_OPTIMIZE = "--optimize";
+    private static final String OPTION_NO_OPTIMIZE = "--no-optimize";
     private static final String DEFAULT_RUN_OUT_DIR = ".tsj-build";
     private static final String ARTIFACT_FILE_NAME = "program.tsj.properties";
 
@@ -118,8 +121,8 @@ public final class TsjCli {
             );
         }
         final Path entryPath = Path.of(args[1]);
-        final ParsedOutOption parsedOut = parseOutOption(args, 2, true);
-        final CompiledArtifact artifact = compileArtifact(entryPath, parsedOut.outDir);
+        final CompileOptions options = parseCompileOptions(args, 2, true);
+        final CompiledArtifact artifact = compileArtifact(entryPath, options.outDir(), options.optimizationOptions());
 
         emitDiagnostic(
                 stdout,
@@ -131,7 +134,10 @@ public final class TsjCli {
                         "artifact", artifact.artifactPath.toString(),
                         "className", artifact.jvmArtifact.className(),
                         "classFile", artifact.jvmArtifact.classFile().toString(),
-                        "outDir", parsedOut.outDir.toString()
+                        "outDir", options.outDir().toString(),
+                        "optConstantFolding", Boolean.toString(options.optimizationOptions().constantFoldingEnabled()),
+                        "optDeadCodeElimination",
+                        Boolean.toString(options.optimizationOptions().deadCodeEliminationEnabled())
                 )
         );
         return 0;
@@ -146,9 +152,9 @@ public final class TsjCli {
         }
         final Path entryPath = Path.of(args[1]);
         final RunOptions runOptions = parseRunOptions(args, 2);
-        final Path outDir = runOptions.outDir != null ? runOptions.outDir : Path.of(DEFAULT_RUN_OUT_DIR);
-        final CompiledArtifact artifact = compileArtifact(entryPath, outDir);
-        executeArtifact(artifact, stdout, stderr, runOptions.showTsStackTrace);
+        final Path outDir = runOptions.outDir() != null ? runOptions.outDir() : Path.of(DEFAULT_RUN_OUT_DIR);
+        final CompiledArtifact artifact = compileArtifact(entryPath, outDir, runOptions.optimizationOptions());
+        executeArtifact(artifact, stdout, stderr, runOptions.showTsStackTrace());
         return 0;
     }
 
@@ -272,6 +278,48 @@ public final class TsjCli {
         return 0;
     }
 
+    private static CompileOptions parseCompileOptions(
+            final String[] args,
+            final int startIndex,
+            final boolean requiredOut
+    ) {
+        Path outDir = null;
+        JvmOptimizationOptions optimizationOptions = JvmOptimizationOptions.defaults();
+        int index = startIndex;
+        while (index < args.length) {
+            final String token = args[index];
+            if (OPTION_OUT.equals(token)) {
+                if (index + 1 >= args.length) {
+                    throw CliFailure.usage(
+                            "TSJ-CLI-006",
+                            "Missing value for `--out`."
+                    );
+                }
+                outDir = Path.of(args[index + 1]);
+                index += 2;
+                continue;
+            }
+            final JvmOptimizationOptions toggled = parseOptimizationToggle(token);
+            if (toggled != null) {
+                optimizationOptions = toggled;
+                index++;
+                continue;
+            }
+            throw CliFailure.usage(
+                    "TSJ-CLI-005",
+                    "Unknown option `" + token + "`."
+            );
+        }
+
+        if (requiredOut && outDir == null) {
+            throw CliFailure.usage(
+                    "TSJ-CLI-003",
+                    "Missing required option `--out`."
+            );
+        }
+        return new CompileOptions(outDir, optimizationOptions);
+    }
+
     private static ParsedOutOption parseOutOption(
             final String[] args,
             final int startIndex,
@@ -306,7 +354,11 @@ public final class TsjCli {
         return new ParsedOutOption(outDir);
     }
 
-    private static CompiledArtifact compileArtifact(final Path entryPath, final Path outDir) {
+    private static CompiledArtifact compileArtifact(
+            final Path entryPath,
+            final Path outDir,
+            final JvmOptimizationOptions optimizationOptions
+    ) {
         if (!Files.exists(entryPath) || !Files.isRegularFile(entryPath)) {
             throw CliFailure.runtime(
                     "TSJ-COMPILE-001",
@@ -325,7 +377,7 @@ public final class TsjCli {
 
         final JvmCompiledArtifact jvmArtifact;
         try {
-            jvmArtifact = new JvmBytecodeCompiler().compile(entryPath, outDir);
+            jvmArtifact = new JvmBytecodeCompiler().compile(entryPath, outDir, optimizationOptions);
         } catch (final JvmCompilationException compilationException) {
             throw CliFailure.runtime(
                     compilationException.code(),
@@ -349,6 +401,14 @@ public final class TsjCli {
             properties.setProperty("irModule", IrModule.moduleName());
             properties.setProperty("backendModule", BackendJvmModule.moduleName());
             properties.setProperty("runtimeModule", RuntimeModule.moduleName());
+            properties.setProperty(
+                    "optimization.constantFoldingEnabled",
+                    Boolean.toString(optimizationOptions.constantFoldingEnabled())
+            );
+            properties.setProperty(
+                    "optimization.deadCodeEliminationEnabled",
+                    Boolean.toString(optimizationOptions.deadCodeEliminationEnabled())
+            );
 
             try (OutputStream outputStream = Files.newOutputStream(artifactPath)) {
                 properties.store(outputStream, "TSJ compiled artifact");
@@ -452,6 +512,7 @@ public final class TsjCli {
     private static RunOptions parseRunOptions(final String[] args, final int startIndex) {
         Path outDir = null;
         boolean showTsStackTrace = false;
+        JvmOptimizationOptions optimizationOptions = JvmOptimizationOptions.defaults();
         int index = startIndex;
         while (index < args.length) {
             final String token = args[index];
@@ -471,12 +532,28 @@ public final class TsjCli {
                 index++;
                 continue;
             }
+            final JvmOptimizationOptions toggled = parseOptimizationToggle(token);
+            if (toggled != null) {
+                optimizationOptions = toggled;
+                index++;
+                continue;
+            }
             throw CliFailure.usage(
                     "TSJ-CLI-005",
                     "Unknown option `" + token + "`."
             );
         }
-        return new RunOptions(outDir, showTsStackTrace);
+        return new RunOptions(outDir, showTsStackTrace, optimizationOptions);
+    }
+
+    private static JvmOptimizationOptions parseOptimizationToggle(final String token) {
+        if (OPTION_OPTIMIZE.equals(token)) {
+            return JvmOptimizationOptions.defaults();
+        }
+        if (OPTION_NO_OPTIMIZE.equals(token)) {
+            return JvmOptimizationOptions.disabled();
+        }
+        return null;
     }
 
     private static void emitTsStackTrace(
@@ -687,7 +764,10 @@ public final class TsjCli {
     private record ParsedOutOption(Path outDir) {
     }
 
-    private record RunOptions(Path outDir, boolean showTsStackTrace) {
+    private record CompileOptions(Path outDir, JvmOptimizationOptions optimizationOptions) {
+    }
+
+    private record RunOptions(Path outDir, boolean showTsStackTrace, JvmOptimizationOptions optimizationOptions) {
     }
 
     private record CompiledArtifact(Path entryPath, Path artifactPath, JvmCompiledArtifact jvmArtifact) {

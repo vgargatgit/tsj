@@ -2,7 +2,7 @@
 
 ## Commands
 
-### `tsj compile <input.ts> --out <dir>`
+### `tsj compile <input.ts> --out <dir> [--optimize|--no-optimize]`
 Behavior:
 1. Validates input file exists and has `.ts`/`.tsx` extension.
 2. Compiles supported TSJ-7 subset into JVM classes.
@@ -19,11 +19,17 @@ Behavior:
    - TSJ-13 extends runtime/codegen with `Promise` builtin support (`resolve`, `reject`), `async function`
      declaration lowering, standalone `await` expression lowering in async bodies, throw-to-rejection
      normalization, and microtask queue flushing at end-of-program execution.
+   - TSJ-17 applies baseline optimization passes by default:
+     constant folding and dead-code elimination.
+     - `--optimize` forces defaults on.
+     - `--no-optimize` disables both passes.
 3. Creates output directory if missing.
 4. Emits class output directory:
    - `<out>/classes`
 5. Emits artifact file:
    - `<out>/program.tsj.properties`
+   - includes optimization metadata keys:
+     `optimization.constantFoldingEnabled` and `optimization.deadCodeEliminationEnabled`.
 6. Emits source-map file for generated class stack frame mapping:
    - `<out>/classes/dev/tsj/generated/*Program.tsj.map`
 7. Emits structured JSON diagnostics to stdout/stderr.
@@ -40,9 +46,10 @@ Failure diagnostics:
   - TSJ-15 unsupported-feature failures use `TSJ-BACKEND-UNSUPPORTED` with context:
     `file`, `line`, `column`, `featureId`, `guidance`.
 
-### `tsj run <entry.ts> [--out <dir>] [--ts-stacktrace]`
+### `tsj run <entry.ts> [--out <dir>] [--ts-stacktrace] [--optimize|--no-optimize]`
 Behavior:
 1. Compiles entry to artifact (default out dir `.tsj-build` when omitted).
+   - Optimization defaults to enabled (`--optimize`) and can be disabled with `--no-optimize`.
 2. Reads generated artifact.
 3. Executes generated JVM class.
 4. When `--ts-stacktrace` is present and runtime execution fails, emits best-effort mapped TS stack frames to stderr.

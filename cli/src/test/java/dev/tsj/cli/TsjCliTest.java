@@ -8,9 +8,11 @@ import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.stream.Stream;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class TsjCliTest {
@@ -40,6 +42,81 @@ class TsjCliTest {
     }
 
     @Test
+    void compileDisablesOptimizationsWithNoOptimizeFlag() throws Exception {
+        final Path entryFile = tempDir.resolve("opt-toggle.ts");
+        Files.writeString(
+                entryFile,
+                """
+                const value = 1 + 2 * 3;
+                console.log("value=" + value);
+                """,
+                UTF_8
+        );
+        final Path optimizedOut = tempDir.resolve("opt-enabled-out");
+        final Path baselineOut = tempDir.resolve("opt-disabled-out");
+
+        final ByteArrayOutputStream optimizedStdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream optimizedStderr = new ByteArrayOutputStream();
+        final int optimizedExitCode = TsjCli.execute(
+                new String[]{"compile", entryFile.toString(), "--out", optimizedOut.toString()},
+                new PrintStream(optimizedStdout),
+                new PrintStream(optimizedStderr)
+        );
+
+        final ByteArrayOutputStream baselineStdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream baselineStderr = new ByteArrayOutputStream();
+        final int baselineExitCode = TsjCli.execute(
+                new String[]{"compile", entryFile.toString(), "--out", baselineOut.toString(), "--no-optimize"},
+                new PrintStream(baselineStdout),
+                new PrintStream(baselineStderr)
+        );
+
+        assertEquals(0, optimizedExitCode);
+        assertEquals(0, baselineExitCode);
+        assertEquals("", optimizedStderr.toString(UTF_8));
+        assertEquals("", baselineStderr.toString(UTF_8));
+
+        final String optimizedSource = readGeneratedJavaSource(optimizedOut);
+        final String baselineSource = readGeneratedJavaSource(baselineOut);
+        assertFalse(optimizedSource.contains("TsjRuntime.multiply("));
+        assertTrue(baselineSource.contains("TsjRuntime.multiply("));
+    }
+
+    @Test
+    void compileCanReEnableOptimizationsAfterNoOptimizeFlag() throws Exception {
+        final Path entryFile = tempDir.resolve("opt-order.ts");
+        Files.writeString(
+                entryFile,
+                """
+                const value = 2 + 3 * 4;
+                console.log("value=" + value);
+                """,
+                UTF_8
+        );
+        final Path outDir = tempDir.resolve("opt-order-out");
+
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+        final int exitCode = TsjCli.execute(
+                new String[]{
+                        "compile",
+                        entryFile.toString(),
+                        "--out",
+                        outDir.toString(),
+                        "--no-optimize",
+                        "--optimize"
+                },
+                new PrintStream(stdout),
+                new PrintStream(stderr)
+        );
+
+        assertEquals(0, exitCode);
+        assertEquals("", stderr.toString(UTF_8));
+        final String generatedSource = readGeneratedJavaSource(outDir);
+        assertFalse(generatedSource.contains("TsjRuntime.multiply("));
+    }
+
+    @Test
     void runCompilesAndExecutesGeneratedArtifact() throws Exception {
         final Path entryFile = tempDir.resolve("entry.ts");
         Files.writeString(entryFile, "console.log('hello');\n", UTF_8);
@@ -57,6 +134,42 @@ class TsjCliTest {
         assertEquals(0, exitCode);
         assertTrue(Files.exists(outDir.resolve("program.tsj.properties")));
         assertTrue(stdout.toString(UTF_8).contains("hello"));
+        assertTrue(stdout.toString(UTF_8).contains("\"code\":\"TSJ-RUN-SUCCESS\""));
+        assertEquals("", stderr.toString(UTF_8));
+    }
+
+    @Test
+    void runAcceptsNoOptimizeFlagAndPreservesProgramBehavior() throws Exception {
+        final Path entryFile = tempDir.resolve("run-no-opt.ts");
+        Files.writeString(
+                entryFile,
+                """
+                let total = 1 + 2 * 3;
+                while (false) {
+                  total = total + 100;
+                }
+                console.log("total=" + total);
+                """,
+                UTF_8
+        );
+
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+
+        final int exitCode = TsjCli.execute(
+                new String[]{
+                        "run",
+                        entryFile.toString(),
+                        "--out",
+                        tempDir.resolve("run-no-opt-out").toString(),
+                        "--no-optimize"
+                },
+                new PrintStream(stdout),
+                new PrintStream(stderr)
+        );
+
+        assertEquals(0, exitCode);
+        assertTrue(stdout.toString(UTF_8).contains("total=7"));
         assertTrue(stdout.toString(UTF_8).contains("\"code\":\"TSJ-RUN-SUCCESS\""));
         assertEquals("", stderr.toString(UTF_8));
     }
@@ -1660,5 +1773,15 @@ class TsjCliTest {
         assertTrue(output.contains("\"minimalRepro\""));
         assertTrue(output.contains("tsj run"));
         assertEquals("", stderr.toString(UTF_8));
+    }
+
+    private static String readGeneratedJavaSource(final Path outDir) throws Exception {
+        try (Stream<Path> paths = Files.walk(outDir.resolve("generated-src"))) {
+            final Path sourcePath = paths
+                    .filter(path -> path.toString().endsWith(".java"))
+                    .findFirst()
+                    .orElseThrow();
+            return Files.readString(sourcePath, UTF_8);
+        }
     }
 }
