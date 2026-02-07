@@ -481,6 +481,30 @@ class JvmBytecodeCompilerTest {
     }
 
     @Test
+    void supportsLooseEqualsCoercionAndStrictEqualsDifference() throws Exception {
+        final Path sourceFile = tempDir.resolve("coercion-eq.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                const undef = undefined;
+                console.log("eq1=" + (1 == "1"));
+                console.log("eq2=" + (1 === "1"));
+                console.log("eq3=" + (undef == null));
+                console.log("eq4=" + (undef === null));
+                console.log("eq5=" + (false == 0));
+                console.log("eq6=" + (false === 0));
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out20"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals("eq1=true\neq2=false\neq3=true\neq4=false\neq5=true\neq6=false\n", stdout.toString(UTF_8));
+    }
+
+    @Test
     void rejectsSuperCallOutsideConstructor() throws Exception {
         final Path sourceFile = tempDir.resolve("invalid-super.ts");
         Files.writeString(

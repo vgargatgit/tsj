@@ -27,7 +27,7 @@ public final class JvmBytecodeCompiler {
     private static final Set<String> KEYWORDS = Set.of(
             "function", "const", "let", "var", "if", "else", "while", "return",
             "true", "false", "null", "for", "export", "import", "from",
-            "class", "extends", "this", "super", "new"
+            "class", "extends", "this", "super", "new", "undefined"
     );
     private static final Set<String> JAVA_KEYWORDS = Set.of(
             "abstract", "assert", "boolean", "break", "byte", "case", "catch", "char",
@@ -459,6 +459,7 @@ public final class JvmBytecodeCompiler {
             StringLiteral,
             BooleanLiteral,
             NullLiteral,
+            UndefinedLiteral,
             VariableExpression,
             ThisExpression,
             UnaryExpression,
@@ -479,6 +480,9 @@ public final class JvmBytecodeCompiler {
     }
 
     private record NullLiteral() implements Expression {
+    }
+
+    private record UndefinedLiteral() implements Expression {
     }
 
     private record VariableExpression(String name) implements Expression {
@@ -880,6 +884,9 @@ public final class JvmBytecodeCompiler {
             if (matchKeyword("null")) {
                 return new NullLiteral();
             }
+            if (matchKeyword("undefined")) {
+                return new UndefinedLiteral();
+            }
             if (matchKeyword("this")) {
                 return new ThisExpression();
             }
@@ -942,6 +949,7 @@ public final class JvmBytecodeCompiler {
             return "true".equals(keyword)
                     || "false".equals(keyword)
                     || "null".equals(keyword)
+                    || "undefined".equals(keyword)
                     || "this".equals(keyword)
                     || "new".equals(keyword);
         }
@@ -1410,6 +1418,9 @@ public final class JvmBytecodeCompiler {
             if (expression instanceof NullLiteral) {
                 return "null";
             }
+            if (expression instanceof UndefinedLiteral) {
+                return "dev.tsj.runtime.TsjRuntime.undefined()";
+            }
             if (expression instanceof VariableExpression variableExpression) {
                 return context.resolveBinding(variableExpression.name()) + ".get()";
             }
@@ -1446,9 +1457,13 @@ public final class JvmBytecodeCompiler {
                     case ">" -> "Boolean.valueOf(dev.tsj.runtime.TsjRuntime.greaterThan(" + left + ", " + right + "))";
                     case ">=" -> "Boolean.valueOf(dev.tsj.runtime.TsjRuntime.greaterThanOrEqual("
                             + left + ", " + right + "))";
-                    case "==", "===" -> "Boolean.valueOf(dev.tsj.runtime.TsjRuntime.strictEquals("
+                    case "==" -> "Boolean.valueOf(dev.tsj.runtime.TsjRuntime.abstractEquals("
                             + left + ", " + right + "))";
-                    case "!=", "!==" -> "Boolean.valueOf(!dev.tsj.runtime.TsjRuntime.strictEquals("
+                    case "===" -> "Boolean.valueOf(dev.tsj.runtime.TsjRuntime.strictEquals("
+                            + left + ", " + right + "))";
+                    case "!=" -> "Boolean.valueOf(!dev.tsj.runtime.TsjRuntime.abstractEquals("
+                            + left + ", " + right + "))";
+                    case "!==" -> "Boolean.valueOf(!dev.tsj.runtime.TsjRuntime.strictEquals("
                             + left + ", " + right + "))";
                     default -> throw new JvmCompilationException(
                             "TSJ-BACKEND-UNSUPPORTED",

@@ -132,6 +132,13 @@
   - Primitive fast lanes (`int32`, `double`) are supported with boundary boxing rules.
   - `==` and `===` behaviors for supported types verified by tests.
   - Documented known deviations.
+- Notes:
+  - Runtime adds explicit `undefined` sentinel value and coercion helpers for display, truthiness, and numeric conversion.
+  - Backend lowering distinguishes abstract equality (`==`, `!=`) from strict equality (`===`, `!==`).
+  - Fixture coverage includes `tests/fixtures/tsj10-coercion`.
+  - Known deviations:
+    object-to-primitive coercion paths for `==` are not implemented yet; these comparisons currently return `false`
+    unless both operands are the same object reference.
 - Dependencies: TSJ-0, TSJ-7.
 
 ### TSJ-11: Dynamic object runtime with prototype links

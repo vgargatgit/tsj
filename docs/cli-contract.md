@@ -9,6 +9,8 @@ Behavior:
    - TSJ-8 extends supported subset with nested function declarations and lexical closures.
    - TSJ-9 extends supported subset with class/object features:
      class declarations, `extends`/`super(...)`, `new`, `this` member access, and object literals.
+   - TSJ-10 extends runtime semantics for supported primitives with:
+     `undefined` literal handling and distinct lowering for `==`/`!=` vs `===`/`!==`.
 3. Creates output directory if missing.
 4. Emits class output directory:
    - `<out>/classes`

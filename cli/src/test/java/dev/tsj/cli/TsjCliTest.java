@@ -215,6 +215,35 @@ class TsjCliTest {
     }
 
     @Test
+    void runExecutesCoercionProgram() throws Exception {
+        final Path entryFile = tempDir.resolve("coercion.ts");
+        Files.writeString(
+                entryFile,
+                """
+                const undef = undefined;
+                console.log("coerce=" + (1 == "1") + ":" + (1 === "1"));
+                console.log("nullish=" + (undef == null) + ":" + (undef === null));
+                """,
+                UTF_8
+        );
+
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+
+        final int exitCode = TsjCli.execute(
+                new String[]{"run", entryFile.toString(), "--out", tempDir.resolve("coercion-out").toString()},
+                new PrintStream(stdout),
+                new PrintStream(stderr)
+        );
+
+        assertEquals(0, exitCode);
+        assertTrue(stdout.toString(UTF_8).contains("coerce=true:false"));
+        assertTrue(stdout.toString(UTF_8).contains("nullish=true:false"));
+        assertTrue(stdout.toString(UTF_8).contains("\"code\":\"TSJ-RUN-SUCCESS\""));
+        assertEquals("", stderr.toString(UTF_8));
+    }
+
+    @Test
     void compileMissingOutFlagReturnsStructuredError() throws Exception {
         final Path entryFile = tempDir.resolve("main.ts");
         Files.writeString(entryFile, "const x = 1;\n", UTF_8);

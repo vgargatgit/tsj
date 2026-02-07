@@ -116,6 +116,19 @@ class FixtureHarnessTest {
         assertEquals("", result.tsjResult().diff());
     }
 
+    @Test
+    void harnessSupportsCoercionFixture() throws Exception {
+        final Path fixtureDir = writeCoercionFixture("coercion");
+        final FixtureSpec fixture = FixtureLoader.loadFixture(fixtureDir);
+
+        final FixtureRunResult result = new FixtureHarness().runFixture(fixture);
+
+        assertTrue(result.passed());
+        assertTrue(result.nodeToTsjMatched());
+        assertEquals("", result.nodeResult().diff());
+        assertEquals("", result.tsjResult().diff());
+    }
+
     private Path writeFixture(final String name, final boolean assertNodeMatchesTsj) throws IOException {
         final Path fixtureDir = tempDir.resolve(name);
         final Path inputDir = fixtureDir.resolve("input");
@@ -325,6 +338,49 @@ class FixtureHarnessTest {
         Files.writeString(expectedDir.resolve("node.stdout"), "object=ok:6\n", UTF_8);
         Files.writeString(expectedDir.resolve("node.stderr"), "", UTF_8);
         Files.writeString(expectedDir.resolve("tsj.stdout"), "object=ok:6\n", UTF_8);
+        Files.writeString(expectedDir.resolve("tsj.stderr"), "", UTF_8);
+
+        final String properties = String.join(
+                "\n",
+                "name=" + name,
+                "entry=input/main.ts",
+                "expected.node.exitCode=0",
+                "expected.node.stdout=expected/node.stdout",
+                "expected.node.stderr=expected/node.stderr",
+                "expected.node.stdoutMode=exact",
+                "expected.node.stderrMode=exact",
+                "expected.tsj.exitCode=0",
+                "expected.tsj.stdout=expected/tsj.stdout",
+                "expected.tsj.stderr=expected/tsj.stderr",
+                "expected.tsj.stdoutMode=contains",
+                "expected.tsj.stderrMode=exact",
+                "assert.nodeMatchesTsj=true",
+                ""
+        );
+        Files.writeString(fixtureDir.resolve("fixture.properties"), properties, UTF_8);
+        return fixtureDir;
+    }
+
+    private Path writeCoercionFixture(final String name) throws IOException {
+        final Path fixtureDir = tempDir.resolve(name);
+        final Path inputDir = fixtureDir.resolve("input");
+        final Path expectedDir = fixtureDir.resolve("expected");
+        Files.createDirectories(inputDir);
+        Files.createDirectories(expectedDir);
+
+        Files.writeString(
+                inputDir.resolve("main.ts"),
+                """
+                const undef = undefined;
+                console.log("coerce=" + (1 == "1") + ":" + (1 === "1"));
+                console.log("nullish=" + (undef == null) + ":" + (undef === null));
+                """,
+                UTF_8
+        );
+
+        Files.writeString(expectedDir.resolve("node.stdout"), "coerce=true:false\nnullish=true:false\n", UTF_8);
+        Files.writeString(expectedDir.resolve("node.stderr"), "", UTF_8);
+        Files.writeString(expectedDir.resolve("tsj.stdout"), "coerce=true:false\nnullish=true:false\n", UTF_8);
         Files.writeString(expectedDir.resolve("tsj.stderr"), "", UTF_8);
 
         final String properties = String.join(

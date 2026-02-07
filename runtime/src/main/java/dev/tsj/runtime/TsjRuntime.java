@@ -11,6 +11,10 @@ public final class TsjRuntime {
         System.out.println(toDisplayString(value));
     }
 
+    public static Object undefined() {
+        return TsjUndefined.INSTANCE;
+    }
+
     public static Object call(final Object callee, final Object... args) {
         if (callee instanceof TsjCallable callable) {
             return callable.call(args);
@@ -131,8 +135,30 @@ public final class TsjRuntime {
         return left.equals(right);
     }
 
+    public static boolean abstractEquals(final Object left, final Object right) {
+        if (strictEquals(left, right)) {
+            return true;
+        }
+        if (isNullish(left) && isNullish(right)) {
+            return true;
+        }
+        if (left instanceof Boolean) {
+            return abstractEquals(Double.valueOf(toNumber(left)), right);
+        }
+        if (right instanceof Boolean) {
+            return abstractEquals(left, Double.valueOf(toNumber(right)));
+        }
+        if (left instanceof Number && right instanceof String) {
+            return abstractEquals(left, Double.valueOf(toNumber(right)));
+        }
+        if (left instanceof String && right instanceof Number) {
+            return abstractEquals(Double.valueOf(toNumber(left)), right);
+        }
+        return false;
+    }
+
     public static boolean truthy(final Object value) {
-        if (value == null) {
+        if (value == null || isUndefined(value)) {
             return false;
         }
         if (value instanceof Boolean boolValue) {
@@ -149,6 +175,9 @@ public final class TsjRuntime {
     }
 
     public static String toDisplayString(final Object value) {
+        if (isUndefined(value)) {
+            return "undefined";
+        }
         if (value == null) {
             return "null";
         }
@@ -175,6 +204,9 @@ public final class TsjRuntime {
     }
 
     public static double toNumber(final Object value) {
+        if (isUndefined(value)) {
+            return Double.NaN;
+        }
         if (value == null) {
             return 0.0d;
         }
@@ -206,5 +238,13 @@ public final class TsjRuntime {
             return Integer.valueOf((int) value);
         }
         return Double.valueOf(value);
+    }
+
+    private static boolean isUndefined(final Object value) {
+        return value == TsjUndefined.INSTANCE;
+    }
+
+    private static boolean isNullish(final Object value) {
+        return value == null || isUndefined(value);
     }
 }

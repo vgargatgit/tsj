@@ -41,10 +41,29 @@ class TsjRuntimeTest {
     }
 
     @Test
+    void strictEqualsDistinguishesNullAndUndefined() {
+        assertTrue(TsjRuntime.strictEquals(TsjRuntime.undefined(), TsjRuntime.undefined()));
+        assertFalse(TsjRuntime.strictEquals(null, TsjRuntime.undefined()));
+    }
+
+    @Test
+    void abstractEqualsSupportsNullishAndPrimitiveCoercions() {
+        assertTrue(TsjRuntime.abstractEquals(null, TsjRuntime.undefined()));
+        assertTrue(TsjRuntime.abstractEquals(4, "4"));
+        assertTrue(TsjRuntime.abstractEquals("7", 7.0d));
+        assertTrue(TsjRuntime.abstractEquals(true, 1));
+        assertTrue(TsjRuntime.abstractEquals(false, 0));
+        assertFalse(TsjRuntime.abstractEquals(TsjRuntime.undefined(), 0));
+        assertFalse(TsjRuntime.abstractEquals(null, 0));
+        assertFalse(TsjRuntime.abstractEquals("x", 0));
+    }
+
+    @Test
     void truthyMatchesSupportedSubsetRules() {
         assertFalse(TsjRuntime.truthy(0));
         assertFalse(TsjRuntime.truthy(""));
         assertFalse(TsjRuntime.truthy(null));
+        assertFalse(TsjRuntime.truthy(TsjRuntime.undefined()));
         assertTrue(TsjRuntime.truthy(1));
         assertTrue(TsjRuntime.truthy("x"));
     }
@@ -53,6 +72,21 @@ class TsjRuntimeTest {
     void displayStringFormatsWholeAndFractionalNumbers() {
         assertEquals("5", TsjRuntime.toDisplayString(5.0d));
         assertEquals("2.25", TsjRuntime.toDisplayString(2.25d));
+        assertEquals("undefined", TsjRuntime.toDisplayString(TsjRuntime.undefined()));
+    }
+
+    @Test
+    void toNumberHandlesNullBooleanStringAndUndefined() {
+        assertEquals(0.0d, TsjRuntime.toNumber(null));
+        assertEquals(1.0d, TsjRuntime.toNumber(true));
+        assertEquals(0.0d, TsjRuntime.toNumber(false));
+        assertEquals(42.0d, TsjRuntime.toNumber("42"));
+        assertTrue(Double.isNaN(TsjRuntime.toNumber(TsjRuntime.undefined())));
+    }
+
+    @Test
+    void addConcatenatesUndefinedLikeJavaScript() {
+        assertEquals("value=undefined", TsjRuntime.add("value=", TsjRuntime.undefined()));
     }
 
     @Test
