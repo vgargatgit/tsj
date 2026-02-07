@@ -45,6 +45,31 @@ class JvmBytecodeCompilerTest {
     }
 
     @Test
+    void emitsSourceMapFileForGeneratedProgram() throws Exception {
+        final Path sourceFile = tempDir.resolve("source-map.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                function fail(value: number) {
+                  if (value === 1) {
+                    throw "boom";
+                  }
+                  return value;
+                }
+                fail(1);
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("map-out"));
+        final String sourceMap = Files.readString(artifact.sourceMapFile(), UTF_8);
+
+        assertTrue(Files.exists(artifact.sourceMapFile()));
+        assertTrue(sourceMap.startsWith("TSJ-SOURCE-MAP\t1"));
+        assertTrue(sourceMap.contains("source-map.ts"));
+    }
+
+    @Test
     void supportsIfElseAndWhileControlFlow() throws Exception {
         final Path sourceFile = tempDir.resolve("control-flow.ts");
         Files.writeString(

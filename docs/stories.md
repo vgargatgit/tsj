@@ -299,6 +299,11 @@
   - Runtime exceptions map to TS source locations.
   - Source map format documented.
   - CLI flag enables readable stack traces in TS coordinates.
+- Notes:
+  - JVM backend now emits line-oriented source map files at
+    `classes/dev/tsj/generated/*Program.tsj.map`.
+  - `tsj run --ts-stacktrace` now renders best-effort TypeScript frame locations for runtime failures.
+  - Source map format is documented in `docs/source-map-format.md`.
 - Dependencies: TSJ-7.
 
 ### TSJ-15: Unsupported feature detection and diagnostics

@@ -20,6 +20,7 @@ Current implementation status includes:
 15. Async/promise error semantics with Promise `catch` + `finally` behavior and unhandled rejection emission (`TSJ-13d`)
 16. Promise combinators (`all`, `race`, `allSettled`, `any`) with array-literal inputs and differential fixtures (`TSJ-13e`)
 17. Top-level await lowering for entry/module initialization order with async diagnostics for unsupported await placements (`TSJ-13f`)
+18. Runtime stack-trace source mapping with `--ts-stacktrace` CLI rendering in TypeScript coordinates (`TSJ-14`)
 
 ## Repository Layout
 
@@ -80,6 +81,14 @@ mvn -B -ntp -pl cli -am exec:java \
   -Dexec.args="run path/to/main.ts --out build"
 ```
 
+Run with TypeScript stack-trace rendering on runtime failure:
+
+```bash
+mvn -B -ntp -pl cli -am exec:java \
+  -Dexec.mainClass=dev.tsj.cli.TsjCli \
+  -Dexec.args="run path/to/main.ts --out build --ts-stacktrace"
+```
+
 Run fixture harness:
 
 ```bash
@@ -103,6 +112,7 @@ TSJ-13c extends promise runtime semantics with thenable assimilation, self-resol
 TSJ-13d extends async/promise error semantics with Promise `catch` + `finally` support and runtime unhandled rejection emission.
 TSJ-13e adds Promise combinators (`all`, `race`, `allSettled`, `any`) and minimal array literal lowering for combinator inputs.
 TSJ-13f adds top-level await lowering for entry + module initialization ordering (including transitive imports) and explicit diagnostics for unsupported await-in-while-condition placement.
+TSJ-14 adds generated-class source maps and optional `--ts-stacktrace` TypeScript frame rendering for runtime failures.
 
 ## Frontend and IR Tools
 
@@ -158,6 +168,7 @@ Seed fixture:
 - Architecture decisions: `docs/architecture-decisions.md`
 - Story-to-architecture mapping: `docs/story-architecture-map.md`
 - Runtime contracts: `docs/contracts/runtime-contracts-v0.1.md`
+- Source-map format: `docs/source-map-format.md`
 
 ## Development Approach
 

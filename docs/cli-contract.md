@@ -24,7 +24,9 @@ Behavior:
    - `<out>/classes`
 5. Emits artifact file:
    - `<out>/program.tsj.properties`
-4. Emits structured JSON diagnostics to stdout/stderr.
+6. Emits source-map file for generated class stack frame mapping:
+   - `<out>/classes/dev/tsj/generated/*Program.tsj.map`
+7. Emits structured JSON diagnostics to stdout/stderr.
 
 Success diagnostic:
 - Code: `TSJ-COMPILE-SUCCESS`
@@ -36,12 +38,13 @@ Failure diagnostics:
 - `TSJ-COMPILE-500` artifact write error
 - backend diagnostics like `TSJ-BACKEND-*` for unsupported syntax or JVM compile failures
 
-### `tsj run <entry.ts> [--out <dir>]`
+### `tsj run <entry.ts> [--out <dir>] [--ts-stacktrace]`
 Behavior:
 1. Compiles entry to artifact (default out dir `.tsj-build` when omitted).
 2. Reads generated artifact.
 3. Executes generated JVM class.
-4. Emits program stdout, then structured JSON diagnostics.
+4. When `--ts-stacktrace` is present and runtime execution fails, emits best-effort mapped TS stack frames to stderr.
+5. Emits program stdout, then structured JSON diagnostics.
 
 Success diagnostic:
 - Code: `TSJ-RUN-SUCCESS`

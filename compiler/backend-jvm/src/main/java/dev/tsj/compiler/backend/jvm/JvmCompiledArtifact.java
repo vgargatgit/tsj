@@ -9,11 +9,13 @@ import java.nio.file.Path;
  * @param outputDirectory class output directory
  * @param className generated main class name
  * @param classFile generated class file path
+ * @param sourceMapFile generated source-map file path
  */
 public record JvmCompiledArtifact(
         Path entryFile,
         Path outputDirectory,
         String className,
-        Path classFile
+        Path classFile,
+        Path sourceMapFile
 ) {
 }

@@ -18,6 +18,7 @@ import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -33,6 +34,7 @@ public final class TsjCli {
     private static final String COMMAND_RUN = "run";
     private static final String COMMAND_FIXTURES = "fixtures";
     private static final String OPTION_OUT = "--out";
+    private static final String OPTION_TS_STACKTRACE = "--ts-stacktrace";
     private static final String DEFAULT_RUN_OUT_DIR = ".tsj-build";
     private static final String ARTIFACT_FILE_NAME = "program.tsj.properties";
 
@@ -132,14 +134,14 @@ public final class TsjCli {
         if (args.length < 2) {
             throw CliFailure.usage(
                     "TSJ-CLI-004",
-                    "Missing entry file. Usage: tsj run <entry.ts> [--out <dir>]"
+                    "Missing entry file. Usage: tsj run <entry.ts> [--out <dir>] [--ts-stacktrace]"
             );
         }
         final Path entryPath = Path.of(args[1]);
-        final ParsedOutOption parsedOut = parseOutOption(args, 2, false);
-        final Path outDir = parsedOut.outDir != null ? parsedOut.outDir : Path.of(DEFAULT_RUN_OUT_DIR);
+        final RunOptions runOptions = parseRunOptions(args, 2);
+        final Path outDir = runOptions.outDir != null ? runOptions.outDir : Path.of(DEFAULT_RUN_OUT_DIR);
         final CompiledArtifact artifact = compileArtifact(entryPath, outDir);
-        executeArtifact(artifact, stdout, stderr);
+        executeArtifact(artifact, stdout, stderr, runOptions.showTsStackTrace);
         return 0;
     }
 
@@ -284,6 +286,7 @@ public final class TsjCli {
             properties.setProperty("compiledAt", Instant.now().toString());
             properties.setProperty("mainClass", jvmArtifact.className());
             properties.setProperty("classFile", jvmArtifact.classFile().toString());
+            properties.setProperty("sourceMapFile", jvmArtifact.sourceMapFile().toString());
             properties.setProperty("classesDir", jvmArtifact.outputDirectory().toString());
             properties.setProperty("frontendModule", FrontendModule.moduleName());
             properties.setProperty("irModule", IrModule.moduleName());
@@ -306,7 +309,8 @@ public final class TsjCli {
     private static void executeArtifact(
             final CompiledArtifact artifact,
             final PrintStream stdout,
-            final PrintStream stderr
+            final PrintStream stderr,
+            final boolean showTsStackTrace
     ) {
         final Properties properties = new Properties();
         try (InputStream inputStream = Files.newInputStream(artifact.artifactPath)) {
@@ -324,6 +328,9 @@ public final class TsjCli {
         try {
             new JvmBytecodeRunner().run(executable, stdout, stderr);
         } catch (final JvmCompilationException compilationException) {
+            if (showTsStackTrace) {
+                emitTsStackTrace(stderr, executable, compilationException.getCause());
+            }
             throw CliFailure.runtime(
                     compilationException.code(),
                     compilationException.getMessage(),
@@ -370,12 +377,155 @@ public final class TsjCli {
                 classesDir.resolve(className.replace('.', '/') + ".class").toString()
         );
         final Path classFile = Path.of(classFileValue).toAbsolutePath().normalize();
+        final String defaultSourceMapValue = classFile.toString().endsWith(".class")
+                ? classFile.toString().substring(0, classFile.toString().length() - ".class".length()) + ".tsj.map"
+                : classFile.toString() + ".tsj.map";
+        final Path sourceMapFile = Path.of(
+                properties.getProperty("sourceMapFile", defaultSourceMapValue)
+        ).toAbsolutePath().normalize();
         return new JvmCompiledArtifact(
                 Path.of(entry).toAbsolutePath().normalize(),
                 classesDir,
                 className,
-                classFile
+                classFile,
+                sourceMapFile
         );
+    }
+
+    private static RunOptions parseRunOptions(final String[] args, final int startIndex) {
+        Path outDir = null;
+        boolean showTsStackTrace = false;
+        int index = startIndex;
+        while (index < args.length) {
+            final String token = args[index];
+            if (OPTION_OUT.equals(token)) {
+                if (index + 1 >= args.length) {
+                    throw CliFailure.usage(
+                            "TSJ-CLI-006",
+                            "Missing value for `--out`."
+                    );
+                }
+                outDir = Path.of(args[index + 1]);
+                index += 2;
+                continue;
+            }
+            if (OPTION_TS_STACKTRACE.equals(token)) {
+                showTsStackTrace = true;
+                index++;
+                continue;
+            }
+            throw CliFailure.usage(
+                    "TSJ-CLI-005",
+                    "Unknown option `" + token + "`."
+            );
+        }
+        return new RunOptions(outDir, showTsStackTrace);
+    }
+
+    private static void emitTsStackTrace(
+            final PrintStream stderr,
+            final JvmCompiledArtifact executable,
+            final Throwable throwable
+    ) {
+        if (throwable == null) {
+            return;
+        }
+        final Map<Integer, TsSourceFrame> sourceMap = readSourceMap(executable.sourceMapFile());
+        if (sourceMap.isEmpty()) {
+            return;
+        }
+
+        final List<String> renderedFrames = new ArrayList<>();
+        Throwable current = throwable;
+        while (current != null) {
+            for (StackTraceElement stackTraceElement : current.getStackTrace()) {
+                if (!executable.className().equals(stackTraceElement.getClassName())) {
+                    continue;
+                }
+                final TsSourceFrame frame = sourceMap.get(stackTraceElement.getLineNumber());
+                if (frame == null) {
+                    continue;
+                }
+                renderedFrames.add(
+                        "at "
+                                + frame.sourceFile()
+                                + ":"
+                                + frame.line()
+                                + ":"
+                                + frame.column()
+                                + " ("
+                                + stackTraceElement.getMethodName()
+                                + ")"
+                );
+            }
+            current = current.getCause();
+        }
+        if (renderedFrames.isEmpty()) {
+            return;
+        }
+
+        stderr.println("TSJ stack trace (TypeScript):");
+        for (String frame : renderedFrames) {
+            stderr.println(frame);
+        }
+    }
+
+    private static Map<Integer, TsSourceFrame> readSourceMap(final Path sourceMapFile) {
+        if (!Files.exists(sourceMapFile) || !Files.isRegularFile(sourceMapFile)) {
+            return Map.of();
+        }
+        final String raw;
+        try {
+            raw = Files.readString(sourceMapFile);
+        } catch (final IOException ioException) {
+            return Map.of();
+        }
+
+        final String[] lines = raw.replace("\r\n", "\n").split("\n", -1);
+        final Map<Integer, TsSourceFrame> mapping = new LinkedHashMap<>();
+        for (String line : lines) {
+            if (line.isBlank() || line.startsWith("TSJ-SOURCE-MAP")) {
+                continue;
+            }
+            final String[] parts = line.split("\t", -1);
+            if (parts.length != 4) {
+                continue;
+            }
+            try {
+                final int javaLine = Integer.parseInt(parts[0]);
+                final String sourceFile = unescapeSourceMapValue(parts[1]);
+                final int sourceLine = Integer.parseInt(parts[2]);
+                final int sourceColumn = Integer.parseInt(parts[3]);
+                mapping.put(javaLine, new TsSourceFrame(sourceFile, sourceLine, sourceColumn));
+            } catch (final RuntimeException ignored) {
+                // Skip malformed source map rows and keep best-effort mapping.
+            }
+        }
+        return Map.copyOf(mapping);
+    }
+
+    private static String unescapeSourceMapValue(final String value) {
+        final StringBuilder builder = new StringBuilder();
+        for (int index = 0; index < value.length(); index++) {
+            final char current = value.charAt(index);
+            if (current != '\\' || index + 1 >= value.length()) {
+                builder.append(current);
+                continue;
+            }
+            final char next = value.charAt(index + 1);
+            index++;
+            switch (next) {
+                case '\\' -> builder.append('\\');
+                case 't' -> builder.append('\t');
+                case 'n' -> builder.append('\n');
+                case 'r' -> builder.append('\r');
+                default -> {
+                    builder.append('\\');
+                    builder.append(next);
+                }
+            }
+        }
+        return builder.toString();
     }
 
     private static Map<String, String> backendFailureContext(
@@ -438,7 +588,13 @@ public final class TsjCli {
     private record ParsedOutOption(Path outDir) {
     }
 
+    private record RunOptions(Path outDir, boolean showTsStackTrace) {
+    }
+
     private record CompiledArtifact(Path entryPath, Path artifactPath, JvmCompiledArtifact jvmArtifact) {
+    }
+
+    private record TsSourceFrame(String sourceFile, int line, int column) {
     }
 
     private static final class CliFailure extends RuntimeException {

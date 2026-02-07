@@ -1091,6 +1091,75 @@ class TsjCliTest {
     }
 
     @Test
+    void runDoesNotEmitTsStackTraceWithoutFlag() throws Exception {
+        final Path entryFile = tempDir.resolve("runtime-fail.ts");
+        Files.writeString(
+                entryFile,
+                """
+                function fail(value: number) {
+                  if (value === 1) {
+                    throw "boom";
+                  }
+                  return value;
+                }
+                fail(1);
+                """,
+                UTF_8
+        );
+
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+
+        final int exitCode = TsjCli.execute(
+                new String[]{"run", entryFile.toString(), "--out", tempDir.resolve("runtime-fail-out").toString()},
+                new PrintStream(stdout),
+                new PrintStream(stderr)
+        );
+
+        assertEquals(1, exitCode);
+        assertTrue(stderr.toString(UTF_8).contains("\"code\":\"TSJ-RUN-006\""));
+        assertTrue(!stderr.toString(UTF_8).contains("TSJ stack trace (TypeScript):"));
+    }
+
+    @Test
+    void runEmitsTsStackTraceWithFlag() throws Exception {
+        final Path entryFile = tempDir.resolve("runtime-fail-trace.ts");
+        Files.writeString(
+                entryFile,
+                """
+                function fail(value: number) {
+                  if (value === 1) {
+                    throw "boom";
+                  }
+                  return value;
+                }
+                fail(1);
+                """,
+                UTF_8
+        );
+
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+
+        final int exitCode = TsjCli.execute(
+                new String[]{
+                        "run",
+                        entryFile.toString(),
+                        "--out",
+                        tempDir.resolve("runtime-fail-trace-out").toString(),
+                        "--ts-stacktrace"
+                },
+                new PrintStream(stdout),
+                new PrintStream(stderr)
+        );
+
+        assertEquals(1, exitCode);
+        assertTrue(stderr.toString(UTF_8).contains("TSJ stack trace (TypeScript):"));
+        assertTrue(stderr.toString(UTF_8).contains(entryFile.toAbsolutePath().normalize() + ":"));
+        assertTrue(stderr.toString(UTF_8).contains("\"code\":\"TSJ-RUN-006\""));
+    }
+
+    @Test
     void runRejectsImportAliasInTsj12Bootstrap() throws Exception {
         final Path helperFile = tempDir.resolve("helper.ts");
         final Path entryFile = tempDir.resolve("main.ts");

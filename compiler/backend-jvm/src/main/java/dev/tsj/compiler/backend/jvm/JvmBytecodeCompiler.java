@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -47,6 +48,7 @@ public final class JvmBytecodeCompiler {
             "strictfp", "super", "switch", "synchronized", "this", "throw", "throws",
             "transient", "try", "void", "volatile", "while", "_", "null", "true", "false"
     );
+    private static final String SOURCE_MARKER_PREFIX = "// TSJ-SOURCE\t";
 
     private static final String OUTPUT_PACKAGE = "dev.tsj.generated";
 
@@ -65,26 +67,37 @@ public final class JvmBytecodeCompiler {
         if (!Files.exists(normalizedSource) || !Files.isRegularFile(normalizedSource)) {
             throw new JvmCompilationException(
                     "TSJ-BACKEND-INPUT",
-                    "TypeScript source file not found: " + normalizedSource
+                "TypeScript source file not found: " + normalizedSource
             );
         }
 
-        final String sourceText = bundleModules(normalizedSource);
+        final BundleResult bundleResult = bundleModules(normalizedSource);
+        final String sourceText = bundleResult.sourceText();
 
-        final Program program = new Parser(tokenize(sourceText)).parseProgram();
+        final Parser parser = new Parser(tokenize(sourceText), bundleResult);
+        final Program program = parser.parseProgram();
         final String classSimpleName = toPascalCase(stripExtension(fileName)) + "Program";
         final String className = OUTPUT_PACKAGE + "." + classSimpleName;
-        final String javaSource = new JavaSourceGenerator(OUTPUT_PACKAGE, classSimpleName, program).generate();
+        final String javaSource = new JavaSourceGenerator(
+                OUTPUT_PACKAGE,
+                classSimpleName,
+                program,
+                parser.statementLocations()
+        ).generate();
 
         final Path normalizedOutput = outputDir.toAbsolutePath().normalize();
         final Path classesDir = normalizedOutput.resolve("classes");
         final Path generatedSource = normalizedOutput.resolve("generated-src")
                 .resolve(OUTPUT_PACKAGE.replace('.', '/'))
                 .resolve(classSimpleName + ".java");
+        final Path sourceMapFile = classesDir.resolve(OUTPUT_PACKAGE.replace('.', '/'))
+                .resolve(classSimpleName + ".tsj.map");
         try {
             Files.createDirectories(classesDir);
             Files.createDirectories(generatedSource.getParent());
             Files.writeString(generatedSource, javaSource, UTF_8);
+            Files.createDirectories(sourceMapFile.getParent());
+            writeSourceMapFile(sourceMapFile, parseSourceMapEntries(javaSource));
         } catch (final IOException ioException) {
             throw new JvmCompilationException(
                     "TSJ-BACKEND-IO",
@@ -107,23 +120,30 @@ public final class JvmBytecodeCompiler {
                     "Compiled class file not found after javac: " + classFile
             );
         }
-        return new JvmCompiledArtifact(normalizedSource, classesDir, className, classFile);
+        return new JvmCompiledArtifact(normalizedSource, classesDir, className, classFile, sourceMapFile);
     }
 
-    private static String bundleModules(final Path entryFile) {
-        final Map<Path, String> orderedModules = new LinkedHashMap<>();
+    private static BundleResult bundleModules(final Path entryFile) {
+        final Map<Path, ModuleSource> orderedModules = new LinkedHashMap<>();
         collectModule(entryFile, orderedModules, new LinkedHashSet<>());
         final StringBuilder builder = new StringBuilder();
-        for (Map.Entry<Path, String> module : orderedModules.entrySet()) {
-            builder.append("// module: ").append(module.getKey()).append("\n");
-            builder.append(module.getValue()).append("\n");
+        final List<SourceLineOrigin> lineOrigins = new ArrayList<>();
+        for (ModuleSource module : orderedModules.values()) {
+            builder.append("// module: ").append(module.sourceFile()).append("\n");
+            lineOrigins.add(new SourceLineOrigin(null, -1));
+            for (int index = 0; index < module.filteredLines().size(); index++) {
+                builder.append(module.filteredLines().get(index)).append("\n");
+                lineOrigins.add(new SourceLineOrigin(module.sourceFile(), module.sourceLineNumbers().get(index)));
+            }
+            builder.append("\n");
+            lineOrigins.add(new SourceLineOrigin(null, -1));
         }
-        return builder.toString();
+        return new BundleResult(builder.toString(), List.copyOf(lineOrigins));
     }
 
     private static void collectModule(
             final Path moduleFile,
-            final Map<Path, String> orderedModules,
+            final Map<Path, ModuleSource> orderedModules,
             final Set<Path> visiting
     ) {
         final Path normalizedModule = moduleFile.toAbsolutePath().normalize();
@@ -151,7 +171,8 @@ public final class JvmBytecodeCompiler {
             );
         }
 
-        final StringBuilder filteredModule = new StringBuilder();
+        final List<String> filteredLines = new ArrayList<>();
+        final List<Integer> sourceLineNumbers = new ArrayList<>();
         final String[] lines = sourceText.replace("\r\n", "\n").split("\n", -1);
         for (int index = 0; index < lines.length; index++) {
             final String line = lines[index];
@@ -173,13 +194,17 @@ public final class JvmBytecodeCompiler {
                         "TSJ-BACKEND-UNSUPPORTED",
                         "Unsupported import form in TSJ-12 bootstrap: " + line.trim(),
                         index + 1,
-                        1
+                    1
                 );
             }
-            filteredModule.append(line).append("\n");
+            filteredLines.add(line);
+            sourceLineNumbers.add(index + 1);
         }
 
-        orderedModules.put(normalizedModule, filteredModule.toString());
+        orderedModules.put(
+                normalizedModule,
+                new ModuleSource(normalizedModule, List.copyOf(filteredLines), List.copyOf(sourceLineNumbers))
+        );
         visiting.remove(normalizedModule);
     }
 
@@ -300,6 +325,93 @@ public final class JvmBytecodeCompiler {
                 line,
                 column
         );
+    }
+
+    private static void writeSourceMapFile(
+            final Path sourceMapFile,
+            final Map<Integer, SourceLocation> sourceMapEntries
+    ) throws IOException {
+        final StringBuilder builder = new StringBuilder();
+        builder.append("TSJ-SOURCE-MAP\t1\n");
+        for (Map.Entry<Integer, SourceLocation> entry : sourceMapEntries.entrySet()) {
+            final SourceLocation location = entry.getValue();
+            builder.append(entry.getKey())
+                    .append("\t")
+                    .append(escapeSourceMarker(location.sourceFile().toString()))
+                    .append("\t")
+                    .append(location.line())
+                    .append("\t")
+                    .append(location.column())
+                    .append("\n");
+        }
+        Files.writeString(sourceMapFile, builder.toString(), UTF_8);
+    }
+
+    private static Map<Integer, SourceLocation> parseSourceMapEntries(final String javaSource) {
+        final String normalized = javaSource.replace("\r\n", "\n");
+        final String[] lines = normalized.split("\n", -1);
+        final Map<Integer, SourceLocation> mapping = new LinkedHashMap<>();
+        SourceLocation current = null;
+        for (int index = 0; index < lines.length; index++) {
+            final String line = lines[index];
+            final String trimmed = line.trim();
+            if (trimmed.startsWith(SOURCE_MARKER_PREFIX)) {
+                current = parseSourceMarker(trimmed.substring(SOURCE_MARKER_PREFIX.length()));
+                continue;
+            }
+            if (current != null && !trimmed.isEmpty()) {
+                mapping.put(index + 1, current);
+            }
+        }
+        return mapping;
+    }
+
+    private static SourceLocation parseSourceMarker(final String markerPayload) {
+        final String[] parts = markerPayload.split("\t", -1);
+        if (parts.length != 3) {
+            return null;
+        }
+        try {
+            return new SourceLocation(
+                    Path.of(unescapeSourceMarker(parts[0])).toAbsolutePath().normalize(),
+                    Integer.parseInt(parts[1]),
+                    Integer.parseInt(parts[2])
+            );
+        } catch (final RuntimeException ignored) {
+            return null;
+        }
+    }
+
+    private static String escapeSourceMarker(final String value) {
+        return value
+                .replace("\\", "\\\\")
+                .replace("\t", "\\t")
+                .replace("\n", "\\n")
+                .replace("\r", "\\r");
+    }
+
+    private static String unescapeSourceMarker(final String value) {
+        final StringBuilder builder = new StringBuilder();
+        for (int index = 0; index < value.length(); index++) {
+            final char current = value.charAt(index);
+            if (current != '\\' || index + 1 >= value.length()) {
+                builder.append(current);
+                continue;
+            }
+            final char next = value.charAt(index + 1);
+            index++;
+            switch (next) {
+                case '\\' -> builder.append('\\');
+                case 't' -> builder.append('\t');
+                case 'n' -> builder.append('\n');
+                case 'r' -> builder.append('\r');
+                default -> {
+                    builder.append('\\');
+                    builder.append(next);
+                }
+            }
+        }
+        return builder.toString();
     }
 
     private static List<Token> tokenize(final String source) {
@@ -655,64 +767,118 @@ public final class JvmBytecodeCompiler {
     private record ObjectLiteralEntry(String key, Expression value) {
     }
 
+    private record SourceLineOrigin(Path sourceFile, int sourceLine) {
+    }
+
+    private record SourceLocation(Path sourceFile, int line, int column) {
+    }
+
+    private record ModuleSource(
+            Path sourceFile,
+            List<String> filteredLines,
+            List<Integer> sourceLineNumbers
+    ) {
+    }
+
+    private record BundleResult(
+            String sourceText,
+            List<SourceLineOrigin> lineOrigins
+    ) {
+        private SourceLocation sourceLocationFor(final int bundledLine, final int bundledColumn) {
+            if (bundledLine <= 0 || bundledLine > lineOrigins.size()) {
+                return null;
+            }
+            final SourceLineOrigin origin = lineOrigins.get(bundledLine - 1);
+            if (origin == null || origin.sourceFile() == null || origin.sourceLine() <= 0) {
+                return null;
+            }
+            return new SourceLocation(
+                    origin.sourceFile(),
+                    origin.sourceLine(),
+                    Math.max(1, bundledColumn)
+            );
+        }
+    }
+
     private static final class Parser {
         private final List<Token> tokens;
+        private final BundleResult bundleResult;
+        private final IdentityHashMap<Statement, SourceLocation> statementLocations;
         private int index;
 
-        private Parser(final List<Token> tokens) {
+        private Parser(final List<Token> tokens, final BundleResult bundleResult) {
             this.tokens = tokens;
+            this.bundleResult = bundleResult;
+            this.statementLocations = new IdentityHashMap<>();
             this.index = 0;
+        }
+
+        private Map<Statement, SourceLocation> statementLocations() {
+            return new IdentityHashMap<>(statementLocations);
         }
 
         private Program parseProgram() {
             final List<Statement> statements = new ArrayList<>();
             while (!isAtEnd()) {
-                if (matchKeyword("export")) {
-                    if (matchKeyword("async")) {
-                        if (matchKeyword("function")) {
-                            statements.add(new FunctionDeclarationStatement(parseFunctionDeclaration(true)));
-                            continue;
-                        }
-                        final Token token = current();
-                        throw new JvmCompilationException(
-                                "TSJ-BACKEND-UNSUPPORTED",
-                                "Unsupported `export async` form in TSJ-13 subset.",
-                                token.line(),
-                                token.column()
-                        );
-                    }
-                    if (matchKeyword("function")) {
-                        statements.add(new FunctionDeclarationStatement(parseFunctionDeclaration(false)));
-                        continue;
-                    }
-                    if (matchKeyword("class")) {
-                        statements.add(new ClassDeclarationStatement(parseClassDeclaration()));
-                        continue;
-                    }
-                    if (matchKeyword("const") || matchKeyword("let") || matchKeyword("var")) {
-                        statements.add(parseVariableDeclaration());
-                        continue;
-                    }
-                    final Token token = current();
-                    throw new JvmCompilationException(
-                            "TSJ-BACKEND-UNSUPPORTED",
-                            "Unsupported export form in TSJ-9 subset.",
-                            token.line(),
-                            token.column()
-                    );
-                }
                 statements.add(parseStatement(false));
             }
             return new Program(List.copyOf(statements));
         }
 
         private Statement parseStatement(final boolean insideFunction) {
+            final Token statementStart = current();
+            final Statement statement;
+            if (matchKeyword("export")) {
+                if (insideFunction) {
+                    final Token token = previous();
+                    throw new JvmCompilationException(
+                            "TSJ-BACKEND-UNSUPPORTED",
+                            "Block-scoped `export` is unsupported in TSJ-12 subset.",
+                            token.line(),
+                            token.column()
+                    );
+                }
+                if (matchKeyword("async")) {
+                    if (matchKeyword("function")) {
+                        statement = new FunctionDeclarationStatement(parseFunctionDeclaration(true));
+                        return locate(statement, statementStart);
+                    }
+                    final Token token = current();
+                    throw new JvmCompilationException(
+                            "TSJ-BACKEND-UNSUPPORTED",
+                            "Unsupported `export async` form in TSJ-13 subset.",
+                            token.line(),
+                            token.column()
+                    );
+                }
+                if (matchKeyword("function")) {
+                    statement = new FunctionDeclarationStatement(parseFunctionDeclaration(false));
+                    return locate(statement, statementStart);
+                }
+                if (matchKeyword("class")) {
+                    statement = new ClassDeclarationStatement(parseClassDeclaration());
+                    return locate(statement, statementStart);
+                }
+                if (matchKeyword("const") || matchKeyword("let") || matchKeyword("var")) {
+                    statement = parseVariableDeclaration();
+                    return locate(statement, statementStart);
+                }
+                final Token token = current();
+                throw new JvmCompilationException(
+                        "TSJ-BACKEND-UNSUPPORTED",
+                        "Unsupported export form in TSJ-9 subset.",
+                        token.line(),
+                        token.column()
+                );
+            }
             if (matchKeyword("const") || matchKeyword("let") || matchKeyword("var")) {
-                return parseVariableDeclaration();
+                statement = parseVariableDeclaration();
+                return locate(statement, statementStart);
             }
             if (matchKeyword("async")) {
                 if (matchKeyword("function")) {
-                    return new FunctionDeclarationStatement(parseFunctionDeclaration(true));
+                    statement = new FunctionDeclarationStatement(parseFunctionDeclaration(true));
+                    return locate(statement, statementStart);
                 }
                 final Token token = current();
                 throw new JvmCompilationException(
@@ -723,19 +889,24 @@ public final class JvmBytecodeCompiler {
                 );
             }
             if (matchKeyword("function")) {
-                return new FunctionDeclarationStatement(parseFunctionDeclaration(false));
+                statement = new FunctionDeclarationStatement(parseFunctionDeclaration(false));
+                return locate(statement, statementStart);
             }
             if (matchKeyword("class")) {
-                return new ClassDeclarationStatement(parseClassDeclaration());
+                statement = new ClassDeclarationStatement(parseClassDeclaration());
+                return locate(statement, statementStart);
             }
             if (matchKeyword("if")) {
-                return parseIfStatement(insideFunction);
+                statement = parseIfStatement(insideFunction);
+                return locate(statement, statementStart);
             }
             if (matchKeyword("while")) {
-                return parseWhileStatement(insideFunction);
+                statement = parseWhileStatement(insideFunction);
+                return locate(statement, statementStart);
             }
             if (matchKeyword("super")) {
-                return parseSuperCallStatement();
+                statement = parseSuperCallStatement();
+                return locate(statement, statementStart);
             }
             if (matchKeyword("return")) {
                 if (!insideFunction) {
@@ -747,7 +918,8 @@ public final class JvmBytecodeCompiler {
                             token.column()
                     );
                 }
-                return parseReturnStatement();
+                statement = parseReturnStatement();
+                return locate(statement, statementStart);
             }
             if (matchKeyword("throw")) {
                 if (!insideFunction) {
@@ -759,10 +931,12 @@ public final class JvmBytecodeCompiler {
                             token.column()
                     );
                 }
-                return parseThrowStatement();
+                statement = parseThrowStatement();
+                return locate(statement, statementStart);
             }
             if (isConsoleLogStart()) {
-                return parseConsoleLog();
+                statement = parseConsoleLog();
+                return locate(statement, statementStart);
             }
             if (current().type() == TokenType.KEYWORD && !isExpressionStartKeyword(current().text())) {
                 final Token token = current();
@@ -773,7 +947,16 @@ public final class JvmBytecodeCompiler {
                         token.column()
                 );
             }
-            return parseExpressionOrAssignmentStatement();
+            statement = parseExpressionOrAssignmentStatement();
+            return locate(statement, statementStart);
+        }
+
+        private Statement locate(final Statement statement, final Token token) {
+            final SourceLocation location = bundleResult.sourceLocationFor(token.line(), token.column());
+            if (location != null) {
+                statementLocations.put(statement, location);
+            }
+            return statement;
         }
 
         private Statement parseExpressionOrAssignmentStatement() {
@@ -1440,17 +1623,20 @@ public final class JvmBytecodeCompiler {
         private final String packageName;
         private final String classSimpleName;
         private final Program program;
+        private final IdentityHashMap<Statement, SourceLocation> statementLocations;
         private final List<String> propertyCacheFieldDeclarations;
         private int propertyCacheCounter;
 
         private JavaSourceGenerator(
                 final String packageName,
                 final String classSimpleName,
-                final Program program
+                final Program program,
+                final Map<Statement, SourceLocation> statementLocations
         ) {
             this.packageName = packageName;
             this.classSimpleName = classSimpleName;
             this.program = program;
+            this.statementLocations = new IdentityHashMap<>(statementLocations);
             this.propertyCacheFieldDeclarations = new ArrayList<>();
             this.propertyCacheCounter = 0;
         }
@@ -1498,6 +1684,7 @@ public final class JvmBytecodeCompiler {
             predeclareFunctionBindings(builder, context, statements, indent);
 
             for (Statement statement : statements) {
+                emitSourceMarker(builder, statement, indent);
                 if (statement instanceof FunctionDeclarationStatement declarationStatement) {
                     emitFunctionAssignment(builder, context, declarationStatement.declaration(), indent);
                     continue;
@@ -1610,6 +1797,25 @@ public final class JvmBytecodeCompiler {
                         "Unsupported statement node in code generation: " + statement.getClass().getSimpleName()
                 );
             }
+        }
+
+        private void emitSourceMarker(
+                final StringBuilder builder,
+                final Statement statement,
+                final String indent
+        ) {
+            final SourceLocation sourceLocation = statementLocations.get(statement);
+            if (sourceLocation == null) {
+                return;
+            }
+            builder.append(indent)
+                    .append(SOURCE_MARKER_PREFIX)
+                    .append(escapeSourceMarker(sourceLocation.sourceFile().toString()))
+                    .append("\t")
+                    .append(sourceLocation.line())
+                    .append("\t")
+                    .append(sourceLocation.column())
+                    .append("\n");
         }
 
         private void emitTopLevelAwaitStatements(
@@ -1904,10 +2110,15 @@ public final class JvmBytecodeCompiler {
                 final EmissionContext context,
                 final Statement statement
         ) {
+            final SourceLocation sourceLocation = sourceLocationFor(statement);
             if (statement instanceof VariableDeclaration declaration) {
-                final AwaitExpressionRewrite rewritten = rewriteAsyncExpressionForAwait(context, declaration.expression());
+                final AwaitExpressionRewrite rewritten =
+                        rewriteAsyncExpressionForAwait(context, declaration.expression(), sourceLocation);
                 final List<Statement> expanded = new ArrayList<>(rewritten.hoistedStatements());
-                expanded.add(new VariableDeclaration(declaration.name(), rewritten.expression()));
+                final VariableDeclaration rewrittenStatement =
+                        new VariableDeclaration(declaration.name(), rewritten.expression());
+                copySourceLocation(statement, rewrittenStatement);
+                expanded.add(rewrittenStatement);
                 return List.copyOf(expanded);
             }
             if (statement instanceof AssignmentStatement assignment) {
@@ -1917,39 +2128,54 @@ public final class JvmBytecodeCompiler {
                             "Await is unsupported in assignment target."
                     );
                 }
-                final AwaitExpressionRewrite rewritten = rewriteAsyncExpressionForAwait(context, assignment.expression());
+                final AwaitExpressionRewrite rewritten =
+                        rewriteAsyncExpressionForAwait(context, assignment.expression(), sourceLocation);
                 final List<Statement> expanded = new ArrayList<>(rewritten.hoistedStatements());
-                expanded.add(new AssignmentStatement(assignment.target(), rewritten.expression()));
+                final AssignmentStatement rewrittenStatement =
+                        new AssignmentStatement(assignment.target(), rewritten.expression());
+                copySourceLocation(statement, rewrittenStatement);
+                expanded.add(rewrittenStatement);
                 return List.copyOf(expanded);
             }
             if (statement instanceof ReturnStatement returnStatement) {
-                final AwaitExpressionRewrite rewritten = rewriteAsyncExpressionForAwait(context, returnStatement.expression());
+                final AwaitExpressionRewrite rewritten =
+                        rewriteAsyncExpressionForAwait(context, returnStatement.expression(), sourceLocation);
                 final List<Statement> expanded = new ArrayList<>(rewritten.hoistedStatements());
-                expanded.add(new ReturnStatement(rewritten.expression()));
+                final ReturnStatement rewrittenStatement = new ReturnStatement(rewritten.expression());
+                copySourceLocation(statement, rewrittenStatement);
+                expanded.add(rewrittenStatement);
                 return List.copyOf(expanded);
             }
             if (statement instanceof ThrowStatement throwStatement) {
-                final AwaitExpressionRewrite rewritten = rewriteAsyncExpressionForAwait(context, throwStatement.expression());
+                final AwaitExpressionRewrite rewritten =
+                        rewriteAsyncExpressionForAwait(context, throwStatement.expression(), sourceLocation);
                 final List<Statement> expanded = new ArrayList<>(rewritten.hoistedStatements());
-                expanded.add(new ThrowStatement(rewritten.expression()));
+                final ThrowStatement rewrittenStatement = new ThrowStatement(rewritten.expression());
+                copySourceLocation(statement, rewrittenStatement);
+                expanded.add(rewrittenStatement);
                 return List.copyOf(expanded);
             }
             if (statement instanceof ConsoleLogStatement logStatement) {
-                final AwaitExpressionRewrite rewritten = rewriteAsyncExpressionForAwait(context, logStatement.expression());
+                final AwaitExpressionRewrite rewritten =
+                        rewriteAsyncExpressionForAwait(context, logStatement.expression(), sourceLocation);
                 final List<Statement> expanded = new ArrayList<>(rewritten.hoistedStatements());
-                expanded.add(new ConsoleLogStatement(rewritten.expression()));
+                final ConsoleLogStatement rewrittenStatement = new ConsoleLogStatement(rewritten.expression());
+                copySourceLocation(statement, rewrittenStatement);
+                expanded.add(rewrittenStatement);
                 return List.copyOf(expanded);
             }
             if (statement instanceof ExpressionStatement expressionStatement) {
                 final AwaitExpressionRewrite rewritten =
-                        rewriteAsyncExpressionForAwait(context, expressionStatement.expression());
+                        rewriteAsyncExpressionForAwait(context, expressionStatement.expression(), sourceLocation);
                 final List<Statement> expanded = new ArrayList<>(rewritten.hoistedStatements());
-                expanded.add(new ExpressionStatement(rewritten.expression()));
+                final ExpressionStatement rewrittenStatement = new ExpressionStatement(rewritten.expression());
+                copySourceLocation(statement, rewrittenStatement);
+                expanded.add(rewrittenStatement);
                 return List.copyOf(expanded);
             }
             if (statement instanceof IfStatement ifStatement) {
                 final AwaitExpressionRewrite rewrittenCondition =
-                        rewriteAsyncExpressionForAwait(context, ifStatement.condition());
+                        rewriteAsyncExpressionForAwait(context, ifStatement.condition(), sourceLocation);
                 final EmissionContext thenContext = new EmissionContext(context);
                 final EmissionContext elseContext = new EmissionContext(context);
                 final List<Statement> rewrittenThen =
@@ -1957,7 +2183,10 @@ public final class JvmBytecodeCompiler {
                 final List<Statement> rewrittenElse =
                         normalizeAsyncStatementsForAwaitExpressions(elseContext, ifStatement.elseBlock());
                 final List<Statement> expanded = new ArrayList<>(rewrittenCondition.hoistedStatements());
-                expanded.add(new IfStatement(rewrittenCondition.expression(), rewrittenThen, rewrittenElse));
+                final IfStatement rewrittenStatement =
+                        new IfStatement(rewrittenCondition.expression(), rewrittenThen, rewrittenElse);
+                copySourceLocation(statement, rewrittenStatement);
+                expanded.add(rewrittenStatement);
                 return List.copyOf(expanded);
             }
             if (statement instanceof WhileStatement whileStatement) {
@@ -1970,26 +2199,32 @@ public final class JvmBytecodeCompiler {
                 final EmissionContext bodyContext = new EmissionContext(context);
                 final List<Statement> rewrittenBody =
                         normalizeAsyncStatementsForAwaitExpressions(bodyContext, whileStatement.body());
-                return List.of(new WhileStatement(whileStatement.condition(), rewrittenBody));
+                final WhileStatement rewrittenStatement = new WhileStatement(whileStatement.condition(), rewrittenBody);
+                copySourceLocation(statement, rewrittenStatement);
+                return List.of(rewrittenStatement);
             }
             return List.of(statement);
         }
 
         private AwaitExpressionRewrite rewriteAsyncExpressionForAwait(
                 final EmissionContext context,
-                final Expression expression
+                final Expression expression,
+                final SourceLocation sourceLocation
         ) {
             if (expression instanceof AwaitExpression awaitExpression) {
                 final AwaitExpressionRewrite rewrittenInner =
-                        rewriteAsyncExpressionForAwait(context, awaitExpression.expression());
+                        rewriteAsyncExpressionForAwait(context, awaitExpression.expression(), sourceLocation);
                 final String tempName = context.allocateGeneratedName("awaitExpr");
                 final List<Statement> hoisted = new ArrayList<>(rewrittenInner.hoistedStatements());
-                hoisted.add(new VariableDeclaration(tempName, new AwaitExpression(rewrittenInner.expression())));
+                final VariableDeclaration hoistedDeclaration =
+                        new VariableDeclaration(tempName, new AwaitExpression(rewrittenInner.expression()));
+                copySourceLocation(sourceLocation, hoistedDeclaration);
+                hoisted.add(hoistedDeclaration);
                 return new AwaitExpressionRewrite(new VariableExpression(tempName), List.copyOf(hoisted));
             }
             if (expression instanceof UnaryExpression unaryExpression) {
                 final AwaitExpressionRewrite rewrittenOperand =
-                        rewriteAsyncExpressionForAwait(context, unaryExpression.expression());
+                        rewriteAsyncExpressionForAwait(context, unaryExpression.expression(), sourceLocation);
                 return new AwaitExpressionRewrite(
                         new UnaryExpression(unaryExpression.operator(), rewrittenOperand.expression()),
                         rewrittenOperand.hoistedStatements()
@@ -1997,9 +2232,9 @@ public final class JvmBytecodeCompiler {
             }
             if (expression instanceof BinaryExpression binaryExpression) {
                 final AwaitExpressionRewrite rewrittenLeft =
-                        rewriteAsyncExpressionForAwait(context, binaryExpression.left());
+                        rewriteAsyncExpressionForAwait(context, binaryExpression.left(), sourceLocation);
                 final AwaitExpressionRewrite rewrittenRight =
-                        rewriteAsyncExpressionForAwait(context, binaryExpression.right());
+                        rewriteAsyncExpressionForAwait(context, binaryExpression.right(), sourceLocation);
                 final List<Statement> hoisted = new ArrayList<>(rewrittenLeft.hoistedStatements());
                 hoisted.addAll(rewrittenRight.hoistedStatements());
                 return new AwaitExpressionRewrite(
@@ -2009,11 +2244,12 @@ public final class JvmBytecodeCompiler {
             }
             if (expression instanceof CallExpression callExpression) {
                 final AwaitExpressionRewrite rewrittenCallee =
-                        rewriteAsyncExpressionForAwait(context, callExpression.callee());
+                        rewriteAsyncExpressionForAwait(context, callExpression.callee(), sourceLocation);
                 final List<Expression> rewrittenArguments = new ArrayList<>();
                 final List<Statement> hoisted = new ArrayList<>(rewrittenCallee.hoistedStatements());
                 for (Expression argument : callExpression.arguments()) {
-                    final AwaitExpressionRewrite rewrittenArgument = rewriteAsyncExpressionForAwait(context, argument);
+                    final AwaitExpressionRewrite rewrittenArgument =
+                            rewriteAsyncExpressionForAwait(context, argument, sourceLocation);
                     hoisted.addAll(rewrittenArgument.hoistedStatements());
                     rewrittenArguments.add(rewrittenArgument.expression());
                 }
@@ -2024,7 +2260,7 @@ public final class JvmBytecodeCompiler {
             }
             if (expression instanceof MemberAccessExpression memberAccessExpression) {
                 final AwaitExpressionRewrite rewrittenReceiver =
-                        rewriteAsyncExpressionForAwait(context, memberAccessExpression.receiver());
+                        rewriteAsyncExpressionForAwait(context, memberAccessExpression.receiver(), sourceLocation);
                 return new AwaitExpressionRewrite(
                         new MemberAccessExpression(rewrittenReceiver.expression(), memberAccessExpression.member()),
                         rewrittenReceiver.hoistedStatements()
@@ -2032,11 +2268,12 @@ public final class JvmBytecodeCompiler {
             }
             if (expression instanceof NewExpression newExpression) {
                 final AwaitExpressionRewrite rewrittenConstructor =
-                        rewriteAsyncExpressionForAwait(context, newExpression.constructor());
+                        rewriteAsyncExpressionForAwait(context, newExpression.constructor(), sourceLocation);
                 final List<Expression> rewrittenArguments = new ArrayList<>();
                 final List<Statement> hoisted = new ArrayList<>(rewrittenConstructor.hoistedStatements());
                 for (Expression argument : newExpression.arguments()) {
-                    final AwaitExpressionRewrite rewrittenArgument = rewriteAsyncExpressionForAwait(context, argument);
+                    final AwaitExpressionRewrite rewrittenArgument =
+                            rewriteAsyncExpressionForAwait(context, argument, sourceLocation);
                     hoisted.addAll(rewrittenArgument.hoistedStatements());
                     rewrittenArguments.add(rewrittenArgument.expression());
                 }
@@ -2049,7 +2286,8 @@ public final class JvmBytecodeCompiler {
                 final List<ObjectLiteralEntry> rewrittenEntries = new ArrayList<>();
                 final List<Statement> hoisted = new ArrayList<>();
                 for (ObjectLiteralEntry entry : objectLiteralExpression.entries()) {
-                    final AwaitExpressionRewrite rewrittenValue = rewriteAsyncExpressionForAwait(context, entry.value());
+                    final AwaitExpressionRewrite rewrittenValue =
+                            rewriteAsyncExpressionForAwait(context, entry.value(), sourceLocation);
                     hoisted.addAll(rewrittenValue.hoistedStatements());
                     rewrittenEntries.add(new ObjectLiteralEntry(entry.key(), rewrittenValue.expression()));
                 }
@@ -2059,13 +2297,29 @@ public final class JvmBytecodeCompiler {
                 final List<Expression> rewrittenElements = new ArrayList<>();
                 final List<Statement> hoisted = new ArrayList<>();
                 for (Expression element : arrayLiteralExpression.elements()) {
-                    final AwaitExpressionRewrite rewrittenElement = rewriteAsyncExpressionForAwait(context, element);
+                    final AwaitExpressionRewrite rewrittenElement =
+                            rewriteAsyncExpressionForAwait(context, element, sourceLocation);
                     hoisted.addAll(rewrittenElement.hoistedStatements());
                     rewrittenElements.add(rewrittenElement.expression());
                 }
                 return new AwaitExpressionRewrite(new ArrayLiteralExpression(List.copyOf(rewrittenElements)), List.copyOf(hoisted));
             }
             return new AwaitExpressionRewrite(expression, List.of());
+        }
+
+        private SourceLocation sourceLocationFor(final Statement statement) {
+            return statementLocations.get(statement);
+        }
+
+        private void copySourceLocation(final Statement source, final Statement target) {
+            copySourceLocation(sourceLocationFor(source), target);
+        }
+
+        private void copySourceLocation(final SourceLocation sourceLocation, final Statement target) {
+            if (sourceLocation == null) {
+                return;
+            }
+            statementLocations.put(target, sourceLocation);
         }
 
         private void predeclareAsyncLocalBindings(
@@ -2144,6 +2398,7 @@ public final class JvmBytecodeCompiler {
             }
 
             final Statement statement = statements.get(index);
+            emitSourceMarker(builder, statement, indent);
             if (statement instanceof ReturnStatement returnStatement) {
                 if (returnStatement.expression() instanceof AwaitExpression awaitExpression) {
                     assertNoAwait(
