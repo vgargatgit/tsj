@@ -42,6 +42,7 @@ Optional keys:
    - `tsj run <entry.ts> --out <fixture>/.tsj-out`
 3. Harness compares each runtime output against expected files.
 4. If `assert.nodeMatchesTsj=true`, harness also enforces direct output equality between Node and TSJ.
+5. For direct comparison, TSJ diagnostic JSON lines are ignored so semantic output can be compared to Node output.
 
 ## CLI entrypoint
 

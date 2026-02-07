@@ -5,8 +5,12 @@
 ### `tsj compile <input.ts> --out <dir>`
 Behavior:
 1. Validates input file exists and has `.ts`/`.tsx` extension.
-2. Creates output directory if missing.
-3. Emits artifact file:
+2. Compiles supported TSJ-7 subset into JVM classes.
+   - TSJ-8 extends supported subset with nested function declarations and lexical closures.
+3. Creates output directory if missing.
+4. Emits class output directory:
+   - `<out>/classes`
+5. Emits artifact file:
    - `<out>/program.tsj.properties`
 4. Emits structured JSON diagnostics to stdout/stderr.
 
@@ -18,13 +22,14 @@ Failure diagnostics:
 - `TSJ-COMPILE-001` input file not found
 - `TSJ-COMPILE-002` unsupported input extension
 - `TSJ-COMPILE-500` artifact write error
+- backend diagnostics like `TSJ-BACKEND-*` for unsupported syntax or JVM compile failures
 
 ### `tsj run <entry.ts> [--out <dir>]`
 Behavior:
 1. Compiles entry to artifact (default out dir `.tsj-build` when omitted).
 2. Reads generated artifact.
-3. Executes bootstrap runtime path.
-4. Emits structured JSON diagnostics.
+3. Executes generated JVM class.
+4. Emits program stdout, then structured JSON diagnostics.
 
 Success diagnostic:
 - Code: `TSJ-RUN-SUCCESS`
@@ -32,6 +37,8 @@ Success diagnostic:
 Failure diagnostics:
 - `TSJ-CLI-004` missing entry path
 - `TSJ-RUN-001` artifact read error
+- `TSJ-RUN-007` missing class metadata in artifact
+- `TSJ-RUN-*` runtime class load/execute failures
 - compile-phase failure codes from `tsj compile`
 
 ### `tsj fixtures <fixturesRoot>`

@@ -94,6 +94,9 @@
   - Emits valid `.class` files for arithmetic, branches, loops, calls.
   - Generated classes pass JVM verifier.
   - Fixtures for subset pass differential tests vs Node.
+- Notes:
+  - TSJ-7 implementation generates JVM classes through backend codegen + JDK compiler for the supported subset.
+  - Differential fixture comparison ignores TSJ diagnostic JSON lines and compares runtime outputs.
 - Dependencies: TSJ-0, TSJ-6.
 
 ### TSJ-8: Function and closure representation on JVM
@@ -102,6 +105,10 @@
   - Captured variables preserved across nested function boundaries.
   - `this` binding strategy documented and implemented for supported patterns.
   - Closure fixtures pass (factory functions, counters, nested capture).
+- Notes:
+  - TSJ-8 backend lowers function declarations to runtime callables with closure cells.
+  - Lexical captures are preserved through shared `TsjCell` references across nested scopes.
+  - `this` is not supported in TSJ-8 subset; usage remains outside the supported feature surface.
 - Dependencies: TSJ-7.
 
 ### TSJ-9: Class and object model (MVP subset)

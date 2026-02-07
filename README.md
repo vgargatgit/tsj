@@ -10,6 +10,8 @@ Current implementation status includes:
 5. TypeScript parser/type-check integration via compiler API bridge (`TSJ-4`)
 6. Initial HIR/MIR/JIR pipeline + JSON dump tool (`TSJ-5`)
 7. MIR CFG + lexical capture metadata for nested scopes/closures (`TSJ-6`)
+8. JVM backend subset compile/run path for arithmetic, control flow, and function calls (`TSJ-7`)
+9. JVM closure lowering for nested functions and captured variables (`TSJ-8`)
 
 ## Repository Layout
 
@@ -80,6 +82,9 @@ mvn -B -ntp -pl cli -am exec:java \
 
 CLI command contract is in `docs/cli-contract.md`.
 
+TSJ-7 compile now emits generated classes under `<out>/classes`, and `tsj run` executes the generated JVM class before emitting run diagnostics.
+TSJ-8 extends the same path with lexical closure support for nested function declarations and mutable captured locals.
+
 ## Frontend and IR Tools
 
 Frontend parser/type-check service contract:
@@ -102,6 +107,8 @@ Fixture format is documented in `docs/fixture-format.md`.
 
 Seed fixture:
 - `tests/fixtures/smoke-hello`
+- `tests/fixtures/tsj7-control-flow`
+- `tests/fixtures/tsj8-closure-counter`
 
 ## Project Planning Docs
 

@@ -33,6 +33,7 @@ class TsjCliTest {
 
         assertEquals(0, exitCode);
         assertTrue(Files.exists(outDir.resolve("program.tsj.properties")));
+        assertTrue(Files.exists(outDir.resolve("classes")));
         assertTrue(stdout.toString(UTF_8).contains("\"code\":\"TSJ-COMPILE-SUCCESS\""));
         assertEquals("", stderr.toString(UTF_8));
     }
@@ -54,6 +55,76 @@ class TsjCliTest {
 
         assertEquals(0, exitCode);
         assertTrue(Files.exists(outDir.resolve("program.tsj.properties")));
+        assertTrue(stdout.toString(UTF_8).contains("hello"));
+        assertTrue(stdout.toString(UTF_8).contains("\"code\":\"TSJ-RUN-SUCCESS\""));
+        assertEquals("", stderr.toString(UTF_8));
+    }
+
+    @Test
+    void runExecutesControlFlowProgram() throws Exception {
+        final Path entryFile = tempDir.resolve("control.ts");
+        Files.writeString(
+                entryFile,
+                """
+                let i = 1;
+                let acc = 0;
+                while (i <= 3) {
+                  acc = acc + i;
+                  i = i + 1;
+                }
+                if (acc === 6) {
+                  console.log("sum=" + acc);
+                } else {
+                  console.log("bad");
+                }
+                """,
+                UTF_8
+        );
+
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+
+        final int exitCode = TsjCli.execute(
+                new String[]{"run", entryFile.toString(), "--out", tempDir.resolve("cf-out").toString()},
+                new PrintStream(stdout),
+                new PrintStream(stderr)
+        );
+
+        assertEquals(0, exitCode);
+        assertTrue(stdout.toString(UTF_8).contains("sum=6"));
+        assertTrue(stdout.toString(UTF_8).contains("\"code\":\"TSJ-RUN-SUCCESS\""));
+        assertEquals("", stderr.toString(UTF_8));
+    }
+
+    @Test
+    void runExecutesClosureProgram() throws Exception {
+        final Path entryFile = tempDir.resolve("closure.ts");
+        Files.writeString(
+                entryFile,
+                """
+                function makeAdder(base: number) {
+                  function add(step: number) {
+                    return base + step;
+                  }
+                  return add;
+                }
+                const plus2 = makeAdder(2);
+                console.log("closure=" + plus2(5));
+                """,
+                UTF_8
+        );
+
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+
+        final int exitCode = TsjCli.execute(
+                new String[]{"run", entryFile.toString(), "--out", tempDir.resolve("closure-out").toString()},
+                new PrintStream(stdout),
+                new PrintStream(stderr)
+        );
+
+        assertEquals(0, exitCode);
+        assertTrue(stdout.toString(UTF_8).contains("closure=7"));
         assertTrue(stdout.toString(UTF_8).contains("\"code\":\"TSJ-RUN-SUCCESS\""));
         assertEquals("", stderr.toString(UTF_8));
     }
@@ -92,6 +163,33 @@ class TsjCliTest {
 
         assertEquals(1, exitCode);
         assertTrue(stderr.toString(UTF_8).contains("\"code\":\"TSJ-COMPILE-001\""));
+        assertEquals("", stdout.toString(UTF_8));
+    }
+
+    @Test
+    void compileUnsupportedSyntaxReturnsBackendDiagnostic() throws Exception {
+        final Path entryFile = tempDir.resolve("unsupported.ts");
+        Files.writeString(
+                entryFile,
+                """
+                for (let i = 0; i < 2; i = i + 1) {
+                  console.log(i);
+                }
+                """,
+                UTF_8
+        );
+
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+
+        final int exitCode = TsjCli.execute(
+                new String[]{"compile", entryFile.toString(), "--out", tempDir.resolve("bad-out").toString()},
+                new PrintStream(stdout),
+                new PrintStream(stderr)
+        );
+
+        assertEquals(1, exitCode);
+        assertTrue(stderr.toString(UTF_8).contains("\"code\":\"TSJ-BACKEND-UNSUPPORTED\""));
         assertEquals("", stdout.toString(UTF_8));
     }
 

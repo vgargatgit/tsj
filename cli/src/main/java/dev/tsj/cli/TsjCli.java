@@ -3,6 +3,10 @@ package dev.tsj.cli;
 import dev.tsj.cli.fixtures.FixtureHarness;
 import dev.tsj.cli.fixtures.FixtureRunResult;
 import dev.tsj.compiler.backend.jvm.BackendJvmModule;
+import dev.tsj.compiler.backend.jvm.JvmBytecodeCompiler;
+import dev.tsj.compiler.backend.jvm.JvmBytecodeRunner;
+import dev.tsj.compiler.backend.jvm.JvmCompilationException;
+import dev.tsj.compiler.backend.jvm.JvmCompiledArtifact;
 import dev.tsj.compiler.frontend.FrontendModule;
 import dev.tsj.compiler.ir.IrModule;
 import dev.tsj.runtime.RuntimeModule;
@@ -14,6 +18,7 @@ import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -115,6 +120,8 @@ public final class TsjCli {
                 Map.of(
                         "entry", artifact.entryPath.toString(),
                         "artifact", artifact.artifactPath.toString(),
+                        "className", artifact.jvmArtifact.className(),
+                        "classFile", artifact.jvmArtifact.classFile().toString(),
                         "outDir", parsedOut.outDir.toString()
                 )
         );
@@ -252,10 +259,22 @@ public final class TsjCli {
         if (!fileName.endsWith(".ts") && !fileName.endsWith(".tsx")) {
             throw CliFailure.runtime(
                     "TSJ-COMPILE-002",
-                    "Unsupported input extension. Expected .ts or .tsx",
-                    Map.of("entry", entryPath.toString())
+                "Unsupported input extension. Expected .ts or .tsx",
+                Map.of("entry", entryPath.toString())
             );
         }
+
+        final JvmCompiledArtifact jvmArtifact;
+        try {
+            jvmArtifact = new JvmBytecodeCompiler().compile(entryPath, outDir);
+        } catch (final JvmCompilationException compilationException) {
+            throw CliFailure.runtime(
+                    compilationException.code(),
+                    compilationException.getMessage(),
+                    backendFailureContext(entryPath, compilationException)
+            );
+        }
+
         try {
             Files.createDirectories(outDir);
             final Path artifactPath = outDir.resolve(ARTIFACT_FILE_NAME);
@@ -263,6 +282,9 @@ public final class TsjCli {
             properties.setProperty("formatVersion", "0.1");
             properties.setProperty("entry", entryPath.toAbsolutePath().normalize().toString());
             properties.setProperty("compiledAt", Instant.now().toString());
+            properties.setProperty("mainClass", jvmArtifact.className());
+            properties.setProperty("classFile", jvmArtifact.classFile().toString());
+            properties.setProperty("classesDir", jvmArtifact.outputDirectory().toString());
             properties.setProperty("frontendModule", FrontendModule.moduleName());
             properties.setProperty("irModule", IrModule.moduleName());
             properties.setProperty("backendModule", BackendJvmModule.moduleName());
@@ -271,7 +293,7 @@ public final class TsjCli {
             try (OutputStream outputStream = Files.newOutputStream(artifactPath)) {
                 properties.store(outputStream, "TSJ compiled artifact");
             }
-            return new CompiledArtifact(entryPath, artifactPath);
+            return new CompiledArtifact(entryPath, artifactPath, jvmArtifact);
         } catch (final IOException ioException) {
             throw CliFailure.runtime(
                     "TSJ-COMPILE-500",
@@ -294,17 +316,77 @@ public final class TsjCli {
         }
 
         final String entry = properties.getProperty("entry", artifact.entryPath.toString());
+        final JvmCompiledArtifact executable = resolveExecutableArtifact(artifact, properties, entry);
+        try {
+            new JvmBytecodeRunner().run(executable, stdout);
+        } catch (final JvmCompilationException compilationException) {
+            throw CliFailure.runtime(
+                    compilationException.code(),
+                    compilationException.getMessage(),
+                    backendFailureContext(artifact.entryPath, compilationException)
+            );
+        }
+
         emitDiagnostic(
                 stdout,
                 "INFO",
                 "TSJ-RUN-SUCCESS",
-                "Artifact executed in bootstrap mode.",
+                "Artifact executed.",
                 Map.of(
                         "entry", entry,
                         "artifact", artifact.artifactPath.toString(),
                         "moduleFingerprint", moduleFingerprint()
                 )
         );
+    }
+
+    private static JvmCompiledArtifact resolveExecutableArtifact(
+            final CompiledArtifact artifact,
+            final Properties properties,
+            final String entry
+    ) {
+        if (artifact.jvmArtifact != null) {
+            return artifact.jvmArtifact;
+        }
+        final String className = properties.getProperty("mainClass");
+        if (className == null || className.isBlank()) {
+            throw CliFailure.runtime(
+                    "TSJ-RUN-007",
+                    "Compilation artifact is missing `mainClass` metadata.",
+                    Map.of("artifact", artifact.artifactPath.toString())
+            );
+        }
+        final String classesDirValue = properties.getProperty(
+                "classesDir",
+                artifact.artifactPath.getParent().resolve("classes").toString()
+        );
+        final Path classesDir = Path.of(classesDirValue).toAbsolutePath().normalize();
+        final String classFileValue = properties.getProperty(
+                "classFile",
+                classesDir.resolve(className.replace('.', '/') + ".class").toString()
+        );
+        final Path classFile = Path.of(classFileValue).toAbsolutePath().normalize();
+        return new JvmCompiledArtifact(
+                Path.of(entry).toAbsolutePath().normalize(),
+                classesDir,
+                className,
+                classFile
+        );
+    }
+
+    private static Map<String, String> backendFailureContext(
+            final Path entryPath,
+            final JvmCompilationException compilationException
+    ) {
+        final Map<String, String> context = new LinkedHashMap<>();
+        context.put("entry", entryPath.toString());
+        if (compilationException.line() != null) {
+            context.put("line", Integer.toString(compilationException.line()));
+        }
+        if (compilationException.column() != null) {
+            context.put("column", Integer.toString(compilationException.column()));
+        }
+        return Map.copyOf(context);
     }
 
     private static void emitDiagnostic(
@@ -352,7 +434,7 @@ public final class TsjCli {
     private record ParsedOutOption(Path outDir) {
     }
 
-    private record CompiledArtifact(Path entryPath, Path artifactPath) {
+    private record CompiledArtifact(Path entryPath, Path artifactPath, JvmCompiledArtifact jvmArtifact) {
     }
 
     private static final class CliFailure extends RuntimeException {

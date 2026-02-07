@@ -107,10 +107,14 @@ public final class FixtureHarness {
         if (nodeResult.exitCode() != tsjResult.exitCode()) {
             diffParts.add("exit code differs");
         }
-        if (!normalize(nodeResult.stdout()).equals(normalize(tsjResult.stdout()))) {
+        final String nodeStdout = normalize(nodeResult.stdout());
+        final String tsjStdout = normalize(stripTsjDiagnostics(tsjResult.stdout()));
+        if (!nodeStdout.equals(tsjStdout)) {
             diffParts.add("stdout differs");
         }
-        if (!normalize(nodeResult.stderr()).equals(normalize(tsjResult.stderr()))) {
+        final String nodeStderr = normalize(nodeResult.stderr());
+        final String tsjStderr = normalize(stripTsjDiagnostics(tsjResult.stderr()));
+        if (!nodeStderr.equals(tsjStderr)) {
             diffParts.add("stderr differs");
         }
         return new NodeToTsjComparison(diffParts.isEmpty(), String.join("; ", diffParts));
@@ -127,6 +131,33 @@ public final class FixtureHarness {
 
     private static String normalize(final String value) {
         return value.replace("\r\n", "\n");
+    }
+
+    private static String stripTsjDiagnostics(final String output) {
+        final String normalized = normalize(output);
+        final boolean hadTrailingNewline = normalized.endsWith("\n");
+        final String[] lines = normalized.split("\n", -1);
+        final List<String> retained = new ArrayList<>();
+        for (int index = 0; index < lines.length; index++) {
+            final String line = lines[index];
+            if (hadTrailingNewline && index == lines.length - 1 && line.isEmpty()) {
+                continue;
+            }
+            final String trimmed = line.trim();
+            final boolean isTsjDiagnostic = trimmed.startsWith("{")
+                    && trimmed.contains("\"code\":\"TSJ-");
+            if (!isTsjDiagnostic) {
+                retained.add(line);
+            }
+        }
+        if (retained.isEmpty()) {
+            return "";
+        }
+        final String joined = String.join("\n", retained);
+        if (hadTrailingNewline) {
+            return joined + "\n";
+        }
+        return joined;
     }
 
     private CommandResult runExternal(final List<String> command, final Path workDir) {
