@@ -38,3 +38,4 @@ TSJ-SOURCE-MAP	1
 
 - `tsj run --ts-stacktrace` reads this map and rewrites generated-class frames into TypeScript coordinates.
 - Mapping is best-effort and currently line-based.
+- Stack output is grouped by throwable cause and performs method-level frame deduplication per cause.

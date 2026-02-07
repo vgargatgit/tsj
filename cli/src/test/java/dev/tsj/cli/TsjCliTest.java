@@ -7,6 +7,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -1155,8 +1156,53 @@ class TsjCliTest {
 
         assertEquals(1, exitCode);
         assertTrue(stderr.toString(UTF_8).contains("TSJ stack trace (TypeScript):"));
+        assertTrue(stderr.toString(UTF_8).contains("Cause[0]:"));
+        assertTrue(stderr.toString(UTF_8).contains("TsjThrownException"));
         assertTrue(stderr.toString(UTF_8).contains(entryFile.toAbsolutePath().normalize() + ":"));
+        assertTrue(stderr.toString(UTF_8).contains("[method="));
         assertTrue(stderr.toString(UTF_8).contains("\"code\":\"TSJ-RUN-006\""));
+    }
+
+    @Test
+    void runTsStackTraceFiltersDuplicateMethodFramesPerCause() throws Exception {
+        final Path entryFile = tempDir.resolve("runtime-fail-recursive.ts");
+        Files.writeString(
+                entryFile,
+                """
+                function explode(n: number) {
+                  if (n === 0) {
+                    throw "boom";
+                  }
+                  return explode(n - 1);
+                }
+                explode(2);
+                """,
+                UTF_8
+        );
+
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+
+        final int exitCode = TsjCli.execute(
+                new String[]{
+                        "run",
+                        entryFile.toString(),
+                        "--out",
+                        tempDir.resolve("runtime-fail-recursive-out").toString(),
+                        "--ts-stacktrace"
+                },
+                new PrintStream(stdout),
+                new PrintStream(stderr)
+        );
+
+        assertEquals(1, exitCode);
+        final String stderrText = stderr.toString(UTF_8);
+        assertTrue(stderrText.contains("TSJ stack trace (TypeScript):"));
+        final List<String> frameLines = stderrText.lines()
+                .filter(line -> line.startsWith("  at "))
+                .toList();
+        assertTrue(!frameLines.isEmpty());
+        assertEquals(frameLines.size(), frameLines.stream().distinct().count());
     }
 
     @Test

@@ -19,11 +19,13 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
+import java.util.Set;
 import java.util.TreeMap;
 
 /**
@@ -435,39 +437,72 @@ public final class TsjCli {
             return;
         }
 
-        final List<String> renderedFrames = new ArrayList<>();
+        final List<RenderedCause> renderedCauses = new ArrayList<>();
         Throwable current = throwable;
+        int causeIndex = 0;
         while (current != null) {
-            for (StackTraceElement stackTraceElement : current.getStackTrace()) {
-                if (!executable.className().equals(stackTraceElement.getClassName())) {
-                    continue;
-                }
-                final TsSourceFrame frame = sourceMap.get(stackTraceElement.getLineNumber());
-                if (frame == null) {
-                    continue;
-                }
-                renderedFrames.add(
-                        "at "
-                                + frame.sourceFile()
-                                + ":"
-                                + frame.line()
-                                + ":"
-                                + frame.column()
-                                + " ("
-                                + stackTraceElement.getMethodName()
-                                + ")"
-                );
-            }
+            final List<String> renderedFrames = renderMappedCauseFrames(executable, sourceMap, current);
+            renderedCauses.add(new RenderedCause(causeIndex, describeThrowable(current), renderedFrames));
             current = current.getCause();
+            causeIndex++;
         }
-        if (renderedFrames.isEmpty()) {
+        if (renderedCauses.stream().allMatch(cause -> cause.frames().isEmpty())) {
             return;
         }
 
         stderr.println("TSJ stack trace (TypeScript):");
-        for (String frame : renderedFrames) {
-            stderr.println(frame);
+        for (RenderedCause cause : renderedCauses) {
+            stderr.println("Cause[" + cause.index() + "]: " + cause.description());
+            if (cause.frames().isEmpty()) {
+                stderr.println("  (no mapped TSJ frames)");
+                continue;
+            }
+            for (String frame : cause.frames()) {
+                stderr.println("  " + frame);
+            }
         }
+    }
+
+    private static List<String> renderMappedCauseFrames(
+            final JvmCompiledArtifact executable,
+            final Map<Integer, TsSourceFrame> sourceMap,
+            final Throwable throwable
+    ) {
+        final List<String> renderedFrames = new ArrayList<>();
+        final Set<String> seenMethods = new LinkedHashSet<>();
+        for (StackTraceElement stackTraceElement : throwable.getStackTrace()) {
+            if (!executable.className().equals(stackTraceElement.getClassName())) {
+                continue;
+            }
+            final TsSourceFrame frame = sourceMap.get(stackTraceElement.getLineNumber());
+            if (frame == null) {
+                continue;
+            }
+            final String methodName = stackTraceElement.getMethodName();
+            if (!seenMethods.add(methodName)) {
+                continue;
+            }
+            renderedFrames.add(
+                    "at "
+                            + frame.sourceFile()
+                            + ":"
+                            + frame.line()
+                            + ":"
+                            + frame.column()
+                            + " [method="
+                            + methodName
+                            + "]"
+            );
+        }
+        return List.copyOf(renderedFrames);
+    }
+
+    private static String describeThrowable(final Throwable throwable) {
+        final String message = throwable.getMessage();
+        if (message == null || message.isBlank()) {
+            return throwable.getClass().getName();
+        }
+        return throwable.getClass().getName() + ": " + message;
     }
 
     private static Map<Integer, TsSourceFrame> readSourceMap(final Path sourceMapFile) {
@@ -595,6 +630,9 @@ public final class TsjCli {
     }
 
     private record TsSourceFrame(String sourceFile, int line, int column) {
+    }
+
+    private record RenderedCause(int index, String description, List<String> frames) {
     }
 
     private static final class CliFailure extends RuntimeException {

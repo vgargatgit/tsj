@@ -44,6 +44,8 @@ Behavior:
 2. Reads generated artifact.
 3. Executes generated JVM class.
 4. When `--ts-stacktrace` is present and runtime execution fails, emits best-effort mapped TS stack frames to stderr.
+   - Output is grouped by cause (`Cause[0]`, `Cause[1]`, ...).
+   - Frames are filtered to generated-program methods and deduplicated at method level per cause.
 5. Emits program stdout, then structured JSON diagnostics.
 
 Success diagnostic:
