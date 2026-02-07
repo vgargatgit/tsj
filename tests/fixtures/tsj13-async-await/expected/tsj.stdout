@@ -1,0 +1,4 @@
+start=4
+sync
+after=5
+done=6

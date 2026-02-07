@@ -11,6 +11,14 @@ Behavior:
      class declarations, `extends`/`super(...)`, `new`, `this` member access, and object literals.
    - TSJ-10 extends runtime semantics for supported primitives with:
      `undefined` literal handling and distinct lowering for `==`/`!=` vs `===`/`!==`.
+   - TSJ-11 extends generated object-property reads with monomorphic call-site caches and
+     runtime object fallback behavior (`missing -> undefined`) aligned to subset semantics.
+   - TSJ-12 extends bootstrap compile with relative ESM import bundling (`import { ... } from "./x.ts"` and
+     `import "./x.ts"`), dependency-first module initialization ordering, and baseline live-binding behavior
+     for supported export/import declaration forms.
+   - TSJ-13 extends runtime/codegen with `Promise` builtin support (`resolve`, `reject`), `async function`
+     declaration lowering, standalone `await` expression lowering in async bodies, throw-to-rejection
+     normalization, and microtask queue flushing at end-of-program execution.
 3. Creates output directory if missing.
 4. Emits class output directory:
    - `<out>/classes`

@@ -505,6 +505,552 @@ class JvmBytecodeCompilerTest {
     }
 
     @Test
+    void supportsMissingPropertyReadAsUndefined() throws Exception {
+        final Path sourceFile = tempDir.resolve("missing-property.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                const payload = { name: "box" };
+                console.log("missing=" + payload.count);
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out21"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals("missing=undefined\n", stdout.toString(UTF_8));
+    }
+
+    @Test
+    void generatedSourceUsesMonomorphicPropertyAccessCaches() throws Exception {
+        final Path sourceFile = tempDir.resolve("cache-shape.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                const item = { count: 1 };
+                console.log(item.count);
+                console.log(item.count);
+                """,
+                UTF_8
+        );
+
+        final Path outDir = tempDir.resolve("out22");
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(sourceFile, outDir);
+        final String simpleName = artifact.className().substring(artifact.className().lastIndexOf('.') + 1);
+        final Path generatedSource = outDir.resolve("generated-src/dev/tsj/generated/" + simpleName + ".java");
+        final String javaSource = Files.readString(generatedSource, UTF_8);
+
+        assertTrue(javaSource.contains("TsjPropertyAccessCache"));
+        assertTrue(javaSource.contains("TsjRuntime.getPropertyCached("));
+    }
+
+    @Test
+    void supportsPromiseResolveThenChainingWithMicrotaskOrdering() throws Exception {
+        final Path sourceFile = tempDir.resolve("promise-chain.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                function step(v: number) {
+                  console.log("step=" + v);
+                  return v + 1;
+                }
+                function done(v: number) {
+                  console.log("done=" + v);
+                  return v;
+                }
+
+                Promise.resolve(1).then(step).then(done);
+                console.log("sync");
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out22b"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals("sync\nstep=1\ndone=2\n", stdout.toString(UTF_8));
+    }
+
+    @Test
+    void supportsAsyncFunctionAwaitAndThenSequencing() throws Exception {
+        final Path sourceFile = tempDir.resolve("async-await.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                async function compute(seed: number) {
+                  console.log("start=" + seed);
+                  const next = await Promise.resolve(seed + 1);
+                  console.log("after=" + next);
+                  return next + 1;
+                }
+
+                function onDone(value: number) {
+                  console.log("done=" + value);
+                  return value;
+                }
+
+                compute(4).then(onDone);
+                console.log("sync");
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out22c"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals("start=4\nsync\nafter=5\ndone=6\n", stdout.toString(UTF_8));
+    }
+
+    @Test
+    void supportsAwaitOnNonPromiseValueViaMicrotaskContinuation() throws Exception {
+        final Path sourceFile = tempDir.resolve("async-await-value.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                async function readValue() {
+                  const value = await 3;
+                  console.log("await=" + value);
+                  return value;
+                }
+
+                function onDone(v: number) {
+                  console.log("done=" + v);
+                  return v;
+                }
+
+                readValue().then(onDone);
+                console.log("sync");
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out22d"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals("sync\nawait=3\ndone=3\n", stdout.toString(UTF_8));
+    }
+
+    @Test
+    void supportsAsyncRejectionFlowWithThrowAfterAwait() throws Exception {
+        final Path sourceFile = tempDir.resolve("async-reject.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                async function failLater() {
+                  await Promise.resolve(1);
+                  throw "boom";
+                }
+
+                function onError(reason: string) {
+                  console.log("error=" + reason);
+                  return reason;
+                }
+
+                failLater().then(undefined, onError);
+                console.log("sync");
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out22e"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals("sync\nerror=boom\n", stdout.toString(UTF_8));
+    }
+
+    @Test
+    void rejectsAwaitOutsideAsyncFunction() throws Exception {
+        final Path sourceFile = tempDir.resolve("await-outside.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                function bad() {
+                  const value = await Promise.resolve(1);
+                  return value;
+                }
+
+                console.log(bad());
+                """,
+                UTF_8
+        );
+
+        final JvmCompilationException exception = org.junit.jupiter.api.Assertions.assertThrows(
+                JvmCompilationException.class,
+                () -> new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out22f"))
+        );
+        assertEquals("TSJ-BACKEND-UNSUPPORTED", exception.code());
+        assertTrue(exception.getMessage().contains("await"));
+    }
+
+    @Test
+    void supportsAsyncIfBranchAwaitAndPostBranchContinuation() throws Exception {
+        final Path sourceFile = tempDir.resolve("async-if.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                async function pick(flag: number) {
+                  let value = 0;
+                  if (flag === 1) {
+                    value = await Promise.resolve(10);
+                    console.log("then=" + value);
+                  } else {
+                    value = await Promise.resolve(20);
+                    console.log("else=" + value);
+                  }
+                  console.log("after=" + value);
+                  return value;
+                }
+
+                function onDone(v: number) {
+                  console.log("done=" + v);
+                  return v;
+                }
+
+                pick(1).then(onDone);
+                console.log("sync");
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out22g"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals("sync\nthen=10\nafter=10\ndone=10\n", stdout.toString(UTF_8));
+    }
+
+    @Test
+    void rejectsAwaitInAsyncIfConditionForNow() throws Exception {
+        final Path sourceFile = tempDir.resolve("async-if-condition-await.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                async function bad() {
+                  if (await Promise.resolve(true)) {
+                    return 1;
+                  }
+                  return 0;
+                }
+
+                bad().then(console.log);
+                """,
+                UTF_8
+        );
+
+        final JvmCompilationException exception = org.junit.jupiter.api.Assertions.assertThrows(
+                JvmCompilationException.class,
+                () -> new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out22h"))
+        );
+        assertEquals("TSJ-BACKEND-UNSUPPORTED", exception.code());
+        assertTrue(exception.getMessage().contains("condition"));
+    }
+
+    @Test
+    void supportsAsyncWhileLoopWithAwaitInBodyAndTailContinuation() throws Exception {
+        final Path sourceFile = tempDir.resolve("async-while.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                async function accumulate(limit: number) {
+                  let i = 0;
+                  let sum = 0;
+                  while (i < limit) {
+                    const step = await Promise.resolve(i + 1);
+                    sum = sum + step;
+                    i = i + 1;
+                  }
+                  console.log("sum=" + sum);
+                  return sum;
+                }
+
+                function onDone(v: number) {
+                  console.log("done=" + v);
+                  return v;
+                }
+
+                accumulate(3).then(onDone);
+                console.log("sync");
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out22i"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals("sync\nsum=6\ndone=6\n", stdout.toString(UTF_8));
+    }
+
+    @Test
+    void supportsNestedAsyncIfWithinAsyncWhile() throws Exception {
+        final Path sourceFile = tempDir.resolve("async-while-if.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                async function classify(limit: number) {
+                  let i = 0;
+                  let sum = 0;
+                  while (i < limit) {
+                    if (i === 1) {
+                      const extra = await Promise.resolve(10);
+                      sum = sum + extra;
+                    } else {
+                      const extra = await Promise.resolve(1);
+                      sum = sum + extra;
+                    }
+                    i = i + 1;
+                  }
+                  return sum;
+                }
+
+                function onDone(v: number) {
+                  console.log("done=" + v);
+                  return v;
+                }
+
+                classify(3).then(onDone);
+                console.log("sync");
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out22j"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals("sync\ndone=12\n", stdout.toString(UTF_8));
+    }
+
+    @Test
+    void rejectsAwaitInAsyncWhileConditionForNow() throws Exception {
+        final Path sourceFile = tempDir.resolve("async-while-condition-await.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                async function bad() {
+                  let i = 0;
+                  while (await Promise.resolve(i < 1)) {
+                    i = i + 1;
+                  }
+                  return i;
+                }
+
+                bad().then(console.log);
+                """,
+                UTF_8
+        );
+
+        final JvmCompilationException exception = org.junit.jupiter.api.Assertions.assertThrows(
+                JvmCompilationException.class,
+                () -> new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out22k"))
+        );
+        assertEquals("TSJ-BACKEND-UNSUPPORTED", exception.code());
+        assertTrue(exception.getMessage().contains("while condition"));
+    }
+
+    @Test
+    void supportsNamedImportAcrossFilesWithDependencyInitializationOrder() throws Exception {
+        final Path mathModule = tempDir.resolve("math.ts");
+        final Path entry = tempDir.resolve("main.ts");
+        Files.writeString(
+                mathModule,
+                """
+                console.log("math-init");
+                export function double(n: number) {
+                  return n * 2;
+                }
+                """,
+                UTF_8
+        );
+        Files.writeString(
+                entry,
+                """
+                import { double } from "./math.ts";
+                console.log("result=" + double(3));
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(entry, tempDir.resolve("out23"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals("math-init\nresult=6\n", stdout.toString(UTF_8));
+    }
+
+    @Test
+    void supportsTransitiveNamedImportsAcrossMultipleFiles() throws Exception {
+        final Path moduleA = tempDir.resolve("a.ts");
+        final Path moduleB = tempDir.resolve("b.ts");
+        final Path entry = tempDir.resolve("main.ts");
+        Files.writeString(
+                moduleA,
+                """
+                export function base(n: number) {
+                  return n;
+                }
+                """,
+                UTF_8
+        );
+        Files.writeString(
+                moduleB,
+                """
+                import { base } from "./a.ts";
+                export function plusOne(n: number) {
+                  return base(n) + 1;
+                }
+                """,
+                UTF_8
+        );
+        Files.writeString(
+                entry,
+                """
+                import { plusOne } from "./b.ts";
+                console.log("trans=" + plusOne(4));
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(entry, tempDir.resolve("out24"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals("trans=5\n", stdout.toString(UTF_8));
+    }
+
+    @Test
+    void supportsSideEffectImportAcrossFiles() throws Exception {
+        final Path setup = tempDir.resolve("setup.ts");
+        final Path entry = tempDir.resolve("main.ts");
+        Files.writeString(
+                setup,
+                """
+                console.log("setup-init");
+                """,
+                UTF_8
+        );
+        Files.writeString(
+                entry,
+                """
+                import "./setup.ts";
+                console.log("ready");
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(entry, tempDir.resolve("out24b"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals("setup-init\nready\n", stdout.toString(UTF_8));
+    }
+
+    @Test
+    void supportsLiveBindingBehaviorForImportedMutableValueThroughExportedReaders() throws Exception {
+        final Path counterModule = tempDir.resolve("counter.ts");
+        final Path entry = tempDir.resolve("main.ts");
+        Files.writeString(
+                counterModule,
+                """
+                export let count = 0;
+                export function inc() {
+                  count = count + 1;
+                }
+                export function read() {
+                  return count;
+                }
+                """,
+                UTF_8
+        );
+        Files.writeString(
+                entry,
+                """
+                import { inc, read } from "./counter.ts";
+                console.log("v=" + read());
+                inc();
+                console.log("v=" + read());
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(entry, tempDir.resolve("out25"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals("v=0\nv=1\n", stdout.toString(UTF_8));
+    }
+
+    @Test
+    void rejectsDefaultImportInTsj12Bootstrap() throws Exception {
+        final Path module = tempDir.resolve("dep.ts");
+        final Path entry = tempDir.resolve("main.ts");
+        Files.writeString(module, "export const value = 1;\n", UTF_8);
+        Files.writeString(
+                entry,
+                """
+                import value from "./dep.ts";
+                console.log(value);
+                """,
+                UTF_8
+        );
+
+        final JvmCompilationException exception = org.junit.jupiter.api.Assertions.assertThrows(
+                JvmCompilationException.class,
+                () -> new JvmBytecodeCompiler().compile(entry, tempDir.resolve("out26a"))
+        );
+        assertEquals("TSJ-BACKEND-UNSUPPORTED", exception.code());
+        assertTrue(exception.getMessage().contains("Unsupported import form"));
+    }
+
+    @Test
+    void rejectsImportAliasInTsj12Bootstrap() throws Exception {
+        final Path module = tempDir.resolve("dep.ts");
+        final Path entry = tempDir.resolve("main.ts");
+        Files.writeString(module, "export const value = 1;\n", UTF_8);
+        Files.writeString(
+                entry,
+                """
+                import { value as v } from "./dep.ts";
+                console.log(v);
+                """,
+                UTF_8
+        );
+
+        final JvmCompilationException exception = org.junit.jupiter.api.Assertions.assertThrows(
+                JvmCompilationException.class,
+                () -> new JvmBytecodeCompiler().compile(entry, tempDir.resolve("out26"))
+        );
+        assertEquals("TSJ-BACKEND-UNSUPPORTED", exception.code());
+        assertTrue(exception.getMessage().contains("aliases"));
+    }
+
+    @Test
+    void rejectsNonRelativeImportInTsj12Bootstrap() throws Exception {
+        final Path entry = tempDir.resolve("main.ts");
+        Files.writeString(
+                entry,
+                """
+                import { readFileSync } from "fs";
+                console.log(readFileSync);
+                """,
+                UTF_8
+        );
+
+        final JvmCompilationException exception = org.junit.jupiter.api.Assertions.assertThrows(
+                JvmCompilationException.class,
+                () -> new JvmBytecodeCompiler().compile(entry, tempDir.resolve("out27"))
+        );
+        assertEquals("TSJ-BACKEND-UNSUPPORTED", exception.code());
+        assertTrue(exception.getMessage().contains("relative imports"));
+    }
+
+    @Test
     void rejectsSuperCallOutsideConstructor() throws Exception {
         final Path sourceFile = tempDir.resolve("invalid-super.ts");
         Files.writeString(

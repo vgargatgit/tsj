@@ -115,6 +115,31 @@ class TsjRuntimeTest {
     }
 
     @Test
+    void getPropertyReturnsUndefinedForMissingKey() {
+        final Object object = TsjRuntime.objectLiteral("name", "tsj");
+        assertEquals(TsjRuntime.undefined(), TsjRuntime.getProperty(object, "missing"));
+    }
+
+    @Test
+    void deletePropertyRemovesOwnValue() {
+        final Object object = TsjRuntime.objectLiteral("name", "tsj");
+        assertTrue(TsjRuntime.deleteProperty(object, "name"));
+        assertEquals(TsjRuntime.undefined(), TsjRuntime.getProperty(object, "name"));
+    }
+
+    @Test
+    void setPrototypeSupportsObjectAndNullLikeValues() {
+        final Object prototype = TsjRuntime.objectLiteral("name", "base");
+        final Object object = TsjRuntime.objectLiteral();
+
+        TsjRuntime.setPrototype(object, prototype);
+        assertEquals("base", TsjRuntime.getProperty(object, "name"));
+
+        TsjRuntime.setPrototype(object, null);
+        assertEquals(TsjRuntime.undefined(), TsjRuntime.getProperty(object, "name"));
+    }
+
+    @Test
     void constructAndInvokeMemberSupportClassMethodsAndInheritance() {
         final TsjClass base = new TsjClass("Base", null);
         base.setConstructor((thisObject, args) -> {
@@ -212,5 +237,34 @@ class TsjRuntimeTest {
                 () -> TsjRuntime.invokeMember("bad", "x")
         );
         assertTrue(exception.getMessage().contains("Cannot invoke member"));
+    }
+
+    @Test
+    void promiseHelpersResolveThenAndRejectPaths() {
+        final Object resolved = TsjRuntime.promiseResolve(5);
+        final Object rejected = TsjRuntime.promiseReject("bad");
+
+        final Object chained = TsjRuntime.promiseThen(
+                resolved,
+                (TsjCallable) args -> TsjRuntime.add(args[0], 1),
+                TsjRuntime.undefined()
+        );
+        final Object passThroughRejection = TsjRuntime.promiseThen(
+                rejected,
+                TsjRuntime.undefined(),
+                TsjRuntime.undefined()
+        );
+
+        assertTrue(chained instanceof TsjPromise);
+        assertTrue(passThroughRejection instanceof TsjPromise);
+    }
+
+    @Test
+    void raiseWrapsNonExceptionValuesAndNormalizeThrownUnwrapsThem() {
+        final RuntimeException wrapped = TsjRuntime.raise("boom");
+        assertEquals("boom", TsjRuntime.normalizeThrown(wrapped));
+
+        final IllegalStateException direct = new IllegalStateException("x");
+        assertEquals(direct, TsjRuntime.normalizeThrown(TsjRuntime.raise(direct)));
     }
 }

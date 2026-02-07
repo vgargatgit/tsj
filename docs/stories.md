@@ -149,6 +149,15 @@
   - Prototype chain lookup supported.
   - Monomorphic inline property cache exists for generated call sites.
   - Fallback behavior for missing properties aligns with JS subset rules.
+- Notes:
+  - Runtime object model now includes `setPrototype` cycle checks, `deleteOwn`, and `shapeToken` invalidation.
+  - Missing property reads return `undefined` sentinel and flow through display/coercion helpers.
+  - Backend codegen emits monomorphic property-read cache fields per member-access call site.
+  - Fixture coverage includes `tests/fixtures/tsj11-missing-property`.
+  - Known deviations:
+    `delete` and explicit prototype mutation syntax are not yet parsed/lowered by backend;
+    runtime APIs exist and are covered by unit tests.
+    Property-read cache currently specializes own-property hits; prototype-chain reads deopt to full lookup.
 - Dependencies: TSJ-0, TSJ-9.
 
 ### TSJ-12: Module loader and initialization order
@@ -158,18 +167,92 @@
   - ESM live binding semantics are validated for supported patterns.
   - Circular dependency behavior documented and tested for supported cases.
   - CLI packaging includes compiled modules and runtime.
+- Notes:
+  - Backend compile path now performs deterministic dependency-first source bundling for supported relative imports.
+  - Supported import forms in TSJ-12 bootstrap:
+    named imports (`import { x } from "./m.ts"`) and side-effect imports (`import "./m.ts"`).
+  - Runtime includes `TsjModuleRegistry` with explicit module states and live export cells; unit tests cover ordering,
+    idempotency, cycle-unsafe reads, and failure-state behavior.
+  - Fixture coverage includes `tests/fixtures/tsj12-modules`.
+  - Known deviations:
+    module scope isolation is not yet implemented (modules are flattened into one generated program unit);
+    only relative imports are supported;
+    import aliases/default imports/namespace imports are rejected in TSJ-12 bootstrap;
+    circular imports fail unless no unsafe read occurs during initialization.
 - Dependencies: TSJ-0, TSJ-2, TSJ-9.
 
 ## Epic E: Async and Advanced Features
 
-### TSJ-13: Promise runtime and async/await lowering
+### TSJ-13: Promise runtime and async/await lowering foundation
 - Why: Modern TS applications rely on async heavily.
 - Acceptance Criteria:
-  - Async functions lower to explicit state machines in MIR.
-  - Promise chaining works for core success/error flows.
-  - Microtask ordering matches defined runtime semantics.
-  - Differential tests for async sequencing pass.
+  - Runtime supports Promise creation/chaining for baseline success/error flows.
+  - Backend supports `async function` declarations and standalone `await` continuation lowering.
+  - Microtask ordering is deterministic and covered by differential fixtures.
+- Notes:
+  - Runtime includes `TsjPromise`, `Promise.resolve`/`Promise.reject`, thrown-value normalization,
+    and microtask queue semantics used by async continuations.
+  - Fixture coverage includes:
+    `tests/fixtures/tsj13-promise-then`, `tests/fixtures/tsj13-async-await`, and `tests/fixtures/tsj13-async-reject`.
+  - Full JS-like async support is tracked by TSJ-13a through TSJ-13f.
 - Dependencies: TSJ-0, TSJ-10, TSJ-12.
+
+### TSJ-13a: Async state-machine lowering for control flow
+- Why: Correct suspension/resume semantics require IR-backed state machines, not backend-only local rewrites.
+- Acceptance Criteria:
+  - MIR/JIR includes explicit async suspend/resume/state constructs.
+  - Lowering supports `if`/`while`/nested blocks with multiple `await` points.
+  - `return`/`throw`/`break`/`continue` semantics remain correct across suspension points.
+  - `try`/`catch`/`finally` behavior is preserved through async state transitions.
+- Notes:
+  - Current implementation pass adds backend continuation lowering for async `if` + async `while` with nested blocks
+    when `await` appears in supported standalone forms.
+  - Fixture coverage includes `tests/fixtures/tsj13a-async-if` and `tests/fixtures/tsj13a-async-while`.
+  - Known deviations in this pass:
+    `await` in `if`/`while` conditions is still rejected;
+    `break`/`continue`/`try`/`catch`/`finally` are not yet represented in the TSJ parser/lowering subset.
+- Dependencies: TSJ-13, TSJ-6, TSJ-7.
+
+### TSJ-13b: Async language surface completeness
+- Why: Real TypeScript code uses async forms beyond named declarations.
+- Acceptance Criteria:
+  - Support `async` function expressions and async arrow functions.
+  - Support async class methods and async object literal methods.
+  - Support `await` in expression positions beyond standalone statement/initializer forms.
+  - Unsupported placements fail with targeted diagnostics.
+- Dependencies: TSJ-13a, TSJ-9.
+
+### TSJ-13c: Promise resolution procedure and thenable assimilation
+- Why: Promise interop depends on full resolution semantics.
+- Acceptance Criteria:
+  - Runtime implements Promise resolution procedure with thenable assimilation.
+  - Self-resolution and double-resolution protections match expected JS behavior.
+  - Error propagation across chained thenables matches Node differential expectations.
+- Dependencies: TSJ-13, TSJ-10.
+
+### TSJ-13d: Async error semantics and rejection handling parity
+- Why: Production async code depends on predictable error/rejection semantics.
+- Acceptance Criteria:
+  - `catch` and `finally` semantics match JS behavior in async and Promise chains.
+  - Unhandled rejection behavior is defined, emitted, and test-covered.
+  - Async error paths are differentially tested against Node.
+- Dependencies: TSJ-13a, TSJ-13c, TSJ-14.
+
+### TSJ-13e: Promise combinators
+- Why: Application-level orchestration depends on standard Promise helpers.
+- Acceptance Criteria:
+  - Implement `Promise.all`, `Promise.race`, `Promise.allSettled`, and `Promise.any`.
+  - Ordering and short-circuit semantics match Node.
+  - Differential fixtures cover success and rejection edge cases for each combinator.
+- Dependencies: TSJ-13c.
+
+### TSJ-13f: Top-level await and async conformance/diagnostics
+- Why: Module-level async ordering and debuggability are required for practical adoption.
+- Acceptance Criteria:
+  - Module loader/runtime supports top-level await execution ordering across dependency graphs.
+  - Differential async conformance suite is expanded for module + control-flow async semantics.
+  - Diagnostics include async-specific guidance and source-mapped async stack traces.
+- Dependencies: TSJ-12, TSJ-13a, TSJ-14, TSJ-16.
 
 ### TSJ-14: Error model and stack trace source mapping
 - Why: Debuggability is mandatory for adoption.
@@ -234,6 +317,11 @@
 
 ## Exit Criteria for MVP Milestone
 MVP is reached when:
-1. Stories TSJ-0, TSJ-1 through TSJ-12, TSJ-15, and TSJ-19 are complete.
+1. Stories TSJ-0, TSJ-1 through TSJ-13, TSJ-15, and TSJ-19 are complete.
 2. Differential suite passes for defined MVP language subset.
+
+## Exit Criteria for Full Async Parity
+Full async parity is reached when:
+1. Stories TSJ-13a through TSJ-13f are complete.
+2. Async differential suite passes for control-flow, Promise semantics, and top-level-await module ordering.
 3. CLI can compile and run a multi-file sample app with predictable behavior.

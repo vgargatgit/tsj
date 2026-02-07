@@ -1,9 +1,15 @@
 package dev.tsj.runtime;
 
+import java.util.ArrayDeque;
+import java.util.Deque;
+
 /**
  * Runtime helpers used by TSJ-generated JVM classes in TSJ-9 subset.
  */
 public final class TsjRuntime {
+    private static final Deque<Runnable> MICROTASK_QUEUE = new ArrayDeque<>();
+    private static final TsjObject PROMISE_BUILTIN = createPromiseBuiltin();
+
     private TsjRuntime() {
     }
 
@@ -13,6 +19,51 @@ public final class TsjRuntime {
 
     public static Object undefined() {
         return TsjUndefined.INSTANCE;
+    }
+
+    public static Object promiseBuiltin() {
+        return PROMISE_BUILTIN;
+    }
+
+    public static TsjPromise promiseResolve(final Object value) {
+        return TsjPromise.resolved(value);
+    }
+
+    public static TsjPromise promiseReject(final Object reason) {
+        return TsjPromise.rejected(reason);
+    }
+
+    public static TsjPromise promiseThen(
+            final Object promiseLike,
+            final Object onFulfilled,
+            final Object onRejected
+    ) {
+        return promiseResolve(promiseLike).then(onFulfilled, onRejected);
+    }
+
+    public static RuntimeException raise(final Object value) {
+        if (value instanceof RuntimeException runtimeException) {
+            return runtimeException;
+        }
+        return new TsjThrownException(value);
+    }
+
+    public static Object normalizeThrown(final RuntimeException exception) {
+        if (exception instanceof TsjThrownException thrownException) {
+            return thrownException.thrownValue();
+        }
+        return exception;
+    }
+
+    static void enqueueMicrotask(final Runnable task) {
+        MICROTASK_QUEUE.addLast(task);
+    }
+
+    public static void flushMicrotasks() {
+        while (!MICROTASK_QUEUE.isEmpty()) {
+            final Runnable task = MICROTASK_QUEUE.removeFirst();
+            task.run();
+        }
     }
 
     public static Object call(final Object callee, final Object... args) {
@@ -56,12 +107,45 @@ public final class TsjRuntime {
         throw new IllegalArgumentException("Cannot get property `" + key + "` from " + toDisplayString(target));
     }
 
+    public static Object getPropertyCached(
+            final TsjPropertyAccessCache cache,
+            final Object target,
+            final String key
+    ) {
+        if (target instanceof TsjObject tsjObject) {
+            return cache.read(tsjObject, key);
+        }
+        throw new IllegalArgumentException("Cannot get property `" + key + "` from " + toDisplayString(target));
+    }
+
     public static Object setProperty(final Object target, final String key, final Object value) {
         if (target instanceof TsjObject tsjObject) {
             tsjObject.set(key, value);
             return value;
         }
         throw new IllegalArgumentException("Cannot set property `" + key + "` on " + toDisplayString(target));
+    }
+
+    public static boolean deleteProperty(final Object target, final String key) {
+        if (target instanceof TsjObject tsjObject) {
+            return tsjObject.deleteOwn(key);
+        }
+        throw new IllegalArgumentException("Cannot delete property `" + key + "` from " + toDisplayString(target));
+    }
+
+    public static void setPrototype(final Object target, final Object prototype) {
+        if (!(target instanceof TsjObject tsjObject)) {
+            throw new IllegalArgumentException("Cannot set prototype on " + toDisplayString(target));
+        }
+        if (prototype == null || prototype == TsjUndefined.INSTANCE) {
+            tsjObject.setPrototype(null);
+            return;
+        }
+        if (prototype instanceof TsjObject tsjPrototype) {
+            tsjObject.setPrototype(tsjPrototype);
+            return;
+        }
+        throw new IllegalArgumentException("Prototype must be object|null|undefined: " + toDisplayString(prototype));
     }
 
     public static Object invokeMember(final Object target, final String methodName, final Object... args) {
@@ -246,5 +330,18 @@ public final class TsjRuntime {
 
     private static boolean isNullish(final Object value) {
         return value == null || isUndefined(value);
+    }
+
+    private static TsjObject createPromiseBuiltin() {
+        final TsjObject promise = new TsjObject(null);
+        promise.setOwn(
+                "resolve",
+                (TsjMethod) (thisObject, args) -> TsjPromise.resolved(args.length > 0 ? args[0] : TsjUndefined.INSTANCE)
+        );
+        promise.setOwn(
+                "reject",
+                (TsjMethod) (thisObject, args) -> TsjPromise.rejected(args.length > 0 ? args[0] : TsjUndefined.INSTANCE)
+        );
+        return promise;
     }
 }

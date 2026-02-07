@@ -14,6 +14,9 @@ Current implementation status includes:
 9. JVM closure lowering for nested functions and captured variables (`TSJ-8`)
 10. JVM class/object lowering for constructors, inheritance basics, and object literals (`TSJ-9`)
 11. Runtime coercion/equality semantics for `==` vs `===` and `undefined` value handling (`TSJ-10`)
+12. Dynamic object runtime upgrades with prototype links, delete semantics, shape tokens, and monomorphic property read caches (`TSJ-11`)
+13. Multi-file module bootstrap via relative ESM import bundling, deterministic dependency initialization order, and live-binding-safe fixture coverage (`TSJ-12`)
+14. Promise runtime + async/await lowering with deterministic microtask sequencing and rejection propagation (`TSJ-13`)
 
 ## Repository Layout
 
@@ -88,6 +91,10 @@ TSJ-7 compile now emits generated classes under `<out>/classes`, and `tsj run` e
 TSJ-8 extends the same path with lexical closure support for nested function declarations and mutable captured locals.
 TSJ-9 extends the same path with class constructors/methods, inheritance via `extends`/`super(...)`, and object literal property access/assignment.
 TSJ-10 extends runtime semantics with `undefined`, abstract equality (`==`/`!=`) coercion, and strict equality (`===`/`!==`) separation.
+TSJ-11 extends object runtime behavior with prototype mutation validation, `delete` runtime primitives, shape-token invalidation, and generated monomorphic property read cache fields.
+TSJ-12 extends compile/run with bootstrap multi-file module loading for relative imports, deterministic dependency-first initialization, and baseline live-binding behavior for supported patterns.
+TSJ-13 adds `async function` + `await` lowering over `TsjPromise`, throw-to-rejection normalization, and async sequencing tests that validate post-sync microtask ordering.
+TSJ-13a extends async lowering with control-flow continuations for `if`/`while` blocks containing multiple standalone await suspension points.
 
 ## Frontend and IR Tools
 
@@ -116,6 +123,13 @@ Seed fixture:
 - `tests/fixtures/tsj9-class-inheritance`
 - `tests/fixtures/tsj9-object-literal`
 - `tests/fixtures/tsj10-coercion`
+- `tests/fixtures/tsj11-missing-property`
+- `tests/fixtures/tsj12-modules`
+- `tests/fixtures/tsj13-promise-then`
+- `tests/fixtures/tsj13-async-await`
+- `tests/fixtures/tsj13-async-reject`
+- `tests/fixtures/tsj13a-async-if`
+- `tests/fixtures/tsj13a-async-while`
 
 ## Project Planning Docs
 

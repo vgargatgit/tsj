@@ -17,6 +17,8 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
@@ -24,10 +26,17 @@ import static java.nio.charset.StandardCharsets.UTF_8;
  * TSJ-9 JVM backend compiler for expression/statement subset with closures and class/object support.
  */
 public final class JvmBytecodeCompiler {
+    private static final Pattern NAMED_IMPORT_PATTERN = Pattern.compile(
+            "^\\s*import\\s*\\{([^}]*)}\\s*from\\s*[\"']([^\"']+)[\"']\\s*;\\s*$"
+    );
+    private static final Pattern SIDE_EFFECT_IMPORT_PATTERN = Pattern.compile(
+            "^\\s*import\\s*[\"']([^\"']+)[\"']\\s*;\\s*$"
+    );
     private static final Set<String> KEYWORDS = Set.of(
             "function", "const", "let", "var", "if", "else", "while", "return",
             "true", "false", "null", "for", "export", "import", "from",
-            "class", "extends", "this", "super", "new", "undefined"
+            "class", "extends", "this", "super", "new", "undefined",
+            "async", "await", "throw"
     );
     private static final Set<String> JAVA_KEYWORDS = Set.of(
             "abstract", "assert", "boolean", "break", "byte", "case", "catch", "char",
@@ -60,18 +69,7 @@ public final class JvmBytecodeCompiler {
             );
         }
 
-        final String sourceText;
-        try {
-            sourceText = Files.readString(normalizedSource, UTF_8);
-        } catch (final IOException ioException) {
-            throw new JvmCompilationException(
-                    "TSJ-BACKEND-IO",
-                    "Failed to read TypeScript source: " + ioException.getMessage(),
-                    null,
-                    null,
-                    ioException
-            );
-        }
+        final String sourceText = bundleModules(normalizedSource);
 
         final Program program = new Parser(tokenize(sourceText)).parseProgram();
         final String classSimpleName = toPascalCase(stripExtension(fileName)) + "Program";
@@ -110,6 +108,133 @@ public final class JvmBytecodeCompiler {
             );
         }
         return new JvmCompiledArtifact(normalizedSource, classesDir, className, classFile);
+    }
+
+    private static String bundleModules(final Path entryFile) {
+        final Map<Path, String> orderedModules = new LinkedHashMap<>();
+        collectModule(entryFile, orderedModules, new LinkedHashSet<>());
+        final StringBuilder builder = new StringBuilder();
+        for (Map.Entry<Path, String> module : orderedModules.entrySet()) {
+            builder.append("// module: ").append(module.getKey()).append("\n");
+            builder.append(module.getValue()).append("\n");
+        }
+        return builder.toString();
+    }
+
+    private static void collectModule(
+            final Path moduleFile,
+            final Map<Path, String> orderedModules,
+            final Set<Path> visiting
+    ) {
+        final Path normalizedModule = moduleFile.toAbsolutePath().normalize();
+        if (orderedModules.containsKey(normalizedModule)) {
+            return;
+        }
+        if (visiting.contains(normalizedModule)) {
+            throw new JvmCompilationException(
+                    "TSJ-BACKEND-UNSUPPORTED",
+                    "Circular imports are unsupported in TSJ-12 bootstrap: " + normalizedModule
+            );
+        }
+        visiting.add(normalizedModule);
+
+        final String sourceText;
+        try {
+            sourceText = Files.readString(normalizedModule, UTF_8);
+        } catch (final IOException ioException) {
+            throw new JvmCompilationException(
+                    "TSJ-BACKEND-IO",
+                    "Failed to read TypeScript source: " + ioException.getMessage(),
+                    null,
+                    null,
+                    ioException
+            );
+        }
+
+        final StringBuilder filteredModule = new StringBuilder();
+        final String[] lines = sourceText.replace("\r\n", "\n").split("\n", -1);
+        for (int index = 0; index < lines.length; index++) {
+            final String line = lines[index];
+            final Matcher namedImportMatcher = NAMED_IMPORT_PATTERN.matcher(line);
+            final Matcher sideEffectImportMatcher = SIDE_EFFECT_IMPORT_PATTERN.matcher(line);
+            if (namedImportMatcher.matches()) {
+                validateImportBindings(namedImportMatcher.group(1), normalizedModule, index + 1);
+                final Path dependency = resolveImport(normalizedModule, namedImportMatcher.group(2), index + 1);
+                collectModule(dependency, orderedModules, visiting);
+                continue;
+            }
+            if (sideEffectImportMatcher.matches()) {
+                final Path dependency = resolveImport(normalizedModule, sideEffectImportMatcher.group(1), index + 1);
+                collectModule(dependency, orderedModules, visiting);
+                continue;
+            }
+            if (line.trim().startsWith("import ")) {
+                throw new JvmCompilationException(
+                        "TSJ-BACKEND-UNSUPPORTED",
+                        "Unsupported import form in TSJ-12 bootstrap: " + line.trim(),
+                        index + 1,
+                        1
+                );
+            }
+            filteredModule.append(line).append("\n");
+        }
+
+        orderedModules.put(normalizedModule, filteredModule.toString());
+        visiting.remove(normalizedModule);
+    }
+
+    private static void validateImportBindings(final String rawBindings, final Path sourceFile, final int line) {
+        final String[] bindings = rawBindings.split(",");
+        for (String binding : bindings) {
+            final String trimmed = binding.trim();
+            if (trimmed.isEmpty()) {
+                continue;
+            }
+            if (trimmed.contains(" as ")) {
+                throw new JvmCompilationException(
+                        "TSJ-BACKEND-UNSUPPORTED",
+                        "Import aliases are unsupported in TSJ-12 bootstrap: " + trimmed,
+                        line,
+                        1
+                );
+            }
+        }
+    }
+
+    private static Path resolveImport(final Path sourceFile, final String importPath, final int line) {
+        if (!importPath.startsWith(".")) {
+            throw new JvmCompilationException(
+                    "TSJ-BACKEND-UNSUPPORTED",
+                    "Only relative imports are supported in TSJ-12 bootstrap: " + importPath,
+                    line,
+                    1
+            );
+        }
+        final Path parent = sourceFile.getParent();
+        final Path base = parent == null ? Path.of(importPath) : parent.resolve(importPath);
+        final Path normalizedBase = base.normalize();
+
+        final List<Path> candidates = new ArrayList<>();
+        if (normalizedBase.toString().endsWith(".ts") || normalizedBase.toString().endsWith(".tsx")) {
+            candidates.add(normalizedBase);
+        } else {
+            candidates.add(Path.of(normalizedBase.toString() + ".ts"));
+            candidates.add(Path.of(normalizedBase.toString() + ".tsx"));
+            candidates.add(normalizedBase.resolve("index.ts"));
+        }
+
+        for (Path candidate : candidates) {
+            final Path normalizedCandidate = candidate.toAbsolutePath().normalize();
+            if (Files.exists(normalizedCandidate) && Files.isRegularFile(normalizedCandidate)) {
+                return normalizedCandidate;
+            }
+        }
+        throw new JvmCompilationException(
+                "TSJ-BACKEND-INPUT",
+                "Imported module file not found: " + importPath + " (from " + sourceFile + ")",
+                line,
+                1
+        );
     }
 
     private static void compileJava(final Path javaSourcePath, final Path classesDir) {
@@ -404,6 +529,7 @@ public final class JvmBytecodeCompiler {
             WhileStatement,
             SuperCallStatement,
             ReturnStatement,
+            ThrowStatement,
             ConsoleLogStatement,
             ExpressionStatement {
     }
@@ -433,13 +559,16 @@ public final class JvmBytecodeCompiler {
     private record ReturnStatement(Expression expression) implements Statement {
     }
 
+    private record ThrowStatement(Expression expression) implements Statement {
+    }
+
     private record ConsoleLogStatement(Expression expression) implements Statement {
     }
 
     private record ExpressionStatement(Expression expression) implements Statement {
     }
 
-    private record FunctionDeclaration(String name, List<String> parameters, List<Statement> body) {
+    private record FunctionDeclaration(String name, List<String> parameters, List<Statement> body, boolean async) {
     }
 
     private record ClassDeclaration(
@@ -463,6 +592,7 @@ public final class JvmBytecodeCompiler {
             VariableExpression,
             ThisExpression,
             UnaryExpression,
+            AwaitExpression,
             BinaryExpression,
             CallExpression,
             MemberAccessExpression,
@@ -492,6 +622,9 @@ public final class JvmBytecodeCompiler {
     }
 
     private record UnaryExpression(String operator, Expression expression) implements Expression {
+    }
+
+    private record AwaitExpression(Expression expression) implements Expression {
     }
 
     private record BinaryExpression(Expression left, String operator, Expression right) implements Expression {
@@ -525,8 +658,21 @@ public final class JvmBytecodeCompiler {
             final List<Statement> statements = new ArrayList<>();
             while (!isAtEnd()) {
                 if (matchKeyword("export")) {
+                    if (matchKeyword("async")) {
+                        if (matchKeyword("function")) {
+                            statements.add(new FunctionDeclarationStatement(parseFunctionDeclaration(true)));
+                            continue;
+                        }
+                        final Token token = current();
+                        throw new JvmCompilationException(
+                                "TSJ-BACKEND-UNSUPPORTED",
+                                "Unsupported `export async` form in TSJ-13 subset.",
+                                token.line(),
+                                token.column()
+                        );
+                    }
                     if (matchKeyword("function")) {
-                        statements.add(new FunctionDeclarationStatement(parseFunctionDeclaration()));
+                        statements.add(new FunctionDeclarationStatement(parseFunctionDeclaration(false)));
                         continue;
                     }
                     if (matchKeyword("class")) {
@@ -554,8 +700,20 @@ public final class JvmBytecodeCompiler {
             if (matchKeyword("const") || matchKeyword("let") || matchKeyword("var")) {
                 return parseVariableDeclaration();
             }
+            if (matchKeyword("async")) {
+                if (matchKeyword("function")) {
+                    return new FunctionDeclarationStatement(parseFunctionDeclaration(true));
+                }
+                final Token token = current();
+                throw new JvmCompilationException(
+                        "TSJ-BACKEND-UNSUPPORTED",
+                        "Unsupported `async` statement form in TSJ-13 subset.",
+                        token.line(),
+                        token.column()
+                );
+            }
             if (matchKeyword("function")) {
-                return new FunctionDeclarationStatement(parseFunctionDeclaration());
+                return new FunctionDeclarationStatement(parseFunctionDeclaration(false));
             }
             if (matchKeyword("class")) {
                 return new ClassDeclarationStatement(parseClassDeclaration());
@@ -580,6 +738,18 @@ public final class JvmBytecodeCompiler {
                     );
                 }
                 return parseReturnStatement();
+            }
+            if (matchKeyword("throw")) {
+                if (!insideFunction) {
+                    final Token token = previous();
+                    throw new JvmCompilationException(
+                            "TSJ-BACKEND-UNSUPPORTED",
+                            "Top-level `throw` is unsupported in TSJ-13 subset.",
+                            token.line(),
+                            token.column()
+                    );
+                }
+                return parseThrowStatement();
             }
             if (isConsoleLogStart()) {
                 return parseConsoleLog();
@@ -607,7 +777,7 @@ public final class JvmBytecodeCompiler {
             return new ExpressionStatement(expression);
         }
 
-        private FunctionDeclaration parseFunctionDeclaration() {
+        private FunctionDeclaration parseFunctionDeclaration(final boolean asyncFunction) {
             final Token nameToken = consumeIdentifier("Expected function name after `function`.");
             consumeSymbol("(", "Expected `(` after function name.");
             final List<String> parameters = new ArrayList<>();
@@ -625,7 +795,7 @@ public final class JvmBytecodeCompiler {
                 skipTypeAnnotation();
             }
             final List<Statement> body = parseBlock(true);
-            return new FunctionDeclaration(nameToken.text(), List.copyOf(parameters), List.copyOf(body));
+            return new FunctionDeclaration(nameToken.text(), List.copyOf(parameters), List.copyOf(body), asyncFunction);
         }
 
         private ClassDeclaration parseClassDeclaration() {
@@ -737,6 +907,12 @@ public final class JvmBytecodeCompiler {
             return new ReturnStatement(expression);
         }
 
+        private ThrowStatement parseThrowStatement() {
+            final Expression expression = parseExpression();
+            consumeSymbol(";", "Expected `;` after throw expression.");
+            return new ThrowStatement(expression);
+        }
+
         private ConsoleLogStatement parseConsoleLog() {
             consumeIdentifier("Expected `console`.");
             consumeSymbol(".", "Expected `.` after `console`.");
@@ -817,6 +993,9 @@ public final class JvmBytecodeCompiler {
             if (matchSymbol("-") || matchSymbol("!")) {
                 final String operator = previous().text();
                 return new UnaryExpression(operator, parseUnary());
+            }
+            if (matchKeyword("await")) {
+                return new AwaitExpression(parseUnary());
             }
             if (matchKeyword("new")) {
                 return parseNewExpression();
@@ -951,7 +1130,8 @@ public final class JvmBytecodeCompiler {
                     || "null".equals(keyword)
                     || "undefined".equals(keyword)
                     || "this".equals(keyword)
-                    || "new".equals(keyword);
+                    || "new".equals(keyword)
+                    || "await".equals(keyword);
         }
 
         private void skipTypeAnnotation() {
@@ -1050,6 +1230,8 @@ public final class JvmBytecodeCompiler {
         private final String packageName;
         private final String classSimpleName;
         private final Program program;
+        private final List<String> propertyCacheFieldDeclarations;
+        private int propertyCacheCounter;
 
         private JavaSourceGenerator(
                 final String packageName,
@@ -1059,17 +1241,34 @@ public final class JvmBytecodeCompiler {
             this.packageName = packageName;
             this.classSimpleName = classSimpleName;
             this.program = program;
+            this.propertyCacheFieldDeclarations = new ArrayList<>();
+            this.propertyCacheCounter = 0;
         }
 
         private String generate() {
+            final StringBuilder mainBody = new StringBuilder();
+            final EmissionContext mainContext = new EmissionContext(null);
+            emitStatements(mainBody, mainContext, program.statements(), "        ", false);
+            mainBody.append("        dev.tsj.runtime.TsjRuntime.flushMicrotasks();\n");
+
             final StringBuilder builder = new StringBuilder();
             builder.append("package ").append(packageName).append(";\n\n");
             builder.append("public final class ").append(classSimpleName).append(" {\n");
             builder.append("    private ").append(classSimpleName).append("() {\n");
             builder.append("    }\n\n");
+            builder.append("    private static final dev.tsj.runtime.TsjCell PROMISE_BUILTIN_CELL = ")
+                    .append("new dev.tsj.runtime.TsjCell(dev.tsj.runtime.TsjRuntime.promiseBuiltin());\n");
+            if (!propertyCacheFieldDeclarations.isEmpty()) {
+                builder.append("\n");
+            }
+            for (String declaration : propertyCacheFieldDeclarations) {
+                builder.append("    ").append(declaration).append("\n");
+            }
+            if (!propertyCacheFieldDeclarations.isEmpty()) {
+                builder.append("\n");
+            }
             builder.append("    public static void main(String[] args) {\n");
-            final EmissionContext mainContext = new EmissionContext(null);
-            emitStatements(builder, mainContext, program.statements(), "        ", false);
+            builder.append(mainBody);
             builder.append("    }\n");
             builder.append("}\n");
             return builder.toString();
@@ -1182,6 +1381,19 @@ public final class JvmBytecodeCompiler {
                             .append(";\n");
                     continue;
                 }
+                if (statement instanceof ThrowStatement throwStatement) {
+                    if (!insideFunction) {
+                        throw new JvmCompilationException(
+                                "TSJ-BACKEND-UNSUPPORTED",
+                                "Throw statements are only valid inside functions in TSJ-13."
+                        );
+                    }
+                    builder.append(indent)
+                            .append("throw dev.tsj.runtime.TsjRuntime.raise(")
+                            .append(emitExpression(context, throwStatement.expression()))
+                            .append(");\n");
+                    continue;
+                }
                 if (statement instanceof ExpressionStatement expressionStatement) {
                     builder.append(indent)
                             .append(emitExpression(context, expressionStatement.expression()))
@@ -1201,6 +1413,11 @@ public final class JvmBytecodeCompiler {
                 final FunctionDeclaration declaration,
                 final String indent
         ) {
+            if (declaration.async()) {
+                emitAsyncFunctionAssignment(builder, context, declaration, indent);
+                return;
+            }
+
             final String cellName = context.resolveBinding(declaration.name());
             final String argsVar = context.allocateGeneratedName("lambdaArgs");
 
@@ -1219,6 +1436,35 @@ public final class JvmBytecodeCompiler {
                 builder.append(indent).append("    return null;\n");
             }
 
+            builder.append(indent).append("});\n");
+        }
+
+        private void emitAsyncFunctionAssignment(
+                final StringBuilder builder,
+                final EmissionContext context,
+                final FunctionDeclaration declaration,
+                final String indent
+        ) {
+            final String cellName = context.resolveBinding(declaration.name());
+            final String argsVar = context.allocateGeneratedName("lambdaArgs");
+
+            builder.append(indent)
+                    .append(cellName)
+                    .append(".set((dev.tsj.runtime.TsjCallable) (Object... ")
+                    .append(argsVar)
+                    .append(") -> {\n");
+
+            final EmissionContext functionContext = new EmissionContext(context);
+            emitParameterCells(builder, functionContext, declaration.parameters(), argsVar, indent + "    ");
+            predeclareAsyncLocalBindings(builder, functionContext, declaration.body(), indent + "    ");
+
+            builder.append(indent).append("    try {\n");
+            emitAsyncStatements(builder, functionContext, declaration.body(), indent + "        ");
+            builder.append(indent).append("    } catch (RuntimeException __tsjAsyncError) {\n");
+            builder.append(indent)
+                    .append("        return dev.tsj.runtime.TsjRuntime.promiseReject(")
+                    .append("dev.tsj.runtime.TsjRuntime.normalizeThrown(__tsjAsyncError));\n");
+            builder.append(indent).append("    }\n");
             builder.append(indent).append("});\n");
         }
 
@@ -1338,6 +1584,541 @@ public final class JvmBytecodeCompiler {
             }
         }
 
+        private void predeclareAsyncLocalBindings(
+                final StringBuilder builder,
+                final EmissionContext context,
+                final List<Statement> statements,
+                final String indent
+        ) {
+            for (Statement statement : statements) {
+                if (statement instanceof VariableDeclaration declaration) {
+                    final String cellName = context.declareBinding(declaration.name());
+                    builder.append(indent)
+                            .append("final dev.tsj.runtime.TsjCell ")
+                            .append(cellName)
+                            .append(" = new dev.tsj.runtime.TsjCell(dev.tsj.runtime.TsjRuntime.undefined());\n");
+                }
+            }
+        }
+
+        private void emitAsyncStatements(
+                final StringBuilder builder,
+                final EmissionContext context,
+                final List<Statement> statements,
+                final String indent
+        ) {
+            emitAsyncStatements(
+                    builder,
+                    context,
+                    statements,
+                    indent,
+                    "dev.tsj.runtime.TsjRuntime.promiseResolve(dev.tsj.runtime.TsjRuntime.undefined())"
+            );
+        }
+
+        private void emitAsyncStatements(
+                final StringBuilder builder,
+                final EmissionContext context,
+                final List<Statement> statements,
+                final String indent,
+                final String completionExpression
+        ) {
+            emitAsyncStatementsFrom(builder, context, statements, 0, indent, completionExpression);
+        }
+
+        private void emitAsyncStatementsFrom(
+                final StringBuilder builder,
+                final EmissionContext context,
+                final List<Statement> statements,
+                final int index,
+                final String indent
+        ) {
+            emitAsyncStatementsFrom(
+                    builder,
+                    context,
+                    statements,
+                    index,
+                    indent,
+                    "dev.tsj.runtime.TsjRuntime.promiseResolve(dev.tsj.runtime.TsjRuntime.undefined())"
+            );
+        }
+
+        private void emitAsyncStatementsFrom(
+                final StringBuilder builder,
+                final EmissionContext context,
+                final List<Statement> statements,
+                final int index,
+                final String indent,
+                final String completionExpression
+        ) {
+            if (index >= statements.size()) {
+                builder.append(indent)
+                        .append("return ")
+                        .append(completionExpression)
+                        .append(";\n");
+                return;
+            }
+
+            final Statement statement = statements.get(index);
+            if (statement instanceof ReturnStatement returnStatement) {
+                if (returnStatement.expression() instanceof AwaitExpression awaitExpression) {
+                    assertNoAwait(
+                            awaitExpression.expression(),
+                            "Nested `await` in return is unsupported in TSJ-13 subset."
+                    );
+                    builder.append(indent)
+                            .append("return dev.tsj.runtime.TsjRuntime.promiseResolve(")
+                            .append(emitExpression(context, awaitExpression.expression()))
+                            .append(");\n");
+                    return;
+                }
+                assertNoAwait(returnStatement.expression(), "`await` is only supported as standalone expression.");
+                builder.append(indent)
+                        .append("return dev.tsj.runtime.TsjRuntime.promiseResolve(")
+                        .append(emitExpression(context, returnStatement.expression()))
+                        .append(");\n");
+                return;
+            }
+
+            if (statement instanceof IfStatement ifStatement) {
+                assertNoAwait(ifStatement.condition(), "`await` in async if condition is unsupported in TSJ-13a.");
+                final List<Statement> remaining = statements.subList(index + 1, statements.size());
+                final List<Statement> thenWithTail = new ArrayList<>(ifStatement.thenBlock());
+                thenWithTail.addAll(remaining);
+                final List<Statement> elseWithTail = new ArrayList<>(ifStatement.elseBlock());
+                elseWithTail.addAll(remaining);
+
+                builder.append(indent)
+                        .append("if (dev.tsj.runtime.TsjRuntime.truthy(")
+                        .append(emitExpression(context, ifStatement.condition()))
+                        .append(")) {\n");
+                final EmissionContext thenContext = new EmissionContext(context);
+                predeclareAsyncLocalBindings(builder, thenContext, ifStatement.thenBlock(), indent + "    ");
+                emitAsyncStatements(
+                        builder,
+                        thenContext,
+                        List.copyOf(thenWithTail),
+                        indent + "    ",
+                        completionExpression
+                );
+                builder.append(indent).append("} else {\n");
+                final EmissionContext elseContext = new EmissionContext(context);
+                predeclareAsyncLocalBindings(builder, elseContext, ifStatement.elseBlock(), indent + "    ");
+                emitAsyncStatements(
+                        builder,
+                        elseContext,
+                        List.copyOf(elseWithTail),
+                        indent + "    ",
+                        completionExpression
+                );
+                builder.append(indent).append("}\n");
+                return;
+            }
+
+            if (statement instanceof WhileStatement whileStatement) {
+                emitAsyncWhileStatement(
+                        builder,
+                        context,
+                        statements,
+                        index,
+                        whileStatement,
+                        indent,
+                        completionExpression
+                );
+                return;
+            }
+
+            final AwaitSite awaitSite = extractAwaitSite(statement);
+            if (awaitSite != null) {
+                final String awaitArgs = context.allocateGeneratedName("awaitArgs");
+                final String awaitValue = awaitArgs + ".length > 0 ? "
+                        + awaitArgs
+                        + "[0] : dev.tsj.runtime.TsjRuntime.undefined()";
+
+                builder.append(indent)
+                        .append("return dev.tsj.runtime.TsjRuntime.promiseThen(")
+                        .append("dev.tsj.runtime.TsjRuntime.promiseResolve(")
+                        .append(emitExpression(context, awaitSite.awaitedExpression()))
+                        .append("), ")
+                        .append("(dev.tsj.runtime.TsjCallable) (Object... ")
+                        .append(awaitArgs)
+                        .append(") -> {\n");
+                final boolean continueAfterAwait =
+                        emitAwaitResumePrefix(builder, context, awaitSite, awaitValue, indent + "    ");
+                if (continueAfterAwait) {
+                    emitAsyncStatementsFrom(
+                            builder,
+                            context,
+                            statements,
+                            index + 1,
+                            indent + "    ",
+                            completionExpression
+                    );
+                }
+                builder.append(indent)
+                        .append("}, dev.tsj.runtime.TsjRuntime.undefined());\n");
+                return;
+            }
+
+            emitAsyncImmediateStatement(builder, context, statement, indent);
+            if (statement instanceof ThrowStatement) {
+                return;
+            }
+            emitAsyncStatementsFrom(builder, context, statements, index + 1, indent, completionExpression);
+        }
+
+        private void emitAsyncWhileStatement(
+                final StringBuilder builder,
+                final EmissionContext context,
+                final List<Statement> statements,
+                final int index,
+                final WhileStatement whileStatement,
+                final String indent,
+                final String completionExpression
+        ) {
+            assertNoAwait(
+                    whileStatement.condition(),
+                    "`await` in async while condition is unsupported in TSJ-13a."
+            );
+            final String loopCell = context.allocateGeneratedName("asyncLoopCell");
+            final String loopArgs = context.allocateGeneratedName("asyncLoopArgs");
+            final String loopCallExpression = "dev.tsj.runtime.TsjRuntime.call(" + loopCell + ".get())";
+
+            builder.append(indent)
+                    .append("final dev.tsj.runtime.TsjCell ")
+                    .append(loopCell)
+                    .append(" = new dev.tsj.runtime.TsjCell(null);\n");
+            builder.append(indent)
+                    .append(loopCell)
+                    .append(".set((dev.tsj.runtime.TsjCallable) (Object... ")
+                    .append(loopArgs)
+                    .append(") -> {\n");
+            builder.append(indent)
+                    .append("    if (!dev.tsj.runtime.TsjRuntime.truthy(")
+                    .append(emitExpression(context, whileStatement.condition()))
+                    .append(")) {\n");
+            emitAsyncStatementsFrom(
+                    builder,
+                    context,
+                    statements,
+                    index + 1,
+                    indent + "        ",
+                    completionExpression
+            );
+            builder.append(indent)
+                    .append("    }\n");
+
+            final EmissionContext loopContext = new EmissionContext(context);
+            predeclareAsyncLocalBindings(builder, loopContext, whileStatement.body(), indent + "    ");
+            emitAsyncStatements(
+                    builder,
+                    loopContext,
+                    whileStatement.body(),
+                    indent + "    ",
+                    loopCallExpression
+            );
+
+            builder.append(indent).append("});\n");
+            builder.append(indent).append("return ").append(loopCallExpression).append(";\n");
+        }
+
+        private boolean emitAwaitResumePrefix(
+                final StringBuilder builder,
+                final EmissionContext context,
+                final AwaitSite awaitSite,
+                final String awaitValueExpression,
+                final String indent
+        ) {
+            switch (awaitSite.kind()) {
+                case VAR_DECLARATION -> {
+                    final String cellName = context.resolveBinding(awaitSite.variableName());
+                    builder.append(indent)
+                            .append(cellName)
+                            .append(".set(")
+                            .append(awaitValueExpression)
+                            .append(");\n");
+                }
+                case ASSIGNMENT -> {
+                    final Expression target = awaitSite.assignmentTarget();
+                    if (target instanceof VariableExpression variableExpression) {
+                        final String cellName = context.resolveBinding(variableExpression.name());
+                        builder.append(indent)
+                                .append(cellName)
+                                .append(".set(")
+                                .append(awaitValueExpression)
+                                .append(");\n");
+                    } else if (target instanceof MemberAccessExpression memberAccessExpression) {
+                        builder.append(indent)
+                                .append("dev.tsj.runtime.TsjRuntime.setProperty(")
+                                .append(emitExpression(context, memberAccessExpression.receiver()))
+                                .append(", \"")
+                                .append(escapeJava(memberAccessExpression.member()))
+                                .append("\", ")
+                                .append(awaitValueExpression)
+                                .append(");\n");
+                    } else {
+                        throw new JvmCompilationException(
+                                "TSJ-BACKEND-UNSUPPORTED",
+                                "Unsupported assignment target for await in TSJ-13 subset: "
+                                        + target.getClass().getSimpleName()
+                        );
+                    }
+                }
+                case EXPRESSION -> {
+                    // no-op: awaited value is intentionally ignored
+                }
+                case CONSOLE_LOG -> builder.append(indent)
+                        .append("dev.tsj.runtime.TsjRuntime.print(")
+                        .append(awaitValueExpression)
+                        .append(");\n");
+                case THROW -> {
+                    builder.append(indent)
+                            .append("throw dev.tsj.runtime.TsjRuntime.raise(")
+                            .append(awaitValueExpression)
+                            .append(");\n");
+                    return false;
+                }
+                default -> throw new IllegalStateException("Unknown await site kind: " + awaitSite.kind());
+            }
+            return true;
+        }
+
+        private void emitAsyncImmediateStatement(
+                final StringBuilder builder,
+                final EmissionContext context,
+                final Statement statement,
+                final String indent
+        ) {
+            if (statement instanceof VariableDeclaration declaration) {
+                assertNoAwait(declaration.expression(), "`await` is only supported as standalone expression.");
+                final String cellName = context.resolveBinding(declaration.name());
+                builder.append(indent)
+                        .append(cellName)
+                        .append(".set(")
+                        .append(emitExpression(context, declaration.expression()))
+                        .append(");\n");
+                return;
+            }
+            if (statement instanceof AssignmentStatement assignment) {
+                assertNoAwait(assignment.expression(), "`await` is only supported as standalone expression.");
+                emitAssignment(builder, context, assignment, indent);
+                return;
+            }
+            if (statement instanceof ConsoleLogStatement logStatement) {
+                assertNoAwait(logStatement.expression(), "`await` is only supported as standalone expression.");
+                builder.append(indent)
+                        .append("dev.tsj.runtime.TsjRuntime.print(")
+                        .append(emitExpression(context, logStatement.expression()))
+                        .append(");\n");
+                return;
+            }
+            if (statement instanceof ExpressionStatement expressionStatement) {
+                assertNoAwait(expressionStatement.expression(), "`await` is only supported as standalone expression.");
+                builder.append(indent)
+                        .append(emitExpression(context, expressionStatement.expression()))
+                        .append(";\n");
+                return;
+            }
+            if (statement instanceof ThrowStatement throwStatement) {
+                assertNoAwait(throwStatement.expression(), "`await` is only supported as standalone expression.");
+                builder.append(indent)
+                        .append("throw dev.tsj.runtime.TsjRuntime.raise(")
+                        .append(emitExpression(context, throwStatement.expression()))
+                        .append(");\n");
+                return;
+            }
+            throw new JvmCompilationException(
+                    "TSJ-BACKEND-UNSUPPORTED",
+                    "Unsupported statement in async function TSJ-13 subset: "
+                            + statement.getClass().getSimpleName()
+            );
+        }
+
+        private AwaitSite extractAwaitSite(final Statement statement) {
+            if (statement instanceof VariableDeclaration declaration
+                    && declaration.expression() instanceof AwaitExpression awaitExpression) {
+                assertNoAwait(awaitExpression.expression(), "Nested `await` is unsupported in TSJ-13 subset.");
+                return new AwaitSite(
+                        AwaitSiteKind.VAR_DECLARATION,
+                        awaitExpression.expression(),
+                        declaration.name(),
+                        null
+                );
+            }
+            if (statement instanceof AssignmentStatement assignment
+                    && assignment.expression() instanceof AwaitExpression awaitExpression) {
+                assertNoAwait(awaitExpression.expression(), "Nested `await` is unsupported in TSJ-13 subset.");
+                assertNoAwait(assignment.target(), "Await is unsupported in assignment target.");
+                return new AwaitSite(
+                        AwaitSiteKind.ASSIGNMENT,
+                        awaitExpression.expression(),
+                        null,
+                        assignment.target()
+                );
+            }
+            if (statement instanceof ConsoleLogStatement logStatement
+                    && logStatement.expression() instanceof AwaitExpression awaitExpression) {
+                assertNoAwait(awaitExpression.expression(), "Nested `await` is unsupported in TSJ-13 subset.");
+                return new AwaitSite(AwaitSiteKind.CONSOLE_LOG, awaitExpression.expression(), null, null);
+            }
+            if (statement instanceof ExpressionStatement expressionStatement
+                    && expressionStatement.expression() instanceof AwaitExpression awaitExpression) {
+                assertNoAwait(awaitExpression.expression(), "Nested `await` is unsupported in TSJ-13 subset.");
+                return new AwaitSite(AwaitSiteKind.EXPRESSION, awaitExpression.expression(), null, null);
+            }
+            if (statement instanceof ThrowStatement throwStatement
+                    && throwStatement.expression() instanceof AwaitExpression awaitExpression) {
+                assertNoAwait(awaitExpression.expression(), "Nested `await` is unsupported in TSJ-13 subset.");
+                return new AwaitSite(AwaitSiteKind.THROW, awaitExpression.expression(), null, null);
+            }
+            if (statementContainsAwait(statement)) {
+                throw new JvmCompilationException(
+                        "TSJ-BACKEND-UNSUPPORTED",
+                        "Unsupported await placement in TSJ-13 subset. Await must be a standalone initializer, "
+                                + "assignment, expression, throw, or return."
+                );
+            }
+            return null;
+        }
+
+        private void assertNoAwait(final Expression expression, final String message) {
+            if (expressionContainsAwait(expression)) {
+                throw new JvmCompilationException(
+                        "TSJ-BACKEND-UNSUPPORTED",
+                        message
+                );
+            }
+        }
+
+        private boolean statementContainsAwait(final Statement statement) {
+            if (statement instanceof VariableDeclaration declaration) {
+                return expressionContainsAwait(declaration.expression());
+            }
+            if (statement instanceof AssignmentStatement assignment) {
+                return expressionContainsAwait(assignment.target()) || expressionContainsAwait(assignment.expression());
+            }
+            if (statement instanceof ReturnStatement returnStatement) {
+                return expressionContainsAwait(returnStatement.expression());
+            }
+            if (statement instanceof ThrowStatement throwStatement) {
+                return expressionContainsAwait(throwStatement.expression());
+            }
+            if (statement instanceof ConsoleLogStatement logStatement) {
+                return expressionContainsAwait(logStatement.expression());
+            }
+            if (statement instanceof ExpressionStatement expressionStatement) {
+                return expressionContainsAwait(expressionStatement.expression());
+            }
+            if (statement instanceof IfStatement ifStatement) {
+                if (expressionContainsAwait(ifStatement.condition())) {
+                    return true;
+                }
+                for (Statement nested : ifStatement.thenBlock()) {
+                    if (statementContainsAwait(nested)) {
+                        return true;
+                    }
+                }
+                for (Statement nested : ifStatement.elseBlock()) {
+                    if (statementContainsAwait(nested)) {
+                        return true;
+                    }
+                }
+                return false;
+            }
+            if (statement instanceof WhileStatement whileStatement) {
+                if (expressionContainsAwait(whileStatement.condition())) {
+                    return true;
+                }
+                for (Statement nested : whileStatement.body()) {
+                    if (statementContainsAwait(nested)) {
+                        return true;
+                    }
+                }
+                return false;
+            }
+            if (statement instanceof SuperCallStatement superCallStatement) {
+                for (Expression argument : superCallStatement.arguments()) {
+                    if (expressionContainsAwait(argument)) {
+                        return true;
+                    }
+                }
+                return false;
+            }
+            if (statement instanceof FunctionDeclarationStatement declarationStatement) {
+                for (Statement nested : declarationStatement.declaration().body()) {
+                    if (statementContainsAwait(nested)) {
+                        return true;
+                    }
+                }
+                return false;
+            }
+            if (statement instanceof ClassDeclarationStatement classDeclarationStatement) {
+                final ClassDeclaration declaration = classDeclarationStatement.declaration();
+                if (declaration.constructorMethod() != null) {
+                    for (Statement nested : declaration.constructorMethod().body()) {
+                        if (statementContainsAwait(nested)) {
+                            return true;
+                        }
+                    }
+                }
+                for (ClassMethod method : declaration.methods()) {
+                    for (Statement nested : method.body()) {
+                        if (statementContainsAwait(nested)) {
+                            return true;
+                        }
+                    }
+                }
+            }
+            return false;
+        }
+
+        private boolean expressionContainsAwait(final Expression expression) {
+            if (expression instanceof AwaitExpression) {
+                return true;
+            }
+            if (expression instanceof UnaryExpression unaryExpression) {
+                return expressionContainsAwait(unaryExpression.expression());
+            }
+            if (expression instanceof BinaryExpression binaryExpression) {
+                return expressionContainsAwait(binaryExpression.left())
+                        || expressionContainsAwait(binaryExpression.right());
+            }
+            if (expression instanceof CallExpression callExpression) {
+                if (expressionContainsAwait(callExpression.callee())) {
+                    return true;
+                }
+                for (Expression argument : callExpression.arguments()) {
+                    if (expressionContainsAwait(argument)) {
+                        return true;
+                    }
+                }
+                return false;
+            }
+            if (expression instanceof MemberAccessExpression memberAccessExpression) {
+                return expressionContainsAwait(memberAccessExpression.receiver());
+            }
+            if (expression instanceof NewExpression newExpression) {
+                if (expressionContainsAwait(newExpression.constructor())) {
+                    return true;
+                }
+                for (Expression argument : newExpression.arguments()) {
+                    if (expressionContainsAwait(argument)) {
+                        return true;
+                    }
+                }
+                return false;
+            }
+            if (expression instanceof ObjectLiteralExpression objectLiteralExpression) {
+                for (ObjectLiteralEntry entry : objectLiteralExpression.entries()) {
+                    if (expressionContainsAwait(entry.value())) {
+                        return true;
+                    }
+                }
+                return false;
+            }
+            return false;
+        }
+
         private void emitAssignment(
                 final StringBuilder builder,
                 final EmissionContext context,
@@ -1443,6 +2224,12 @@ public final class JvmBytecodeCompiler {
                         "Unsupported unary operator: " + unaryExpression.operator()
                 );
             }
+            if (expression instanceof AwaitExpression) {
+                throw new JvmCompilationException(
+                        "TSJ-BACKEND-UNSUPPORTED",
+                        "`await` is only valid inside async function lowering in TSJ-13 subset."
+                );
+            }
             if (expression instanceof BinaryExpression binaryExpression) {
                 final String left = emitExpression(context, binaryExpression.left());
                 final String right = emitExpression(context, binaryExpression.right());
@@ -1472,7 +2259,10 @@ public final class JvmBytecodeCompiler {
                 };
             }
             if (expression instanceof MemberAccessExpression memberAccessExpression) {
-                return "dev.tsj.runtime.TsjRuntime.getProperty("
+                final String cacheField = allocatePropertyCacheField(memberAccessExpression.member());
+                return "dev.tsj.runtime.TsjRuntime.getPropertyCached("
+                        + cacheField
+                        + ", "
                         + emitExpression(context, memberAccessExpression.receiver())
                         + ", \""
                         + escapeJava(memberAccessExpression.member())
@@ -1562,6 +2352,35 @@ public final class JvmBytecodeCompiler {
             return value.replace("\\", "\\\\").replace("\"", "\\\"");
         }
 
+        private String allocatePropertyCacheField(final String propertyName) {
+            final String fieldName = "PROPERTY_CACHE_" + propertyCacheCounter;
+            propertyCacheCounter++;
+            propertyCacheFieldDeclarations.add(
+                    "private static final dev.tsj.runtime.TsjPropertyAccessCache "
+                            + fieldName
+                            + " = new dev.tsj.runtime.TsjPropertyAccessCache(\""
+                            + escapeJava(propertyName)
+                            + "\");"
+            );
+            return fieldName;
+        }
+
+        private enum AwaitSiteKind {
+            VAR_DECLARATION,
+            ASSIGNMENT,
+            CONSOLE_LOG,
+            EXPRESSION,
+            THROW
+        }
+
+        private record AwaitSite(
+                AwaitSiteKind kind,
+                Expression awaitedExpression,
+                String variableName,
+                Expression assignmentTarget
+        ) {
+        }
+
         private final class EmissionContext {
             private final EmissionContext parent;
             private final Map<String, String> bindings;
@@ -1623,6 +2442,9 @@ public final class JvmBytecodeCompiler {
                 }
                 if (parent != null) {
                     return parent.resolveBinding(sourceName);
+                }
+                if ("Promise".equals(sourceName)) {
+                    return "PROMISE_BUILTIN_CELL";
                 }
                 throw new JvmCompilationException(
                         "TSJ-BACKEND-UNSUPPORTED",
