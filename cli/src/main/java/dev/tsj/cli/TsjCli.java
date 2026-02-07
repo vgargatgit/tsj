@@ -1,6 +1,7 @@
 package dev.tsj.cli;
 
 import dev.tsj.cli.fixtures.FixtureHarness;
+import dev.tsj.cli.fixtures.FixtureSuiteResult;
 import dev.tsj.cli.fixtures.FixtureRunResult;
 import dev.tsj.compiler.backend.jvm.BackendJvmModule;
 import dev.tsj.compiler.backend.jvm.InteropBridgeArtifact;
@@ -159,9 +160,9 @@ public final class TsjCli {
             );
         }
         final Path fixturesRoot = Path.of(args[1]);
-        final List<FixtureRunResult> results;
+        final FixtureSuiteResult suiteResult;
         try {
-            results = new FixtureHarness().runAll(fixturesRoot);
+            suiteResult = new FixtureHarness().runSuite(fixturesRoot);
         } catch (final IllegalArgumentException illegalArgumentException) {
             throw CliFailure.runtime(
                     "TSJ-FIXTURE-001",
@@ -169,6 +170,7 @@ public final class TsjCli {
                     Map.of("fixturesRoot", fixturesRoot.toString())
             );
         }
+        final List<FixtureRunResult> results = suiteResult.results();
 
         if (results.isEmpty()) {
             throw CliFailure.runtime(
@@ -201,7 +203,8 @@ public final class TsjCli {
                                 "fixture", result.fixtureName(),
                                 "nodeDiff", result.nodeResult().diff(),
                                 "tsjDiff", result.tsjResult().diff(),
-                                "nodeToTsjDiff", result.nodeToTsjDiff()
+                                "nodeToTsjDiff", result.nodeToTsjDiff(),
+                                "minimalRepro", result.minimizedRepro()
                         )
                 );
             }
@@ -216,6 +219,19 @@ public final class TsjCli {
                         "total", Integer.toString(results.size()),
                         "passed", Integer.toString(passed),
                         "failed", Integer.toString(failed)
+                )
+        );
+        emitDiagnostic(
+                stdout,
+                "INFO",
+                "TSJ-FIXTURE-COVERAGE",
+                "Fixture coverage report generated.",
+                Map.of(
+                        "coverageReport", suiteResult.coverageReportPath().toString(),
+                        "totalFixtures", Integer.toString(suiteResult.coverageReport().totalFixtures()),
+                        "passedFixtures", Integer.toString(suiteResult.coverageReport().passedFixtures()),
+                        "failedFixtures", Integer.toString(suiteResult.coverageReport().failedFixtures()),
+                        "featureBuckets", Integer.toString(suiteResult.coverageReport().byFeature().size())
                 )
         );
         return failed == 0 ? 0 : 1;

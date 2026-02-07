@@ -7,9 +7,15 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Executes fixture specs on Node and TSJ.
@@ -18,14 +24,25 @@ public final class FixtureHarness {
     private static final String NODE_BINARY = "node";
     private static final String NODE_NO_WARNINGS_FLAG = "--no-warnings";
     private static final String NODE_TS_FLAG = "--experimental-strip-types";
+    private static final String COVERAGE_REPORT_FILE = "tsj-fixture-coverage.json";
+    private static final Pattern FEATURE_BUCKET_PATTERN = Pattern.compile("^tsj(\\d+[a-z]?)($|[-_].*)");
 
     public List<FixtureRunResult> runAll(final Path fixturesRoot) {
+        return runSuite(fixturesRoot).results();
+    }
+
+    public FixtureSuiteResult runSuite(final Path fixturesRoot) {
         final List<FixtureSpec> fixtures = FixtureLoader.loadFixtures(fixturesRoot);
         final List<FixtureRunResult> results = new ArrayList<>();
         for (FixtureSpec fixture : fixtures) {
             results.add(runFixture(fixture));
         }
-        return results;
+        final FixtureCoverageReport coverageReport = buildCoverageReport(results);
+        final Path coverageReportPath = fixturesRoot.toAbsolutePath()
+                .normalize()
+                .resolve(COVERAGE_REPORT_FILE);
+        writeCoverageReport(coverageReportPath, coverageReport);
+        return new FixtureSuiteResult(results, coverageReport, coverageReportPath);
     }
 
     public FixtureRunResult runFixture(final FixtureSpec fixture) {
@@ -38,7 +55,8 @@ public final class FixtureHarness {
                 tsjResult,
                 fixture.assertNodeMatchesTsj(),
                 nodeToTsjComparison.matched,
-                nodeToTsjComparison.diff
+                nodeToTsjComparison.diff,
+                buildMinimizedRepro(fixture, nodeResult, tsjResult, nodeToTsjComparison)
         );
     }
 
@@ -109,13 +127,13 @@ public final class FixtureHarness {
         if (nodeResult.exitCode() != tsjResult.exitCode()) {
             diffParts.add("exit code differs");
         }
-        final String nodeStdout = normalize(nodeResult.stdout());
-        final String tsjStdout = normalize(stripTsjDiagnostics(tsjResult.stdout()));
+        final String nodeStdout = canonicalizeForComparison(nodeResult.stdout());
+        final String tsjStdout = canonicalizeForComparison(stripTsjDiagnostics(tsjResult.stdout()));
         if (!nodeStdout.equals(tsjStdout)) {
             diffParts.add("stdout differs");
         }
-        final String nodeStderr = normalize(nodeResult.stderr());
-        final String tsjStderr = normalize(stripTsjDiagnostics(tsjResult.stderr()));
+        final String nodeStderr = canonicalizeForComparison(nodeResult.stderr());
+        final String tsjStderr = canonicalizeForComparison(stripTsjDiagnostics(tsjResult.stderr()));
         if (!nodeStderr.equals(tsjStderr)) {
             diffParts.add("stderr differs");
         }
@@ -123,16 +141,40 @@ public final class FixtureHarness {
     }
 
     private static boolean matches(final MatchMode mode, final String expected, final String actual) {
-        final String expectedNorm = normalize(expected);
-        final String actualNorm = normalize(actual);
+        final String expectedNorm = canonicalizeForComparison(expected);
+        final String actualNorm = canonicalizeForComparison(actual);
         return switch (mode) {
             case EXACT -> actualNorm.equals(expectedNorm);
-            case CONTAINS -> actualNorm.contains(expectedNorm);
+            case CONTAINS -> containsByLines(expectedNorm, actualNorm);
         };
+    }
+
+    private static boolean containsByLines(final String expected, final String actual) {
+        if (expected.isEmpty()) {
+            return true;
+        }
+        final String[] expectedLines = expected.split("\n", -1);
+        for (String line : expectedLines) {
+            if (line.isBlank()) {
+                continue;
+            }
+            if (!actual.contains(line)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private static String normalize(final String value) {
         return value.replace("\r\n", "\n");
+    }
+
+    private static String canonicalizeForComparison(final String value) {
+        final String normalized = normalize(value);
+        if (normalized.isBlank()) {
+            return "";
+        }
+        return normalized;
     }
 
     private static String stripTsjDiagnostics(final String output) {
@@ -160,6 +202,141 @@ public final class FixtureHarness {
             return joined + "\n";
         }
         return joined;
+    }
+
+    private static String buildMinimizedRepro(
+            final FixtureSpec fixture,
+            final RuntimeExecutionResult nodeResult,
+            final RuntimeExecutionResult tsjResult,
+            final NodeToTsjComparison nodeToTsjComparison
+    ) {
+        final boolean passed = nodeResult.matchedExpectation()
+                && tsjResult.matchedExpectation()
+                && (!fixture.assertNodeMatchesTsj() || nodeToTsjComparison.matched());
+        if (passed) {
+            return "";
+        }
+
+        final List<String> mismatches = new ArrayList<>();
+        if (!nodeResult.matchedExpectation()) {
+            mismatches.add("node expectation mismatch: " + nodeResult.diff());
+        }
+        if (!tsjResult.matchedExpectation()) {
+            mismatches.add("tsj expectation mismatch: " + tsjResult.diff());
+        }
+        if (fixture.assertNodeMatchesTsj() && !nodeToTsjComparison.matched()) {
+            mismatches.add("node-vs-tsj mismatch: " + nodeToTsjComparison.diff());
+        }
+
+        final String stdoutMismatch = firstLineMismatch(
+                canonicalizeForComparison(nodeResult.stdout()),
+                canonicalizeForComparison(stripTsjDiagnostics(tsjResult.stdout()))
+        );
+        if (!stdoutMismatch.isEmpty()) {
+            mismatches.add("stdout " + stdoutMismatch);
+        }
+        final String stderrMismatch = firstLineMismatch(
+                canonicalizeForComparison(nodeResult.stderr()),
+                canonicalizeForComparison(stripTsjDiagnostics(tsjResult.stderr()))
+        );
+        if (!stderrMismatch.isEmpty()) {
+            mismatches.add("stderr " + stderrMismatch);
+        }
+
+        final String entry = fixture.entryFile().toString();
+        final String nodeCommand = NODE_BINARY + " " + NODE_NO_WARNINGS_FLAG + " " + NODE_TS_FLAG + " " + entry;
+        final String tsjCommand = "tsj run " + entry + " --out "
+                + fixture.directory().resolve(".tsj-out").toAbsolutePath().normalize();
+        return "fixture=" + fixture.name()
+                + " | mismatch=" + String.join(" | ", mismatches)
+                + " | repro=" + nodeCommand
+                + " && " + tsjCommand;
+    }
+
+    private static String firstLineMismatch(final String left, final String right) {
+        if (left.equals(right)) {
+            return "";
+        }
+        final String[] leftLines = left.split("\n", -1);
+        final String[] rightLines = right.split("\n", -1);
+        final int limit = Math.max(leftLines.length, rightLines.length);
+        for (int index = 0; index < limit; index++) {
+            final String leftLine = index < leftLines.length ? leftLines[index] : "<missing>";
+            final String rightLine = index < rightLines.length ? rightLines[index] : "<missing>";
+            if (!leftLine.equals(rightLine)) {
+                return "@line=" + (index + 1)
+                        + " node=" + truncateLine(leftLine)
+                        + " tsj=" + truncateLine(rightLine);
+            }
+        }
+        return "";
+    }
+
+    private static String truncateLine(final String value) {
+        final String cleaned = value.replace("\r", "");
+        if (cleaned.length() <= 80) {
+            return "'" + cleaned + "'";
+        }
+        return "'" + cleaned.substring(0, 77) + "...'";
+    }
+
+    private static FixtureCoverageReport buildCoverageReport(final List<FixtureRunResult> results) {
+        final Map<String, int[]> counts = new LinkedHashMap<>();
+        int passed = 0;
+        for (FixtureRunResult result : results) {
+            final String feature = featureBucketForFixture(result.fixtureName());
+            final int[] counter = counts.computeIfAbsent(feature, ignored -> new int[3]);
+            counter[0] = counter[0] + 1;
+            if (result.passed()) {
+                counter[1] = counter[1] + 1;
+                passed++;
+            } else {
+                counter[2] = counter[2] + 1;
+            }
+        }
+
+        final List<FixtureCoverageReport.FeatureCoverage> byFeature = new ArrayList<>();
+        counts.entrySet().stream()
+                .sorted(Comparator.comparing(Map.Entry::getKey))
+                .forEach(entry -> {
+                    final int[] counter = entry.getValue();
+                    byFeature.add(
+                            new FixtureCoverageReport.FeatureCoverage(
+                                    entry.getKey(),
+                                    counter[0],
+                                    counter[1],
+                                    counter[2]
+                            )
+                    );
+                });
+
+        return new FixtureCoverageReport(
+                results.size(),
+                passed,
+                results.size() - passed,
+                byFeature
+        );
+    }
+
+    private static String featureBucketForFixture(final String fixtureName) {
+        final String normalized = fixtureName == null ? "" : fixtureName.toLowerCase();
+        final Matcher matcher = FEATURE_BUCKET_PATTERN.matcher(normalized);
+        if (matcher.matches()) {
+            return "tsj" + matcher.group(1);
+        }
+        return "unmapped";
+    }
+
+    private static void writeCoverageReport(final Path reportPath, final FixtureCoverageReport coverageReport) {
+        try {
+            Files.createDirectories(reportPath.getParent());
+            Files.writeString(reportPath, coverageReport.toJson() + "\n", StandardCharsets.UTF_8);
+        } catch (final IOException ioException) {
+            throw new IllegalArgumentException(
+                    "Failed to write fixture coverage report " + reportPath + ": " + ioException.getMessage(),
+                    ioException
+            );
+        }
     }
 
     private CommandResult runExternal(final List<String> command, final Path workDir) {

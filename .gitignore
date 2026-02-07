@@ -38,3 +38,6 @@ Desktop.ini
 # Temp files
 tmp/
 temp/
+
+# Generated differential conformance report
+tests/fixtures/tsj-fixture-coverage.json

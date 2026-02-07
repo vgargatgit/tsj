@@ -35,3 +35,11 @@ jobs:
 
       - name: Unit tests
         run: mvn -B -ntp test
+
+      - name: Upload fixture coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fixture-coverage-report
+          path: tests/fixtures/tsj-fixture-coverage.json
+          if-no-files-found: warn

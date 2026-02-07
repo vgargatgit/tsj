@@ -43,6 +43,12 @@ Optional keys:
 3. Harness compares each runtime output against expected files.
 4. If `assert.nodeMatchesTsj=true`, harness also enforces direct output equality between Node and TSJ.
 5. For direct comparison, TSJ diagnostic JSON lines are ignored so semantic output can be compared to Node output.
+6. For failing fixtures, harness produces minimized repro output with:
+   - compact mismatch hints, and
+   - executable Node/TSJ commands to reproduce locally.
+7. Each suite run writes a feature coverage report:
+   - `<fixtures-root>/tsj-fixture-coverage.json`
+   - feature buckets are inferred from fixture names (`tsj10-*`, `tsj13f-*`, etc.), defaulting to `unmapped`.
 
 ## CLI entrypoint
 
@@ -56,3 +62,4 @@ The command emits structured diagnostics:
 1. `TSJ-FIXTURE-PASS`
 2. `TSJ-FIXTURE-FAIL`
 3. `TSJ-FIXTURE-SUMMARY`
+4. `TSJ-FIXTURE-COVERAGE`

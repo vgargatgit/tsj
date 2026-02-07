@@ -9,6 +9,7 @@ package dev.tsj.cli.fixtures;
  * @param nodeToTsjRequired whether direct Node-vs-TSJ comparison is required
  * @param nodeToTsjMatched true when Node-vs-TSJ comparison succeeded
  * @param nodeToTsjDiff direct comparison mismatch summary
+ * @param minimizedRepro minimal repro details for failing fixtures
  */
 public record FixtureRunResult(
         String fixtureName,
@@ -16,7 +17,8 @@ public record FixtureRunResult(
         RuntimeExecutionResult tsjResult,
         boolean nodeToTsjRequired,
         boolean nodeToTsjMatched,
-        String nodeToTsjDiff
+        String nodeToTsjDiff,
+        String minimizedRepro
 ) {
     public boolean passed() {
         if (!nodeResult.matchedExpectation() || !tsjResult.matchedExpectation()) {

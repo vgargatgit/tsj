@@ -23,6 +23,7 @@ Current implementation status includes:
 18. Runtime stack-trace source mapping with `--ts-stacktrace` CLI rendering in TypeScript coordinates (`TSJ-14`)
 19. Unsupported feature policy gates for MVP non-goals (`dynamic import`, `eval`, `Function` constructor, `Proxy`) with feature-ID diagnostics (`TSJ-15`)
 20. Opt-in interop bridge generation with allowlist enforcement and runtime codec helpers (`TSJ-19`)
+21. Differential conformance suite execution with minimized repro output and feature coverage report generation (`TSJ-16`)
 
 ## Repository Layout
 
@@ -125,6 +126,7 @@ TSJ-13f adds top-level await lowering for entry + module initialization ordering
 TSJ-14 adds generated-class source maps and optional `--ts-stacktrace` TypeScript frame rendering for runtime failures.
 TSJ-15 adds explicit non-goal feature gates with structured diagnostics (`featureId`, guidance, and source coordinates) and a documented matrix at `docs/unsupported-feature-matrix.md`.
 TSJ-19 adds opt-in interop bridge generation from allowlisted Java targets and runtime `TsjInteropCodec` conversions for Java boundary calls.
+TSJ-16 adds explicit differential suite execution outputs with minimized failure repro details and feature coverage report generation (`tests/fixtures/tsj-fixture-coverage.json`).
 
 ## Frontend and IR Tools
 

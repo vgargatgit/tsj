@@ -349,6 +349,14 @@
   - CI runs differential suite on each PR.
   - Failing cases produce minimized repro output.
   - Feature coverage report generated.
+- Notes:
+  - Fixture harness now emits minimized repro strings per failing fixture, including
+    compact mismatch details and copy-pasteable Node/TSJ commands.
+  - `tsj fixtures` now emits `TSJ-FIXTURE-COVERAGE` diagnostics and writes a JSON
+    feature-coverage report to `tsj-fixture-coverage.json` in the fixture root.
+  - Coverage buckets are derived from fixture name prefixes (`tsj10-*`, `tsj13f-*`, etc.),
+    with `unmapped` as fallback.
+  - CI now runs the committed differential fixture suite on pull requests and pushes.
 - Dependencies: TSJ-3, TSJ-12.
 
 ### TSJ-17: Baseline optimization passes

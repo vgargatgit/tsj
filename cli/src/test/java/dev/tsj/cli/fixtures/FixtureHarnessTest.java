@@ -66,6 +66,9 @@ class FixtureHarnessTest {
         assertFalse(result.passed());
         assertFalse(result.nodeToTsjMatched());
         assertTrue(result.nodeToTsjDiff().contains("exit code differs"));
+        assertTrue(result.minimizedRepro().contains("node --no-warnings --experimental-strip-types"));
+        assertTrue(result.minimizedRepro().contains("tsj run"));
+        assertTrue(result.minimizedRepro().contains("exit code differs"));
     }
 
     @Test
@@ -77,6 +80,24 @@ class FixtureHarnessTest {
 
         assertEquals(2, results.size());
         assertTrue(results.stream().allMatch(FixtureRunResult::passed));
+    }
+
+    @Test
+    void harnessRunSuiteGeneratesFeatureCoverageReport() throws Exception {
+        writeFixture("tsj9-basic", false);
+        writeUnsupportedFixture("tsj15-unsupported");
+
+        final FixtureSuiteResult suite = new FixtureHarness().runSuite(tempDir);
+
+        assertEquals(2, suite.results().size());
+        assertEquals(2, suite.coverageReport().totalFixtures());
+        assertTrue(Files.exists(suite.coverageReportPath()));
+
+        final String report = Files.readString(suite.coverageReportPath(), UTF_8);
+        assertTrue(report.contains("\"feature\":\"tsj9\""));
+        assertTrue(report.contains("\"feature\":\"tsj15\""));
+        assertTrue(report.contains("\"failed\":1"));
+        assertTrue(report.contains("\"totalFixtures\":2"));
     }
 
     @Test

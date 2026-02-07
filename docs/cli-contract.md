@@ -86,15 +86,20 @@ Behavior:
 2. Runs each fixture with Node and TSJ.
 3. Compares outputs with fixture expectations.
 4. Emits per-fixture diagnostics plus a summary.
+5. Emits feature-coverage diagnostics and writes a JSON coverage report file.
 
 Success diagnostics:
 - `TSJ-FIXTURE-PASS`
 - `TSJ-FIXTURE-SUMMARY`
+- `TSJ-FIXTURE-COVERAGE`
 
 Failure diagnostics:
 - `TSJ-FIXTURE-FAIL`
 - `TSJ-FIXTURE-001` fixture load error
 - `TSJ-FIXTURE-002` no fixture directories
+
+Failure diagnostic context for `TSJ-FIXTURE-FAIL` includes:
+1. `minimalRepro`: compact mismatch summary with repro commands for Node and TSJ.
 
 ## Diagnostic Shape
 All diagnostics use one-line JSON objects:

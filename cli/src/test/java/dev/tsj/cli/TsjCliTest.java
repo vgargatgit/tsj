@@ -1597,6 +1597,68 @@ class TsjCliTest {
 
         assertEquals(0, exitCode);
         assertTrue(stdout.toString(UTF_8).contains("\"code\":\"TSJ-FIXTURE-SUMMARY\""));
+        assertTrue(stdout.toString(UTF_8).contains("\"code\":\"TSJ-FIXTURE-COVERAGE\""));
+        assertEquals("", stderr.toString(UTF_8));
+    }
+
+    @Test
+    void fixturesCommandEmitsMinimizedReproOnFailure() throws Exception {
+        final Path fixturesRoot = tempDir.resolve("fixtures-failing");
+        final Path fixtureDir = fixturesRoot.resolve("failing");
+        final Path inputDir = fixtureDir.resolve("input");
+        final Path expectedDir = fixtureDir.resolve("expected");
+        Files.createDirectories(inputDir);
+        Files.createDirectories(expectedDir);
+
+        Files.writeString(
+                inputDir.resolve("main.ts"),
+                """
+                for (let i = 0; i < 2; i = i + 1) {
+                  console.log(i);
+                }
+                """,
+                UTF_8
+        );
+        Files.writeString(expectedDir.resolve("node.stdout"), "0\n1\n", UTF_8);
+        Files.writeString(expectedDir.resolve("node.stderr"), "", UTF_8);
+        Files.writeString(expectedDir.resolve("tsj.stdout"), "", UTF_8);
+        Files.writeString(expectedDir.resolve("tsj.stderr"), "\"code\":\"TSJ-BACKEND-UNSUPPORTED\"", UTF_8);
+        Files.writeString(
+                fixtureDir.resolve("fixture.properties"),
+                String.join(
+                        "\n",
+                        "name=tsj16-failing",
+                        "entry=input/main.ts",
+                        "expected.node.exitCode=0",
+                        "expected.node.stdout=expected/node.stdout",
+                        "expected.node.stderr=expected/node.stderr",
+                        "expected.node.stdoutMode=exact",
+                        "expected.node.stderrMode=exact",
+                        "expected.tsj.exitCode=1",
+                        "expected.tsj.stdout=expected/tsj.stdout",
+                        "expected.tsj.stderr=expected/tsj.stderr",
+                        "expected.tsj.stdoutMode=exact",
+                        "expected.tsj.stderrMode=contains",
+                        "assert.nodeMatchesTsj=true",
+                        ""
+                ),
+                UTF_8
+        );
+
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+
+        final int exitCode = TsjCli.execute(
+                new String[]{"fixtures", fixturesRoot.toString()},
+                new PrintStream(stdout),
+                new PrintStream(stderr)
+        );
+
+        final String output = stdout.toString(UTF_8);
+        assertEquals(1, exitCode);
+        assertTrue(output.contains("\"code\":\"TSJ-FIXTURE-FAIL\""));
+        assertTrue(output.contains("\"minimalRepro\""));
+        assertTrue(output.contains("tsj run"));
         assertEquals("", stderr.toString(UTF_8));
     }
 }
