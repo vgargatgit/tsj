@@ -1845,7 +1845,117 @@ class JvmBytecodeCompilerTest {
     }
 
     @Test
-    void rejectsDefaultImportInTsj12Bootstrap() throws Exception {
+    void isolatesModuleScopesAcrossFilesWithSameLocalBindings() throws Exception {
+        final Path moduleA = tempDir.resolve("a.ts");
+        final Path moduleB = tempDir.resolve("b.ts");
+        final Path entry = tempDir.resolve("main.ts");
+        Files.writeString(
+                moduleA,
+                """
+                const local = 1;
+                export function readA() {
+                  return local;
+                }
+                """,
+                UTF_8
+        );
+        Files.writeString(
+                moduleB,
+                """
+                const local = 2;
+                export function readB() {
+                  return local;
+                }
+                """,
+                UTF_8
+        );
+        Files.writeString(
+                entry,
+                """
+                import { readA } from "./a.ts";
+                import { readB } from "./b.ts";
+                console.log("scope=" + readA() + ":" + readB());
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(entry, tempDir.resolve("out26scope"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals("scope=1:2\n", stdout.toString(UTF_8));
+    }
+
+    @Test
+    void supportsImportAliasInTsj22() throws Exception {
+        final Path module = tempDir.resolve("dep.ts");
+        final Path entry = tempDir.resolve("main.ts");
+        Files.writeString(module, "export const value = 2;\n", UTF_8);
+        Files.writeString(
+                entry,
+                """
+                import { value as renamed } from "./dep.ts";
+                console.log("alias=" + renamed);
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(entry, tempDir.resolve("out26alias"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals("alias=2\n", stdout.toString(UTF_8));
+    }
+
+    @Test
+    void supportsSafeCircularImportsWithoutUnsafeTopLevelReads() throws Exception {
+        final Path moduleA = tempDir.resolve("a.ts");
+        final Path moduleB = tempDir.resolve("b.ts");
+        final Path entry = tempDir.resolve("main.ts");
+        Files.writeString(
+                moduleA,
+                """
+                import { pingB } from "./b.ts";
+                export function pingA() {
+                  return "A";
+                }
+                export function callB() {
+                  return pingB();
+                }
+                """,
+                UTF_8
+        );
+        Files.writeString(
+                moduleB,
+                """
+                import { pingA } from "./a.ts";
+                export function pingB() {
+                  return "B";
+                }
+                export function unused() {
+                  return pingA;
+                }
+                """,
+                UTF_8
+        );
+        Files.writeString(
+                entry,
+                """
+                import { callB, pingA } from "./a.ts";
+                console.log("cycle=" + pingA() + ":" + callB());
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(entry, tempDir.resolve("out26cycle"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals("cycle=A:B\n", stdout.toString(UTF_8));
+    }
+
+    @Test
+    void rejectsDefaultImportWithFeatureDiagnosticMetadata() throws Exception {
         final Path module = tempDir.resolve("dep.ts");
         final Path entry = tempDir.resolve("main.ts");
         Files.writeString(module, "export const value = 1;\n", UTF_8);
@@ -1862,20 +1972,23 @@ class JvmBytecodeCompilerTest {
                 JvmCompilationException.class,
                 () -> new JvmBytecodeCompiler().compile(entry, tempDir.resolve("out26a"))
         );
-        assertEquals("TSJ-BACKEND-UNSUPPORTED", exception.code());
-        assertTrue(exception.getMessage().contains("Unsupported import form"));
+        assertUnsupportedFeature(
+                exception,
+                "TSJ22-IMPORT-DEFAULT",
+                "Use named imports"
+        );
     }
 
     @Test
-    void rejectsImportAliasInTsj12Bootstrap() throws Exception {
+    void rejectsNamespaceImportWithFeatureDiagnosticMetadata() throws Exception {
         final Path module = tempDir.resolve("dep.ts");
         final Path entry = tempDir.resolve("main.ts");
         Files.writeString(module, "export const value = 1;\n", UTF_8);
         Files.writeString(
                 entry,
                 """
-                import { value as v } from "./dep.ts";
-                console.log(v);
+                import * as ns from "./dep.ts";
+                console.log(ns.value);
                 """,
                 UTF_8
         );
@@ -1884,8 +1997,11 @@ class JvmBytecodeCompilerTest {
                 JvmCompilationException.class,
                 () -> new JvmBytecodeCompiler().compile(entry, tempDir.resolve("out26"))
         );
-        assertEquals("TSJ-BACKEND-UNSUPPORTED", exception.code());
-        assertTrue(exception.getMessage().contains("aliases"));
+        assertUnsupportedFeature(
+                exception,
+                "TSJ22-IMPORT-NAMESPACE",
+                "Use named imports"
+        );
     }
 
     @Test

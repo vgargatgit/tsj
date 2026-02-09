@@ -1553,7 +1553,7 @@ class TsjCliTest {
     }
 
     @Test
-    void runRejectsImportAliasInTsj12Bootstrap() throws Exception {
+    void runSupportsImportAliasInTsj22() throws Exception {
         final Path helperFile = tempDir.resolve("helper.ts");
         final Path entryFile = tempDir.resolve("main.ts");
         Files.writeString(helperFile, "export const value = 2;\n", UTF_8);
@@ -1570,14 +1570,75 @@ class TsjCliTest {
         final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
 
         final int exitCode = TsjCli.execute(
-                new String[]{"run", entryFile.toString(), "--out", tempDir.resolve("bad-import-out").toString()},
+                new String[]{"run", entryFile.toString(), "--out", tempDir.resolve("alias-import-out").toString()},
                 new PrintStream(stdout),
                 new PrintStream(stderr)
         );
 
+        assertEquals(0, exitCode);
+        assertTrue(stdout.toString(UTF_8).contains("2"));
+        assertTrue(stdout.toString(UTF_8).contains("\"code\":\"TSJ-RUN-SUCCESS\""));
+        assertEquals("", stderr.toString(UTF_8));
+    }
+
+    @Test
+    void runRejectsDefaultImportWithFeatureDiagnosticMetadata() throws Exception {
+        final Path helperFile = tempDir.resolve("helper-default.ts");
+        final Path entryFile = tempDir.resolve("main-default.ts");
+        Files.writeString(helperFile, "export const value = 2;\n", UTF_8);
+        Files.writeString(
+                entryFile,
+                """
+                import value from "./helper-default.ts";
+                console.log(value);
+                """,
+                UTF_8
+        );
+
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+
+        final int exitCode = TsjCli.execute(
+                new String[]{"run", entryFile.toString(), "--out", tempDir.resolve("default-import-out").toString()},
+                new PrintStream(stdout),
+                new PrintStream(stderr)
+        );
+
+        final String stderrText = stderr.toString(UTF_8);
         assertEquals(1, exitCode);
-        assertTrue(stderr.toString(UTF_8).contains("\"code\":\"TSJ-BACKEND-UNSUPPORTED\""));
-        assertTrue(stderr.toString(UTF_8).contains("aliases"));
+        assertTrue(stderrText.contains("\"code\":\"TSJ-BACKEND-UNSUPPORTED\""));
+        assertTrue(stderrText.contains("\"featureId\":\"TSJ22-IMPORT-DEFAULT\""));
+        assertTrue(stderrText.contains("Use named imports"));
+    }
+
+    @Test
+    void runRejectsNamespaceImportWithFeatureDiagnosticMetadata() throws Exception {
+        final Path helperFile = tempDir.resolve("helper-namespace.ts");
+        final Path entryFile = tempDir.resolve("main-namespace.ts");
+        Files.writeString(helperFile, "export const value = 2;\n", UTF_8);
+        Files.writeString(
+                entryFile,
+                """
+                import * as ns from "./helper-namespace.ts";
+                console.log(ns.value);
+                """,
+                UTF_8
+        );
+
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+
+        final int exitCode = TsjCli.execute(
+                new String[]{"run", entryFile.toString(), "--out", tempDir.resolve("namespace-import-out").toString()},
+                new PrintStream(stdout),
+                new PrintStream(stderr)
+        );
+
+        final String stderrText = stderr.toString(UTF_8);
+        assertEquals(1, exitCode);
+        assertTrue(stderrText.contains("\"code\":\"TSJ-BACKEND-UNSUPPORTED\""));
+        assertTrue(stderrText.contains("\"featureId\":\"TSJ22-IMPORT-NAMESPACE\""));
+        assertTrue(stderrText.contains("Use named imports"));
     }
 
     @Test

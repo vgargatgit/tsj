@@ -185,21 +185,17 @@
   - CLI packaging includes compiled modules and runtime.
 - Notes:
   - Backend compile path now performs deterministic dependency-first source bundling for supported relative imports.
-  - Supported import forms in TSJ-12 bootstrap:
-    named imports (`import { x } from "./m.ts"`) and side-effect imports (`import "./m.ts"`).
+  - TSJ-22 adds module-level isolation via per-module init wrappers while preserving deterministic startup order.
+  - Supported import forms for current module pipeline:
+    named imports, side-effect imports, and import-alias bindings.
+  - Default and namespace imports currently produce explicit feature diagnostics with IDs.
   - Runtime includes `TsjModuleRegistry` with explicit module states and live export cells; unit tests cover ordering,
     idempotency, cycle-unsafe reads, and failure-state behavior.
   - Fixture coverage includes `tests/fixtures/tsj12-modules`.
   - Known deviations:
-    module scope isolation is not yet implemented (modules are flattened into one generated program unit);
     only relative imports are supported;
-    import aliases/default imports/namespace imports are rejected in TSJ-12 bootstrap;
-    circular imports fail unless no unsafe read occurs during initialization.
-- Status: `Complete (Subset)`.
-- Remaining AC gaps:
-  - True per-module scope isolation is not implemented yet.
-  - Import/export form support is intentionally limited to a bootstrap subset.
-  - Circular dependency handling is limited to safe initialization patterns.
+    default and namespace imports are intentionally feature-diagnosed (not compiled) in the current subset.
+- Status: `Complete`.
 - Dependencies: TSJ-0, TSJ-2, TSJ-9.
 
 ## Epic E: Async and Advanced Features
@@ -485,7 +481,18 @@
   - Default import, namespace import, and alias forms are supported or explicitly diagnosed with feature IDs.
   - Circular dependency behavior is expanded and documented with conformance fixtures.
   - TSJ-12 status can be promoted from `Complete (Subset)` to `Complete`.
-- Status: `Planned`.
+- Notes:
+  - Backend module bundling now emits per-module init wrappers to isolate local declarations and avoid cross-module symbol leakage.
+  - Import aliases are compiled for named imports (for example `import { x as y } from ...`).
+  - Default and namespace imports now fail with explicit feature diagnostics and stable IDs:
+    `TSJ22-IMPORT-DEFAULT` and `TSJ22-IMPORT-NAMESPACE`.
+  - Circular module traversal supports safe dependency cycles; conformance fixtures cover supported behavior.
+  - Coverage includes:
+    `compiler/backend-jvm/src/test/java/dev/tsj/compiler/backend/jvm/JvmBytecodeCompilerTest.java`,
+    `cli/src/test/java/dev/tsj/cli/TsjCliTest.java`,
+    `tests/fixtures/tsj22-module-isolation`,
+    and `tests/fixtures/tsj22-circular-safe`.
+- Status: `Complete`.
 - Dependencies: TSJ-12.
 
 ### TSJ-23: Async IR state-machine completeness

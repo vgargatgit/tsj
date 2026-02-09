@@ -30,6 +30,12 @@ public final class JvmBytecodeCompiler {
     private static final Pattern NAMED_IMPORT_PATTERN = Pattern.compile(
             "^\\s*import\\s*\\{([^}]*)}\\s*from\\s*[\"']([^\"']+)[\"']\\s*;\\s*$"
     );
+    private static final Pattern DEFAULT_IMPORT_PATTERN = Pattern.compile(
+            "^\\s*import\\s+([A-Za-z_$][A-Za-z0-9_$]*)(?:\\s*,\\s*\\{[^}]*})?\\s*from\\s*[\"']([^\"']+)[\"']\\s*;\\s*$"
+    );
+    private static final Pattern NAMESPACE_IMPORT_PATTERN = Pattern.compile(
+            "^\\s*import\\s*\\*\\s*as\\s*([A-Za-z_$][A-Za-z0-9_$]*)\\s*from\\s*[\"']([^\"']+)[\"']\\s*;\\s*$"
+    );
     private static final Pattern SIDE_EFFECT_IMPORT_PATTERN = Pattern.compile(
             "^\\s*import\\s*[\"']([^\"']+)[\"']\\s*;\\s*$"
     );
@@ -53,6 +59,8 @@ public final class JvmBytecodeCompiler {
     private static final String FEATURE_EVAL = "TSJ15-EVAL";
     private static final String FEATURE_FUNCTION_CONSTRUCTOR = "TSJ15-FUNCTION-CONSTRUCTOR";
     private static final String FEATURE_PROXY = "TSJ15-PROXY";
+    private static final String FEATURE_IMPORT_DEFAULT = "TSJ22-IMPORT-DEFAULT";
+    private static final String FEATURE_IMPORT_NAMESPACE = "TSJ22-IMPORT-NAMESPACE";
     private static final String GUIDANCE_DYNAMIC_IMPORT =
             "Use static relative imports (`import { x } from \"./m.ts\"`) in TSJ MVP.";
     private static final String GUIDANCE_EVAL =
@@ -61,6 +69,10 @@ public final class JvmBytecodeCompiler {
             "Replace runtime code evaluation with explicit functions or precompiled modules.";
     private static final String GUIDANCE_PROXY =
             "Proxy semantics are outside MVP; use explicit object wrappers for supported behavior.";
+    private static final String GUIDANCE_IMPORT_DEFAULT =
+            "Use named imports (`import { x } from \"./m.ts\"`) in current TSJ module subset.";
+    private static final String GUIDANCE_IMPORT_NAMESPACE =
+            "Use named imports (`import { x } from \"./m.ts\"`) in current TSJ module subset.";
 
     private static final String OUTPUT_PACKAGE = "dev.tsj.generated";
 
@@ -153,17 +165,116 @@ public final class JvmBytecodeCompiler {
     private static BundleResult bundleModules(final Path entryFile) {
         final Map<Path, ModuleSource> orderedModules = new LinkedHashMap<>();
         collectModule(entryFile, orderedModules, new LinkedHashSet<>());
+        final List<ModuleSource> modules = List.copyOf(orderedModules.values());
+        if (isPassthroughBundle(modules)) {
+            final ModuleSource module = modules.get(0);
+            final StringBuilder passthroughBuilder = new StringBuilder();
+            final List<SourceLineOrigin> passthroughOrigins = new ArrayList<>();
+            appendBundledLine(passthroughBuilder, passthroughOrigins, "// module: " + module.sourceFile(), null, -1);
+            for (int index = 0; index < module.bodyLines().size(); index++) {
+                appendBundledLine(
+                        passthroughBuilder,
+                        passthroughOrigins,
+                        module.bodyLines().get(index),
+                        module.sourceFile(),
+                        module.bodyLineNumbers().get(index)
+                );
+            }
+            appendBundledLine(passthroughBuilder, passthroughOrigins, "", null, -1);
+            return new BundleResult(passthroughBuilder.toString(), List.copyOf(passthroughOrigins));
+        }
+        final Map<Path, String> initFunctionByModule = new LinkedHashMap<>();
+        final Map<Path, Map<String, String>> exportSymbolsByModule = new LinkedHashMap<>();
+
+        for (int index = 0; index < modules.size(); index++) {
+            final ModuleSource module = modules.get(index);
+            initFunctionByModule.put(module.sourceFile(), "__tsj_init_module_" + index);
+            final Map<String, String> exportSymbols = new LinkedHashMap<>();
+            for (String exportName : module.exportNames()) {
+                exportSymbols.put(exportName, exportGlobalSymbol(index, exportName));
+            }
+            exportSymbolsByModule.put(module.sourceFile(), exportSymbols);
+        }
+
         final StringBuilder builder = new StringBuilder();
         final List<SourceLineOrigin> lineOrigins = new ArrayList<>();
-        for (ModuleSource module : orderedModules.values()) {
-            builder.append("// module: ").append(module.sourceFile()).append("\n");
-            lineOrigins.add(new SourceLineOrigin(null, -1));
-            for (int index = 0; index < module.filteredLines().size(); index++) {
-                builder.append(module.filteredLines().get(index)).append("\n");
-                lineOrigins.add(new SourceLineOrigin(module.sourceFile(), module.sourceLineNumbers().get(index)));
+
+        for (ModuleSource module : modules) {
+            final Map<String, String> moduleExports = exportSymbolsByModule.get(module.sourceFile());
+            for (String exportSymbol : moduleExports.values()) {
+                appendBundledLine(builder, lineOrigins, "let " + exportSymbol + " = undefined;", null, -1);
             }
-            builder.append("\n");
-            lineOrigins.add(new SourceLineOrigin(null, -1));
+        }
+        if (!modules.isEmpty()) {
+            appendBundledLine(builder, lineOrigins, "", null, -1);
+        }
+
+        for (ModuleSource module : modules) {
+            final String initFunctionName = initFunctionByModule.get(module.sourceFile());
+            final boolean asyncInit = module.requiresAsyncInit();
+            appendBundledLine(builder, lineOrigins, "// module: " + module.sourceFile(), null, -1);
+            appendBundledLine(
+                    builder,
+                    lineOrigins,
+                    (asyncInit ? "async function " : "function ") + initFunctionName + "() {",
+                    null,
+                    -1
+            );
+
+            for (ModuleImport moduleImport : module.imports()) {
+                if (moduleImport.kind() == ModuleImportKind.SIDE_EFFECT) {
+                    continue;
+                }
+                final Map<String, String> dependencyExports = exportSymbolsByModule.get(moduleImport.dependency());
+                for (ImportBinding binding : moduleImport.bindings()) {
+                    final String exportSymbol = dependencyExports.get(binding.importedName());
+                    if (exportSymbol == null) {
+                        throw new JvmCompilationException(
+                                "TSJ-BACKEND-UNSUPPORTED",
+                                "Imported binding `" + binding.importedName() + "` is not exported by "
+                                        + moduleImport.dependency().getFileName()
+                                        + " (imported from " + module.sourceFile().getFileName() + ").",
+                                moduleImport.line(),
+                                1
+                        );
+                    }
+                    appendBundledLine(
+                            builder,
+                            lineOrigins,
+                            "  const " + binding.localName() + " = " + exportSymbol + ";",
+                            module.sourceFile(),
+                            moduleImport.line()
+                    );
+                }
+            }
+
+            for (int index = 0; index < module.bodyLines().size(); index++) {
+                appendBundledLine(
+                        builder,
+                        lineOrigins,
+                        "  " + module.bodyLines().get(index),
+                        module.sourceFile(),
+                        module.bodyLineNumbers().get(index)
+                );
+            }
+
+            final Map<String, String> moduleExports = exportSymbolsByModule.get(module.sourceFile());
+            for (String exportName : module.exportNames()) {
+                appendBundledLine(
+                        builder,
+                        lineOrigins,
+                        "  " + moduleExports.get(exportName) + " = " + exportName + ";",
+                        null,
+                        -1
+                );
+            }
+            appendBundledLine(builder, lineOrigins, "}", null, -1);
+            if (asyncInit) {
+                appendBundledLine(builder, lineOrigins, "await " + initFunctionName + "();", null, -1);
+            } else {
+                appendBundledLine(builder, lineOrigins, initFunctionName + "();", null, -1);
+            }
+            appendBundledLine(builder, lineOrigins, "", null, -1);
         }
         return new BundleResult(builder.toString(), List.copyOf(lineOrigins));
     }
@@ -178,10 +289,7 @@ public final class JvmBytecodeCompiler {
             return;
         }
         if (visiting.contains(normalizedModule)) {
-            throw new JvmCompilationException(
-                    "TSJ-BACKEND-UNSUPPORTED",
-                    "Circular imports are unsupported in TSJ-12 bootstrap: " + normalizedModule
-            );
+            return;
         }
         visiting.add(normalizedModule);
 
@@ -198,22 +306,52 @@ public final class JvmBytecodeCompiler {
             );
         }
 
-        final List<String> filteredLines = new ArrayList<>();
-        final List<Integer> sourceLineNumbers = new ArrayList<>();
+        final List<ModuleImport> imports = new ArrayList<>();
+        final List<String> bodyLines = new ArrayList<>();
+        final List<Integer> bodyLineNumbers = new ArrayList<>();
+        final LinkedHashSet<String> exportNames = new LinkedHashSet<>();
+        boolean requiresAsyncInit = false;
         final String[] lines = sourceText.replace("\r\n", "\n").split("\n", -1);
         for (int index = 0; index < lines.length; index++) {
             final String line = lines[index];
             final Matcher namedImportMatcher = NAMED_IMPORT_PATTERN.matcher(line);
+            final Matcher defaultImportMatcher = DEFAULT_IMPORT_PATTERN.matcher(line);
+            final Matcher namespaceImportMatcher = NAMESPACE_IMPORT_PATTERN.matcher(line);
             final Matcher sideEffectImportMatcher = SIDE_EFFECT_IMPORT_PATTERN.matcher(line);
             if (namedImportMatcher.matches()) {
-                validateImportBindings(namedImportMatcher.group(1), normalizedModule, index + 1);
                 final Path dependency = resolveImport(normalizedModule, namedImportMatcher.group(2), index + 1);
                 collectModule(dependency, orderedModules, visiting);
+                imports.add(
+                        ModuleImport.named(
+                                dependency,
+                                parseNamedImportBindings(namedImportMatcher.group(1), normalizedModule, index + 1),
+                                index + 1
+                        )
+                );
                 continue;
+            }
+            if (defaultImportMatcher.matches()) {
+                throw unsupportedModuleFeature(
+                        normalizedModule,
+                        index + 1,
+                        FEATURE_IMPORT_DEFAULT,
+                        "Default imports are unsupported in current TSJ module subset.",
+                        GUIDANCE_IMPORT_DEFAULT
+                );
+            }
+            if (namespaceImportMatcher.matches()) {
+                throw unsupportedModuleFeature(
+                        normalizedModule,
+                        index + 1,
+                        FEATURE_IMPORT_NAMESPACE,
+                        "Namespace imports are unsupported in current TSJ module subset.",
+                        GUIDANCE_IMPORT_NAMESPACE
+                );
             }
             if (sideEffectImportMatcher.matches()) {
                 final Path dependency = resolveImport(normalizedModule, sideEffectImportMatcher.group(1), index + 1);
                 collectModule(dependency, orderedModules, visiting);
+                imports.add(ModuleImport.sideEffect(dependency, index + 1));
                 continue;
             }
             if (line.trim().startsWith("import ")) {
@@ -221,36 +359,233 @@ public final class JvmBytecodeCompiler {
                         "TSJ-BACKEND-UNSUPPORTED",
                         "Unsupported import form in TSJ-12 bootstrap: " + line.trim(),
                         index + 1,
-                    1
+                        1
                 );
             }
-            filteredLines.add(line);
-            sourceLineNumbers.add(index + 1);
+            final ExportRewrite exportRewrite = rewriteExportLine(line, index + 1);
+            if (exportRewrite != null) {
+                bodyLines.add(exportRewrite.rewrittenLine());
+                bodyLineNumbers.add(index + 1);
+                exportNames.addAll(exportRewrite.exportedNames());
+                requiresAsyncInit = requiresAsyncInit || lineContainsAwaitKeyword(exportRewrite.rewrittenLine());
+                continue;
+            }
+            bodyLines.add(line);
+            bodyLineNumbers.add(index + 1);
+            requiresAsyncInit = requiresAsyncInit || lineContainsAwaitKeyword(line);
         }
 
         orderedModules.put(
                 normalizedModule,
-                new ModuleSource(normalizedModule, List.copyOf(filteredLines), List.copyOf(sourceLineNumbers))
+                new ModuleSource(
+                        normalizedModule,
+                        List.copyOf(imports),
+                        List.copyOf(bodyLines),
+                        List.copyOf(bodyLineNumbers),
+                        List.copyOf(exportNames),
+                        requiresAsyncInit
+                )
         );
         visiting.remove(normalizedModule);
     }
 
-    private static void validateImportBindings(final String rawBindings, final Path sourceFile, final int line) {
-        final String[] bindings = rawBindings.split(",");
-        for (String binding : bindings) {
-            final String trimmed = binding.trim();
+    private static List<ImportBinding> parseNamedImportBindings(
+            final String rawBindings,
+            final Path sourceFile,
+            final int line
+    ) {
+        final List<ImportBinding> parsedBindings = new ArrayList<>();
+        final String[] bindingSegments = rawBindings.split(",");
+        for (String rawBinding : bindingSegments) {
+            final String trimmed = rawBinding.trim();
             if (trimmed.isEmpty()) {
                 continue;
             }
+            final String importedName;
+            final String localName;
             if (trimmed.contains(" as ")) {
+                final String[] parts = trimmed.split("\\s+as\\s+");
+                if (parts.length != 2) {
+                    throw new JvmCompilationException(
+                            "TSJ-BACKEND-PARSE",
+                            "Invalid named import binding: " + trimmed,
+                            line,
+                            1
+                    );
+                }
+                importedName = parts[0].trim();
+                localName = parts[1].trim();
+            } else {
+                importedName = trimmed;
+                localName = trimmed;
+            }
+            if (!isValidTsIdentifier(importedName) || !isValidTsIdentifier(localName)) {
                 throw new JvmCompilationException(
-                        "TSJ-BACKEND-UNSUPPORTED",
-                        "Import aliases are unsupported in TSJ-12 bootstrap: " + trimmed,
+                        "TSJ-BACKEND-PARSE",
+                        "Invalid named import binding: " + trimmed,
                         line,
                         1
                 );
             }
+            parsedBindings.add(new ImportBinding(importedName, localName));
         }
+        return List.copyOf(parsedBindings);
+    }
+
+    private static ExportRewrite rewriteExportLine(final String line, final int lineNumber) {
+        final String trimmed = line.trim();
+        if (!trimmed.startsWith("export ")) {
+            return null;
+        }
+        if (trimmed.startsWith("export default")) {
+            throw new JvmCompilationException(
+                    "TSJ-BACKEND-UNSUPPORTED",
+                    "Unsupported export form in TSJ-22 subset: " + trimmed,
+                    lineNumber,
+                    1
+            );
+        }
+        final String rewrittenLine = line.replaceFirst("^(\\s*)export\\s+", "$1");
+        return new ExportRewrite(rewrittenLine, parseExportedNames(trimmed, lineNumber));
+    }
+
+    private static List<String> parseExportedNames(final String trimmedExportLine, final int lineNumber) {
+        final Matcher asyncFunctionMatcher = Pattern.compile(
+                "^export\\s+async\\s+function\\s+([A-Za-z_$][A-Za-z0-9_$]*)\\b"
+        ).matcher(trimmedExportLine);
+        if (asyncFunctionMatcher.find()) {
+            return List.of(asyncFunctionMatcher.group(1));
+        }
+        final Matcher functionMatcher = Pattern.compile(
+                "^export\\s+function\\s+([A-Za-z_$][A-Za-z0-9_$]*)\\b"
+        ).matcher(trimmedExportLine);
+        if (functionMatcher.find()) {
+            return List.of(functionMatcher.group(1));
+        }
+        final Matcher classMatcher = Pattern.compile(
+                "^export\\s+class\\s+([A-Za-z_$][A-Za-z0-9_$]*)\\b"
+        ).matcher(trimmedExportLine);
+        if (classMatcher.find()) {
+            return List.of(classMatcher.group(1));
+        }
+        final Matcher variableMatcher = Pattern.compile(
+                "^export\\s+(?:const|let|var)\\s+(.+?);?$"
+        ).matcher(trimmedExportLine);
+        if (variableMatcher.find()) {
+            final String declarations = variableMatcher.group(1).trim();
+            final int equalsIndex = declarations.indexOf('=');
+            String declarationHead = equalsIndex >= 0
+                    ? declarations.substring(0, equalsIndex).trim()
+                    : declarations;
+            if (declarationHead.contains(",")) {
+                throw new JvmCompilationException(
+                        "TSJ-BACKEND-UNSUPPORTED",
+                        "Multi-binding export declarations are unsupported in TSJ-22 subset: " + trimmedExportLine,
+                        lineNumber,
+                        1
+                );
+            }
+            final int typeIndex = declarationHead.indexOf(':');
+            if (typeIndex >= 0) {
+                declarationHead = declarationHead.substring(0, typeIndex).trim();
+            }
+            if (!isValidTsIdentifier(declarationHead)) {
+                throw new JvmCompilationException(
+                        "TSJ-BACKEND-UNSUPPORTED",
+                        "Unsupported export declaration in TSJ-22 subset: " + trimmedExportLine,
+                        lineNumber,
+                        1
+                );
+            }
+            return List.of(declarationHead);
+        }
+        throw new JvmCompilationException(
+                "TSJ-BACKEND-UNSUPPORTED",
+                "Unsupported export form in TSJ-22 subset: " + trimmedExportLine,
+                lineNumber,
+                1
+        );
+    }
+
+    private static String exportGlobalSymbol(final int moduleIndex, final String exportName) {
+        return "__tsj_export_" + moduleIndex + "_" + sanitizeGeneratedIdentifier(exportName);
+    }
+
+    private static String sanitizeGeneratedIdentifier(final String identifier) {
+        final StringBuilder builder = new StringBuilder();
+        for (int index = 0; index < identifier.length(); index++) {
+            final char ch = identifier.charAt(index);
+            if (Character.isLetterOrDigit(ch) || ch == '_' || ch == '$') {
+                builder.append(ch);
+            } else {
+                builder.append('_');
+            }
+        }
+        if (builder.isEmpty()) {
+            builder.append("value");
+        }
+        if (Character.isDigit(builder.charAt(0))) {
+            builder.insert(0, '_');
+        }
+        return builder.toString();
+    }
+
+    private static JvmCompilationException unsupportedModuleFeature(
+            final Path sourceFile,
+            final int line,
+            final String featureId,
+            final String summary,
+            final String guidance
+    ) {
+        return new JvmCompilationException(
+                "TSJ-BACKEND-UNSUPPORTED",
+                summary + " [featureId=" + featureId + "]. Guidance: " + guidance,
+                line,
+                1,
+                sourceFile.toString(),
+                featureId,
+                guidance
+        );
+    }
+
+    private static void appendBundledLine(
+            final StringBuilder builder,
+            final List<SourceLineOrigin> lineOrigins,
+            final String line,
+            final Path sourceFile,
+            final int sourceLine
+    ) {
+        builder.append(line).append("\n");
+        lineOrigins.add(new SourceLineOrigin(sourceFile, sourceLine));
+    }
+
+    private static boolean isPassthroughBundle(final List<ModuleSource> modules) {
+        if (modules.size() != 1) {
+            return false;
+        }
+        final ModuleSource module = modules.get(0);
+        return module.imports().isEmpty() && module.exportNames().isEmpty();
+    }
+
+    private static boolean isValidTsIdentifier(final String value) {
+        if (value == null || value.isBlank()) {
+            return false;
+        }
+        final char first = value.charAt(0);
+        if (!(Character.isLetter(first) || first == '_' || first == '$')) {
+            return false;
+        }
+        for (int index = 1; index < value.length(); index++) {
+            final char ch = value.charAt(index);
+            if (!(Character.isLetterOrDigit(ch) || ch == '_' || ch == '$')) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static boolean lineContainsAwaitKeyword(final String line) {
+        return Pattern.compile("(^|\\W)await(\\W|$)").matcher(line).find();
     }
 
     private static Path resolveImport(final Path sourceFile, final String importPath, final int line) {
@@ -800,10 +1135,39 @@ public final class JvmBytecodeCompiler {
     private record SourceLocation(Path sourceFile, int line, int column) {
     }
 
+    private enum ModuleImportKind {
+        NAMED,
+        SIDE_EFFECT
+    }
+
+    private record ImportBinding(String importedName, String localName) {
+    }
+
+    private record ModuleImport(
+            ModuleImportKind kind,
+            Path dependency,
+            List<ImportBinding> bindings,
+            int line
+    ) {
+        private static ModuleImport named(final Path dependency, final List<ImportBinding> bindings, final int line) {
+            return new ModuleImport(ModuleImportKind.NAMED, dependency, List.copyOf(bindings), line);
+        }
+
+        private static ModuleImport sideEffect(final Path dependency, final int line) {
+            return new ModuleImport(ModuleImportKind.SIDE_EFFECT, dependency, List.of(), line);
+        }
+    }
+
+    private record ExportRewrite(String rewrittenLine, List<String> exportedNames) {
+    }
+
     private record ModuleSource(
             Path sourceFile,
-            List<String> filteredLines,
-            List<Integer> sourceLineNumbers
+            List<ModuleImport> imports,
+            List<String> bodyLines,
+            List<Integer> bodyLineNumbers,
+            List<String> exportNames,
+            boolean requiresAsyncInit
     ) {
     }
 
@@ -2606,6 +2970,7 @@ public final class JvmBytecodeCompiler {
             final List<Statement> normalizedBody =
                     normalizeAsyncStatementsForAwaitExpressions(functionContext, declaration.body());
             emitParameterCells(builder, functionContext, declaration.parameters(), argsVar, indent + "    ");
+            predeclareFunctionBindings(builder, functionContext, normalizedBody, indent + "    ");
             predeclareAsyncLocalBindings(builder, functionContext, normalizedBody, indent + "    ");
 
             builder.append(indent).append("    try {\n");
@@ -2704,6 +3069,7 @@ public final class JvmBytecodeCompiler {
             if (!constructor && method.async()) {
                 final List<Statement> normalizedBody =
                         normalizeAsyncStatementsForAwaitExpressions(methodContext, method.body());
+                predeclareFunctionBindings(builder, methodContext, normalizedBody, indent + "    ");
                 predeclareAsyncLocalBindings(builder, methodContext, normalizedBody, indent + "    ");
                 builder.append(indent).append("    try {\n");
                 emitAsyncStatements(builder, methodContext, normalizedBody, indent + "        ");
@@ -2763,6 +3129,7 @@ public final class JvmBytecodeCompiler {
             if (functionExpression.async()) {
                 final List<Statement> normalizedBody =
                         normalizeAsyncStatementsForAwaitExpressions(functionContext, functionExpression.body());
+                predeclareFunctionBindings(functionBuilder, functionContext, normalizedBody, "    ");
                 predeclareAsyncLocalBindings(functionBuilder, functionContext, normalizedBody, "    ");
                 functionBuilder.append("    try {\n");
                 emitAsyncStatements(functionBuilder, functionContext, normalizedBody, "        ");
