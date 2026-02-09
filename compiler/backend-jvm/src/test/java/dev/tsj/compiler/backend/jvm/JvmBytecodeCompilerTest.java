@@ -531,6 +531,73 @@ class JvmBytecodeCompilerTest {
     }
 
     @Test
+    void supportsObjectToPrimitiveCoercionInLooseEquality() throws Exception {
+        final Path sourceFile = tempDir.resolve("coercion-object-eq.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                const valueOfObject = {
+                  valueOf() {
+                    return 7;
+                  }
+                };
+                console.log("eq1=" + (valueOfObject == 7));
+
+                const toStringObject = {
+                  valueOf() {
+                    return {};
+                  },
+                  toString() {
+                    return "8";
+                  }
+                };
+                console.log("eq2=" + (toStringObject == 8));
+
+                const boolObject = {
+                  valueOf() {
+                    return 1;
+                  }
+                };
+                console.log("eq3=" + (boolObject == true));
+
+                const plain = {};
+                console.log("eq4=" + (plain == "[object Object]"));
+                console.log("eq5=" + (plain == null));
+
+                class Box {
+                  value: number;
+                  constructor(value: number) {
+                    this.value = value;
+                  }
+                  valueOf() {
+                    return this.value;
+                  }
+                }
+                const box = new Box(9);
+                console.log("eq6=" + (box == 9));
+
+                const nonCallableValueOf = {
+                  valueOf: 3,
+                  toString() {
+                    return "11";
+                  }
+                };
+                console.log("eq7=" + (nonCallableValueOf == 11));
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out20b"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals(
+                "eq1=true\neq2=true\neq3=true\neq4=true\neq5=false\neq6=true\neq7=true\n",
+                stdout.toString(UTF_8)
+        );
+    }
+
+    @Test
     void supportsMissingPropertyReadAsUndefined() throws Exception {
         final Path sourceFile = tempDir.resolve("missing-property.ts");
         Files.writeString(
@@ -547,6 +614,81 @@ class JvmBytecodeCompilerTest {
         new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
 
         assertEquals("missing=undefined\n", stdout.toString(UTF_8));
+    }
+
+    @Test
+    void supportsDeleteOperatorForObjectProperties() throws Exception {
+        final Path sourceFile = tempDir.resolve("delete-operator.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                const proto = { shared: "base" };
+                const payload = { own: "x", shared: "local" };
+                payload.__proto__ = proto;
+                console.log("del1=" + delete payload.own);
+                console.log("own=" + payload.own);
+                console.log("del2=" + delete payload.shared);
+                console.log("shared=" + payload.shared);
+                console.log("del3=" + delete payload.missing);
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out21b"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals("del1=true\nown=undefined\ndel2=true\nshared=base\ndel3=true\n", stdout.toString(UTF_8));
+    }
+
+    @Test
+    void supportsPrototypeMutationSyntaxViaObjectSetPrototypeOfAndProtoAssignment() throws Exception {
+        final Path sourceFile = tempDir.resolve("prototype-mutation.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                const base = { label: "base" };
+                const target = {};
+                const returned = Object.setPrototypeOf(target, base);
+                console.log("ret=" + (returned === target));
+                console.log("label=" + target.label);
+
+                const alt = { label: "alt" };
+                target.__proto__ = alt;
+                console.log("label2=" + target.label);
+
+                const cleared = Object.setPrototypeOf(target, null);
+                console.log("cleared=" + (cleared === target));
+                console.log("label3=" + target.label);
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out21c"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals("ret=true\nlabel=base\nlabel2=alt\ncleared=true\nlabel3=undefined\n", stdout.toString(UTF_8));
+    }
+
+    @Test
+    void rejectsDeleteOnUnsupportedOperandInTsj21Subset() throws Exception {
+        final Path sourceFile = tempDir.resolve("delete-unsupported.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                const value = 1;
+                console.log(delete value);
+                """,
+                UTF_8
+        );
+
+        final JvmCompilationException exception = org.junit.jupiter.api.Assertions.assertThrows(
+                JvmCompilationException.class,
+                () -> new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out21d"))
+        );
+        assertEquals("TSJ-BACKEND-UNSUPPORTED", exception.code());
+        assertTrue(exception.getMessage().contains("delete"));
     }
 
     @Test

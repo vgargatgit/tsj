@@ -1,5 +1,6 @@
 package dev.tsj.cli;
 
+import dev.tsj.cli.bench.BenchmarkHarness;
 import dev.tsj.cli.fixtures.FixtureHarness;
 import dev.tsj.cli.fixtures.FixtureSuiteResult;
 import dev.tsj.cli.fixtures.FixtureRunResult;
@@ -40,10 +41,14 @@ public final class TsjCli {
     private static final String COMMAND_RUN = "run";
     private static final String COMMAND_FIXTURES = "fixtures";
     private static final String COMMAND_INTEROP = "interop";
+    private static final String COMMAND_BENCH = "bench";
     private static final String OPTION_OUT = "--out";
     private static final String OPTION_TS_STACKTRACE = "--ts-stacktrace";
     private static final String OPTION_OPTIMIZE = "--optimize";
     private static final String OPTION_NO_OPTIMIZE = "--no-optimize";
+    private static final String OPTION_WARMUP = "--warmup";
+    private static final String OPTION_ITERATIONS = "--iterations";
+    private static final String OPTION_SMOKE = "--smoke";
     private static final String DEFAULT_RUN_OUT_DIR = ".tsj-build";
     private static final String ARTIFACT_FILE_NAME = "program.tsj.properties";
 
@@ -71,7 +76,7 @@ public final class TsjCli {
             if (args.length == 0) {
                 throw CliFailure.usage(
                         "TSJ-CLI-001",
-                        "Missing command. Expected `compile`, `run`, `fixtures`, or `interop`."
+                        "Missing command. Expected `compile`, `run`, `fixtures`, `interop`, or `bench`."
                 );
             }
 
@@ -80,9 +85,10 @@ public final class TsjCli {
                 case COMMAND_RUN -> handleRun(args, stdout, stderr);
                 case COMMAND_FIXTURES -> handleFixtures(args, stdout);
                 case COMMAND_INTEROP -> handleInterop(args, stdout);
+                case COMMAND_BENCH -> handleBench(args, stdout);
                 default -> throw CliFailure.usage(
                         "TSJ-CLI-002",
-                        "Unknown command `" + args[0] + "`. Expected `compile`, `run`, `fixtures`, or `interop`."
+                        "Unknown command `" + args[0] + "`. Expected `compile`, `run`, `fixtures`, `interop`, or `bench`."
                 );
             };
         } catch (final CliFailure failure) {
@@ -278,6 +284,52 @@ public final class TsjCli {
         return 0;
     }
 
+    private static int handleBench(final String[] args, final PrintStream stdout) {
+        if (args.length < 2) {
+            throw CliFailure.usage(
+                    "TSJ-CLI-009",
+                    "Missing benchmark report path. Usage: tsj bench <report.json> [--warmup <n>] "
+                            + "[--iterations <n>] [--smoke] [--optimize|--no-optimize]"
+            );
+        }
+        final Path reportPath = Path.of(args[1]);
+        final BenchmarkHarness.BenchmarkOptions options = parseBenchmarkOptions(args, 2);
+
+        final BenchmarkHarness.BenchmarkReport report;
+        try {
+            report = new BenchmarkHarness().run(reportPath, options);
+        } catch (final IllegalArgumentException illegalArgumentException) {
+            throw CliFailure.usage(
+                    "TSJ-CLI-010",
+                    "Invalid benchmark options: " + illegalArgumentException.getMessage()
+            );
+        } catch (final RuntimeException runtimeException) {
+            throw CliFailure.runtime(
+                    "TSJ-BENCH-001",
+                    "Benchmark harness failed: " + runtimeException.getMessage(),
+                    Map.of("report", reportPath.toString())
+            );
+        }
+
+        emitDiagnostic(
+                stdout,
+                "INFO",
+                "TSJ-BENCH-SUCCESS",
+                "Benchmark report generated.",
+                Map.of(
+                        "report", reportPath.toAbsolutePath().normalize().toString(),
+                        "workloads", Integer.toString(report.summary().totalWorkloads()),
+                        "microWorkloads", Integer.toString(report.summary().microWorkloads()),
+                        "macroWorkloads", Integer.toString(report.summary().macroWorkloads()),
+                        "avgCompileMs", formatDouble(report.summary().avgCompileMs()),
+                        "avgRunMs", formatDouble(report.summary().avgRunMs()),
+                        "avgThroughputOpsPerSec", formatDouble(report.summary().avgThroughputOpsPerSec()),
+                        "maxPeakMemoryBytes", Long.toString(report.summary().maxPeakMemoryBytes())
+                )
+        );
+        return 0;
+    }
+
     private static CompileOptions parseCompileOptions(
             final String[] args,
             final int startIndex,
@@ -352,6 +404,92 @@ public final class TsjCli {
             );
         }
         return new ParsedOutOption(outDir);
+    }
+
+    private static BenchmarkHarness.BenchmarkOptions parseBenchmarkOptions(
+            final String[] args,
+            final int startIndex
+    ) {
+        int warmupIterations = 1;
+        int measuredIterations = 2;
+        BenchmarkHarness.BenchmarkProfile profile = BenchmarkHarness.BenchmarkProfile.FULL;
+        JvmOptimizationOptions optimizationOptions = JvmOptimizationOptions.defaults();
+        int index = startIndex;
+        while (index < args.length) {
+            final String token = args[index];
+            if (OPTION_WARMUP.equals(token)) {
+                if (index + 1 >= args.length) {
+                    throw CliFailure.usage("TSJ-CLI-010", "Missing value for `--warmup`.");
+                }
+                warmupIterations = parseNonNegativeInteger(args[index + 1], OPTION_WARMUP);
+                index += 2;
+                continue;
+            }
+            if (OPTION_ITERATIONS.equals(token)) {
+                if (index + 1 >= args.length) {
+                    throw CliFailure.usage("TSJ-CLI-010", "Missing value for `--iterations`.");
+                }
+                measuredIterations = parsePositiveInteger(args[index + 1], OPTION_ITERATIONS);
+                index += 2;
+                continue;
+            }
+            if (OPTION_SMOKE.equals(token)) {
+                profile = BenchmarkHarness.BenchmarkProfile.SMOKE;
+                index++;
+                continue;
+            }
+            final JvmOptimizationOptions toggled = parseOptimizationToggle(token);
+            if (toggled != null) {
+                optimizationOptions = toggled;
+                index++;
+                continue;
+            }
+            throw CliFailure.usage("TSJ-CLI-010", "Unknown benchmark option `" + token + "`.");
+        }
+        return new BenchmarkHarness.BenchmarkOptions(
+                warmupIterations,
+                measuredIterations,
+                profile,
+                optimizationOptions
+        );
+    }
+
+    private static int parsePositiveInteger(final String rawValue, final String optionName) {
+        final int value;
+        try {
+            value = Integer.parseInt(rawValue);
+        } catch (final NumberFormatException numberFormatException) {
+            throw CliFailure.usage(
+                    "TSJ-CLI-010",
+                    "Invalid value for `" + optionName + "`: `" + rawValue + "`."
+            );
+        }
+        if (value <= 0) {
+            throw CliFailure.usage(
+                    "TSJ-CLI-010",
+                    "Value for `" + optionName + "` must be greater than zero."
+            );
+        }
+        return value;
+    }
+
+    private static int parseNonNegativeInteger(final String rawValue, final String optionName) {
+        final int value;
+        try {
+            value = Integer.parseInt(rawValue);
+        } catch (final NumberFormatException numberFormatException) {
+            throw CliFailure.usage(
+                    "TSJ-CLI-010",
+                    "Invalid value for `" + optionName + "`: `" + rawValue + "`."
+            );
+        }
+        if (value < 0) {
+            throw CliFailure.usage(
+                    "TSJ-CLI-010",
+                    "Value for `" + optionName + "` must be zero or greater."
+            );
+        }
+        return value;
     }
 
     private static CompiledArtifact compileArtifact(
@@ -759,6 +897,10 @@ public final class TsjCli {
                 .replace("\n", "\\n")
                 .replace("\r", "\\r")
                 .replace("\t", "\\t");
+    }
+
+    private static String formatDouble(final double value) {
+        return String.format(java.util.Locale.ROOT, "%.3f", value);
     }
 
     private record ParsedOutOption(Path outDir) {

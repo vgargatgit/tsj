@@ -25,6 +25,9 @@ Current implementation status includes:
 20. Opt-in interop bridge generation with allowlist enforcement and runtime codec helpers (`TSJ-19`)
 21. Differential conformance suite execution with minimized repro output and feature coverage report generation (`TSJ-16`)
 22. Baseline optimizer pass with constant folding + dead-code elimination, benchmarked reduction on fixture-like workloads, and CLI optimization toggles (`TSJ-17`)
+23. Performance benchmark harness with micro/macro workloads, SLA draft, and CI baseline artifact tracking (`TSJ-18`)
+24. Object-to-primitive abstract equality coercion parity for `==`/`!=`, including `valueOf`/`toString` conversion paths and differential fixture coverage (`TSJ-20`)
+25. Object runtime syntax parity for `delete`, `__proto__` assignment, and `Object.setPrototypeOf(...)` lowering with differential fixture coverage (`TSJ-21`)
 
 ## Repository Layout
 
@@ -117,6 +120,22 @@ mvn -B -ntp -pl cli -am exec:java \
   -Dexec.args="fixtures tests/fixtures"
 ```
 
+Generate performance benchmark baseline report:
+
+```bash
+mvn -B -ntp -pl cli -am exec:java \
+  -Dexec.mainClass=dev.tsj.cli.TsjCli \
+  -Dexec.args="bench benchmarks/tsj-benchmark-baseline.json --warmup 1 --iterations 2"
+```
+
+Run a fast smoke benchmark profile:
+
+```bash
+mvn -B -ntp -pl cli -am exec:java \
+  -Dexec.mainClass=dev.tsj.cli.TsjCli \
+  -Dexec.args="bench benchmarks/tsj-benchmark-smoke.json --smoke --warmup 0 --iterations 1"
+```
+
 Generate Java interop bridges from allowlisted targets:
 
 ```bash
@@ -145,6 +164,9 @@ TSJ-15 adds explicit non-goal feature gates with structured diagnostics (`featur
 TSJ-19 adds opt-in interop bridge generation from allowlisted Java targets and runtime `TsjInteropCodec` conversions for Java boundary calls.
 TSJ-16 adds explicit differential suite execution outputs with minimized failure repro details and feature coverage report generation (`tests/fixtures/tsj-fixture-coverage.json`).
 TSJ-17 adds baseline compiler optimizations (constant folding + dead-code elimination), CLI toggles (`--optimize`, `--no-optimize`), and benchmark assertions that verify generated output reduction.
+TSJ-18 adds a benchmark harness (`tsj bench`) with micro/macro suites, a baseline JSON report tracked in CI artifacts, and initial SLA targets in `docs/performance-sla.md`.
+TSJ-20 adds object-to-primitive abstract-equality coercion parity (`valueOf`/`toString`) for supported runtime objects and class instances.
+TSJ-21 adds language-level lowering for `delete`, `obj.__proto__ = ...`, and `Object.setPrototypeOf(...)` to close TSJ-11 syntax/runtime integration gaps.
 
 ## Frontend and IR Tools
 
@@ -193,6 +215,8 @@ Seed fixture:
 - `tests/fixtures/tsj13f-top-level-await-modules`
 - `tests/fixtures/tsj13f-top-level-await-transitive`
 - `tests/fixtures/tsj13f-top-level-await-while-unsupported`
+- `tests/fixtures/tsj20-abstract-equality`
+- `tests/fixtures/tsj21-object-runtime-syntax`
 
 ## Project Planning Docs
 
@@ -203,6 +227,7 @@ Seed fixture:
 - Source-map format: `docs/source-map-format.md`
 - Unsupported feature matrix: `docs/unsupported-feature-matrix.md`
 - Interop bridge spec: `docs/interop-bridge-spec.md`
+- Performance SLA draft: `docs/performance-sla.md`
 
 ## Development Approach
 

@@ -12,6 +12,11 @@
 - Runtime contracts: `docs/contracts/runtime-contracts-v0.1.md`
 - Story to AD map: `docs/story-architecture-map.md`
 
+## Story Status Legend
+- `Complete`: acceptance criteria satisfied for the intended scope.
+- `Complete (Subset)`: shipping subset is complete, with explicit remaining AC gaps tracked.
+- `Planned`: not implemented yet.
+
 ## Epic 0: Architecture Lock-In
 
 ### TSJ-0: ADR set and architecture contracts
@@ -20,6 +25,7 @@
   - Decision records AD-01 through AD-07 are published in `docs/architecture-decisions.md`.
   - Runtime contracts are documented for `TsValue`, `TsObject`, module table, and scheduler API in `docs/contracts/runtime-contracts-v0.1.md`.
   - Story dependency map references architecture decisions in `docs/story-architecture-map.md`.
+- Status: `Complete`.
 - Dependencies: none.
 
 ## Epic A: Project Foundation
@@ -30,6 +36,7 @@
   - Gradle or Maven build runs from repo root.
   - Separate modules for `frontend`, `ir`, `backend-jvm`, `runtime`, `cli`.
   - CI runs lint + unit tests.
+- Status: `Complete`.
 - Dependencies: none.
 
 ### TSJ-2: CLI skeleton (`tsj compile`, `tsj run`)
@@ -40,6 +47,7 @@
   - CLI displays structured diagnostics.
 - Notes:
   - Bootstrap command contract is documented in `docs/cli-contract.md`.
+- Status: `Complete`.
 - Dependencies: TSJ-1.
 
 ### TSJ-3: Fixture-based test harness
@@ -51,6 +59,7 @@
 - Notes:
   - Fixture format is documented in `docs/fixture-format.md`.
   - Seed fixture lives at `tests/fixtures/smoke-hello`.
+- Status: `Complete`.
 - Dependencies: TSJ-1.
 
 ## Epic B: Frontend and IR
@@ -63,6 +72,7 @@
   - Surfaces TS diagnostics with file/line mapping.
 - Notes:
   - Frontend service contract is documented in `docs/frontend-contract.md`.
+- Status: `Complete`.
 - Dependencies: TSJ-1.
 
 ### TSJ-5: Initial IR design and serializer
@@ -74,6 +84,7 @@
   - IR dump/print tool exists for debugging.
 - Notes:
   - TSJ-5 bootstrap IR contract is documented in `docs/ir-contract.md`.
+- Status: `Complete`.
 - Dependencies: TSJ-0, TSJ-4.
 
 ### TSJ-6: Control-flow and symbol resolution in IR
@@ -84,6 +95,7 @@
   - Unit tests for nested scopes and closure capture.
 - Notes:
   - TSJ-6 extends MIR with blocks, CFG edges, lexical scopes, and capture metadata.
+- Status: `Complete`.
 - Dependencies: TSJ-5.
 
 ## Epic C: JVM Backend (MVP)
@@ -97,6 +109,7 @@
 - Notes:
   - TSJ-7 implementation generates JVM classes through backend codegen + JDK compiler for the supported subset.
   - Differential fixture comparison ignores TSJ diagnostic JSON lines and compares runtime outputs.
+- Status: `Complete`.
 - Dependencies: TSJ-0, TSJ-6.
 
 ### TSJ-8: Function and closure representation on JVM
@@ -109,6 +122,9 @@
   - TSJ-8 backend lowers function declarations to runtime callables with closure cells.
   - Lexical captures are preserved through shared `TsjCell` references across nested scopes.
   - `this` is not supported in TSJ-8 subset; usage remains outside the supported feature surface.
+- Status: `Complete (Subset)`.
+- Remaining AC gaps:
+  - Broader `this` binding behavior outside the TSJ-8 subset is not implemented.
 - Dependencies: TSJ-7.
 
 ### TSJ-9: Class and object model (MVP subset)
@@ -121,6 +137,7 @@
   - TSJ-9 backend parser/codegen supports `class`, `extends`, `new`, `this`, and constructor `super(...)` calls.
   - Runtime model uses `TsjClass` + `TsjObject` with prototype-based method dispatch and property mutation helpers.
   - Fixture coverage includes `tests/fixtures/tsj9-class-inheritance` and `tests/fixtures/tsj9-object-literal`.
+- Status: `Complete`.
 - Dependencies: TSJ-7.
 
 ## Epic D: Runtime Compatibility Layer
@@ -136,9 +153,8 @@
   - Runtime adds explicit `undefined` sentinel value and coercion helpers for display, truthiness, and numeric conversion.
   - Backend lowering distinguishes abstract equality (`==`, `!=`) from strict equality (`===`, `!==`).
   - Fixture coverage includes `tests/fixtures/tsj10-coercion`.
-  - Known deviations:
-    object-to-primitive coercion paths for `==` are not implemented yet; these comparisons currently return `false`
-    unless both operands are the same object reference.
+  - TSJ-20 closes object-to-primitive coercion parity for `==`/`!=` via `valueOf`/`toString` conversion paths.
+- Status: `Complete`.
 - Dependencies: TSJ-0, TSJ-7.
 
 ### TSJ-11: Dynamic object runtime with prototype links
@@ -155,9 +171,9 @@
   - Backend codegen emits monomorphic property-read cache fields per member-access call site.
   - Fixture coverage includes `tests/fixtures/tsj11-missing-property`.
   - Known deviations:
-    `delete` and explicit prototype mutation syntax are not yet parsed/lowered by backend;
-    runtime APIs exist and are covered by unit tests.
     Property-read cache currently specializes own-property hits; prototype-chain reads deopt to full lookup.
+- TSJ-21 closes syntax/runtime integration for `delete`, `__proto__` assignment, and `Object.setPrototypeOf(...)`.
+- Status: `Complete`.
 - Dependencies: TSJ-0, TSJ-9.
 
 ### TSJ-12: Module loader and initialization order
@@ -179,6 +195,11 @@
     only relative imports are supported;
     import aliases/default imports/namespace imports are rejected in TSJ-12 bootstrap;
     circular imports fail unless no unsafe read occurs during initialization.
+- Status: `Complete (Subset)`.
+- Remaining AC gaps:
+  - True per-module scope isolation is not implemented yet.
+  - Import/export form support is intentionally limited to a bootstrap subset.
+  - Circular dependency handling is limited to safe initialization patterns.
 - Dependencies: TSJ-0, TSJ-2, TSJ-9.
 
 ## Epic E: Async and Advanced Features
@@ -195,6 +216,7 @@
   - Fixture coverage includes:
     `tests/fixtures/tsj13-promise-then`, `tests/fixtures/tsj13-async-await`, and `tests/fixtures/tsj13-async-reject`.
   - Full JS-like async support is tracked by TSJ-13a through TSJ-13f.
+- Status: `Complete`.
 - Dependencies: TSJ-0, TSJ-10, TSJ-12.
 
 ### TSJ-13a: Async state-machine lowering for control flow
@@ -211,6 +233,11 @@
   - Known deviations in this pass:
     `await` in `if`/`while` conditions is still rejected;
     `break`/`continue`/`try`/`catch`/`finally` are not yet represented in the TSJ parser/lowering subset.
+- Status: `Complete (Subset)`.
+- Remaining AC gaps:
+  - MIR/JIR async suspend/resume/state constructs are not yet explicit.
+  - `break`/`continue`/`try`/`catch`/`finally` across suspension points are not fully lowered.
+  - `await` in `if`/`while` conditions remains unsupported.
 - Dependencies: TSJ-13, TSJ-6, TSJ-7.
 
 ### TSJ-13b: Async language surface completeness
@@ -229,6 +256,10 @@
   - Known deviations in this pass:
     async while conditions with `await` remain unsupported;
     async methods in class/object declarations are only supported in standard method form (not generator/getter/setter variants).
+- Status: `Complete (Subset)`.
+- Remaining AC gaps:
+  - `await` in async while conditions is not yet supported.
+  - Async generator/getter/setter method variants are not supported.
 - Dependencies: TSJ-13a, TSJ-9.
 
 ### TSJ-13c: Promise resolution procedure and thenable assimilation
@@ -244,6 +275,7 @@
   - Runtime TDD coverage includes thenable throw-before-settlement rejection, nested thenable adoption,
     non-callable `then` handling, and callback-returned thenable chaining.
   - Differential fixture coverage includes `tests/fixtures/tsj13c-thenable` and `tests/fixtures/tsj13c-thenable-reject`.
+- Status: `Complete`.
 - Dependencies: TSJ-13, TSJ-10.
 
 ### TSJ-13d: Async error semantics and rejection handling parity
@@ -259,6 +291,7 @@
     after the microtask turn.
   - Differential fixture coverage includes `tests/fixtures/tsj13d-catch-finally` and
     `tests/fixtures/tsj13d-finally-reject`.
+- Status: `Complete`.
 - Dependencies: TSJ-13a, TSJ-13c, TSJ-14.
 
 ### TSJ-13e: Promise combinators
@@ -274,6 +307,9 @@
     protocol parity remains a follow-up.
   - Differential fixture coverage includes `tests/fixtures/tsj13e-all-race`,
     `tests/fixtures/tsj13e-allsettled-any`, and `tests/fixtures/tsj13e-any-reject`.
+- Status: `Complete (Subset)`.
+- Remaining AC gaps:
+  - Generic iterable protocol parity for combinator inputs is not complete.
 - Dependencies: TSJ-13c.
 
 ### TSJ-13f: Top-level await and async conformance/diagnostics
@@ -291,6 +327,9 @@
     `tests/fixtures/tsj13f-top-level-await-while-unsupported`.
   - Async diagnostics now include explicit unsupported placement guidance for `await` in while conditions.
   - Source-mapped async stack traces remain future work under TSJ-14.
+- Status: `Complete (Subset)`.
+- Remaining AC gaps:
+  - Source-mapped async stack traces are not yet implemented end-to-end.
 - Dependencies: TSJ-12, TSJ-13a, TSJ-14, TSJ-16.
 
 ### TSJ-14: Error model and stack trace source mapping
@@ -304,6 +343,7 @@
     `classes/dev/tsj/generated/*Program.tsj.map`.
   - `tsj run --ts-stacktrace` now renders best-effort TypeScript frame locations for runtime failures.
   - Source map format is documented in `docs/source-map-format.md`.
+- Status: `Complete`.
 - Dependencies: TSJ-7.
 
 ### TSJ-15: Unsupported feature detection and diagnostics
@@ -319,6 +359,7 @@
     when triggered by TSJ-15 feature gates.
   - Non-goal matrix is documented in `docs/unsupported-feature-matrix.md`.
   - Coverage exists at backend and CLI layers for direct and imported-module failures.
+- Status: `Complete`.
 - Dependencies: TSJ-0, TSJ-4.
 
 ### TSJ-19: Interop bridge generation (opt-in)
@@ -339,6 +380,7 @@
     `runtime/src/test/java/dev/tsj/runtime/TsjInteropCodecTest.java`,
     `compiler/backend-jvm/src/test/java/dev/tsj/compiler/backend/jvm/InteropBridgeGeneratorTest.java`,
     and CLI coverage in `cli/src/test/java/dev/tsj/cli/TsjCliTest.java`.
+- Status: `Complete`.
 - Dependencies: TSJ-0, TSJ-10.
 
 ## Epic F: Quality and Performance
@@ -357,6 +399,7 @@
   - Coverage buckets are derived from fixture name prefixes (`tsj10-*`, `tsj13f-*`, etc.),
     with `unmapped` as fallback.
   - CI now runs the committed differential fixture suite on pull requests and pushes.
+- Status: `Complete`.
 - Dependencies: TSJ-3, TSJ-12.
 
 ### TSJ-17: Baseline optimization passes
@@ -375,6 +418,7 @@
     `compiler/backend-jvm/src/test/java/dev/tsj/compiler/backend/jvm/JvmBytecodeCompilerTest.java`
     via `optimizationBenchmarkShowsGeneratedSourceReductionAcrossFixtureSet`, which compares
     generated-source bytes and runtime-operation counts across a fixture-like set.
+- Status: `Complete`.
 - Dependencies: TSJ-6, TSJ-7.
 
 ### TSJ-18: Performance benchmark suite and SLA draft
@@ -383,7 +427,95 @@
   - Benchmark harness includes micro + macro workloads.
   - Initial SLA drafted (startup, throughput, memory targets).
   - Baseline numbers stored and tracked in CI artifacts.
+- Notes:
+  - New benchmark harness is available via `tsj bench <report.json>` with workload profiles:
+    full suite (`micro + macro`) and smoke suite (`--smoke`) for fast validation.
+  - Benchmark results are emitted as JSON baseline reports with compile/run timing,
+    throughput, and peak-memory samples per workload.
+  - CI now generates `benchmarks/tsj-benchmark-baseline.json` and uploads it as the
+    `benchmark-baseline-report` artifact on each run.
+  - Initial SLA draft is documented in `docs/performance-sla.md`.
+- Status: `Complete`.
 - Dependencies: TSJ-16.
+
+## Epic G: Full AC Gap-Closure Backlog
+
+### TSJ-20: Abstract equality object-to-primitive coercion parity
+- Why: JS-style abstract equality correctness requires object-to-primitive conversion rules.
+- Acceptance Criteria:
+  - `==` / `!=` implements object-to-primitive coercion for supported built-ins.
+  - Differential fixtures cover object-vs-primitive equality edge cases.
+  - TSJ-10 status can be promoted from `Complete (Subset)` to `Complete`.
+- Notes:
+  - Runtime abstract equality now converts object operands via `valueOf`/`toString` before primitive comparison,
+    including boolean-driven coercion flows (`obj == true`) and class-instance `valueOf` via receiver binding.
+  - Fallback coercion for plain objects now aligns with Object.prototype-like string form (`"[object Object]"`) for
+    supported subset behavior.
+  - Coverage includes:
+    `runtime/src/test/java/dev/tsj/runtime/TsjRuntimeTest.java`,
+    `compiler/backend-jvm/src/test/java/dev/tsj/compiler/backend/jvm/JvmBytecodeCompilerTest.java`,
+    `cli/src/test/java/dev/tsj/cli/TsjCliTest.java`,
+    and differential fixture `tests/fixtures/tsj20-abstract-equality`.
+- Status: `Complete`.
+- Dependencies: TSJ-10.
+
+### TSJ-21: Object runtime syntax parity for delete/prototype mutation
+- Why: Runtime APIs exist, but language-level syntax support is required for end-to-end behavior.
+- Acceptance Criteria:
+  - Frontend/backend lowers `delete` and explicit prototype mutation syntax for supported forms.
+  - Differential fixtures validate behavior against Node for supported subset.
+  - TSJ-11 status can be promoted from `Complete (Subset)` to `Complete`.
+- Notes:
+  - Parser recognizes unary `delete` and lowers supported member-access targets to runtime `deleteProperty`.
+  - Assignment lowering now treats `obj.__proto__ = proto` as prototype mutation via runtime `setPrototype`.
+  - Call lowering now recognizes `Object.setPrototypeOf(target, proto)` and routes to runtime prototype mutation API.
+  - Runtime `setPrototype` now returns the mutated target to align with `Object.setPrototypeOf` expression behavior.
+  - Coverage includes:
+    `runtime/src/test/java/dev/tsj/runtime/TsjRuntimeTest.java`,
+    `compiler/backend-jvm/src/test/java/dev/tsj/compiler/backend/jvm/JvmBytecodeCompilerTest.java`,
+    `cli/src/test/java/dev/tsj/cli/TsjCliTest.java`,
+    and differential fixture `tests/fixtures/tsj21-object-runtime-syntax`.
+- Status: `Complete`.
+- Dependencies: TSJ-11.
+
+### TSJ-22: Module isolation and import-surface expansion
+- Why: Production module semantics require real module scoping and broader import compatibility.
+- Acceptance Criteria:
+  - Module scope isolation is implemented (no single-unit flattening semantics leakage).
+  - Default import, namespace import, and alias forms are supported or explicitly diagnosed with feature IDs.
+  - Circular dependency behavior is expanded and documented with conformance fixtures.
+  - TSJ-12 status can be promoted from `Complete (Subset)` to `Complete`.
+- Status: `Planned`.
+- Dependencies: TSJ-12.
+
+### TSJ-23: Async IR state-machine completeness
+- Why: Full async control-flow correctness depends on explicit IR state-machine modeling.
+- Acceptance Criteria:
+  - MIR/JIR carries explicit suspend/resume/state constructs.
+  - Lowering preserves `return`/`throw`/`break`/`continue` and `try`/`catch`/`finally` across suspension points.
+  - Async control-flow differential suite expanded for nested/compound cases.
+  - TSJ-13a status can be promoted from `Complete (Subset)` to `Complete`.
+- Status: `Planned`.
+- Dependencies: TSJ-13a.
+
+### TSJ-24: Promise combinator iterable protocol parity
+- Why: JS Promise combinators accept generic iterables, not only array-like structures.
+- Acceptance Criteria:
+  - `Promise.all/race/allSettled/any` accept generic iterable inputs.
+  - Iterator closing/error behavior matches Node for supported cases.
+  - TSJ-13e status can be promoted from `Complete (Subset)` to `Complete`.
+- Status: `Planned`.
+- Dependencies: TSJ-13e.
+
+### TSJ-25: Source-mapped async stack trace parity
+- Why: Async debugging parity requires stable TS coordinates across async boundaries.
+- Acceptance Criteria:
+  - Async stack traces map suspension/resume frames to TS source locations.
+  - `tsj run --ts-stacktrace` includes async continuation boundaries in readable form.
+  - Differential diagnostics tests verify async stack formatting behavior.
+  - TSJ-13f status can be promoted from `Complete (Subset)` to `Complete`.
+- Status: `Planned`.
+- Dependencies: TSJ-13f, TSJ-14.
 
 ## First Three Sprints (Suggested)
 
@@ -398,11 +530,11 @@
 
 ## Exit Criteria for MVP Milestone
 MVP is reached when:
-1. Stories TSJ-0, TSJ-1 through TSJ-13, TSJ-15, and TSJ-19 are complete.
+1. Stories TSJ-0, TSJ-1 through TSJ-13, TSJ-15, and TSJ-19 are at least `Complete (Subset)`.
 2. Differential suite passes for defined MVP language subset.
 
 ## Exit Criteria for Full Async Parity
 Full async parity is reached when:
-1. Stories TSJ-13a through TSJ-13f are complete.
+1. Stories TSJ-13a through TSJ-13f are fully `Complete` (no remaining AC gaps).
 2. Async differential suite passes for control-flow, Promise semantics, and top-level-await module ordering.
 3. CLI can compile and run a multi-file sample app with predictable behavior.

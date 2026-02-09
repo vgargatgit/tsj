@@ -43,3 +43,11 @@ jobs:
           name: fixture-coverage-report
           path: tests/fixtures/tsj-fixture-coverage.json
           if-no-files-found: warn
+
+      - name: Upload benchmark baseline report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-baseline-report
+          path: benchmarks/tsj-benchmark-baseline.json
+          if-no-files-found: warn

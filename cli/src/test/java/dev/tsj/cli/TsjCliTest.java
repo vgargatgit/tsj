@@ -42,6 +42,111 @@ class TsjCliTest {
     }
 
     @Test
+    void benchCommandGeneratesBenchmarkReportArtifact() throws Exception {
+        final Path reportPath = tempDir.resolve("benchmarks/tsj-benchmark-baseline.json");
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+
+        final int exitCode = TsjCli.execute(
+                new String[]{
+                        "bench",
+                        reportPath.toString(),
+                        "--smoke",
+                        "--warmup",
+                        "0",
+                        "--iterations",
+                        "1"
+                },
+                new PrintStream(stdout),
+                new PrintStream(stderr)
+        );
+
+        assertEquals(0, exitCode);
+        assertTrue(Files.exists(reportPath));
+        assertTrue(stdout.toString(UTF_8).contains("\"code\":\"TSJ-BENCH-SUCCESS\""));
+        assertEquals("", stderr.toString(UTF_8));
+    }
+
+    @Test
+    void benchCommandRequiresOutputPath() {
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+
+        final int exitCode = TsjCli.execute(
+                new String[]{"bench"},
+                new PrintStream(stdout),
+                new PrintStream(stderr)
+        );
+
+        assertEquals(2, exitCode);
+        assertTrue(stderr.toString(UTF_8).contains("\"code\":\"TSJ-CLI-009\""));
+    }
+
+    @Test
+    void benchCommandRejectsUnknownOption() {
+        final Path reportPath = tempDir.resolve("benchmarks/report.json");
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+
+        final int exitCode = TsjCli.execute(
+                new String[]{"bench", reportPath.toString(), "--bogus"},
+                new PrintStream(stdout),
+                new PrintStream(stderr)
+        );
+
+        assertEquals(2, exitCode);
+        assertTrue(stderr.toString(UTF_8).contains("\"code\":\"TSJ-CLI-010\""));
+    }
+
+    @Test
+    void benchCommandRejectsInvalidWarmupValue() {
+        final Path reportPath = tempDir.resolve("benchmarks/report.json");
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+
+        final int exitCode = TsjCli.execute(
+                new String[]{"bench", reportPath.toString(), "--warmup", "-1"},
+                new PrintStream(stdout),
+                new PrintStream(stderr)
+        );
+
+        assertEquals(2, exitCode);
+        assertTrue(stderr.toString(UTF_8).contains("\"code\":\"TSJ-CLI-010\""));
+        assertTrue(stderr.toString(UTF_8).contains("--warmup"));
+    }
+
+    @Test
+    void benchCommandSupportsNoOptimizeToggle() throws Exception {
+        final Path reportPath = tempDir.resolve("benchmarks/no-opt.json");
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+
+        final int exitCode = TsjCli.execute(
+                new String[]{
+                        "bench",
+                        reportPath.toString(),
+                        "--smoke",
+                        "--warmup",
+                        "0",
+                        "--iterations",
+                        "1",
+                        "--no-optimize"
+                },
+                new PrintStream(stdout),
+                new PrintStream(stderr)
+        );
+
+        final String reportJson = Files.readString(reportPath, UTF_8);
+
+        assertEquals(0, exitCode);
+        assertTrue(Files.exists(reportPath));
+        assertTrue(reportJson.contains("\"constantFoldingEnabled\":false"));
+        assertTrue(reportJson.contains("\"deadCodeEliminationEnabled\":false"));
+        assertTrue(stdout.toString(UTF_8).contains("\"code\":\"TSJ-BENCH-SUCCESS\""));
+        assertEquals("", stderr.toString(UTF_8));
+    }
+
+    @Test
     void compileDisablesOptimizationsWithNoOptimizeFlag() throws Exception {
         final Path entryFile = tempDir.resolve("opt-toggle.ts");
         Files.writeString(
@@ -354,6 +459,135 @@ class TsjCliTest {
         assertTrue(stdout.toString(UTF_8).contains("coerce=true:false"));
         assertTrue(stdout.toString(UTF_8).contains("nullish=true:false"));
         assertTrue(stdout.toString(UTF_8).contains("\"code\":\"TSJ-RUN-SUCCESS\""));
+        assertEquals("", stderr.toString(UTF_8));
+    }
+
+    @Test
+    void runExecutesObjectToPrimitiveCoercionProgram() throws Exception {
+        final Path entryFile = tempDir.resolve("coercion-object.ts");
+        Files.writeString(
+                entryFile,
+                """
+                const valueOfObject = {
+                  valueOf() {
+                    return 7;
+                  }
+                };
+                console.log("eq1=" + (valueOfObject == 7));
+
+                const toStringObject = {
+                  valueOf() {
+                    return {};
+                  },
+                  toString() {
+                    return "8";
+                  }
+                };
+                console.log("eq2=" + (toStringObject == 8));
+
+                const boolObject = {
+                  valueOf() {
+                    return 1;
+                  }
+                };
+                console.log("eq3=" + (boolObject == true));
+
+                const plain = {};
+                console.log("eq4=" + (plain == "[object Object]"));
+                console.log("eq5=" + (plain == null));
+
+                class Box {
+                  value: number;
+                  constructor(value: number) {
+                    this.value = value;
+                  }
+                  valueOf() {
+                    return this.value;
+                  }
+                }
+                const box = new Box(9);
+                console.log("eq6=" + (box == 9));
+
+                const nonCallableValueOf = {
+                  valueOf: 3,
+                  toString() {
+                    return "11";
+                  }
+                };
+                console.log("eq7=" + (nonCallableValueOf == 11));
+                """,
+                UTF_8
+        );
+
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+
+        final int exitCode = TsjCli.execute(
+                new String[]{"run", entryFile.toString(), "--out", tempDir.resolve("coercion-object-out").toString()},
+                new PrintStream(stdout),
+                new PrintStream(stderr)
+        );
+
+        assertEquals(0, exitCode);
+        final String rendered = stdout.toString(UTF_8);
+        assertTrue(rendered.contains("eq1=true"));
+        assertTrue(rendered.contains("eq2=true"));
+        assertTrue(rendered.contains("eq3=true"));
+        assertTrue(rendered.contains("eq4=true"));
+        assertTrue(rendered.contains("eq5=false"));
+        assertTrue(rendered.contains("eq6=true"));
+        assertTrue(rendered.contains("eq7=true"));
+        assertTrue(rendered.contains("\"code\":\"TSJ-RUN-SUCCESS\""));
+        assertEquals("", stderr.toString(UTF_8));
+    }
+
+    @Test
+    void runExecutesDeleteAndPrototypeMutationProgram() throws Exception {
+        final Path entryFile = tempDir.resolve("delete-prototype.ts");
+        Files.writeString(
+                entryFile,
+                """
+                const proto = { shared: "base" };
+                const payload = { own: "x", shared: "local" };
+                payload.__proto__ = proto;
+                console.log("del1=" + delete payload.own);
+                console.log("own=" + payload.own);
+                console.log("del2=" + delete payload.shared);
+                console.log("shared=" + payload.shared);
+                console.log("del3=" + delete payload.missing);
+
+                const target = {};
+                const returned = Object.setPrototypeOf(target, proto);
+                console.log("ret=" + (returned === target));
+                console.log("targetShared=" + target.shared);
+                const cleared = Object.setPrototypeOf(target, null);
+                console.log("cleared=" + (cleared === target));
+                console.log("afterClear=" + target.shared);
+                """,
+                UTF_8
+        );
+
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+
+        final int exitCode = TsjCli.execute(
+                new String[]{"run", entryFile.toString(), "--out", tempDir.resolve("delete-prototype-out").toString()},
+                new PrintStream(stdout),
+                new PrintStream(stderr)
+        );
+
+        assertEquals(0, exitCode);
+        final String rendered = stdout.toString(UTF_8);
+        assertTrue(rendered.contains("del1=true"));
+        assertTrue(rendered.contains("own=undefined"));
+        assertTrue(rendered.contains("del2=true"));
+        assertTrue(rendered.contains("shared=base"));
+        assertTrue(rendered.contains("del3=true"));
+        assertTrue(rendered.contains("ret=true"));
+        assertTrue(rendered.contains("targetShared=base"));
+        assertTrue(rendered.contains("cleared=true"));
+        assertTrue(rendered.contains("afterClear=undefined"));
+        assertTrue(rendered.contains("\"code\":\"TSJ-RUN-SUCCESS\""));
         assertEquals("", stderr.toString(UTF_8));
     }
 

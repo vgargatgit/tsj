@@ -37,7 +37,7 @@ public final class JvmBytecodeCompiler {
             "function", "const", "let", "var", "if", "else", "while", "return",
             "true", "false", "null", "for", "export", "import", "from",
             "class", "extends", "this", "super", "new", "undefined",
-            "async", "await", "throw"
+            "async", "await", "throw", "delete"
     );
     private static final Set<String> JAVA_KEYWORDS = Set.of(
             "abstract", "assert", "boolean", "break", "byte", "case", "catch", "char",
@@ -1236,6 +1236,9 @@ public final class JvmBytecodeCompiler {
                 final String operator = previous().text();
                 return new UnaryExpression(operator, parseUnary());
             }
+            if (matchKeyword("delete")) {
+                return new UnaryExpression("delete", parseUnary());
+            }
             if (matchKeyword("await")) {
                 return new AwaitExpression(parseUnary());
             }
@@ -1604,7 +1607,8 @@ public final class JvmBytecodeCompiler {
                     || "undefined".equals(keyword)
                     || "this".equals(keyword)
                     || "new".equals(keyword)
-                    || "await".equals(keyword);
+                    || "await".equals(keyword)
+                    || "delete".equals(keyword);
         }
 
         private void skipTypeAnnotation() {
@@ -3270,14 +3274,23 @@ public final class JvmBytecodeCompiler {
                                 .append(awaitValueExpression)
                                 .append(");\n");
                     } else if (target instanceof MemberAccessExpression memberAccessExpression) {
-                        builder.append(indent)
-                                .append("dev.tsj.runtime.TsjRuntime.setProperty(")
-                                .append(emitExpression(context, memberAccessExpression.receiver()))
-                                .append(", \"")
-                                .append(escapeJava(memberAccessExpression.member()))
-                                .append("\", ")
-                                .append(awaitValueExpression)
-                                .append(");\n");
+                        if (isPrototypeMutationMemberAccess(memberAccessExpression)) {
+                            builder.append(indent)
+                                    .append("dev.tsj.runtime.TsjRuntime.setPrototype(")
+                                    .append(emitExpression(context, memberAccessExpression.receiver()))
+                                    .append(", ")
+                                    .append(awaitValueExpression)
+                                    .append(");\n");
+                        } else {
+                            builder.append(indent)
+                                    .append("dev.tsj.runtime.TsjRuntime.setProperty(")
+                                    .append(emitExpression(context, memberAccessExpression.receiver()))
+                                    .append(", \"")
+                                    .append(escapeJava(memberAccessExpression.member()))
+                                    .append("\", ")
+                                    .append(awaitValueExpression)
+                                    .append(");\n");
+                        }
                     } else {
                         throw new JvmCompilationException(
                                 "TSJ-BACKEND-UNSUPPORTED",
@@ -3556,14 +3569,23 @@ public final class JvmBytecodeCompiler {
                 return;
             }
             if (assignment.target() instanceof MemberAccessExpression memberAccessExpression) {
-                builder.append(indent)
-                        .append("dev.tsj.runtime.TsjRuntime.setProperty(")
-                        .append(emitExpression(context, memberAccessExpression.receiver()))
-                        .append(", \"")
-                        .append(escapeJava(memberAccessExpression.member()))
-                        .append("\", ")
-                        .append(valueExpression)
-                        .append(");\n");
+                if (isPrototypeMutationMemberAccess(memberAccessExpression)) {
+                    builder.append(indent)
+                            .append("dev.tsj.runtime.TsjRuntime.setPrototype(")
+                            .append(emitExpression(context, memberAccessExpression.receiver()))
+                            .append(", ")
+                            .append(valueExpression)
+                            .append(");\n");
+                } else {
+                    builder.append(indent)
+                            .append("dev.tsj.runtime.TsjRuntime.setProperty(")
+                            .append(emitExpression(context, memberAccessExpression.receiver()))
+                            .append(", \"")
+                            .append(escapeJava(memberAccessExpression.member()))
+                            .append("\", ")
+                            .append(valueExpression)
+                            .append(");\n");
+                }
                 return;
             }
             throw new JvmCompilationException(
@@ -3638,6 +3660,19 @@ public final class JvmBytecodeCompiler {
                     return "Boolean.valueOf(!dev.tsj.runtime.TsjRuntime.truthy("
                             + emitExpression(context, unaryExpression.expression())
                             + "))";
+                }
+                if ("delete".equals(unaryExpression.operator())) {
+                    if (unaryExpression.expression() instanceof MemberAccessExpression memberAccessExpression) {
+                        return "Boolean.valueOf(dev.tsj.runtime.TsjRuntime.deleteProperty("
+                                + emitExpression(context, memberAccessExpression.receiver())
+                                + ", \""
+                                + escapeJava(memberAccessExpression.member())
+                                + "\"))";
+                    }
+                    throw new JvmCompilationException(
+                            "TSJ-BACKEND-UNSUPPORTED",
+                            "`delete` supports only member access targets in TSJ-21 subset."
+                    );
                 }
                 throw new JvmCompilationException(
                         "TSJ-BACKEND-UNSUPPORTED",
@@ -3728,6 +3763,20 @@ public final class JvmBytecodeCompiler {
                 return "dev.tsj.runtime.TsjRuntime.arrayLiteral(" + String.join(", ", renderedElements) + ")";
             }
             if (expression instanceof CallExpression callExpression) {
+                if (callExpression.callee() instanceof MemberAccessExpression memberAccessExpression
+                        && isObjectSetPrototypeOfCall(memberAccessExpression)) {
+                    if (callExpression.arguments().size() != 2) {
+                        throw new JvmCompilationException(
+                                "TSJ-BACKEND-UNSUPPORTED",
+                                "Object.setPrototypeOf requires exactly 2 arguments in TSJ-21 subset."
+                        );
+                    }
+                    return "dev.tsj.runtime.TsjRuntime.setPrototype("
+                            + emitExpression(context, callExpression.arguments().get(0))
+                            + ", "
+                            + emitExpression(context, callExpression.arguments().get(1))
+                            + ")";
+                }
                 final List<String> renderedArgs = new ArrayList<>();
                 for (Expression argument : callExpression.arguments()) {
                     renderedArgs.add(emitExpression(context, argument));
@@ -3756,6 +3805,20 @@ public final class JvmBytecodeCompiler {
                     "TSJ-BACKEND-UNSUPPORTED",
                     "Unsupported expression node: " + expression.getClass().getSimpleName()
             );
+        }
+
+        private boolean isPrototypeMutationMemberAccess(final MemberAccessExpression memberAccessExpression) {
+            return "__proto__".equals(memberAccessExpression.member());
+        }
+
+        private boolean isObjectSetPrototypeOfCall(final MemberAccessExpression memberAccessExpression) {
+            if (!"setPrototypeOf".equals(memberAccessExpression.member())) {
+                return false;
+            }
+            if (!(memberAccessExpression.receiver() instanceof VariableExpression variableExpression)) {
+                return false;
+            }
+            return "Object".equals(variableExpression.name());
         }
 
         private String sanitizeIdentifier(final String identifier) {

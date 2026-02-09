@@ -59,6 +59,50 @@ class TsjRuntimeTest {
     }
 
     @Test
+    void abstractEqualsSupportsObjectToPrimitiveViaValueOfAndToString() {
+        final TsjObject valueOfObject = new TsjObject(null);
+        valueOfObject.setOwn("valueOf", (TsjMethod) (thisObject, args) -> 7);
+        assertTrue(TsjRuntime.abstractEquals(valueOfObject, 7));
+        assertTrue(TsjRuntime.abstractEquals(7, valueOfObject));
+
+        final TsjObject toStringObject = new TsjObject(null);
+        toStringObject.setOwn("valueOf", (TsjMethod) (thisObject, args) -> TsjRuntime.objectLiteral("x", 1));
+        toStringObject.setOwn("toString", (TsjMethod) (thisObject, args) -> "8");
+        assertTrue(TsjRuntime.abstractEquals(toStringObject, 8));
+        assertTrue(TsjRuntime.abstractEquals("8", toStringObject));
+    }
+
+    @Test
+    void abstractEqualsSupportsObjectToPrimitiveWithBooleanAndThisBinding() {
+        final TsjObject boolObject = new TsjObject(null);
+        boolObject.setOwn("valueOf", (TsjMethod) (thisObject, args) -> 1);
+        assertTrue(TsjRuntime.abstractEquals(boolObject, true));
+        assertFalse(TsjRuntime.abstractEquals(boolObject, false));
+
+        final TsjClass boxClass = new TsjClass("Box", null);
+        boxClass.setConstructor((thisObject, args) -> {
+            TsjRuntime.setProperty(thisObject, "value", args[0]);
+            return null;
+        });
+        boxClass.defineMethod("valueOf", (thisObject, args) -> TsjRuntime.getProperty(thisObject, "value"));
+        final Object instance = TsjRuntime.construct(boxClass, 9);
+        assertTrue(TsjRuntime.abstractEquals(instance, 9));
+    }
+
+    @Test
+    void abstractEqualsSupportsDefaultObjectToStringFallback() {
+        final TsjObject plainObject = new TsjObject(null);
+        assertTrue(TsjRuntime.abstractEquals(plainObject, "[object Object]"));
+
+        final TsjObject customObject = new TsjObject(null);
+        customObject.setOwn("valueOf", 123);
+        customObject.setOwn("toString", (TsjMethod) (thisObject, args) -> "11");
+        assertTrue(TsjRuntime.abstractEquals(customObject, 11));
+        assertFalse(TsjRuntime.abstractEquals(plainObject, null));
+        assertFalse(TsjRuntime.abstractEquals(plainObject, TsjRuntime.undefined()));
+    }
+
+    @Test
     void truthyMatchesSupportedSubsetRules() {
         assertFalse(TsjRuntime.truthy(0));
         assertFalse(TsjRuntime.truthy(""));
@@ -137,15 +181,37 @@ class TsjRuntimeTest {
     }
 
     @Test
+    void deletePropertyReturnsTrueAndFallsBackToPrototypeValue() {
+        final Object prototype = TsjRuntime.objectLiteral("name", "base");
+        final Object object = TsjRuntime.objectLiteral("name", "local");
+        TsjRuntime.setPrototype(object, prototype);
+
+        assertEquals("local", TsjRuntime.getProperty(object, "name"));
+        assertTrue(TsjRuntime.deleteProperty(object, "name"));
+        assertEquals("base", TsjRuntime.getProperty(object, "name"));
+        assertTrue(TsjRuntime.deleteProperty(object, "missing"));
+    }
+
+    @Test
     void setPrototypeSupportsObjectAndNullLikeValues() {
         final Object prototype = TsjRuntime.objectLiteral("name", "base");
         final Object object = TsjRuntime.objectLiteral();
 
-        TsjRuntime.setPrototype(object, prototype);
+        assertTrue(TsjRuntime.setPrototype(object, prototype) == object);
         assertEquals("base", TsjRuntime.getProperty(object, "name"));
 
-        TsjRuntime.setPrototype(object, null);
+        assertTrue(TsjRuntime.setPrototype(object, null) == object);
         assertEquals(TsjRuntime.undefined(), TsjRuntime.getProperty(object, "name"));
+    }
+
+    @Test
+    void setPrototypeRejectsPrimitivePrototypeValues() {
+        final Object object = TsjRuntime.objectLiteral();
+        final IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> TsjRuntime.setPrototype(object, 1)
+        );
+        assertTrue(exception.getMessage().contains("Prototype must be object|null|undefined"));
     }
 
     @Test

@@ -13,6 +13,7 @@ import java.util.function.Consumer;
 public final class TsjRuntime {
     private static final Deque<Runnable> MICROTASK_QUEUE = new ArrayDeque<>();
     private static final TsjObject PROMISE_BUILTIN = createPromiseBuiltin();
+    private static final Object COERCION_NOT_CALLABLE = new Object();
     private static Consumer<Object> unhandledRejectionReporter = TsjRuntime::defaultUnhandledRejectionReporter;
 
     private TsjRuntime() {
@@ -159,17 +160,17 @@ public final class TsjRuntime {
         throw new IllegalArgumentException("Cannot delete property `" + key + "` from " + toDisplayString(target));
     }
 
-    public static void setPrototype(final Object target, final Object prototype) {
+    public static Object setPrototype(final Object target, final Object prototype) {
         if (!(target instanceof TsjObject tsjObject)) {
             throw new IllegalArgumentException("Cannot set prototype on " + toDisplayString(target));
         }
         if (prototype == null || prototype == TsjUndefined.INSTANCE) {
             tsjObject.setPrototype(null);
-            return;
+            return target;
         }
         if (prototype instanceof TsjObject tsjPrototype) {
             tsjObject.setPrototype(tsjPrototype);
-            return;
+            return target;
         }
         throw new IllegalArgumentException("Prototype must be object|null|undefined: " + toDisplayString(prototype));
     }
@@ -264,6 +265,12 @@ public final class TsjRuntime {
         if (left instanceof String && right instanceof Number) {
             return abstractEquals(Double.valueOf(toNumber(left)), right);
         }
+        if (left instanceof TsjObject leftObject && (right instanceof Number || right instanceof String)) {
+            return abstractEquals(toPrimitiveForAbstractEquals(leftObject), right);
+        }
+        if (right instanceof TsjObject rightObject && (left instanceof Number || left instanceof String)) {
+            return abstractEquals(left, toPrimitiveForAbstractEquals(rightObject));
+        }
         return false;
     }
 
@@ -356,6 +363,42 @@ public final class TsjRuntime {
 
     private static boolean isNullish(final Object value) {
         return value == null || isUndefined(value);
+    }
+
+    private static Object toPrimitiveForAbstractEquals(final TsjObject objectValue) {
+        final Object valueOfResult = invokeCoercionMember(objectValue, objectValue.get("valueOf"));
+        if (isPrimitiveForAbstractEquals(valueOfResult)) {
+            return valueOfResult;
+        }
+
+        final Object toStringResult = invokeCoercionMember(objectValue, objectValue.get("toString"));
+        if (isPrimitiveForAbstractEquals(toStringResult)) {
+            return toStringResult;
+        }
+
+        // Object.prototype.toString fallback for plain objects in TSJ subset.
+        return "[object Object]";
+    }
+
+    private static Object invokeCoercionMember(final TsjObject objectValue, final Object member) {
+        if (member instanceof TsjMethod method) {
+            return method.call(objectValue);
+        }
+        if (member instanceof TsjCallable callable) {
+            return callable.call();
+        }
+        return COERCION_NOT_CALLABLE;
+    }
+
+    private static boolean isPrimitiveForAbstractEquals(final Object value) {
+        if (value == COERCION_NOT_CALLABLE) {
+            return false;
+        }
+        return value == null
+                || isUndefined(value)
+                || value instanceof Number
+                || value instanceof String
+                || value instanceof Boolean;
     }
 
     private static TsjObject createPromiseBuiltin() {

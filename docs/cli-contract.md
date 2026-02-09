@@ -108,6 +108,30 @@ Failure diagnostics:
 Failure diagnostic context for `TSJ-FIXTURE-FAIL` includes:
 1. `minimalRepro`: compact mismatch summary with repro commands for Node and TSJ.
 
+### `tsj bench <report.json> [--warmup <n>] [--iterations <n>] [--smoke] [--optimize|--no-optimize]`
+Behavior:
+1. Runs TSJ benchmark workloads and emits a JSON baseline report.
+2. Benchmark suite includes:
+   - `micro` workloads (startup + tight-loop style cases)
+   - `macro` workloads (larger closure/class/module+async cases)
+3. Supports warmup/measurement controls:
+   - `--warmup <n>` warmup iteration count (`n >= 0`)
+   - `--iterations <n>` measured iteration count (`n >= 1`)
+4. Supports benchmark profile:
+   - default `full` suite
+   - `--smoke` quick suite with one micro + one macro workload
+5. Supports compiler optimization toggles for benchmark runs:
+   - `--optimize` (default)
+   - `--no-optimize`
+
+Success diagnostics:
+- `TSJ-BENCH-SUCCESS`
+
+Failure diagnostics:
+- `TSJ-CLI-009` missing benchmark report path
+- `TSJ-CLI-010` invalid benchmark options
+- `TSJ-BENCH-001` benchmark harness execution failure
+
 ## Diagnostic Shape
 All diagnostics use one-line JSON objects:
 

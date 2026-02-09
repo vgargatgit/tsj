@@ -41,3 +41,12 @@ temp/
 
 # Generated differential conformance report
 tests/fixtures/tsj-fixture-coverage.json
+
+# Generated benchmark reports
+benchmarks/tsj-benchmark-*.json
+
+# Generated benchmark outputs when test cwd is module-local
+cli/benchmarks/
+
+# Generated fixture execution outputs
+tests/fixtures/**/.tsj-out/
