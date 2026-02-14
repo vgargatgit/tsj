@@ -1173,6 +1173,213 @@ class TsjCliTest {
     }
 
     @Test
+    void runExecutesAsyncWhileConditionAwaitProgram() throws Exception {
+        final Path entryFile = tempDir.resolve("async-while-condition-await.ts");
+        Files.writeString(
+                entryFile,
+                """
+                async function run() {
+                  let i = 0;
+                  while (await Promise.resolve(i < 1)) {
+                    i = i + 1;
+                  }
+                  return i;
+                }
+
+                function onDone(value: number) {
+                  console.log("done=" + value);
+                  return value;
+                }
+
+                run().then(onDone);
+                console.log("sync");
+                """,
+                UTF_8
+        );
+
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+
+        final int exitCode = TsjCli.execute(
+                new String[]{
+                        "run",
+                        entryFile.toString(),
+                        "--out",
+                        tempDir.resolve("async-while-condition-await-out").toString()
+                },
+                new PrintStream(stdout),
+                new PrintStream(stderr)
+        );
+
+        assertEquals(0, exitCode);
+        assertTrue(stdout.toString(UTF_8).contains("sync"));
+        assertTrue(stdout.toString(UTF_8).contains("done=1"));
+        assertTrue(stdout.toString(UTF_8).contains("\"code\":\"TSJ-RUN-SUCCESS\""));
+        assertEquals("", stderr.toString(UTF_8));
+    }
+
+    @Test
+    void runExecutesAsyncWhileBreakContinueProgram() throws Exception {
+        final Path entryFile = tempDir.resolve("async-break-continue.ts");
+        Files.writeString(
+                entryFile,
+                """
+                async function flow(limit: number) {
+                  let i = 0;
+                  let sum = 0;
+                  while (i < limit) {
+                    i = i + 1;
+                    if (i === 2) {
+                      continue;
+                    }
+                    if (i === 4) {
+                      break;
+                    }
+                    const step = await Promise.resolve(i);
+                    sum = sum + step;
+                  }
+                  console.log("sum=" + sum);
+                  return sum;
+                }
+
+                function onDone(v: number) {
+                  console.log("done=" + v);
+                  return v;
+                }
+
+                flow(6).then(onDone);
+                console.log("sync");
+                """,
+                UTF_8
+        );
+
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+
+        final int exitCode = TsjCli.execute(
+                new String[]{
+                        "run",
+                        entryFile.toString(),
+                        "--out",
+                        tempDir.resolve("async-break-continue-out").toString()
+                },
+                new PrintStream(stdout),
+                new PrintStream(stderr)
+        );
+
+        assertEquals(0, exitCode);
+        assertTrue(stdout.toString(UTF_8).contains("sync"));
+        assertTrue(stdout.toString(UTF_8).contains("sum=4"));
+        assertTrue(stdout.toString(UTF_8).contains("done=4"));
+        assertTrue(stdout.toString(UTF_8).contains("\"code\":\"TSJ-RUN-SUCCESS\""));
+        assertEquals("", stderr.toString(UTF_8));
+    }
+
+    @Test
+    void runExecutesAsyncTryCatchFinallyProgram() throws Exception {
+        final Path entryFile = tempDir.resolve("async-try-catch-finally.ts");
+        Files.writeString(
+                entryFile,
+                """
+                async function run() {
+                  try {
+                    const value = await Promise.resolve(0);
+                    if (value === 0) {
+                      throw "boom";
+                    }
+                    return "ok";
+                  } catch (err: string) {
+                    const caught = await Promise.resolve(err + "-handled");
+                    console.log("catch=" + caught);
+                    return "catch-" + caught;
+                  } finally {
+                    const marker = await Promise.resolve("fin");
+                    console.log("finally=" + marker);
+                  }
+                }
+
+                function onDone(value: string) {
+                  console.log("done=" + value);
+                  return value;
+                }
+
+                run().then(onDone);
+                console.log("sync");
+                """,
+                UTF_8
+        );
+
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+
+        final int exitCode = TsjCli.execute(
+                new String[]{
+                        "run",
+                        entryFile.toString(),
+                        "--out",
+                        tempDir.resolve("async-try-catch-finally-out").toString()
+                },
+                new PrintStream(stdout),
+                new PrintStream(stderr)
+        );
+
+        assertEquals(0, exitCode);
+        assertTrue(stdout.toString(UTF_8).contains("sync"));
+        assertTrue(stdout.toString(UTF_8).contains("catch=boom-handled"));
+        assertTrue(stdout.toString(UTF_8).contains("finally=fin"));
+        assertTrue(stdout.toString(UTF_8).contains("done=catch-boom-handled"));
+        assertTrue(stdout.toString(UTF_8).contains("\"code\":\"TSJ-RUN-SUCCESS\""));
+        assertEquals("", stderr.toString(UTF_8));
+    }
+
+    @Test
+    void runExecutesAsyncTryFinallyReturnOverrideProgram() throws Exception {
+        final Path entryFile = tempDir.resolve("async-try-finally-override.ts");
+        Files.writeString(
+                entryFile,
+                """
+                async function run() {
+                  try {
+                    return await Promise.resolve("try");
+                  } finally {
+                    const marker = await Promise.resolve("fin");
+                    return "override-" + marker;
+                  }
+                }
+
+                function onDone(value: string) {
+                  console.log("done=" + value);
+                  return value;
+                }
+
+                run().then(onDone);
+                console.log("sync");
+                """,
+                UTF_8
+        );
+
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+
+        final int exitCode = TsjCli.execute(
+                new String[]{
+                        "run",
+                        entryFile.toString(),
+                        "--out",
+                        tempDir.resolve("async-try-finally-override-out").toString()
+                },
+                new PrintStream(stdout),
+                new PrintStream(stderr)
+        );
+
+        assertEquals(0, exitCode);
+        assertTrue(stdout.toString(UTF_8).contains("sync"));
+        assertTrue(stdout.toString(UTF_8).contains("done=override-fin"));
+        assertTrue(stdout.toString(UTF_8).contains("\"code\":\"TSJ-RUN-SUCCESS\""));
+        assertEquals("", stderr.toString(UTF_8));
+    }
+
+    @Test
     void runExecutesAsyncArrowProgram() throws Exception {
         final Path entryFile = tempDir.resolve("async-arrow.ts");
         Files.writeString(

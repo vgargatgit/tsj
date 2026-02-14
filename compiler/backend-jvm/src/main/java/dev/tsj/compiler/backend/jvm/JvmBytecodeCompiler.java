@@ -43,7 +43,7 @@ public final class JvmBytecodeCompiler {
             "function", "const", "let", "var", "if", "else", "while", "return",
             "true", "false", "null", "for", "export", "import", "from",
             "class", "extends", "this", "super", "new", "undefined",
-            "async", "await", "throw", "delete"
+            "async", "await", "throw", "delete", "break", "continue"
     );
     private static final Set<String> JAVA_KEYWORDS = Set.of(
             "abstract", "assert", "boolean", "break", "byte", "case", "catch", "char",
@@ -61,6 +61,8 @@ public final class JvmBytecodeCompiler {
     private static final String FEATURE_PROXY = "TSJ15-PROXY";
     private static final String FEATURE_IMPORT_DEFAULT = "TSJ22-IMPORT-DEFAULT";
     private static final String FEATURE_IMPORT_NAMESPACE = "TSJ22-IMPORT-NAMESPACE";
+    private static final String ASYNC_BREAK_SIGNAL_FIELD = "__TSJ_ASYNC_BREAK_SIGNAL";
+    private static final String ASYNC_CONTINUE_SIGNAL_FIELD = "__TSJ_ASYNC_CONTINUE_SIGNAL";
     private static final String GUIDANCE_DYNAMIC_IMPORT =
             "Use static relative imports (`import { x } from \"./m.ts\"`) in TSJ MVP.";
     private static final String GUIDANCE_EVAL =
@@ -1002,6 +1004,9 @@ public final class JvmBytecodeCompiler {
             ClassDeclarationStatement,
             IfStatement,
             WhileStatement,
+            TryStatement,
+            BreakStatement,
+            ContinueStatement,
             SuperCallStatement,
             ReturnStatement,
             ThrowStatement,
@@ -1026,6 +1031,27 @@ public final class JvmBytecodeCompiler {
     }
 
     private record WhileStatement(Expression condition, List<Statement> body) implements Statement {
+    }
+
+    private record TryStatement(
+            List<Statement> tryBlock,
+            String catchBinding,
+            List<Statement> catchBlock,
+            List<Statement> finallyBlock
+    ) implements Statement {
+        private boolean hasCatch() {
+            return !catchBlock.isEmpty();
+        }
+
+        private boolean hasFinally() {
+            return !finallyBlock.isEmpty();
+        }
+    }
+
+    private record BreakStatement() implements Statement {
+    }
+
+    private record ContinueStatement() implements Statement {
     }
 
     private record SuperCallStatement(List<Expression> arguments) implements Statement {
@@ -1195,12 +1221,14 @@ public final class JvmBytecodeCompiler {
         private final List<Token> tokens;
         private final BundleResult bundleResult;
         private final IdentityHashMap<Statement, SourceLocation> statementLocations;
+        private int loopDepth;
         private int index;
 
         private Parser(final List<Token> tokens, final BundleResult bundleResult) {
             this.tokens = tokens;
             this.bundleResult = bundleResult;
             this.statementLocations = new IdentityHashMap<>();
+            this.loopDepth = 0;
             this.index = 0;
         }
 
@@ -1293,6 +1321,18 @@ public final class JvmBytecodeCompiler {
             }
             if (matchKeyword("while")) {
                 statement = parseWhileStatement(insideFunction);
+                return locate(statement, statementStart);
+            }
+            if (matchSoftKeyword("try")) {
+                statement = parseTryStatement(insideFunction);
+                return locate(statement, statementStart);
+            }
+            if (matchKeyword("break")) {
+                statement = parseBreakStatement();
+                return locate(statement, statementStart);
+            }
+            if (matchKeyword("continue")) {
+                statement = parseContinueStatement();
                 return locate(statement, statementStart);
             }
             if (matchKeyword("super")) {
@@ -1490,8 +1530,75 @@ public final class JvmBytecodeCompiler {
             consumeSymbol("(", "Expected `(` after `while`.");
             final Expression condition = parseExpression();
             consumeSymbol(")", "Expected `)` after while condition.");
-            final List<Statement> body = parseBlock(insideFunction);
+            loopDepth++;
+            final List<Statement> body;
+            try {
+                body = parseBlock(insideFunction);
+            } finally {
+                loopDepth--;
+            }
             return new WhileStatement(condition, body);
+        }
+
+        private TryStatement parseTryStatement(final boolean insideFunction) {
+            final List<Statement> tryBlock = parseBlock(insideFunction);
+            String catchBinding = null;
+            List<Statement> catchBlock = List.of();
+            List<Statement> finallyBlock = List.of();
+
+            if (matchSoftKeyword("catch")) {
+                if (matchSymbol("(")) {
+                    catchBinding = consumeIdentifier("Expected catch binding name.").text();
+                    if (matchSymbol(":")) {
+                        skipTypeAnnotation();
+                    }
+                    consumeSymbol(")", "Expected `)` after catch binding.");
+                }
+                catchBlock = parseBlock(insideFunction);
+            }
+            if (matchSoftKeyword("finally")) {
+                finallyBlock = parseBlock(insideFunction);
+            }
+
+            if (catchBlock.isEmpty() && finallyBlock.isEmpty()) {
+                final Token token = current();
+                throw new JvmCompilationException(
+                        "TSJ-BACKEND-PARSE",
+                        "Expected `catch` or `finally` after `try` block.",
+                        token.line(),
+                        token.column()
+                );
+            }
+
+            return new TryStatement(List.copyOf(tryBlock), catchBinding, List.copyOf(catchBlock), List.copyOf(finallyBlock));
+        }
+
+        private BreakStatement parseBreakStatement() {
+            final Token breakToken = previous();
+            if (loopDepth <= 0) {
+                throw new JvmCompilationException(
+                        "TSJ-BACKEND-UNSUPPORTED",
+                        "`break` is only supported inside loop bodies in TSJ-13 subset.",
+                        breakToken.line(),
+                        breakToken.column()
+                );
+            }
+            consumeSymbol(";", "Expected `;` after `break`.");
+            return new BreakStatement();
+        }
+
+        private ContinueStatement parseContinueStatement() {
+            final Token continueToken = previous();
+            if (loopDepth <= 0) {
+                throw new JvmCompilationException(
+                        "TSJ-BACKEND-UNSUPPORTED",
+                        "`continue` is only supported inside loop bodies in TSJ-13 subset.",
+                        continueToken.line(),
+                        continueToken.column()
+                );
+            }
+            consumeSymbol(";", "Expected `;` after `continue`.");
+            return new ContinueStatement();
         }
 
         private SuperCallStatement parseSuperCallStatement() {
@@ -2062,6 +2169,15 @@ public final class JvmBytecodeCompiler {
 
         private boolean matchKeyword(final String keyword) {
             if (current().type() == TokenType.KEYWORD && keyword.equals(current().text())) {
+                advance();
+                return true;
+            }
+            return false;
+        }
+
+        private boolean matchSoftKeyword(final String keyword) {
+            if ((current().type() == TokenType.KEYWORD || current().type() == TokenType.IDENTIFIER)
+                    && keyword.equals(current().text())) {
                 advance();
                 return true;
             }
@@ -2709,6 +2825,12 @@ public final class JvmBytecodeCompiler {
             builder.append("    }\n\n");
             builder.append("    private static final dev.tsj.runtime.TsjCell PROMISE_BUILTIN_CELL = ")
                     .append("new dev.tsj.runtime.TsjCell(dev.tsj.runtime.TsjRuntime.promiseBuiltin());\n");
+            builder.append("    private static final Object ")
+                    .append(ASYNC_BREAK_SIGNAL_FIELD)
+                    .append(" = new Object();\n");
+            builder.append("    private static final Object ")
+                    .append(ASYNC_CONTINUE_SIGNAL_FIELD)
+                    .append(" = new Object();\n");
             if (!propertyCacheFieldDeclarations.isEmpty()) {
                 builder.append("\n");
             }
@@ -2805,6 +2927,58 @@ public final class JvmBytecodeCompiler {
                             insideFunction
                     );
                     builder.append(indent).append("}\n");
+                    continue;
+                }
+                if (statement instanceof TryStatement tryStatement) {
+                    builder.append(indent).append("try {\n");
+                    emitStatements(
+                            builder,
+                            new EmissionContext(context),
+                            tryStatement.tryBlock(),
+                            indent + "    ",
+                            insideFunction
+                    );
+                    builder.append(indent).append("}");
+                    if (tryStatement.hasCatch()) {
+                        builder.append(" catch (RuntimeException __tsjCaughtError) {\n");
+                        final EmissionContext catchContext = new EmissionContext(context);
+                        if (tryStatement.catchBinding() != null) {
+                            final String catchCellName = catchContext.declareBinding(tryStatement.catchBinding());
+                            builder.append(indent)
+                                    .append("    final dev.tsj.runtime.TsjCell ")
+                                    .append(catchCellName)
+                                    .append(" = new dev.tsj.runtime.TsjCell(")
+                                    .append("dev.tsj.runtime.TsjRuntime.normalizeThrown(__tsjCaughtError));\n");
+                        }
+                        emitStatements(
+                                builder,
+                                catchContext,
+                                tryStatement.catchBlock(),
+                                indent + "    ",
+                                insideFunction
+                        );
+                        builder.append(indent).append("}");
+                    }
+                    if (tryStatement.hasFinally()) {
+                        builder.append(" finally {\n");
+                        emitStatements(
+                                builder,
+                                new EmissionContext(context),
+                                tryStatement.finallyBlock(),
+                                indent + "    ",
+                                insideFunction
+                        );
+                        builder.append(indent).append("}");
+                    }
+                    builder.append("\n");
+                    continue;
+                }
+                if (statement instanceof BreakStatement) {
+                    builder.append(indent).append("break;\n");
+                    continue;
+                }
+                if (statement instanceof ContinueStatement) {
+                    builder.append(indent).append("continue;\n");
                     continue;
                 }
                 if (statement instanceof SuperCallStatement superCallStatement) {
@@ -2943,8 +3117,7 @@ public final class JvmBytecodeCompiler {
             emitParameterCells(builder, functionContext, declaration.parameters(), argsVar, indent + "    ");
 
             emitStatements(builder, functionContext, declaration.body(), indent + "    ", true);
-            if (declaration.body().isEmpty()
-                    || !(declaration.body().get(declaration.body().size() - 1) instanceof ReturnStatement)) {
+            if (!blockAlwaysExits(declaration.body())) {
                 builder.append(indent).append("    return null;\n");
             }
 
@@ -3080,8 +3253,7 @@ public final class JvmBytecodeCompiler {
                 builder.append(indent).append("    }\n");
             } else {
                 emitStatements(builder, methodContext, method.body(), indent + "    ", true);
-                if (method.body().isEmpty()
-                        || !(method.body().get(method.body().size() - 1) instanceof ReturnStatement)) {
+                if (!blockAlwaysExits(method.body())) {
                     builder.append(indent).append("    return null;\n");
                 }
             }
@@ -3139,14 +3311,43 @@ public final class JvmBytecodeCompiler {
                 functionBuilder.append("    }\n");
             } else {
                 emitStatements(functionBuilder, functionContext, functionExpression.body(), "    ", true);
-                if (functionExpression.body().isEmpty()
-                        || !(functionExpression.body().get(functionExpression.body().size() - 1) instanceof ReturnStatement)) {
+                if (!blockAlwaysExits(functionExpression.body())) {
                     functionBuilder.append("    return null;\n");
                 }
             }
 
             functionBuilder.append("})");
             return functionBuilder.toString();
+        }
+
+        private boolean blockAlwaysExits(final List<Statement> statements) {
+            if (statements.isEmpty()) {
+                return false;
+            }
+            return statementAlwaysExits(statements.get(statements.size() - 1));
+        }
+
+        private boolean statementAlwaysExits(final Statement statement) {
+            if (statement instanceof ReturnStatement || statement instanceof ThrowStatement) {
+                return true;
+            }
+            if (statement instanceof IfStatement ifStatement) {
+                if (ifStatement.elseBlock().isEmpty()) {
+                    return false;
+                }
+                return blockAlwaysExits(ifStatement.thenBlock()) && blockAlwaysExits(ifStatement.elseBlock());
+            }
+            if (statement instanceof TryStatement tryStatement) {
+                if (blockAlwaysExits(tryStatement.finallyBlock())) {
+                    return true;
+                }
+                final boolean tryExits = blockAlwaysExits(tryStatement.tryBlock());
+                if (!tryStatement.hasCatch()) {
+                    return tryExits;
+                }
+                return tryExits && blockAlwaysExits(tryStatement.catchBlock());
+            }
+            return false;
         }
 
         private List<Statement> normalizeAsyncStatementsForAwaitExpressions(
@@ -3244,16 +3445,59 @@ public final class JvmBytecodeCompiler {
                 return List.copyOf(expanded);
             }
             if (statement instanceof WhileStatement whileStatement) {
-                if (expressionContainsAwait(whileStatement.condition())) {
+                if (context.parent == null && expressionContainsAwait(whileStatement.condition())) {
                     throw new JvmCompilationException(
                             "TSJ-BACKEND-UNSUPPORTED",
-                            "`await` in async while condition is unsupported in TSJ-13b."
+                            "`await` in top-level while condition is unsupported in TSJ-13f."
                     );
                 }
+                final AwaitExpressionRewrite rewrittenCondition =
+                        rewriteAsyncExpressionForAwait(context, whileStatement.condition(), sourceLocation);
                 final EmissionContext bodyContext = new EmissionContext(context);
                 final List<Statement> rewrittenBody =
                         normalizeAsyncStatementsForAwaitExpressions(bodyContext, whileStatement.body());
-                final WhileStatement rewrittenStatement = new WhileStatement(whileStatement.condition(), rewrittenBody);
+                final List<Statement> normalizedBody = new ArrayList<>(rewrittenCondition.hoistedStatements());
+                final BreakStatement breakStatement = new BreakStatement();
+                copySourceLocation(statement, breakStatement);
+                final IfStatement breakIfStatement = new IfStatement(
+                        new UnaryExpression("!", rewrittenCondition.expression()),
+                        List.of(breakStatement),
+                        List.of()
+                );
+                copySourceLocation(statement, breakIfStatement);
+                normalizedBody.add(breakIfStatement);
+                normalizedBody.addAll(rewrittenBody);
+                final WhileStatement rewrittenStatement = new WhileStatement(
+                        new BooleanLiteral(true),
+                        List.copyOf(normalizedBody)
+                );
+                copySourceLocation(statement, rewrittenStatement);
+                return List.of(rewrittenStatement);
+            }
+            if (statement instanceof TryStatement tryStatement) {
+                final EmissionContext tryContext = new EmissionContext(context);
+                final List<Statement> rewrittenTry = normalizeAsyncStatementsForAwaitExpressions(
+                        tryContext,
+                        tryStatement.tryBlock()
+                );
+                final List<Statement> rewrittenCatch;
+                if (tryStatement.hasCatch()) {
+                    final EmissionContext catchContext = new EmissionContext(context);
+                    rewrittenCatch = normalizeAsyncStatementsForAwaitExpressions(catchContext, tryStatement.catchBlock());
+                } else {
+                    rewrittenCatch = List.of();
+                }
+                final EmissionContext finallyContext = new EmissionContext(context);
+                final List<Statement> rewrittenFinally = normalizeAsyncStatementsForAwaitExpressions(
+                        finallyContext,
+                        tryStatement.finallyBlock()
+                );
+                final TryStatement rewrittenStatement = new TryStatement(
+                        rewrittenTry,
+                        tryStatement.catchBinding(),
+                        rewrittenCatch,
+                        rewrittenFinally
+                );
                 copySourceLocation(statement, rewrittenStatement);
                 return List.of(rewrittenStatement);
             }
@@ -3520,6 +3764,18 @@ public final class JvmBytecodeCompiler {
                 );
                 return;
             }
+            if (statement instanceof TryStatement tryStatement) {
+                emitAsyncTryStatement(
+                        builder,
+                        context,
+                        statements,
+                        index,
+                        tryStatement,
+                        indent,
+                        completionExpression
+                );
+                return;
+            }
 
             final AwaitSite awaitSite = extractAwaitSite(statement);
             if (awaitSite != null) {
@@ -3554,7 +3810,9 @@ public final class JvmBytecodeCompiler {
             }
 
             emitAsyncImmediateStatement(builder, context, statement, indent);
-            if (statement instanceof ThrowStatement) {
+            if (statement instanceof ThrowStatement
+                    || statement instanceof BreakStatement
+                    || statement instanceof ContinueStatement) {
                 return;
             }
             emitAsyncStatementsFrom(builder, context, statements, index + 1, indent, completionExpression);
@@ -3576,6 +3834,12 @@ public final class JvmBytecodeCompiler {
             final String loopCell = context.allocateGeneratedName("asyncLoopCell");
             final String loopArgs = context.allocateGeneratedName("asyncLoopArgs");
             final String loopCallExpression = "dev.tsj.runtime.TsjRuntime.call(" + loopCell + ".get())";
+            final String loopBodyCallable = context.allocateGeneratedName("asyncLoopBody");
+            final String loopBodyArgs = context.allocateGeneratedName("asyncLoopBodyArgs");
+            final String loopResultArgs = context.allocateGeneratedName("asyncLoopResultArgs");
+            final String loopResultValue = context.allocateGeneratedName("asyncLoopResult");
+            final String loopBodyCompletionExpression =
+                    "dev.tsj.runtime.TsjRuntime.promiseResolve(" + ASYNC_CONTINUE_SIGNAL_FIELD + ")";
 
             builder.append(indent)
                     .append("final dev.tsj.runtime.TsjCell ")
@@ -3601,18 +3865,361 @@ public final class JvmBytecodeCompiler {
             builder.append(indent)
                     .append("    }\n");
 
+            builder.append(indent)
+                    .append("    final dev.tsj.runtime.TsjCallable ")
+                    .append(loopBodyCallable)
+                    .append(" = (Object... ")
+                    .append(loopBodyArgs)
+                    .append(") -> {\n");
             final EmissionContext loopContext = new EmissionContext(context);
-            predeclareAsyncLocalBindings(builder, loopContext, whileStatement.body(), indent + "    ");
+            predeclareAsyncLocalBindings(builder, loopContext, whileStatement.body(), indent + "        ");
             emitAsyncStatements(
                     builder,
                     loopContext,
                     whileStatement.body(),
-                    indent + "    ",
-                    loopCallExpression
+                    indent + "        ",
+                    loopBodyCompletionExpression
             );
+            builder.append(indent).append("    };\n");
+
+            builder.append(indent)
+                    .append("    return dev.tsj.runtime.TsjRuntime.promiseThen(")
+                    .append("dev.tsj.runtime.TsjRuntime.call(")
+                    .append(loopBodyCallable)
+                    .append("), ")
+                    .append("(dev.tsj.runtime.TsjCallable) (Object... ")
+                    .append(loopResultArgs)
+                    .append(") -> {\n");
+            builder.append(indent)
+                    .append("        final Object ")
+                    .append(loopResultValue)
+                    .append(" = ")
+                    .append(loopResultArgs)
+                    .append(".length > 0 ? ")
+                    .append(loopResultArgs)
+                    .append("[0] : dev.tsj.runtime.TsjRuntime.undefined();\n");
+            builder.append(indent)
+                    .append("        if (")
+                    .append(loopResultValue)
+                    .append(" == ")
+                    .append(ASYNC_BREAK_SIGNAL_FIELD)
+                    .append(") {\n");
+            emitAsyncStatementsFrom(
+                    builder,
+                    context,
+                    statements,
+                    index + 1,
+                    indent + "            ",
+                    completionExpression
+            );
+            builder.append(indent).append("        }\n");
+            builder.append(indent)
+                    .append("        if (")
+                    .append(loopResultValue)
+                    .append(" == ")
+                    .append(ASYNC_CONTINUE_SIGNAL_FIELD)
+                    .append(") {\n");
+            builder.append(indent)
+                    .append("            return ")
+                    .append(loopCallExpression)
+                    .append(";\n");
+            builder.append(indent).append("        }\n");
+            builder.append(indent)
+                    .append("        return dev.tsj.runtime.TsjRuntime.promiseResolve(")
+                    .append(loopResultValue)
+                    .append(");\n");
+            builder.append(indent)
+                    .append("    }, dev.tsj.runtime.TsjRuntime.undefined());\n");
 
             builder.append(indent).append("});\n");
             builder.append(indent).append("return ").append(loopCallExpression).append(";\n");
+        }
+
+        private void emitAsyncTryStatement(
+                final StringBuilder builder,
+                final EmissionContext context,
+                final List<Statement> statements,
+                final int index,
+                final TryStatement tryStatement,
+                final String indent,
+                final String completionExpression
+        ) {
+            final String tryFallthrough = context.allocateGeneratedName("asyncTryFallthrough");
+            final String blockCompletionExpression =
+                    "dev.tsj.runtime.TsjRuntime.promiseResolve(" + tryFallthrough + ")";
+            final String chainedPromise = context.allocateGeneratedName("asyncTryPromise");
+
+            builder.append(indent)
+                    .append("final Object ")
+                    .append(tryFallthrough)
+                    .append(" = new Object();\n");
+            builder.append(indent)
+                    .append("Object ")
+                    .append(chainedPromise)
+                    .append(";\n");
+            emitAsyncBlockInvocation(
+                    builder,
+                    context,
+                    tryStatement.tryBlock(),
+                    indent,
+                    blockCompletionExpression,
+                    chainedPromise,
+                    "asyncTry"
+            );
+
+            if (tryStatement.hasCatch()) {
+                final String catchArgs = context.allocateGeneratedName("asyncCatchArgs");
+                final String catchReason = context.allocateGeneratedName("asyncCatchReason");
+                builder.append(indent)
+                        .append(chainedPromise)
+                        .append(" = dev.tsj.runtime.TsjRuntime.promiseThen(")
+                        .append("dev.tsj.runtime.TsjRuntime.promiseResolve(")
+                        .append(chainedPromise)
+                        .append("), dev.tsj.runtime.TsjRuntime.undefined(), ")
+                        .append("(dev.tsj.runtime.TsjCallable) (Object... ")
+                        .append(catchArgs)
+                        .append(") -> {\n");
+                builder.append(indent)
+                        .append("    final Object ")
+                        .append(catchReason)
+                        .append(" = ")
+                        .append(catchArgs)
+                        .append(".length > 0 ? ")
+                        .append(catchArgs)
+                        .append("[0] : dev.tsj.runtime.TsjRuntime.undefined();\n");
+                final EmissionContext catchContext = new EmissionContext(context);
+                if (tryStatement.catchBinding() != null) {
+                    final String catchCellName = catchContext.declareBinding(tryStatement.catchBinding());
+                    builder.append(indent)
+                            .append("    final dev.tsj.runtime.TsjCell ")
+                            .append(catchCellName)
+                            .append(" = new dev.tsj.runtime.TsjCell(")
+                            .append(catchReason)
+                            .append(");\n");
+                }
+                predeclareAsyncLocalBindings(builder, catchContext, tryStatement.catchBlock(), indent + "    ");
+                emitAsyncStatements(
+                        builder,
+                        catchContext,
+                        tryStatement.catchBlock(),
+                        indent + "    ",
+                        blockCompletionExpression
+                );
+                builder.append(indent).append("});\n");
+            }
+
+            if (tryStatement.hasFinally()) {
+                final String onFulfilledArgs = context.allocateGeneratedName("asyncFinallyFulfilledArgs");
+                final String onRejectedArgs = context.allocateGeneratedName("asyncFinallyRejectedArgs");
+                final String priorSuccessValue = context.allocateGeneratedName("asyncFinallyPriorValue");
+                final String priorErrorValue = context.allocateGeneratedName("asyncFinallyPriorError");
+                final String finallySuccessPromise = context.allocateGeneratedName("asyncFinallySuccessPromise");
+                final String finallyRejectedPromise = context.allocateGeneratedName("asyncFinallyRejectedPromise");
+                final String finallySuccessResultArgs = context.allocateGeneratedName("asyncFinallySuccessResultArgs");
+                final String finallySuccessResultValue = context.allocateGeneratedName("asyncFinallySuccessResult");
+                final String finallyRejectedResultArgs = context.allocateGeneratedName("asyncFinallyRejectedResultArgs");
+                final String finallyRejectedResultValue = context.allocateGeneratedName("asyncFinallyRejectedResult");
+
+                builder.append(indent)
+                        .append(chainedPromise)
+                        .append(" = dev.tsj.runtime.TsjRuntime.promiseThen(")
+                        .append("dev.tsj.runtime.TsjRuntime.promiseResolve(")
+                        .append(chainedPromise)
+                        .append("), ")
+                        .append("(dev.tsj.runtime.TsjCallable) (Object... ")
+                        .append(onFulfilledArgs)
+                        .append(") -> {\n");
+                builder.append(indent)
+                        .append("    final Object ")
+                        .append(priorSuccessValue)
+                        .append(" = ")
+                        .append(onFulfilledArgs)
+                        .append(".length > 0 ? ")
+                        .append(onFulfilledArgs)
+                        .append("[0] : dev.tsj.runtime.TsjRuntime.undefined();\n");
+                builder.append(indent)
+                        .append("    Object ")
+                        .append(finallySuccessPromise)
+                        .append(";\n");
+                emitAsyncBlockInvocation(
+                        builder,
+                        context,
+                        tryStatement.finallyBlock(),
+                        indent + "    ",
+                        blockCompletionExpression,
+                        finallySuccessPromise,
+                        "asyncFinallySuccess"
+                );
+                builder.append(indent)
+                        .append("    return dev.tsj.runtime.TsjRuntime.promiseThen(")
+                        .append("dev.tsj.runtime.TsjRuntime.promiseResolve(")
+                        .append(finallySuccessPromise)
+                        .append("), ")
+                        .append("(dev.tsj.runtime.TsjCallable) (Object... ")
+                        .append(finallySuccessResultArgs)
+                        .append(") -> {\n");
+                builder.append(indent)
+                        .append("        final Object ")
+                        .append(finallySuccessResultValue)
+                        .append(" = ")
+                        .append(finallySuccessResultArgs)
+                        .append(".length > 0 ? ")
+                        .append(finallySuccessResultArgs)
+                        .append("[0] : dev.tsj.runtime.TsjRuntime.undefined();\n");
+                builder.append(indent)
+                        .append("        if (")
+                        .append(finallySuccessResultValue)
+                        .append(" == ")
+                        .append(tryFallthrough)
+                        .append(") {\n");
+                builder.append(indent)
+                        .append("            return dev.tsj.runtime.TsjRuntime.promiseResolve(")
+                        .append(priorSuccessValue)
+                        .append(");\n");
+                builder.append(indent).append("        }\n");
+                builder.append(indent)
+                        .append("        return dev.tsj.runtime.TsjRuntime.promiseResolve(")
+                        .append(finallySuccessResultValue)
+                        .append(");\n");
+                builder.append(indent)
+                        .append("    }, dev.tsj.runtime.TsjRuntime.undefined());\n");
+                builder.append(indent)
+                        .append("}, (dev.tsj.runtime.TsjCallable) (Object... ")
+                        .append(onRejectedArgs)
+                        .append(") -> {\n");
+                builder.append(indent)
+                        .append("    final Object ")
+                        .append(priorErrorValue)
+                        .append(" = ")
+                        .append(onRejectedArgs)
+                        .append(".length > 0 ? ")
+                        .append(onRejectedArgs)
+                        .append("[0] : dev.tsj.runtime.TsjRuntime.undefined();\n");
+                builder.append(indent)
+                        .append("    Object ")
+                        .append(finallyRejectedPromise)
+                        .append(";\n");
+                emitAsyncBlockInvocation(
+                        builder,
+                        context,
+                        tryStatement.finallyBlock(),
+                        indent + "    ",
+                        blockCompletionExpression,
+                        finallyRejectedPromise,
+                        "asyncFinallyRejected"
+                );
+                builder.append(indent)
+                        .append("    return dev.tsj.runtime.TsjRuntime.promiseThen(")
+                        .append("dev.tsj.runtime.TsjRuntime.promiseResolve(")
+                        .append(finallyRejectedPromise)
+                        .append("), ")
+                        .append("(dev.tsj.runtime.TsjCallable) (Object... ")
+                        .append(finallyRejectedResultArgs)
+                        .append(") -> {\n");
+                builder.append(indent)
+                        .append("        final Object ")
+                        .append(finallyRejectedResultValue)
+                        .append(" = ")
+                        .append(finallyRejectedResultArgs)
+                        .append(".length > 0 ? ")
+                        .append(finallyRejectedResultArgs)
+                        .append("[0] : dev.tsj.runtime.TsjRuntime.undefined();\n");
+                builder.append(indent)
+                        .append("        if (")
+                        .append(finallyRejectedResultValue)
+                        .append(" == ")
+                        .append(tryFallthrough)
+                        .append(") {\n");
+                builder.append(indent)
+                        .append("            return dev.tsj.runtime.TsjRuntime.promiseReject(")
+                        .append(priorErrorValue)
+                        .append(");\n");
+                builder.append(indent).append("        }\n");
+                builder.append(indent)
+                        .append("        return dev.tsj.runtime.TsjRuntime.promiseResolve(")
+                        .append(finallyRejectedResultValue)
+                        .append(");\n");
+                builder.append(indent)
+                        .append("    }, dev.tsj.runtime.TsjRuntime.undefined());\n");
+                builder.append(indent).append("});\n");
+            }
+
+            final String tryResultArgs = context.allocateGeneratedName("asyncTryResultArgs");
+            final String tryResultValue = context.allocateGeneratedName("asyncTryResult");
+            builder.append(indent)
+                    .append("return dev.tsj.runtime.TsjRuntime.promiseThen(")
+                    .append("dev.tsj.runtime.TsjRuntime.promiseResolve(")
+                    .append(chainedPromise)
+                    .append("), ")
+                    .append("(dev.tsj.runtime.TsjCallable) (Object... ")
+                    .append(tryResultArgs)
+                    .append(") -> {\n");
+            builder.append(indent)
+                    .append("    final Object ")
+                    .append(tryResultValue)
+                    .append(" = ")
+                    .append(tryResultArgs)
+                    .append(".length > 0 ? ")
+                    .append(tryResultArgs)
+                    .append("[0] : dev.tsj.runtime.TsjRuntime.undefined();\n");
+            builder.append(indent)
+                    .append("    if (")
+                    .append(tryResultValue)
+                    .append(" == ")
+                    .append(tryFallthrough)
+                    .append(") {\n");
+            emitAsyncStatementsFrom(
+                    builder,
+                    context,
+                    statements,
+                    index + 1,
+                    indent + "        ",
+                    completionExpression
+            );
+            builder.append(indent).append("    }\n");
+            builder.append(indent)
+                    .append("    return dev.tsj.runtime.TsjRuntime.promiseResolve(")
+                    .append(tryResultValue)
+                    .append(");\n");
+            builder.append(indent)
+                    .append("}, dev.tsj.runtime.TsjRuntime.undefined());\n");
+        }
+
+        private void emitAsyncBlockInvocation(
+                final StringBuilder builder,
+                final EmissionContext context,
+                final List<Statement> statements,
+                final String indent,
+                final String completionExpression,
+                final String promiseVariable,
+                final String generatedPrefix
+        ) {
+            final String callable = context.allocateGeneratedName(generatedPrefix + "Callable");
+            final String callableArgs = context.allocateGeneratedName(generatedPrefix + "Args");
+            builder.append(indent)
+                    .append("final dev.tsj.runtime.TsjCallable ")
+                    .append(callable)
+                    .append(" = (Object... ")
+                    .append(callableArgs)
+                    .append(") -> {\n");
+            final EmissionContext blockContext = new EmissionContext(context);
+            predeclareAsyncLocalBindings(builder, blockContext, statements, indent + "    ");
+            emitAsyncStatements(builder, blockContext, statements, indent + "    ", completionExpression);
+            builder.append(indent).append("};\n");
+            builder.append(indent).append("try {\n");
+            builder.append(indent)
+                    .append("    ")
+                    .append(promiseVariable)
+                    .append(" = dev.tsj.runtime.TsjRuntime.call(")
+                    .append(callable)
+                    .append(");\n");
+            builder.append(indent).append("} catch (RuntimeException __tsjAsyncBlockError) {\n");
+            builder.append(indent)
+                    .append("    ")
+                    .append(promiseVariable)
+                    .append(" = dev.tsj.runtime.TsjRuntime.promiseReject(")
+                    .append("dev.tsj.runtime.TsjRuntime.normalizeThrown(__tsjAsyncBlockError));\n");
+            builder.append(indent).append("}\n");
         }
 
         private boolean emitAwaitResumePrefix(
@@ -3737,6 +4344,20 @@ public final class JvmBytecodeCompiler {
                         .append(");\n");
                 return;
             }
+            if (statement instanceof BreakStatement) {
+                builder.append(indent)
+                        .append("return dev.tsj.runtime.TsjRuntime.promiseResolve(")
+                        .append(ASYNC_BREAK_SIGNAL_FIELD)
+                        .append(");\n");
+                return;
+            }
+            if (statement instanceof ContinueStatement) {
+                builder.append(indent)
+                        .append("return dev.tsj.runtime.TsjRuntime.promiseResolve(")
+                        .append(ASYNC_CONTINUE_SIGNAL_FIELD)
+                        .append(");\n");
+                return;
+            }
             throw new JvmCompilationException(
                     "TSJ-BACKEND-UNSUPPORTED",
                     "Unsupported statement in async function TSJ-13 subset: "
@@ -3840,6 +4461,24 @@ public final class JvmBytecodeCompiler {
                     return true;
                 }
                 for (Statement nested : whileStatement.body()) {
+                    if (statementContainsAwait(nested)) {
+                        return true;
+                    }
+                }
+                return false;
+            }
+            if (statement instanceof TryStatement tryStatement) {
+                for (Statement nested : tryStatement.tryBlock()) {
+                    if (statementContainsAwait(nested)) {
+                        return true;
+                    }
+                }
+                for (Statement nested : tryStatement.catchBlock()) {
+                    if (statementContainsAwait(nested)) {
+                        return true;
+                    }
+                }
+                for (Statement nested : tryStatement.finallyBlock()) {
                     if (statementContainsAwait(nested)) {
                         return true;
                     }

@@ -1,0 +1,4 @@
+sync
+catch=boom-handled
+finally=fin
+done=catch-boom-handled

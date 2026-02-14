@@ -225,15 +225,13 @@
 - Notes:
   - Current implementation pass adds backend continuation lowering for async `if` + async `while` with nested blocks
     when `await` appears in supported standalone forms.
+  - TSJ-23 adds explicit async state-machine metadata in IR (`MirAsyncFrame`, `MirAsyncState`,
+    `MirAsyncSuspendPoint`) plus JIR async state ops for suspend/resume visibility.
+  - Backend async lowering now supports `break`/`continue` control flow and `await` in async `while` conditions.
+  - Backend parser/codegen now supports statement-level `try`/`catch`/`finally` in sync and async functions,
+    including awaited catch/finally paths and finally return override behavior.
   - Fixture coverage includes `tests/fixtures/tsj13a-async-if` and `tests/fixtures/tsj13a-async-while`.
-  - Known deviations in this pass:
-    `await` in `if`/`while` conditions is still rejected;
-    `break`/`continue`/`try`/`catch`/`finally` are not yet represented in the TSJ parser/lowering subset.
-- Status: `Complete (Subset)`.
-- Remaining AC gaps:
-  - MIR/JIR async suspend/resume/state constructs are not yet explicit.
-  - `break`/`continue`/`try`/`catch`/`finally` across suspension points are not fully lowered.
-  - `await` in `if`/`while` conditions remains unsupported.
+- Status: `Complete`.
 - Dependencies: TSJ-13, TSJ-6, TSJ-7.
 
 ### TSJ-13b: Async language surface completeness
@@ -502,7 +500,29 @@
   - Lowering preserves `return`/`throw`/`break`/`continue` and `try`/`catch`/`finally` across suspension points.
   - Async control-flow differential suite expanded for nested/compound cases.
   - TSJ-13a status can be promoted from `Complete (Subset)` to `Complete`.
-- Status: `Planned`.
+- Notes:
+  - MIR model now carries explicit async frame/state metadata:
+    `MirFunction.async`, `MirFunction.asyncFrame`, `MirAsyncState`, and `MirAsyncSuspendPoint`.
+  - MIR lowering now emits explicit async state-machine ops:
+    `ASYNC_STATE`, `ASYNC_SUSPEND`, `ASYNC_RESUME`, plus terminal/control ops for
+    `RETURN`, `THROW`, `BREAK`, `CONTINUE`, `TRY_BEGIN`, `CATCH_BEGIN`, and `FINALLY_BEGIN`.
+  - JIR methods now include async metadata via `JirMethod.async` and `JirMethod.asyncStateOps`
+    so suspend/resume structure is visible in lowered JVM-oriented IR.
+  - Differential coverage expanded with nested/compound async fixture:
+    `tests/fixtures/tsj23-async-nested-control-flow`.
+  - Additional async loop conformance fixtures cover:
+    `tests/fixtures/tsj23-async-while-condition-await` and
+    `tests/fixtures/tsj23-async-break-continue`.
+  - Additional async try/finally conformance fixtures cover:
+    `tests/fixtures/tsj23-async-try-catch-finally`,
+    `tests/fixtures/tsj23-async-try-finally-override`, and
+    `tests/fixtures/tsj23-async-try-finally-reject`.
+  - Coverage includes:
+    `compiler/ir/src/test/java/dev/tsj/compiler/ir/IrLoweringServiceTest.java`,
+    `compiler/backend-jvm/src/test/java/dev/tsj/compiler/backend/jvm/JvmBytecodeCompilerTest.java`,
+    `cli/src/test/java/dev/tsj/cli/TsjCliTest.java`,
+    and `cli/src/test/java/dev/tsj/cli/fixtures/DifferentialConformanceSuiteTest.java`.
+- Status: `Complete`.
 - Dependencies: TSJ-13a.
 
 ### TSJ-24: Promise combinator iterable protocol parity

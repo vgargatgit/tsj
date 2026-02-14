@@ -11,6 +11,8 @@ import java.util.List;
  * @param cfgEdges explicit control-flow edges
  * @param scopes lexical scope metadata
  * @param captures captured variable metadata
+ * @param async whether the lowered function is async
+ * @param asyncFrame explicit async state-machine metadata when async=true
  */
 public record MirFunction(
         String name,
@@ -18,6 +20,8 @@ public record MirFunction(
         List<MirBasicBlock> blocks,
         List<MirControlFlowEdge> cfgEdges,
         List<MirScope> scopes,
-        List<MirCapture> captures
+        List<MirCapture> captures,
+        boolean async,
+        MirAsyncFrame asyncFrame
 ) {
 }

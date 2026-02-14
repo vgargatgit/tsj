@@ -1399,12 +1399,12 @@ class JvmBytecodeCompilerTest {
     }
 
     @Test
-    void rejectsAwaitInAsyncWhileConditionForNow() throws Exception {
+    void supportsAwaitInAsyncWhileCondition() throws Exception {
         final Path sourceFile = tempDir.resolve("async-while-condition-await.ts");
         Files.writeString(
                 sourceFile,
                 """
-                async function bad() {
+                async function run() {
                   let i = 0;
                   while (await Promise.resolve(i < 1)) {
                     i = i + 1;
@@ -1412,17 +1412,282 @@ class JvmBytecodeCompilerTest {
                   return i;
                 }
 
-                bad().then(console.log);
+                function onDone(value: number) {
+                  console.log("done=" + value);
+                  return value;
+                }
+
+                run().then(onDone);
+                console.log("sync");
                 """,
                 UTF_8
         );
 
-        final JvmCompilationException exception = org.junit.jupiter.api.Assertions.assertThrows(
-                JvmCompilationException.class,
-                () -> new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out22k"))
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out22k"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals("sync\ndone=1\n", stdout.toString(UTF_8));
+    }
+
+    @Test
+    void supportsBreakAndContinueInAsyncWhileLoop() throws Exception {
+        final Path sourceFile = tempDir.resolve("async-break-continue.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                async function flow(limit: number) {
+                  let i = 0;
+                  let sum = 0;
+                  while (i < limit) {
+                    i = i + 1;
+                    if (i === 2) {
+                      continue;
+                    }
+                    if (i === 4) {
+                      break;
+                    }
+                    const step = await Promise.resolve(i);
+                    sum = sum + step;
+                  }
+                  console.log("sum=" + sum);
+                  return sum;
+                }
+
+                function onDone(v: number) {
+                  console.log("done=" + v);
+                  return v;
+                }
+
+                flow(6).then(onDone);
+                console.log("sync");
+                """,
+                UTF_8
         );
-        assertEquals("TSJ-BACKEND-UNSUPPORTED", exception.code());
-        assertTrue(exception.getMessage().contains("while condition"));
+
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out22k2"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals("sync\nsum=4\ndone=4\n", stdout.toString(UTF_8));
+    }
+
+    @Test
+    void supportsBreakAndContinueInSyncWhileLoop() throws Exception {
+        final Path sourceFile = tempDir.resolve("sync-break-continue.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                function run() {
+                  let i = 0;
+                  let sum = 0;
+                  while (i < 5) {
+                    i = i + 1;
+                    if (i === 2) {
+                      continue;
+                    }
+                    if (i === 4) {
+                      break;
+                    }
+                    sum = sum + i;
+                  }
+                  console.log("sum=" + sum);
+                  return sum;
+                }
+
+                run();
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out22k3"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals("sum=4\n", stdout.toString(UTF_8));
+    }
+
+    @Test
+    void supportsAsyncTryCatchFinallyWithAwaitOnSuccessPath() throws Exception {
+        final Path sourceFile = tempDir.resolve("async-try-success.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                async function run() {
+                  try {
+                    const value = await Promise.resolve(2);
+                    console.log("try=" + value);
+                    return "ok-" + value;
+                  } catch (err: string) {
+                    console.log("catch=" + err);
+                    return "catch-" + err;
+                  } finally {
+                    const marker = await Promise.resolve("fin");
+                    console.log("finally=" + marker);
+                  }
+                }
+
+                function onDone(value: string) {
+                  console.log("done=" + value);
+                  return value;
+                }
+
+                run().then(onDone);
+                console.log("sync");
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out22k4"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals("sync\ntry=2\nfinally=fin\ndone=ok-2\n", stdout.toString(UTF_8));
+    }
+
+    @Test
+    void supportsAsyncTryCatchFinallyWithAwaitOnCatchPath() throws Exception {
+        final Path sourceFile = tempDir.resolve("async-try-catch.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                async function run() {
+                  try {
+                    const value = await Promise.resolve(0);
+                    if (value === 0) {
+                      throw "boom";
+                    }
+                    return "ok";
+                  } catch (err: string) {
+                    const caught = await Promise.resolve(err + "-handled");
+                    console.log("catch=" + caught);
+                    return "catch-" + caught;
+                  } finally {
+                    const marker = await Promise.resolve("fin");
+                    console.log("finally=" + marker);
+                  }
+                }
+
+                function onDone(value: string) {
+                  console.log("done=" + value);
+                  return value;
+                }
+
+                run().then(onDone);
+                console.log("sync");
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out22k5"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals("sync\ncatch=boom-handled\nfinally=fin\ndone=catch-boom-handled\n", stdout.toString(UTF_8));
+    }
+
+    @Test
+    void supportsAsyncTryFinallyReturnOverride() throws Exception {
+        final Path sourceFile = tempDir.resolve("async-try-finally-override.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                async function run() {
+                  try {
+                    return await Promise.resolve("try");
+                  } finally {
+                    const marker = await Promise.resolve("fin");
+                    return "override-" + marker;
+                  }
+                }
+
+                function onDone(value: string) {
+                  console.log("done=" + value);
+                  return value;
+                }
+
+                run().then(onDone);
+                console.log("sync");
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out22k6"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals("sync\ndone=override-fin\n", stdout.toString(UTF_8));
+    }
+
+    @Test
+    void supportsAsyncTryFinallyOnRejectedPathWithoutCatch() throws Exception {
+        final Path sourceFile = tempDir.resolve("async-try-finally-reject.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                async function run() {
+                  try {
+                    throw await Promise.resolve("boom");
+                  } finally {
+                    const marker = await Promise.resolve("fin");
+                    console.log("finally=" + marker);
+                  }
+                }
+
+                run().then(
+                  (value: string) => {
+                    console.log("done=" + value);
+                    return value;
+                  },
+                  (reason: string) => {
+                    console.log("error=" + reason);
+                    return reason;
+                  }
+                );
+                console.log("sync");
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out22k7"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals("sync\nfinally=fin\nerror=boom\n", stdout.toString(UTF_8));
+    }
+
+    @Test
+    void supportsSyncTryCatchFinally() throws Exception {
+        final Path sourceFile = tempDir.resolve("sync-try-catch-finally.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                function run(flag: number) {
+                  try {
+                    if (flag === 0) {
+                      throw "boom";
+                    }
+                    console.log("try");
+                    return "ok";
+                  } catch (err: string) {
+                    console.log("catch=" + err);
+                    return "caught";
+                  } finally {
+                    console.log("finally");
+                  }
+                }
+
+                console.log(run(1));
+                console.log(run(0));
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out22k8"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals("try\nfinally\nok\ncatch=boom\nfinally\ncaught\n", stdout.toString(UTF_8));
     }
 
     @Test
