@@ -320,10 +320,8 @@
     `tests/fixtures/tsj13f-top-level-await-transitive`, and
     `tests/fixtures/tsj13f-top-level-await-while-unsupported`.
   - Async diagnostics now include explicit unsupported placement guidance for `await` in while conditions.
-  - Source-mapped async stack traces remain future work under TSJ-14.
-- Status: `Complete (Subset)`.
-- Remaining AC gaps:
-  - Source-mapped async stack traces are not yet implemented end-to-end.
+  - Source-mapped async stack traces and async continuation markers are completed under TSJ-25.
+- Status: `Complete`.
 - Dependencies: TSJ-12, TSJ-13a, TSJ-14, TSJ-16.
 
 ### TSJ-14: Error model and stack trace source mapping
@@ -548,7 +546,18 @@
   - `tsj run --ts-stacktrace` includes async continuation boundaries in readable form.
   - Differential diagnostics tests verify async stack formatting behavior.
   - TSJ-13f status can be promoted from `Complete (Subset)` to `Complete`.
-- Status: `Planned`.
+- Notes:
+  - CLI `--ts-stacktrace` now wires async unhandled-rejection throwable reasons through TypeScript source-map rendering.
+  - Mapped frame rendering now deduplicates by method+TS location and marks continuation frames with
+    `--- async continuation ---` and `[async-continuation]`.
+  - Fixture descriptors now support optional runtime args (`node.args`, `tsj.args`) so diagnostics behaviors can be
+    exercised directly in conformance suites.
+  - Differential diagnostics fixture coverage includes `tests/fixtures/tsj25-async-stacktrace`.
+  - Coverage includes:
+    `cli/src/test/java/dev/tsj/cli/TsjCliTest.java`,
+    `cli/src/test/java/dev/tsj/cli/fixtures/FixtureHarnessTest.java`,
+    and `cli/src/test/java/dev/tsj/cli/fixtures/DifferentialConformanceSuiteTest.java`.
+- Status: `Complete`.
 - Dependencies: TSJ-13f, TSJ-14.
 
 ## First Three Sprints (Suggested)

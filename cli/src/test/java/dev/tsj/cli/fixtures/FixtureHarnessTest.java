@@ -46,6 +46,61 @@ class FixtureHarnessTest {
     }
 
     @Test
+    void harnessSupportsTsjArgsFromFixtureDescriptor() throws Exception {
+        final Path fixtureDir = tempDir.resolve("tsj-args");
+        final Path inputDir = fixtureDir.resolve("input");
+        final Path expectedDir = fixtureDir.resolve("expected");
+        Files.createDirectories(inputDir);
+        Files.createDirectories(expectedDir);
+
+        Files.writeString(
+                inputDir.resolve("main.ts"),
+                """
+                function fail(value: number) {
+                  if (value === 1) {
+                    throw "boom";
+                  }
+                  return value;
+                }
+                fail(1);
+                """,
+                UTF_8
+        );
+        Files.writeString(expectedDir.resolve("node.stdout"), "", UTF_8);
+        Files.writeString(expectedDir.resolve("node.stderr"), "boom", UTF_8);
+        Files.writeString(expectedDir.resolve("tsj.stdout"), "", UTF_8);
+        Files.writeString(expectedDir.resolve("tsj.stderr"), "TSJ stack trace (TypeScript):", UTF_8);
+        Files.writeString(
+                fixtureDir.resolve("fixture.properties"),
+                String.join(
+                        "\n",
+                        "name=tsj-args",
+                        "entry=input/main.ts",
+                        "expected.node.exitCode=1",
+                        "expected.node.stdout=expected/node.stdout",
+                        "expected.node.stderr=expected/node.stderr",
+                        "expected.node.stdoutMode=exact",
+                        "expected.node.stderrMode=contains",
+                        "expected.tsj.exitCode=1",
+                        "expected.tsj.stdout=expected/tsj.stdout",
+                        "expected.tsj.stderr=expected/tsj.stderr",
+                        "expected.tsj.stdoutMode=exact",
+                        "expected.tsj.stderrMode=contains",
+                        "assert.nodeMatchesTsj=false",
+                        "tsj.args=--ts-stacktrace",
+                        ""
+                ),
+                UTF_8
+        );
+
+        final FixtureSpec fixture = FixtureLoader.loadFixture(fixtureDir);
+        final FixtureRunResult result = new FixtureHarness().runFixture(fixture);
+
+        assertEquals(List.of("--ts-stacktrace"), fixture.tsjArgs());
+        assertTrue(result.passed(), result.minimizedRepro());
+    }
+
+    @Test
     void harnessCanEnforceNodeToTsjComparison() throws Exception {
         final Path fixtureDir = writeFixture("strict", true);
         final FixtureSpec fixture = FixtureLoader.loadFixture(fixtureDir);
@@ -441,6 +496,25 @@ class FixtureHarnessTest {
                 deleteRecursively(fixture.directory().resolve(".tsj-out"));
             }
         }
+    }
+
+    @Test
+    void committedTsj25AsyncStackTraceFixtureRunsSuccessfully() throws Exception {
+        final Path fixturesRoot = Path.of("..", "tests", "fixtures").toAbsolutePath().normalize();
+        final FixtureSpec fixture = FixtureLoader.loadFixture(fixturesRoot.resolve("tsj25-async-stacktrace"));
+
+        final FixtureRunResult result = new FixtureHarness().runFixture(fixture);
+
+        final String failureDetails = List.of(
+                "nodeDiff=" + result.nodeResult().diff(),
+                "tsjDiff=" + result.tsjResult().diff(),
+                "nodeToTsjDiff=" + result.nodeToTsjDiff(),
+                "nodeStdout=" + result.nodeResult().stdout(),
+                "nodeStderr=" + result.nodeResult().stderr(),
+                "tsjStdout=" + result.tsjResult().stdout(),
+                "tsjStderr=" + result.tsjResult().stderr()
+        ).stream().collect(Collectors.joining(" | "));
+        assertTrue(result.passed(), "tsj25-async-stacktrace should pass: " + failureDetails);
     }
 
     private Path writeFixture(final String name, final boolean assertNodeMatchesTsj) throws IOException {

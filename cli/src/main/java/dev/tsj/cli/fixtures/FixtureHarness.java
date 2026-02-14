@@ -61,13 +61,14 @@ public final class FixtureHarness {
     }
 
     private RuntimeExecutionResult runNodeFixture(final FixtureSpec fixture) {
+        final List<String> command = new ArrayList<>();
+        command.add(NODE_BINARY);
+        command.add(NODE_NO_WARNINGS_FLAG);
+        command.add(NODE_TS_FLAG);
+        command.addAll(fixture.nodeArgs());
+        command.add(fixture.entryFile().toString());
         final CommandResult actual = runExternal(
-                List.of(
-                        NODE_BINARY,
-                        NODE_NO_WARNINGS_FLAG,
-                        NODE_TS_FLAG,
-                        fixture.entryFile().toString()
-                ),
+                command,
                 fixture.directory()
         );
         return compareExpected("node", fixture.nodeExpectation(), actual);
@@ -77,8 +78,14 @@ public final class FixtureHarness {
         final Path outDir = fixture.directory().resolve(".tsj-out").toAbsolutePath().normalize();
         final ByteArrayOutputStream stdoutBuffer = new ByteArrayOutputStream();
         final ByteArrayOutputStream stderrBuffer = new ByteArrayOutputStream();
+        final List<String> command = new ArrayList<>();
+        command.add("run");
+        command.add(fixture.entryFile().toString());
+        command.add("--out");
+        command.add(outDir.toString());
+        command.addAll(fixture.tsjArgs());
         final int exitCode = TsjCli.execute(
-                new String[]{"run", fixture.entryFile().toString(), "--out", outDir.toString()},
+                command.toArray(String[]::new),
                 new PrintStream(stdoutBuffer),
                 new PrintStream(stderrBuffer)
         );
@@ -244,9 +251,21 @@ public final class FixtureHarness {
         }
 
         final String entry = fixture.entryFile().toString();
-        final String nodeCommand = NODE_BINARY + " " + NODE_NO_WARNINGS_FLAG + " " + NODE_TS_FLAG + " " + entry;
-        final String tsjCommand = "tsj run " + entry + " --out "
-                + fixture.directory().resolve(".tsj-out").toAbsolutePath().normalize();
+        final String nodeArgs = fixture.nodeArgs().isEmpty() ? "" : " " + String.join(" ", fixture.nodeArgs());
+        final String tsjArgs = fixture.tsjArgs().isEmpty() ? "" : " " + String.join(" ", fixture.tsjArgs());
+        final String nodeCommand = NODE_BINARY
+                + " "
+                + NODE_NO_WARNINGS_FLAG
+                + " "
+                + NODE_TS_FLAG
+                + nodeArgs
+                + " "
+                + entry;
+        final String tsjCommand = "tsj run "
+                + entry
+                + " --out "
+                + fixture.directory().resolve(".tsj-out").toAbsolutePath().normalize()
+                + tsjArgs;
         return "fixture=" + fixture.name()
                 + " | mismatch=" + String.join(" | ", mismatches)
                 + " | repro=" + nodeCommand

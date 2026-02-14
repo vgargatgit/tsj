@@ -51,11 +51,11 @@ public final class TsjRuntime {
         unhandledRejectionReporter.accept(reason);
     }
 
-    static void setUnhandledRejectionReporter(final Consumer<Object> reporter) {
+    public static void setUnhandledRejectionReporter(final Consumer<Object> reporter) {
         unhandledRejectionReporter = Objects.requireNonNull(reporter, "reporter");
     }
 
-    static void resetUnhandledRejectionReporter() {
+    public static void resetUnhandledRejectionReporter() {
         unhandledRejectionReporter = TsjRuntime::defaultUnhandledRejectionReporter;
     }
 

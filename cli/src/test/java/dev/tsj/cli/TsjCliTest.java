@@ -1826,6 +1826,86 @@ class TsjCliTest {
     }
 
     @Test
+    void runTsStackTraceMarksAsyncContinuationFrames() throws Exception {
+        final Path entryFile = tempDir.resolve("runtime-async-fail-trace.ts");
+        Files.writeString(
+                entryFile,
+                """
+                const notCallable: any = 1;
+                async function failAfterAwait() {
+                  await Promise.resolve(1);
+                  return notCallable();
+                }
+                await failAfterAwait();
+                """,
+                UTF_8
+        );
+
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+
+        final int exitCode = TsjCli.execute(
+                new String[]{
+                        "run",
+                        entryFile.toString(),
+                        "--out",
+                        tempDir.resolve("runtime-async-fail-trace-out").toString(),
+                        "--ts-stacktrace"
+                },
+                new PrintStream(stdout),
+                new PrintStream(stderr)
+        );
+
+        assertEquals(0, exitCode);
+        final String stderrText = stderr.toString(UTF_8);
+        assertTrue(stderrText.contains("TSJ-UNHANDLED-REJECTION:"));
+        assertTrue(stderrText.contains("TSJ stack trace (TypeScript):"));
+        assertTrue(stderrText.contains(entryFile.toAbsolutePath().normalize() + ":"));
+        assertTrue(stderrText.contains("[method="));
+        assertTrue(stderrText.contains("[async-continuation]"));
+    }
+
+    @Test
+    void runTsStackTraceIncludesUnhandledRejectionThrowableFrames() throws Exception {
+        final Path entryFile = tempDir.resolve("promise-unhandled-reject-trace.ts");
+        Files.writeString(
+                entryFile,
+                """
+                const notCallable: any = 1;
+                Promise.resolve("ok").then(() => {
+                  return notCallable();
+                });
+                console.log("sync");
+                """,
+                UTF_8
+        );
+
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+
+        final int exitCode = TsjCli.execute(
+                new String[]{
+                        "run",
+                        entryFile.toString(),
+                        "--out",
+                        tempDir.resolve("promise-unhandled-reject-trace-out").toString(),
+                        "--ts-stacktrace"
+                },
+                new PrintStream(stdout),
+                new PrintStream(stderr)
+        );
+
+        assertEquals(0, exitCode);
+        assertTrue(stdout.toString(UTF_8).contains("sync"));
+        assertTrue(stdout.toString(UTF_8).contains("\"code\":\"TSJ-RUN-SUCCESS\""));
+        final String stderrText = stderr.toString(UTF_8);
+        assertTrue(stderrText.contains("TSJ-UNHANDLED-REJECTION:"));
+        assertTrue(stderrText.contains("TSJ stack trace (TypeScript):"));
+        assertTrue(stderrText.contains("Cause[0]: java.lang.IllegalArgumentException"));
+        assertTrue(stderrText.contains(entryFile.toAbsolutePath().normalize() + ":"));
+    }
+
+    @Test
     void runSupportsImportAliasInTsj22() throws Exception {
         final Path helperFile = tempDir.resolve("helper.ts");
         final Path entryFile = tempDir.resolve("main.ts");

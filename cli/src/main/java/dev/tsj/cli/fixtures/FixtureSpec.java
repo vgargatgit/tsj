@@ -1,6 +1,7 @@
 package dev.tsj.cli.fixtures;
 
 import java.nio.file.Path;
+import java.util.List;
 
 /**
  * Fixture definition loaded from fixture.properties.
@@ -11,6 +12,8 @@ import java.nio.file.Path;
  * @param nodeExpectation expected Node execution result
  * @param tsjExpectation expected TSJ execution result
  * @param assertNodeMatchesTsj whether to enforce Node-vs-TSJ direct equality
+ * @param nodeArgs optional additional Node CLI args inserted before entry script
+ * @param tsjArgs optional additional TSJ `run` args appended after `--out <dir>`
  */
 public record FixtureSpec(
         String name,
@@ -18,6 +21,8 @@ public record FixtureSpec(
         Path entryFile,
         ExpectedRuntimeResult nodeExpectation,
         ExpectedRuntimeResult tsjExpectation,
-        boolean assertNodeMatchesTsj
+        boolean assertNodeMatchesTsj,
+        List<String> nodeArgs,
+        List<String> tsjArgs
 ) {
 }

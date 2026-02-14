@@ -63,8 +63,19 @@ public final class FixtureLoader {
         final boolean assertNodeMatchesTsj = Boolean.parseBoolean(
                 properties.getProperty("assert.nodeMatchesTsj", "false")
         );
+        final List<String> nodeArgs = parseArgs(properties.getProperty("node.args"));
+        final List<String> tsjArgs = parseArgs(properties.getProperty("tsj.args"));
 
-        return new FixtureSpec(name, fixtureDir, entry, nodeExpected, tsjExpected, assertNodeMatchesTsj);
+        return new FixtureSpec(
+                name,
+                fixtureDir,
+                entry,
+                nodeExpected,
+                tsjExpected,
+                assertNodeMatchesTsj,
+                nodeArgs,
+                tsjArgs
+        );
     }
 
     private static ExpectedRuntimeResult loadExpected(
@@ -129,5 +140,13 @@ public final class FixtureLoader {
                     numberFormatException
             );
         }
+    }
+
+    private static List<String> parseArgs(final String value) {
+        if (value == null || value.isBlank()) {
+            return List.of();
+        }
+        final String[] tokens = value.trim().split("\\s+");
+        return List.copyOf(List.of(tokens));
     }
 }

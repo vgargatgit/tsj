@@ -15,6 +15,7 @@ import dev.tsj.compiler.backend.jvm.JvmOptimizationOptions;
 import dev.tsj.compiler.frontend.FrontendModule;
 import dev.tsj.compiler.ir.IrModule;
 import dev.tsj.runtime.RuntimeModule;
+import dev.tsj.runtime.TsjRuntime;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -580,6 +581,12 @@ public final class TsjCli {
 
         final String entry = properties.getProperty("entry", artifact.entryPath.toString());
         final JvmCompiledArtifact executable = resolveExecutableArtifact(artifact, properties, entry);
+        final boolean installedUnhandledRejectionReporter = showTsStackTrace;
+        if (installedUnhandledRejectionReporter) {
+            TsjRuntime.setUnhandledRejectionReporter(
+                    reason -> emitUnhandledRejectionWithTsStackTrace(stderr, executable, reason)
+            );
+        }
         try {
             new JvmBytecodeRunner().run(executable, stdout, stderr);
         } catch (final JvmCompilationException compilationException) {
@@ -591,6 +598,10 @@ public final class TsjCli {
                     compilationException.getMessage(),
                     backendFailureContext(artifact.entryPath, compilationException)
             );
+        } finally {
+            if (installedUnhandledRejectionReporter) {
+                TsjRuntime.resetUnhandledRejectionReporter();
+            }
         }
 
         emitDiagnostic(
@@ -739,7 +750,8 @@ public final class TsjCli {
             final Throwable throwable
     ) {
         final List<String> renderedFrames = new ArrayList<>();
-        final Set<String> seenMethods = new LinkedHashSet<>();
+        final Set<String> seenFrames = new LinkedHashSet<>();
+        boolean inAsyncContinuationBlock = false;
         for (StackTraceElement stackTraceElement : throwable.getStackTrace()) {
             if (!executable.className().equals(stackTraceElement.getClassName())) {
                 continue;
@@ -749,9 +761,21 @@ public final class TsjCli {
                 continue;
             }
             final String methodName = stackTraceElement.getMethodName();
-            if (!seenMethods.add(methodName)) {
+            final String frameKey = methodName
+                    + "@"
+                    + frame.sourceFile()
+                    + ":"
+                    + frame.line()
+                    + ":"
+                    + frame.column();
+            if (!seenFrames.add(frameKey)) {
                 continue;
             }
+            final boolean asyncContinuation = isAsyncContinuationMethod(methodName);
+            if (asyncContinuation && !inAsyncContinuationBlock) {
+                renderedFrames.add("--- async continuation ---");
+            }
+            inAsyncContinuationBlock = asyncContinuation;
             renderedFrames.add(
                     "at "
                             + frame.sourceFile()
@@ -762,9 +786,27 @@ public final class TsjCli {
                             + " [method="
                             + methodName
                             + "]"
+                            + (asyncContinuation ? " [async-continuation]" : "")
             );
         }
         return List.copyOf(renderedFrames);
+    }
+
+    private static void emitUnhandledRejectionWithTsStackTrace(
+            final PrintStream stderr,
+            final JvmCompiledArtifact executable,
+            final Object reason
+    ) {
+        stderr.println("TSJ-UNHANDLED-REJECTION: " + TsjRuntime.toDisplayString(reason));
+        if (reason instanceof Throwable throwable) {
+            emitTsStackTrace(stderr, executable, throwable);
+        }
+    }
+
+    private static boolean isAsyncContinuationMethod(final String methodName) {
+        return methodName.startsWith("lambda$")
+                || methodName.contains("$async")
+                || methodName.startsWith("async");
     }
 
     private static String describeThrowable(final Throwable throwable) {
