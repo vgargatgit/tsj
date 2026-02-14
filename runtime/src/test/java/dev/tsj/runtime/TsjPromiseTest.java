@@ -3,6 +3,8 @@ package dev.tsj.runtime;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -456,6 +458,173 @@ class TsjPromiseTest {
         TsjRuntime.flushMicrotasks();
 
         assertTrue(reason.get() instanceof IllegalArgumentException);
+    }
+
+    @Test
+    void promiseAllAcceptsStringIterableInput() {
+        final Object combined = TsjRuntime.invokeMember(TsjRuntime.promiseBuiltin(), "all", "ab");
+
+        final AtomicReference<Object> resolved = new AtomicReference<>(TsjRuntime.undefined());
+        TsjRuntime.invokeMember(
+                combined,
+                "then",
+                (TsjCallable) args -> {
+                    resolved.set(args[0]);
+                    return null;
+                }
+        );
+        TsjRuntime.flushMicrotasks();
+
+        final Object resultArray = resolved.get();
+        assertEquals(2, TsjRuntime.getProperty(resultArray, "length"));
+        assertEquals("a", TsjRuntime.getProperty(resultArray, "0"));
+        assertEquals("b", TsjRuntime.getProperty(resultArray, "1"));
+    }
+
+    @Test
+    void promiseRaceAcceptsStringIterableInput() {
+        final Object raced = TsjRuntime.invokeMember(TsjRuntime.promiseBuiltin(), "race", "ab");
+
+        final AtomicReference<Object> value = new AtomicReference<>(TsjRuntime.undefined());
+        TsjRuntime.invokeMember(
+                raced,
+                "then",
+                (TsjCallable) args -> {
+                    value.set(args[0]);
+                    return null;
+                }
+        );
+        TsjRuntime.flushMicrotasks();
+
+        assertEquals("a", value.get());
+    }
+
+    @Test
+    void promiseAllSettledAcceptsStringIterableInput() {
+        final Object settled = TsjRuntime.invokeMember(TsjRuntime.promiseBuiltin(), "allSettled", "ab");
+
+        final AtomicReference<Object> value = new AtomicReference<>(TsjRuntime.undefined());
+        TsjRuntime.invokeMember(
+                settled,
+                "then",
+                (TsjCallable) args -> {
+                    value.set(args[0]);
+                    return null;
+                }
+        );
+        TsjRuntime.flushMicrotasks();
+
+        final Object resultArray = value.get();
+        assertEquals(2, TsjRuntime.getProperty(resultArray, "length"));
+        final Object first = TsjRuntime.getProperty(resultArray, "0");
+        assertEquals("fulfilled", TsjRuntime.getProperty(first, "status"));
+        assertEquals("a", TsjRuntime.getProperty(first, "value"));
+    }
+
+    @Test
+    void promiseAnyAcceptsStringIterableInput() {
+        final Object anyResult = TsjRuntime.invokeMember(TsjRuntime.promiseBuiltin(), "any", "ab");
+
+        final AtomicReference<Object> value = new AtomicReference<>(TsjRuntime.undefined());
+        TsjRuntime.invokeMember(
+                anyResult,
+                "then",
+                (TsjCallable) args -> {
+                    value.set(args[0]);
+                    return null;
+                }
+        );
+        TsjRuntime.flushMicrotasks();
+
+        assertEquals("a", value.get());
+    }
+
+    @Test
+    void promiseAllAcceptsCustomIteratorObjectInput() {
+        final TsjObject iterable = new TsjObject(null);
+        iterable.setOwn(
+                "@@iterator",
+                (TsjMethod) (thisObject, args) -> {
+                    final AtomicInteger index = new AtomicInteger(0);
+                    final TsjObject iterator = new TsjObject(null);
+                    iterator.setOwn(
+                            "next",
+                            (TsjMethod) (iteratorSelf, nextArgs) -> {
+                                final int current = index.getAndIncrement();
+                                if (current < 2) {
+                                    return TsjRuntime.objectLiteral("value", current + 1, "done", false);
+                                }
+                                return TsjRuntime.objectLiteral("value", TsjRuntime.undefined(), "done", true);
+                            }
+                    );
+                    return iterator;
+                }
+        );
+
+        final Object combined = TsjRuntime.invokeMember(TsjRuntime.promiseBuiltin(), "all", iterable);
+        final AtomicReference<Object> resolved = new AtomicReference<>(TsjRuntime.undefined());
+        TsjRuntime.invokeMember(
+                combined,
+                "then",
+                (TsjCallable) args -> {
+                    resolved.set(args[0]);
+                    return null;
+                }
+        );
+        TsjRuntime.flushMicrotasks();
+
+        final Object resultArray = resolved.get();
+        assertEquals(2, TsjRuntime.getProperty(resultArray, "length"));
+        assertEquals(1, TsjRuntime.getProperty(resultArray, "0"));
+        assertEquals(2, TsjRuntime.getProperty(resultArray, "1"));
+    }
+
+    @Test
+    void promiseAllClosesIteratorWhenNextThrows() {
+        final AtomicBoolean closed = new AtomicBoolean(false);
+        final TsjObject iterable = new TsjObject(null);
+        iterable.setOwn(
+                "@@iterator",
+                (TsjMethod) (thisObject, args) -> {
+                    final AtomicInteger index = new AtomicInteger(0);
+                    final TsjObject iterator = new TsjObject(null);
+                    iterator.setOwn(
+                            "next",
+                            (TsjMethod) (iteratorSelf, nextArgs) -> {
+                                final int current = index.getAndIncrement();
+                                if (current == 0) {
+                                    return TsjRuntime.objectLiteral("value", 1, "done", false);
+                                }
+                                throw new IllegalStateException("iter-next-boom");
+                            }
+                    );
+                    iterator.setOwn(
+                            "return",
+                            (TsjMethod) (iteratorSelf, returnArgs) -> {
+                                closed.set(true);
+                                return TsjRuntime.objectLiteral("done", true);
+                            }
+                    );
+                    return iterator;
+                }
+        );
+
+        final Object combined = TsjRuntime.invokeMember(TsjRuntime.promiseBuiltin(), "all", iterable);
+        final AtomicReference<Object> reason = new AtomicReference<>(TsjRuntime.undefined());
+        TsjRuntime.invokeMember(
+                combined,
+                "then",
+                TsjRuntime.undefined(),
+                (TsjCallable) args -> {
+                    reason.set(args[0]);
+                    return null;
+                }
+        );
+        TsjRuntime.flushMicrotasks();
+
+        assertTrue(closed.get());
+        assertTrue(reason.get() instanceof IllegalStateException);
+        assertEquals("iter-next-boom", ((IllegalStateException) reason.get()).getMessage());
     }
 
     @Test

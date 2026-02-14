@@ -297,13 +297,13 @@
 - Notes:
   - Runtime now implements combinator semantics for `Promise.all`, `Promise.race`, `Promise.allSettled`, and `Promise.any`.
   - TSJ parser/backend now supports array literals for combinator input lowering in TSJ-13e subset.
-  - TSJ-13e combinators currently consume TSJ array-like inputs (including array literals); full generic iterator
-    protocol parity remains a follow-up.
+  - TSJ-24 extends combinator inputs to generic iterables:
+    string iterables plus iterator protocol objects (`@@iterator`/`Symbol.iterator`/`iterator`) with
+    iterator-close handling on abrupt completion.
   - Differential fixture coverage includes `tests/fixtures/tsj13e-all-race`,
-    `tests/fixtures/tsj13e-allsettled-any`, and `tests/fixtures/tsj13e-any-reject`.
-- Status: `Complete (Subset)`.
-- Remaining AC gaps:
-  - Generic iterable protocol parity for combinator inputs is not complete.
+    `tests/fixtures/tsj13e-allsettled-any`, `tests/fixtures/tsj13e-any-reject`,
+    and `tests/fixtures/tsj24-string-iterables`.
+- Status: `Complete`.
 - Dependencies: TSJ-13c.
 
 ### TSJ-13f: Top-level await and async conformance/diagnostics
@@ -531,7 +531,14 @@
   - `Promise.all/race/allSettled/any` accept generic iterable inputs.
   - Iterator closing/error behavior matches Node for supported cases.
   - TSJ-13e status can be promoted from `Complete (Subset)` to `Complete`.
-- Status: `Planned`.
+- Notes:
+  - Runtime iterable extraction now supports:
+    string inputs, iterator protocol objects via `@@iterator`/`Symbol.iterator`/`iterator`,
+    and existing array-like fallback behavior.
+  - Iterator abrupt-completion path now invokes iterator `return()` when present before rejection.
+  - Runtime unit coverage includes string iterable combinator paths and iterator-close behavior.
+  - Differential fixture coverage includes `tests/fixtures/tsj24-string-iterables`.
+- Status: `Complete`.
 - Dependencies: TSJ-13e.
 
 ### TSJ-25: Source-mapped async stack trace parity

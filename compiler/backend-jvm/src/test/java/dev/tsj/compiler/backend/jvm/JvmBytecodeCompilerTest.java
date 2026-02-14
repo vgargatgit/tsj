@@ -1141,6 +1141,55 @@ class JvmBytecodeCompilerTest {
     }
 
     @Test
+    void supportsPromiseCombinatorsWithStringIterableInput() throws Exception {
+        final Path sourceFile = tempDir.resolve("promise-combinators-string-iterable.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                Promise.all("ab").then((values: any) => {
+                  console.log("all=" + values.length);
+                  return values;
+                });
+
+                Promise.race("ab").then(
+                  (value: string) => {
+                    console.log("race=" + value);
+                    return value;
+                  },
+                  (reason: any) => {
+                    console.log("race-err=" + reason);
+                    return reason;
+                  }
+                );
+
+                Promise.allSettled("ab").then((entries: any) => {
+                  console.log("settled=" + entries.length);
+                  return entries;
+                });
+
+                Promise.any("ab").then(
+                  (value: string) => {
+                    console.log("any=" + value);
+                    return value;
+                  },
+                  (reason: any) => {
+                    console.log("any-err=" + reason.name);
+                    return reason;
+                  }
+                );
+                console.log("sync");
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out22b9"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals("sync\nall=2\nrace=a\nsettled=2\nany=a\n", stdout.toString(UTF_8));
+    }
+
+    @Test
     void supportsAsyncFunctionAwaitAndThenSequencing() throws Exception {
         final Path sourceFile = tempDir.resolve("async-await.ts");
         Files.writeString(

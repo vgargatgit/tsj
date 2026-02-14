@@ -999,6 +999,72 @@ class TsjCliTest {
     }
 
     @Test
+    void runExecutesPromiseCombinatorsWithStringIterableInputProgram() throws Exception {
+        final Path entryFile = tempDir.resolve("promise-combinators-string-iterable.ts");
+        Files.writeString(
+                entryFile,
+                """
+                Promise.all("ab").then((values: any) => {
+                  console.log("all=" + values.length);
+                  return values;
+                });
+
+                Promise.race("ab").then(
+                  (value: string) => {
+                    console.log("race=" + value);
+                    return value;
+                  },
+                  (reason: any) => {
+                    console.log("race-err=" + reason);
+                    return reason;
+                  }
+                );
+
+                Promise.allSettled("ab").then((entries: any) => {
+                  console.log("settled=" + entries.length);
+                  return entries;
+                });
+
+                Promise.any("ab").then(
+                  (value: string) => {
+                    console.log("any=" + value);
+                    return value;
+                  },
+                  (reason: any) => {
+                    console.log("any-err=" + reason.name);
+                    return reason;
+                  }
+                );
+                console.log("sync");
+                """,
+                UTF_8
+        );
+
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+
+        final int exitCode = TsjCli.execute(
+                new String[]{
+                        "run",
+                        entryFile.toString(),
+                        "--out",
+                        tempDir.resolve("promise-combinators-string-iterable-out").toString()
+                },
+                new PrintStream(stdout),
+                new PrintStream(stderr)
+        );
+
+        assertEquals(0, exitCode);
+        assertTrue(stdout.toString(UTF_8).contains("sync"));
+        assertTrue(stdout.toString(UTF_8).contains("all=2"));
+        assertTrue(stdout.toString(UTF_8).contains("race=a"));
+        assertTrue(stdout.toString(UTF_8).contains("settled=2"));
+        assertTrue(stdout.toString(UTF_8).contains("any=a"));
+        assertTrue(stdout.toString(UTF_8).contains("\"code\":\"TSJ-RUN-SUCCESS\""));
+        assertEquals("", stderr.toString(UTF_8));
+    }
+
+    @Test
     void runExecutesAsyncAwaitProgram() throws Exception {
         final Path entryFile = tempDir.resolve("async.ts");
         Files.writeString(

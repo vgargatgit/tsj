@@ -431,9 +431,34 @@ public final class TsjRuntime {
     }
 
     static List<Object> asArrayLikeList(final Object iterable, final String combinatorName) {
-        if (!(iterable instanceof TsjObject arrayLike)) {
-            throw new IllegalArgumentException("Promise." + combinatorName + " expects an array-like input in TSJ-13e.");
+        if (iterable instanceof String stringValue) {
+            return asStringIterableList(stringValue);
         }
+        if (!(iterable instanceof TsjObject objectValue)) {
+            throw new IllegalArgumentException(
+                    "Promise." + combinatorName + " expects an iterable or array-like input in TSJ-24."
+            );
+        }
+
+        final Object iteratorMember = resolveIteratorMember(objectValue);
+        if (!isUndefined(iteratorMember)) {
+            return asIteratorList(objectValue, iteratorMember, combinatorName);
+        }
+
+        return asArrayLikeFallbackList(objectValue, combinatorName);
+    }
+
+    private static List<Object> asStringIterableList(final String stringValue) {
+        final List<Object> values = new ArrayList<>();
+        for (int index = 0; index < stringValue.length(); ) {
+            final int codePoint = stringValue.codePointAt(index);
+            values.add(new String(Character.toChars(codePoint)));
+            index += Character.charCount(codePoint);
+        }
+        return values;
+    }
+
+    private static List<Object> asArrayLikeFallbackList(final TsjObject arrayLike, final String combinatorName) {
         final double lengthNumber = toNumber(arrayLike.get("length"));
         if (Double.isNaN(lengthNumber) || lengthNumber < 0 || lengthNumber != Math.rint(lengthNumber)) {
             throw new IllegalArgumentException("Promise." + combinatorName + " requires a finite non-negative length.");
@@ -447,6 +472,87 @@ public final class TsjRuntime {
             values.add(arrayLike.get(Integer.toString(index)));
         }
         return values;
+    }
+
+    private static Object resolveIteratorMember(final TsjObject objectValue) {
+        final Object atAtIterator = objectValue.get("@@iterator");
+        if (!isUndefined(atAtIterator)) {
+            return atAtIterator;
+        }
+        final Object symbolIterator = objectValue.get("Symbol.iterator");
+        if (!isUndefined(symbolIterator)) {
+            return symbolIterator;
+        }
+        final Object iterator = objectValue.get("iterator");
+        if (!isUndefined(iterator)) {
+            return iterator;
+        }
+        return TsjUndefined.INSTANCE;
+    }
+
+    private static List<Object> asIteratorList(
+            final TsjObject iterableValue,
+            final Object iteratorMember,
+            final String combinatorName
+    ) {
+        final Object iteratorObjectValue = invokeCallableWithReceiver(iterableValue, iteratorMember);
+        if (!(iteratorObjectValue instanceof TsjObject iteratorObject)) {
+            throw new IllegalArgumentException(
+                    "Promise." + combinatorName + " iterator() must return an object."
+            );
+        }
+
+        final List<Object> values = new ArrayList<>();
+        try {
+            while (true) {
+                final Object nextMember = iteratorObject.get("next");
+                if (isUndefined(nextMember)) {
+                    throw new IllegalArgumentException(
+                            "Promise." + combinatorName + " iterator object must expose callable next()."
+                    );
+                }
+                final Object iterationResultValue = invokeCallableWithReceiver(iteratorObject, nextMember);
+                if (!(iterationResultValue instanceof TsjObject iterationResult)) {
+                    throw new IllegalArgumentException(
+                            "Promise." + combinatorName + " iterator next() must return an object."
+                    );
+                }
+                if (truthy(iterationResult.get("done"))) {
+                    return values;
+                }
+                values.add(iterationResult.get("value"));
+            }
+        } catch (final RuntimeException runtimeException) {
+            closeIteratorAfterAbruptCompletion(iteratorObject);
+            throw runtimeException;
+        }
+    }
+
+    private static void closeIteratorAfterAbruptCompletion(final TsjObject iteratorObject) {
+        final Object returnMember;
+        try {
+            returnMember = iteratorObject.get("return");
+        } catch (final RuntimeException ignored) {
+            return;
+        }
+        if (isUndefined(returnMember)) {
+            return;
+        }
+        try {
+            invokeCallableWithReceiver(iteratorObject, returnMember);
+        } catch (final RuntimeException ignored) {
+            // Preserve the original abrupt completion.
+        }
+    }
+
+    private static Object invokeCallableWithReceiver(final TsjObject receiver, final Object callableValue) {
+        if (callableValue instanceof TsjMethod method) {
+            return method.call(receiver);
+        }
+        if (callableValue instanceof TsjCallable callable) {
+            return callable.call();
+        }
+        throw new IllegalArgumentException("Value is not callable: " + toDisplayString(callableValue));
     }
 
     private static void defaultUnhandledRejectionReporter(final Object reason) {
