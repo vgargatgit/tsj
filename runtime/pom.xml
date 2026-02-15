@@ -7,7 +7,7 @@
     <parent>
         <groupId>dev.tsj</groupId>
         <artifactId>tsj-parent</artifactId>
-        <version>0.1.0</version>
+        <version>0.1.1-SNAPSHOT</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
