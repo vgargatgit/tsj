@@ -289,6 +289,8 @@ public final class TsjPromise extends TsjObject {
                 try {
                     if (thenMember instanceof TsjMethod thenMethod) {
                         thenMethod.call(thenableCandidate, resolveCallback, rejectCallback);
+                    } else if (thenMember instanceof TsjCallableWithThis thenCallableWithThis) {
+                        thenCallableWithThis.callWithThis(thenableCandidate, resolveCallback, rejectCallback);
                     } else {
                         ((TsjCallable) thenMember).call(resolveCallback, rejectCallback);
                     }

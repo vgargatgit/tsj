@@ -388,6 +388,112 @@ class TsjCliTest {
     }
 
     @Test
+    void runExecutesObjectMethodWithDynamicThisBinding() throws Exception {
+        final Path entryFile = tempDir.resolve("object-method-this.ts");
+        Files.writeString(
+                entryFile,
+                """
+                const counter = {
+                  value: 1,
+                  inc() {
+                    this.value = this.value + 1;
+                    return this.value;
+                  }
+                };
+
+                console.log("this=" + counter.inc() + ":" + counter.inc());
+                """,
+                UTF_8
+        );
+
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+
+        final int exitCode = TsjCli.execute(
+                new String[]{"run", entryFile.toString(), "--out", tempDir.resolve("object-method-this-out").toString()},
+                new PrintStream(stdout),
+                new PrintStream(stderr)
+        );
+
+        assertEquals(0, exitCode);
+        assertTrue(stdout.toString(UTF_8).contains("this=2:3"));
+        assertTrue(stdout.toString(UTF_8).contains("\"code\":\"TSJ-RUN-SUCCESS\""));
+        assertEquals("", stderr.toString(UTF_8));
+    }
+
+    @Test
+    void runExecutesObjectFunctionExpressionWithDynamicThisBinding() throws Exception {
+        final Path entryFile = tempDir.resolve("object-function-this.ts");
+        Files.writeString(
+                entryFile,
+                """
+                const counter = {
+                  value: 10,
+                  add: function(step: number) {
+                    this.value = this.value + step;
+                    return this.value;
+                  }
+                };
+
+                console.log("fn-this=" + counter.add(5));
+                """,
+                UTF_8
+        );
+
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+
+        final int exitCode = TsjCli.execute(
+                new String[]{"run", entryFile.toString(), "--out", tempDir.resolve("object-function-this-out").toString()},
+                new PrintStream(stdout),
+                new PrintStream(stderr)
+        );
+
+        assertEquals(0, exitCode);
+        assertTrue(stdout.toString(UTF_8).contains("fn-this=15"));
+        assertTrue(stdout.toString(UTF_8).contains("\"code\":\"TSJ-RUN-SUCCESS\""));
+        assertEquals("", stderr.toString(UTF_8));
+    }
+
+    @Test
+    void runExecutesArrowWithLexicalThisInsideObjectMethod() throws Exception {
+        final Path entryFile = tempDir.resolve("arrow-lexical-this.ts");
+        Files.writeString(
+                entryFile,
+                """
+                const counter = {
+                  value: 3,
+                  makeAdder() {
+                    const apply = (step: number) => {
+                      this.value = this.value + step;
+                      return this.value;
+                    };
+                    return apply;
+                  }
+                };
+
+                const apply = counter.makeAdder();
+                console.log("arrow-this=" + apply(4));
+                """,
+                UTF_8
+        );
+
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+
+        final int exitCode = TsjCli.execute(
+                new String[]{"run", entryFile.toString(), "--out", tempDir.resolve("arrow-lexical-this-out").toString()},
+                new PrintStream(stdout),
+                new PrintStream(stderr)
+        );
+
+        assertEquals(0, exitCode);
+        assertTrue(stdout.toString(UTF_8).contains("arrow-this=7"));
+        assertTrue(stdout.toString(UTF_8).contains("\"code\":\"TSJ-RUN-SUCCESS\""));
+        assertEquals("", stderr.toString(UTF_8));
+    }
+
+    @Test
     void runExecutesInheritanceProgram() throws Exception {
         final Path entryFile = tempDir.resolve("inheritance.ts");
         Files.writeString(
@@ -1523,6 +1629,105 @@ class TsjCliTest {
         assertTrue(stdout.toString(UTF_8).contains("done=12"));
         assertTrue(stdout.toString(UTF_8).contains("\"code\":\"TSJ-RUN-SUCCESS\""));
         assertEquals("", stderr.toString(UTF_8));
+    }
+
+    @Test
+    void runRejectsAsyncClassGeneratorMethodWithTargetedDiagnostic() throws Exception {
+        final Path entryFile = tempDir.resolve("async-class-generator.ts");
+        Files.writeString(
+                entryFile,
+                """
+                class Worker {
+                  async *build() {
+                    return 1;
+                  }
+                }
+                console.log(new Worker());
+                """,
+                UTF_8
+        );
+
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+
+        final int exitCode = TsjCli.execute(
+                new String[]{"run", entryFile.toString(), "--out", tempDir.resolve("async-class-generator-out").toString()},
+                new PrintStream(stdout),
+                new PrintStream(stderr)
+        );
+
+        assertEquals(1, exitCode);
+        final String stderrText = stderr.toString(UTF_8);
+        assertTrue(stderrText.contains("\"code\":\"TSJ-BACKEND-UNSUPPORTED\""));
+        assertTrue(stderrText.contains("Async generator methods are unsupported"));
+        assertTrue(stderrText.contains("TSJ-13b"));
+        assertEquals("", stdout.toString(UTF_8));
+    }
+
+    @Test
+    void runRejectsAsyncObjectGetterMethodVariantWithTargetedDiagnostic() throws Exception {
+        final Path entryFile = tempDir.resolve("async-object-getter.ts");
+        Files.writeString(
+                entryFile,
+                """
+                const ops = {
+                  async get value() {
+                    return 1;
+                  }
+                };
+                console.log(ops);
+                """,
+                UTF_8
+        );
+
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+
+        final int exitCode = TsjCli.execute(
+                new String[]{"run", entryFile.toString(), "--out", tempDir.resolve("async-object-getter-out").toString()},
+                new PrintStream(stdout),
+                new PrintStream(stderr)
+        );
+
+        assertEquals(1, exitCode);
+        final String stderrText = stderr.toString(UTF_8);
+        assertTrue(stderrText.contains("\"code\":\"TSJ-BACKEND-UNSUPPORTED\""));
+        assertTrue(stderrText.contains("Async get methods are unsupported"));
+        assertTrue(stderrText.contains("TSJ-13b"));
+        assertEquals("", stdout.toString(UTF_8));
+    }
+
+    @Test
+    void runRejectsAsyncObjectSetterMethodVariantWithTargetedDiagnostic() throws Exception {
+        final Path entryFile = tempDir.resolve("async-object-setter.ts");
+        Files.writeString(
+                entryFile,
+                """
+                const ops = {
+                  async set value(next: number) {
+                    console.log(next);
+                  }
+                };
+                console.log(ops);
+                """,
+                UTF_8
+        );
+
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+
+        final int exitCode = TsjCli.execute(
+                new String[]{"run", entryFile.toString(), "--out", tempDir.resolve("async-object-setter-out").toString()},
+                new PrintStream(stdout),
+                new PrintStream(stderr)
+        );
+
+        assertEquals(1, exitCode);
+        final String stderrText = stderr.toString(UTF_8);
+        assertTrue(stderrText.contains("\"code\":\"TSJ-BACKEND-UNSUPPORTED\""));
+        assertTrue(stderrText.contains("Async set methods are unsupported"));
+        assertTrue(stderrText.contains("TSJ-13b"));
+        assertEquals("", stdout.toString(UTF_8));
     }
 
     @Test

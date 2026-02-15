@@ -322,6 +322,88 @@ class JvmBytecodeCompilerTest {
     }
 
     @Test
+    void supportsDynamicThisInObjectMethodShorthand() throws Exception {
+        final Path sourceFile = tempDir.resolve("object-method-this.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                const counter = {
+                  value: 1,
+                  inc() {
+                    this.value = this.value + 1;
+                    return this.value;
+                  }
+                };
+
+                console.log("this=" + counter.inc() + ":" + counter.inc());
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out12a"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals("this=2:3\n", stdout.toString(UTF_8));
+    }
+
+    @Test
+    void supportsDynamicThisInObjectFunctionExpression() throws Exception {
+        final Path sourceFile = tempDir.resolve("object-function-this.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                const counter = {
+                  value: 10,
+                  add: function(step: number) {
+                    this.value = this.value + step;
+                    return this.value;
+                  }
+                };
+
+                console.log("fn-this=" + counter.add(5));
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out12b"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals("fn-this=15\n", stdout.toString(UTF_8));
+    }
+
+    @Test
+    void supportsLexicalThisForArrowFunctionInsideMethod() throws Exception {
+        final Path sourceFile = tempDir.resolve("arrow-lexical-this.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                const counter = {
+                  value: 3,
+                  makeAdder() {
+                    const apply = (step: number) => {
+                      this.value = this.value + step;
+                      return this.value;
+                    };
+                    return apply;
+                  }
+                };
+
+                const apply = counter.makeAdder();
+                console.log("arrow-this=" + apply(4));
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out12c"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals("arrow-this=7\n", stdout.toString(UTF_8));
+    }
+
+    @Test
     void supportsClassConstructorFieldAndMethod() throws Exception {
         final Path sourceFile = tempDir.resolve("class-basic.ts");
         Files.writeString(
@@ -1853,6 +1935,159 @@ class JvmBytecodeCompilerTest {
         new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
 
         assertEquals("sync\ndone=12\n", stdout.toString(UTF_8));
+    }
+
+    @Test
+    void rejectsAsyncClassGeneratorMethodWithTargetedDiagnostic() throws Exception {
+        final Path sourceFile = tempDir.resolve("async-class-generator.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                class Worker {
+                  async *build() {
+                    return 1;
+                  }
+                }
+                """,
+                UTF_8
+        );
+
+        final JvmCompilationException exception = org.junit.jupiter.api.Assertions.assertThrows(
+                JvmCompilationException.class,
+                () -> new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out22o0"))
+        );
+
+        assertEquals("TSJ-BACKEND-UNSUPPORTED", exception.code());
+        assertTrue(exception.getMessage().contains("Async generator methods are unsupported"));
+        assertTrue(exception.getMessage().contains("TSJ-13b"));
+    }
+
+    @Test
+    void rejectsAsyncClassGetterMethodVariantWithTargetedDiagnostic() throws Exception {
+        final Path sourceFile = tempDir.resolve("async-class-getter.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                class Worker {
+                  async get value() {
+                    return 1;
+                  }
+                }
+                """,
+                UTF_8
+        );
+
+        final JvmCompilationException exception = org.junit.jupiter.api.Assertions.assertThrows(
+                JvmCompilationException.class,
+                () -> new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out22o1"))
+        );
+
+        assertEquals("TSJ-BACKEND-UNSUPPORTED", exception.code());
+        assertTrue(exception.getMessage().contains("Async get methods are unsupported"));
+        assertTrue(exception.getMessage().contains("TSJ-13b"));
+    }
+
+    @Test
+    void rejectsAsyncClassSetterMethodVariantWithTargetedDiagnostic() throws Exception {
+        final Path sourceFile = tempDir.resolve("async-class-setter.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                class Worker {
+                  async set value(next: number) {
+                    console.log(next);
+                  }
+                }
+                """,
+                UTF_8
+        );
+
+        final JvmCompilationException exception = org.junit.jupiter.api.Assertions.assertThrows(
+                JvmCompilationException.class,
+                () -> new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out22o2"))
+        );
+
+        assertEquals("TSJ-BACKEND-UNSUPPORTED", exception.code());
+        assertTrue(exception.getMessage().contains("Async set methods are unsupported"));
+        assertTrue(exception.getMessage().contains("TSJ-13b"));
+    }
+
+    @Test
+    void rejectsAsyncObjectGeneratorMethodWithTargetedDiagnostic() throws Exception {
+        final Path sourceFile = tempDir.resolve("async-object-generator.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                const ops = {
+                  async *build() {
+                    return 1;
+                  }
+                };
+                console.log(ops);
+                """,
+                UTF_8
+        );
+
+        final JvmCompilationException exception = org.junit.jupiter.api.Assertions.assertThrows(
+                JvmCompilationException.class,
+                () -> new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out22o3"))
+        );
+
+        assertEquals("TSJ-BACKEND-UNSUPPORTED", exception.code());
+        assertTrue(exception.getMessage().contains("Async generator methods are unsupported"));
+        assertTrue(exception.getMessage().contains("TSJ-13b"));
+    }
+
+    @Test
+    void rejectsAsyncObjectGetterMethodVariantWithTargetedDiagnostic() throws Exception {
+        final Path sourceFile = tempDir.resolve("async-object-getter.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                const ops = {
+                  async get value() {
+                    return 1;
+                  }
+                };
+                console.log(ops);
+                """,
+                UTF_8
+        );
+
+        final JvmCompilationException exception = org.junit.jupiter.api.Assertions.assertThrows(
+                JvmCompilationException.class,
+                () -> new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out22o4"))
+        );
+
+        assertEquals("TSJ-BACKEND-UNSUPPORTED", exception.code());
+        assertTrue(exception.getMessage().contains("Async get methods are unsupported"));
+        assertTrue(exception.getMessage().contains("TSJ-13b"));
+    }
+
+    @Test
+    void rejectsAsyncObjectSetterMethodVariantWithTargetedDiagnostic() throws Exception {
+        final Path sourceFile = tempDir.resolve("async-object-setter.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                const ops = {
+                  async set value(next: number) {
+                    console.log(next);
+                  }
+                };
+                console.log(ops);
+                """,
+                UTF_8
+        );
+
+        final JvmCompilationException exception = org.junit.jupiter.api.Assertions.assertThrows(
+                JvmCompilationException.class,
+                () -> new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out22o5"))
+        );
+
+        assertEquals("TSJ-BACKEND-UNSUPPORTED", exception.code());
+        assertTrue(exception.getMessage().contains("Async set methods are unsupported"));
+        assertTrue(exception.getMessage().contains("TSJ-13b"));
     }
 
     @Test

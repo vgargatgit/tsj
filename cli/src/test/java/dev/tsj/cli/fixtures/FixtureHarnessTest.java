@@ -499,6 +499,46 @@ class FixtureHarnessTest {
     }
 
     @Test
+    void committedTsj13bUnsupportedGeneratorFixtureRunsSuccessfully() throws Exception {
+        final Path fixturesRoot = Path.of("..", "tests", "fixtures").toAbsolutePath().normalize();
+        final FixtureSpec fixture = FixtureLoader.loadFixture(
+                fixturesRoot.resolve("tsj13b-async-generator-unsupported")
+        );
+
+        final FixtureRunResult result = new FixtureHarness().runFixture(fixture);
+
+        final String failureDetails = List.of(
+                "nodeDiff=" + result.nodeResult().diff(),
+                "tsjDiff=" + result.tsjResult().diff(),
+                "nodeToTsjDiff=" + result.nodeToTsjDiff(),
+                "nodeStdout=" + result.nodeResult().stdout(),
+                "nodeStderr=" + result.nodeResult().stderr(),
+                "tsjStdout=" + result.tsjResult().stdout(),
+                "tsjStderr=" + result.tsjResult().stderr()
+        ).stream().collect(Collectors.joining(" | "));
+        assertTrue(result.passed(), "tsj13b-async-generator-unsupported should pass: " + failureDetails);
+    }
+
+    @Test
+    void committedTsj8ThisBindingFixtureRunsSuccessfully() throws Exception {
+        final Path fixturesRoot = Path.of("..", "tests", "fixtures").toAbsolutePath().normalize();
+        final FixtureSpec fixture = FixtureLoader.loadFixture(fixturesRoot.resolve("tsj8-this-binding"));
+
+        final FixtureRunResult result = new FixtureHarness().runFixture(fixture);
+
+        final String failureDetails = List.of(
+                "nodeDiff=" + result.nodeResult().diff(),
+                "tsjDiff=" + result.tsjResult().diff(),
+                "nodeToTsjDiff=" + result.nodeToTsjDiff(),
+                "nodeStdout=" + result.nodeResult().stdout(),
+                "nodeStderr=" + result.nodeResult().stderr(),
+                "tsjStdout=" + result.tsjResult().stdout(),
+                "tsjStderr=" + result.tsjResult().stderr()
+        ).stream().collect(Collectors.joining(" | "));
+        assertTrue(result.passed(), "tsj8-this-binding should pass: " + failureDetails);
+    }
+
+    @Test
     void committedTsj25AsyncStackTraceFixtureRunsSuccessfully() throws Exception {
         final Path fixturesRoot = Path.of("..", "tests", "fixtures").toAbsolutePath().normalize();
         final FixtureSpec fixture = FixtureLoader.loadFixture(fixturesRoot.resolve("tsj25-async-stacktrace"));

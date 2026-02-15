@@ -147,14 +147,15 @@ mvn -B -ntp -pl cli -am exec:java \
 CLI command contract is in `docs/cli-contract.md`.
 
 TSJ-7 compile now emits generated classes under `<out>/classes`, and `tsj run` executes the generated JVM class before emitting run diagnostics.
-TSJ-8 extends the same path with lexical closure support for nested function declarations and mutable captured locals.
+TSJ-8 extends the same path with lexical closure support, mutable captured locals, and dynamic `this` binding for
+function/object-method invocation patterns in the supported subset.
 TSJ-9 extends the same path with class constructors/methods, inheritance via `extends`/`super(...)`, and object literal property access/assignment.
 TSJ-10 extends runtime semantics with `undefined`, abstract equality (`==`/`!=`) coercion, and strict equality (`===`/`!==`) separation.
 TSJ-11 extends object runtime behavior with prototype mutation validation, `delete` runtime primitives, shape-token invalidation, and generated monomorphic property read cache fields.
 TSJ-12 extends compile/run with bootstrap multi-file module loading for relative imports, deterministic dependency-first initialization, and baseline live-binding behavior for supported patterns.
 TSJ-13 adds `async function` + `await` lowering over `TsjPromise`, throw-to-rejection normalization, and async sequencing tests that validate post-sync microtask ordering.
 TSJ-13a extends async lowering with control-flow continuations for `if`/`while` blocks containing multiple standalone await suspension points.
-TSJ-13b extends async language coverage with function expressions, arrow functions, async class/object methods, and await normalization across supported expression positions in async bodies.
+TSJ-13b extends async language coverage with function expressions, arrow functions, async class/object methods, await normalization across supported expression positions, and targeted diagnostics for unsupported async generator/getter/setter variants.
 TSJ-13c extends promise runtime semantics with thenable assimilation, self-resolution protection, first-settle-wins handling, and chained thenable adoption.
 TSJ-13d extends async/promise error semantics with Promise `catch` + `finally` support and runtime unhandled rejection emission.
 TSJ-13e adds Promise combinators (`all`, `race`, `allSettled`, `any`) and minimal array literal lowering for combinator inputs.
@@ -192,6 +193,7 @@ Seed fixture:
 - `tests/fixtures/smoke-hello`
 - `tests/fixtures/tsj7-control-flow`
 - `tests/fixtures/tsj8-closure-counter`
+- `tests/fixtures/tsj8-this-binding`
 - `tests/fixtures/tsj9-class-inheritance`
 - `tests/fixtures/tsj9-object-literal`
 - `tests/fixtures/tsj10-coercion`
@@ -204,6 +206,7 @@ Seed fixture:
 - `tests/fixtures/tsj13a-async-while`
 - `tests/fixtures/tsj13b-async-arrow`
 - `tests/fixtures/tsj13b-async-object-method`
+- `tests/fixtures/tsj13b-async-generator-unsupported`
 - `tests/fixtures/tsj13c-thenable`
 - `tests/fixtures/tsj13c-thenable-reject`
 - `tests/fixtures/tsj13d-catch-finally`

@@ -1130,7 +1130,12 @@ public final class JvmBytecodeCompiler {
     private record AwaitExpression(Expression expression) implements Expression {
     }
 
-    private record FunctionExpression(List<String> parameters, List<Statement> body, boolean async)
+    private enum FunctionThisMode {
+        DYNAMIC,
+        LEXICAL
+    }
+
+    private record FunctionExpression(List<String> parameters, List<Statement> body, boolean async, FunctionThisMode thisMode)
             implements Expression {
     }
 
@@ -1434,6 +1439,9 @@ public final class JvmBytecodeCompiler {
             ClassMethod constructorMethod = null;
             while (!checkSymbol("}") && !isAtEnd()) {
                 final boolean asyncMethod = matchKeyword("async");
+                if (asyncMethod) {
+                    rejectUnsupportedAsyncMethodVariantIfPresent("class");
+                }
                 final Token memberName = consumeIdentifier("Expected class member name.");
                 if (matchSymbol(":")) {
                     if (asyncMethod) {
@@ -1897,6 +1905,9 @@ public final class JvmBytecodeCompiler {
             final List<ObjectLiteralEntry> entries = new ArrayList<>();
             if (!checkSymbol("}")) {
                 do {
+                    if (isUnsupportedAsyncMethodVariant()) {
+                        rejectUnsupportedAsyncMethodVariant("object literal");
+                    }
                     if (current().type() == TokenType.KEYWORD
                             && "async".equals(current().text())
                             && lookAhead(1).type() == TokenType.IDENTIFIER
@@ -1943,6 +1954,65 @@ public final class JvmBytecodeCompiler {
             return new ObjectLiteralExpression(List.copyOf(entries));
         }
 
+        private boolean isUnsupportedAsyncMethodVariant() {
+            if (current().type() != TokenType.KEYWORD || !"async".equals(current().text())) {
+                return false;
+            }
+            if (lookAhead(1).type() == TokenType.SYMBOL && "*".equals(lookAhead(1).text())) {
+                return true;
+            }
+            return lookAhead(1).type() == TokenType.IDENTIFIER
+                    && ("get".equals(lookAhead(1).text()) || "set".equals(lookAhead(1).text()))
+                    && lookAhead(2).type() == TokenType.IDENTIFIER
+                    && lookAhead(3).type() == TokenType.SYMBOL
+                    && "(".equals(lookAhead(3).text());
+        }
+
+        private void rejectUnsupportedAsyncMethodVariantIfPresent(final String location) {
+            if (checkSymbol("*")) {
+                throw new JvmCompilationException(
+                        "TSJ-BACKEND-UNSUPPORTED",
+                        "Async generator methods are unsupported in TSJ-13b subset for " + location + " declarations.",
+                        current().line(),
+                        current().column()
+                );
+            }
+            if (current().type() == TokenType.IDENTIFIER
+                    && ("get".equals(current().text()) || "set".equals(current().text()))
+                    && lookAhead(1).type() == TokenType.IDENTIFIER
+                    && lookAhead(2).type() == TokenType.SYMBOL
+                    && "(".equals(lookAhead(2).text())) {
+                throw new JvmCompilationException(
+                        "TSJ-BACKEND-UNSUPPORTED",
+                        "Async " + current().text() + " methods are unsupported in TSJ-13b subset for "
+                                + location
+                                + " declarations.",
+                        current().line(),
+                        current().column()
+                );
+            }
+        }
+
+        private void rejectUnsupportedAsyncMethodVariant(final String location) {
+            if (lookAhead(1).type() == TokenType.SYMBOL && "*".equals(lookAhead(1).text())) {
+                throw new JvmCompilationException(
+                        "TSJ-BACKEND-UNSUPPORTED",
+                        "Async generator methods are unsupported in TSJ-13b subset for " + location + " declarations.",
+                        lookAhead(1).line(),
+                        lookAhead(1).column()
+                );
+            }
+            final String accessorKind = lookAhead(1).text();
+            throw new JvmCompilationException(
+                    "TSJ-BACKEND-UNSUPPORTED",
+                    "Async " + accessorKind + " methods are unsupported in TSJ-13b subset for "
+                            + location
+                            + " declarations.",
+                    lookAhead(1).line(),
+                    lookAhead(1).column()
+            );
+        }
+
         private ArrayLiteralExpression parseArrayLiteral() {
             final List<Expression> elements = new ArrayList<>();
             if (!checkSymbol("]")) {
@@ -1976,7 +2046,12 @@ public final class JvmBytecodeCompiler {
                 skipTypeAnnotation();
             }
             final List<Statement> body = parseBlock(true);
-            return new FunctionExpression(List.copyOf(parameters), List.copyOf(body), asyncFunction);
+            return new FunctionExpression(
+                    List.copyOf(parameters),
+                    List.copyOf(body),
+                    asyncFunction,
+                    FunctionThisMode.DYNAMIC
+            );
         }
 
         private FunctionExpression parseArrowFunctionExpressionFromParenthesized(final boolean asyncFunction) {
@@ -2004,7 +2079,12 @@ public final class JvmBytecodeCompiler {
                 final boolean asyncFunction
         ) {
             final List<Statement> body = parseArrowFunctionBody();
-            return new FunctionExpression(List.copyOf(parameters), List.copyOf(body), asyncFunction);
+            return new FunctionExpression(
+                    List.copyOf(parameters),
+                    List.copyOf(body),
+                    asyncFunction,
+                    FunctionThisMode.LEXICAL
+            );
         }
 
         private List<Statement> parseArrowFunctionBody() {
@@ -2031,7 +2111,12 @@ public final class JvmBytecodeCompiler {
                 skipTypeAnnotation();
             }
             final List<Statement> body = parseBlock(true);
-            return new FunctionExpression(List.copyOf(parameters), List.copyOf(body), asyncFunction);
+            return new FunctionExpression(
+                    List.copyOf(parameters),
+                    List.copyOf(body),
+                    asyncFunction,
+                    FunctionThisMode.DYNAMIC
+            );
         }
 
         private boolean looksLikeParenthesizedArrowFunction() {
@@ -2441,7 +2526,8 @@ public final class JvmBytecodeCompiler {
                 return new FunctionExpression(
                         functionExpression.parameters(),
                         optimizeStatementList(functionExpression.body()),
-                        functionExpression.async()
+                        functionExpression.async(),
+                        functionExpression.thisMode()
                 );
             }
             if (expression instanceof BinaryExpression binaryExpression) {
@@ -3105,15 +3191,19 @@ public final class JvmBytecodeCompiler {
             }
 
             final String cellName = context.resolveBinding(declaration.name());
+            final String thisVar = context.allocateGeneratedName("lambdaThis");
             final String argsVar = context.allocateGeneratedName("lambdaArgs");
 
             builder.append(indent)
                     .append(cellName)
-                    .append(".set((dev.tsj.runtime.TsjCallable) (Object... ")
+                    .append(".set((dev.tsj.runtime.TsjCallableWithThis) (Object ")
+                    .append(thisVar)
+                    .append(", Object... ")
                     .append(argsVar)
                     .append(") -> {\n");
 
-            final EmissionContext functionContext = new EmissionContext(context);
+            final EmissionContext functionContext =
+                    new EmissionContext(context, thisVar, context.resolveSuperClassExpression(), false);
             emitParameterCells(builder, functionContext, declaration.parameters(), argsVar, indent + "    ");
 
             emitStatements(builder, functionContext, declaration.body(), indent + "    ", true);
@@ -3131,15 +3221,19 @@ public final class JvmBytecodeCompiler {
                 final String indent
         ) {
             final String cellName = context.resolveBinding(declaration.name());
+            final String thisVar = context.allocateGeneratedName("lambdaThis");
             final String argsVar = context.allocateGeneratedName("lambdaArgs");
 
             builder.append(indent)
                     .append(cellName)
-                    .append(".set((dev.tsj.runtime.TsjCallable) (Object... ")
+                    .append(".set((dev.tsj.runtime.TsjCallableWithThis) (Object ")
+                    .append(thisVar)
+                    .append(", Object... ")
                     .append(argsVar)
                     .append(") -> {\n");
 
-            final EmissionContext functionContext = new EmissionContext(context);
+            final EmissionContext functionContext =
+                    new EmissionContext(context, thisVar, context.resolveSuperClassExpression(), false);
             final List<Statement> normalizedBody =
                     normalizeAsyncStatementsForAwaitExpressions(functionContext, declaration.body());
             emitParameterCells(builder, functionContext, declaration.parameters(), argsVar, indent + "    ");
@@ -3291,11 +3385,22 @@ public final class JvmBytecodeCompiler {
         ) {
             final String argsVar = context.allocateGeneratedName("lambdaArgs");
             final StringBuilder functionBuilder = new StringBuilder();
-            functionBuilder.append("((dev.tsj.runtime.TsjCallable) (Object... ")
-                    .append(argsVar)
-                    .append(") -> {\n");
-
-            final EmissionContext functionContext = new EmissionContext(context);
+            final EmissionContext functionContext;
+            if (functionExpression.thisMode() == FunctionThisMode.DYNAMIC) {
+                final String thisVar = context.allocateGeneratedName("lambdaThis");
+                functionBuilder.append("((dev.tsj.runtime.TsjCallableWithThis) (Object ")
+                        .append(thisVar)
+                        .append(", Object... ")
+                        .append(argsVar)
+                        .append(") -> {\n");
+                functionContext =
+                        new EmissionContext(context, thisVar, context.resolveSuperClassExpression(), false);
+            } else {
+                functionBuilder.append("((dev.tsj.runtime.TsjCallable) (Object... ")
+                        .append(argsVar)
+                        .append(") -> {\n");
+                functionContext = new EmissionContext(context);
+            }
             emitParameterCells(functionBuilder, functionContext, functionExpression.parameters(), argsVar, "    ");
 
             if (functionExpression.async()) {
@@ -5000,7 +5105,7 @@ public final class JvmBytecodeCompiler {
                 }
                 throw new JvmCompilationException(
                         "TSJ-BACKEND-UNSUPPORTED",
-                        "`this` is only valid inside class methods in TSJ-9 subset."
+                        "`this` is only valid inside function or class method bodies in TSJ-8 subset."
                 );
             }
 

@@ -85,6 +85,9 @@ public final class TsjRuntime {
     }
 
     public static Object call(final Object callee, final Object... args) {
+        if (callee instanceof TsjCallableWithThis callableWithThis) {
+            return callableWithThis.callWithThis(undefined(), args);
+        }
         if (callee instanceof TsjCallable callable) {
             return callable.call(args);
         }
@@ -180,6 +183,9 @@ public final class TsjRuntime {
             final Object member = tsjObject.get(methodName);
             if (member instanceof TsjMethod method) {
                 return method.call(tsjObject, args);
+            }
+            if (member instanceof TsjCallableWithThis callableWithThis) {
+                return callableWithThis.callWithThis(tsjObject, args);
             }
             return call(member, args);
         }
@@ -384,6 +390,9 @@ public final class TsjRuntime {
         if (member instanceof TsjMethod method) {
             return method.call(objectValue);
         }
+        if (member instanceof TsjCallableWithThis callableWithThis) {
+            return callableWithThis.callWithThis(objectValue);
+        }
         if (member instanceof TsjCallable callable) {
             return callable.call();
         }
@@ -548,6 +557,9 @@ public final class TsjRuntime {
     private static Object invokeCallableWithReceiver(final TsjObject receiver, final Object callableValue) {
         if (callableValue instanceof TsjMethod method) {
             return method.call(receiver);
+        }
+        if (callableValue instanceof TsjCallableWithThis callableWithThis) {
+            return callableWithThis.callWithThis(receiver);
         }
         if (callableValue instanceof TsjCallable callable) {
             return callable.call();

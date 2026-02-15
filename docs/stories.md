@@ -121,10 +121,10 @@
 - Notes:
   - TSJ-8 backend lowers function declarations to runtime callables with closure cells.
   - Lexical captures are preserved through shared `TsjCell` references across nested scopes.
-  - `this` is not supported in TSJ-8 subset; usage remains outside the supported feature surface.
-- Status: `Complete (Subset)`.
-- Remaining AC gaps:
-  - Broader `this` binding behavior outside the TSJ-8 subset is not implemented.
+  - Dynamic `this` binding is now supported for function declarations, object method shorthand, and object
+    function-expression members via receiver-aware callables; arrow functions preserve lexical `this`.
+  - Fixture coverage includes `tests/fixtures/tsj8-closure-counter` and `tests/fixtures/tsj8-this-binding`.
+- Status: `Complete`.
 - Dependencies: TSJ-7.
 
 ### TSJ-9: Class and object model (MVP subset)
@@ -246,14 +246,13 @@
     async function expressions, async arrow functions, async class methods, and async object-literal methods.
   - Async lowering now normalizes supported await-containing expressions into explicit await sites
     before continuation emission (e.g. return expressions, binary/call/object-literal value positions, async if conditions).
-  - Fixture coverage includes `tests/fixtures/tsj13b-async-arrow` and `tests/fixtures/tsj13b-async-object-method`.
-  - Known deviations in this pass:
-    async while conditions with `await` remain unsupported;
-    async methods in class/object declarations are only supported in standard method form (not generator/getter/setter variants).
-- Status: `Complete (Subset)`.
-- Remaining AC gaps:
-  - `await` in async while conditions is not yet supported.
-  - Async generator/getter/setter method variants are not supported.
+  - Async methods in class/object declarations are supported in standard method form.
+  - Async generator/getter/setter method variants are rejected with targeted `TSJ-BACKEND-UNSUPPORTED`
+    diagnostics that explicitly reference TSJ-13b subset scope.
+  - Fixture coverage includes `tests/fixtures/tsj13b-async-arrow`,
+    `tests/fixtures/tsj13b-async-object-method`, and
+    `tests/fixtures/tsj13b-async-generator-unsupported`.
+- Status: `Complete`.
 - Dependencies: TSJ-13a, TSJ-9.
 
 ### TSJ-13c: Promise resolution procedure and thenable assimilation

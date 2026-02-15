@@ -149,6 +149,23 @@ class TsjRuntimeTest {
     }
 
     @Test
+    void callDefaultsThisToUndefinedForReceiverAwareCallable() {
+        final TsjCallableWithThis callable = (thisValue, args) -> TsjRuntime.strictEquals(thisValue, TsjRuntime.undefined());
+        assertEquals(true, TsjRuntime.call(callable));
+    }
+
+    @Test
+    void invokeMemberBindsThisForReceiverAwareCallable() {
+        final Object object = TsjRuntime.objectLiteral(
+                "value",
+                4,
+                "read",
+                (TsjCallableWithThis) (thisValue, args) -> TsjRuntime.getProperty(thisValue, "value")
+        );
+        assertEquals(4, TsjRuntime.invokeMember(object, "read"));
+    }
+
+    @Test
     void objectLiteralSupportsGetAndSetProperty() {
         final Object object = TsjRuntime.objectLiteral("name", "tsj", "count", 1);
         assertEquals("tsj", TsjRuntime.getProperty(object, "name"));

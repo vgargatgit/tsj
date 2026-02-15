@@ -657,6 +657,30 @@ class TsjPromiseTest {
     }
 
     @Test
+    void promiseResolveAssimilatesReceiverAwareThenableCallable() {
+        final TsjObject thenable = new TsjObject(null);
+        thenable.setOwn("value", 9);
+        thenable.setOwn("then", (TsjCallableWithThis) (thisValue, args) -> {
+            ((TsjCallable) args[0]).call(TsjRuntime.getProperty(thisValue, "value"));
+            return TsjRuntime.undefined();
+        });
+
+        final Object promise = TsjRuntime.promiseResolve(thenable);
+        final AtomicReference<Object> value = new AtomicReference<>(TsjRuntime.undefined());
+        TsjRuntime.invokeMember(
+                promise,
+                "then",
+                (TsjCallable) args -> {
+                    value.set(args[0]);
+                    return null;
+                }
+        );
+        TsjRuntime.flushMicrotasks();
+
+        assertEquals(9, value.get());
+    }
+
+    @Test
     void thenableSettlesOnlyOnceWhenResolveThenRejectAreBothCalled() {
         final TsjObject thenable = new TsjObject(null);
         thenable.setOwn("then", (TsjMethod) (thisObject, args) -> {
