@@ -155,6 +155,25 @@ class TsjRuntimeTest {
     }
 
     @Test
+    void javaStaticMethodCreatesCallableInteropHandle() {
+        final Object max = TsjRuntime.javaStaticMethod("java.lang.Math", "max");
+        assertEquals(9, TsjRuntime.call(max, 4, 9));
+    }
+
+    @Test
+    void javaBindingCreatesCallableForConstructorAndInstanceMember() {
+        final String className = "java.lang.StringBuilder";
+        final Object constructor = TsjRuntime.javaBinding(className, "$new");
+        final Object append = TsjRuntime.javaBinding(className, "$instance$append");
+        final Object asString = TsjRuntime.javaBinding(className, "$instance$toString");
+
+        final Object builder = TsjRuntime.call(constructor, "a");
+        TsjRuntime.call(append, builder, "b");
+
+        assertEquals("ab", TsjRuntime.call(asString, builder));
+    }
+
+    @Test
     void invokeMemberBindsThisForReceiverAwareCallable() {
         final Object object = TsjRuntime.objectLiteral(
                 "value",
@@ -163,6 +182,13 @@ class TsjRuntimeTest {
                 (TsjCallableWithThis) (thisValue, args) -> TsjRuntime.getProperty(thisValue, "value")
         );
         assertEquals(4, TsjRuntime.invokeMember(object, "read"));
+    }
+
+    @Test
+    void invokeMemberFallsBackToJavaReceiverDispatchWhenTargetIsNotTsjObject() {
+        final StringBuilder builder = new StringBuilder("a");
+        TsjRuntime.invokeMember(builder, "append", "b");
+        assertEquals("ab", TsjRuntime.invokeMember(builder, "toString"));
     }
 
     @Test
@@ -326,7 +352,7 @@ class TsjRuntimeTest {
     void invokeMemberRejectsMissingReceiverType() {
         final IllegalArgumentException exception = assertThrows(
                 IllegalArgumentException.class,
-                () -> TsjRuntime.invokeMember("bad", "x")
+                () -> TsjRuntime.invokeMember(TsjRuntime.undefined(), "x")
         );
         assertTrue(exception.getMessage().contains("Cannot invoke member"));
     }

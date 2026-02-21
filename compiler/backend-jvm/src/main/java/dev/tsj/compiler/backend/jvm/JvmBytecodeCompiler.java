@@ -39,6 +39,14 @@ public final class JvmBytecodeCompiler {
     private static final Pattern SIDE_EFFECT_IMPORT_PATTERN = Pattern.compile(
             "^\\s*import\\s*[\"']([^\"']+)[\"']\\s*;\\s*$"
     );
+    private static final Pattern INTEROP_MODULE_PATTERN = Pattern.compile(
+            "^java:([A-Za-z_$][A-Za-z0-9_$]*(?:\\.[A-Za-z_$][A-Za-z0-9_$]*)*)$"
+    );
+    private static final Pattern DECORATOR_LINE_PATTERN = Pattern.compile(
+            "^\\s*@([A-Za-z_$][A-Za-z0-9_$]*)(?:\\(.*\\))?\\s*$"
+    );
+    private static final Set<String> TSJ34_SUPPORTED_DECORATORS =
+            new TsDecoratorAnnotationMapping().supportedDecoratorNames();
     private static final Set<String> KEYWORDS = Set.of(
             "function", "const", "let", "var", "if", "else", "while", "return",
             "true", "false", "null", "for", "export", "import", "from",
@@ -61,8 +69,13 @@ public final class JvmBytecodeCompiler {
     private static final String FEATURE_PROXY = "TSJ15-PROXY";
     private static final String FEATURE_IMPORT_DEFAULT = "TSJ22-IMPORT-DEFAULT";
     private static final String FEATURE_IMPORT_NAMESPACE = "TSJ22-IMPORT-NAMESPACE";
+    private static final String FEATURE_INTEROP_SYNTAX = "TSJ26-INTEROP-SYNTAX";
+    private static final String FEATURE_INTEROP_MODULE_SPECIFIER = "TSJ26-INTEROP-MODULE-SPECIFIER";
+    private static final String FEATURE_INTEROP_BINDING = "TSJ26-INTEROP-BINDING";
     private static final String ASYNC_BREAK_SIGNAL_FIELD = "__TSJ_ASYNC_BREAK_SIGNAL";
     private static final String ASYNC_CONTINUE_SIGNAL_FIELD = "__TSJ_ASYNC_CONTINUE_SIGNAL";
+    private static final String TOP_LEVEL_CLASS_MAP_FIELD = "__TSJ_TOP_LEVEL_CLASSES";
+    private static final String BOOTSTRAP_GUARD_FIELD = "__TSJ_BOOTSTRAPPED";
     private static final String GUIDANCE_DYNAMIC_IMPORT =
             "Use static relative imports (`import { x } from \"./m.ts\"`) in TSJ MVP.";
     private static final String GUIDANCE_EVAL =
@@ -75,6 +88,12 @@ public final class JvmBytecodeCompiler {
             "Use named imports (`import { x } from \"./m.ts\"`) in current TSJ module subset.";
     private static final String GUIDANCE_IMPORT_NAMESPACE =
             "Use named imports (`import { x } from \"./m.ts\"`) in current TSJ module subset.";
+    private static final String GUIDANCE_INTEROP_SYNTAX =
+            "Use named imports with java modules, for example `import { max } from \"java:java.lang.Math\"`.";
+    private static final String GUIDANCE_INTEROP_MODULE_SPECIFIER =
+            "Use `java:<fully.qualified.ClassName>` (without method names in the module specifier).";
+    private static final String GUIDANCE_INTEROP_BINDING =
+            "Interop bindings must be valid identifiers, for example `{ max, min as minimum }`.";
 
     private static final String OUTPUT_PACKAGE = "dev.tsj.generated";
 
@@ -107,7 +126,7 @@ public final class JvmBytecodeCompiler {
         }
 
         final BundleResult bundleResult = bundleModules(normalizedSource);
-        final String sourceText = bundleResult.sourceText();
+        final String sourceText = preprocessTsj34Decorators(bundleResult.sourceText());
 
         final Parser parser = new Parser(tokenize(sourceText), bundleResult);
         final Program parsedProgram = parser.parseProgram();
@@ -162,6 +181,133 @@ public final class JvmBytecodeCompiler {
             );
         }
         return new JvmCompiledArtifact(normalizedSource, classesDir, className, classFile, sourceMapFile);
+    }
+
+    private static String preprocessTsj34Decorators(final String sourceText) {
+        final String[] lines = sourceText.split("\n", -1);
+        final StringBuilder builder = new StringBuilder(sourceText.length());
+        for (int index = 0; index < lines.length; index++) {
+            final String line = lines[index];
+            final String trimmed = line.trim();
+            if (trimmed.startsWith("@")) {
+                final Matcher decoratorMatcher = DECORATOR_LINE_PATTERN.matcher(trimmed);
+                if (!decoratorMatcher.matches()
+                        || !TSJ34_SUPPORTED_DECORATORS.contains(decoratorMatcher.group(1))) {
+                    throw new JvmCompilationException(
+                            "TSJ-BACKEND-UNSUPPORTED",
+                            "Unsupported decorator syntax in TSJ-34 subset: " + trimmed,
+                            index + 1,
+                            1
+                    );
+                }
+                builder.append("// TSJ-34 decorator stripped for backend parser");
+            } else {
+                builder.append(stripInlineParameterDecorators(line));
+            }
+            if (index + 1 < lines.length) {
+                builder.append('\n');
+            }
+        }
+        return builder.toString();
+    }
+
+    private static String stripInlineParameterDecorators(final String line) {
+        if (line.indexOf('@') < 0 || line.indexOf('(') < 0) {
+            return line;
+        }
+        final StringBuilder builder = new StringBuilder(line.length());
+        int index = 0;
+        boolean inString = false;
+        char quote = 0;
+        while (index < line.length()) {
+            final char value = line.charAt(index);
+            if (inString) {
+                builder.append(value);
+                if (value == '\\' && index + 1 < line.length()) {
+                    index++;
+                    builder.append(line.charAt(index));
+                } else if (value == quote) {
+                    inString = false;
+                }
+                index++;
+                continue;
+            }
+            if (value == '"' || value == '\'') {
+                inString = true;
+                quote = value;
+                builder.append(value);
+                index++;
+                continue;
+            }
+            if (value != '@') {
+                builder.append(value);
+                index++;
+                continue;
+            }
+            int cursor = index + 1;
+            if (cursor >= line.length()) {
+                builder.append(value);
+                index++;
+                continue;
+            }
+            final char first = line.charAt(cursor);
+            if (!Character.isJavaIdentifierStart(first) && first != '$') {
+                builder.append(value);
+                index++;
+                continue;
+            }
+            cursor++;
+            while (cursor < line.length()) {
+                final char decoratorChar = line.charAt(cursor);
+                if (Character.isJavaIdentifierPart(decoratorChar) || decoratorChar == '$') {
+                    cursor++;
+                    continue;
+                }
+                break;
+            }
+            if (cursor < line.length() && line.charAt(cursor) == '(') {
+                int depth = 1;
+                cursor++;
+                boolean argsInString = false;
+                char argsQuote = 0;
+                while (cursor < line.length() && depth > 0) {
+                    final char argsChar = line.charAt(cursor);
+                    if (argsInString) {
+                        if (argsChar == '\\') {
+                            cursor += 2;
+                            continue;
+                        }
+                        if (argsChar == argsQuote) {
+                            argsInString = false;
+                        }
+                        cursor++;
+                        continue;
+                    }
+                    if (argsChar == '"' || argsChar == '\'') {
+                        argsInString = true;
+                        argsQuote = argsChar;
+                        cursor++;
+                        continue;
+                    }
+                    if (argsChar == '(') {
+                        depth++;
+                    } else if (argsChar == ')') {
+                        depth--;
+                    }
+                    cursor++;
+                }
+                if (depth > 0) {
+                    builder.append(value);
+                    index++;
+                    continue;
+                }
+            }
+            while (cursor < line.length() && Character.isWhitespace(line.charAt(cursor))) {
+                cursor++;
+            }
+            index = cursor;
+        }
+        return builder.toString();
     }
 
     private static BundleResult bundleModules(final Path entryFile) {
@@ -225,6 +371,22 @@ public final class JvmBytecodeCompiler {
 
             for (ModuleImport moduleImport : module.imports()) {
                 if (moduleImport.kind() == ModuleImportKind.SIDE_EFFECT) {
+                    continue;
+                }
+                if (moduleImport.kind() == ModuleImportKind.INTEROP) {
+                    for (ImportBinding binding : moduleImport.bindings()) {
+                        appendBundledLine(
+                                builder,
+                                lineOrigins,
+                                "  const " + binding.localName() + " = __tsj_java_binding(\""
+                                        + escapeJavaLiteral(moduleImport.interopClassName())
+                                        + "\", \""
+                                        + escapeJavaLiteral(binding.importedName())
+                                        + "\");",
+                                module.sourceFile(),
+                                moduleImport.line()
+                        );
+                    }
                     continue;
                 }
                 final Map<String, String> dependencyExports = exportSymbolsByModule.get(moduleImport.dependency());
@@ -321,7 +483,24 @@ public final class JvmBytecodeCompiler {
             final Matcher namespaceImportMatcher = NAMESPACE_IMPORT_PATTERN.matcher(line);
             final Matcher sideEffectImportMatcher = SIDE_EFFECT_IMPORT_PATTERN.matcher(line);
             if (namedImportMatcher.matches()) {
-                final Path dependency = resolveImport(normalizedModule, namedImportMatcher.group(2), index + 1);
+                final String importPath = namedImportMatcher.group(2);
+                if (isInteropImportPath(importPath)) {
+                    imports.add(
+                            ModuleImport.interop(
+                                    parseInteropClassName(importPath, normalizedModule, index + 1),
+                                    parseNamedImportBindings(
+                                            namedImportMatcher.group(1),
+                                            normalizedModule,
+                                            index + 1,
+                                            FEATURE_INTEROP_BINDING,
+                                            GUIDANCE_INTEROP_BINDING
+                                    ),
+                                    index + 1
+                            )
+                    );
+                    continue;
+                }
+                final Path dependency = resolveImport(normalizedModule, importPath, index + 1);
                 collectModule(dependency, orderedModules, visiting);
                 imports.add(
                         ModuleImport.named(
@@ -333,6 +512,15 @@ public final class JvmBytecodeCompiler {
                 continue;
             }
             if (defaultImportMatcher.matches()) {
+                if (isInteropImportPath(defaultImportMatcher.group(2))) {
+                    throw unsupportedModuleFeature(
+                            normalizedModule,
+                            index + 1,
+                            FEATURE_INTEROP_SYNTAX,
+                            "Java interop imports do not support default bindings in TSJ-26.",
+                            GUIDANCE_INTEROP_SYNTAX
+                    );
+                }
                 throw unsupportedModuleFeature(
                         normalizedModule,
                         index + 1,
@@ -342,6 +530,15 @@ public final class JvmBytecodeCompiler {
                 );
             }
             if (namespaceImportMatcher.matches()) {
+                if (isInteropImportPath(namespaceImportMatcher.group(2))) {
+                    throw unsupportedModuleFeature(
+                            normalizedModule,
+                            index + 1,
+                            FEATURE_INTEROP_SYNTAX,
+                            "Java interop imports do not support namespace bindings in TSJ-26.",
+                            GUIDANCE_INTEROP_SYNTAX
+                    );
+                }
                 throw unsupportedModuleFeature(
                         normalizedModule,
                         index + 1,
@@ -351,7 +548,17 @@ public final class JvmBytecodeCompiler {
                 );
             }
             if (sideEffectImportMatcher.matches()) {
-                final Path dependency = resolveImport(normalizedModule, sideEffectImportMatcher.group(1), index + 1);
+                final String importPath = sideEffectImportMatcher.group(1);
+                if (isInteropImportPath(importPath)) {
+                    throw unsupportedModuleFeature(
+                            normalizedModule,
+                            index + 1,
+                            FEATURE_INTEROP_SYNTAX,
+                            "Java interop imports must declare named bindings in TSJ-26.",
+                            GUIDANCE_INTEROP_SYNTAX
+                    );
+                }
+                final Path dependency = resolveImport(normalizedModule, importPath, index + 1);
                 collectModule(dependency, orderedModules, visiting);
                 imports.add(ModuleImport.sideEffect(dependency, index + 1));
                 continue;
@@ -396,6 +603,16 @@ public final class JvmBytecodeCompiler {
             final Path sourceFile,
             final int line
     ) {
+        return parseNamedImportBindings(rawBindings, sourceFile, line, null, null);
+    }
+
+    private static List<ImportBinding> parseNamedImportBindings(
+            final String rawBindings,
+            final Path sourceFile,
+            final int line,
+            final String featureId,
+            final String guidance
+    ) {
         final List<ImportBinding> parsedBindings = new ArrayList<>();
         final String[] bindingSegments = rawBindings.split(",");
         for (String rawBinding : bindingSegments) {
@@ -408,12 +625,7 @@ public final class JvmBytecodeCompiler {
             if (trimmed.contains(" as ")) {
                 final String[] parts = trimmed.split("\\s+as\\s+");
                 if (parts.length != 2) {
-                    throw new JvmCompilationException(
-                            "TSJ-BACKEND-PARSE",
-                            "Invalid named import binding: " + trimmed,
-                            line,
-                            1
-                    );
+                    throw invalidNamedBinding(sourceFile, line, trimmed, featureId, guidance);
                 }
                 importedName = parts[0].trim();
                 localName = parts[1].trim();
@@ -422,14 +634,18 @@ public final class JvmBytecodeCompiler {
                 localName = trimmed;
             }
             if (!isValidTsIdentifier(importedName) || !isValidTsIdentifier(localName)) {
-                throw new JvmCompilationException(
-                        "TSJ-BACKEND-PARSE",
-                        "Invalid named import binding: " + trimmed,
-                        line,
-                        1
-                );
+                throw invalidNamedBinding(sourceFile, line, trimmed, featureId, guidance);
             }
             parsedBindings.add(new ImportBinding(importedName, localName));
+        }
+        if (featureId != null && parsedBindings.isEmpty()) {
+            throw unsupportedModuleFeature(
+                    sourceFile,
+                    line,
+                    featureId,
+                    "Java interop imports must declare at least one named binding in TSJ-26.",
+                    guidance
+            );
         }
         return List.copyOf(parsedBindings);
     }
@@ -532,6 +748,52 @@ public final class JvmBytecodeCompiler {
         return builder.toString();
     }
 
+    private static boolean isInteropImportPath(final String importPath) {
+        return importPath != null && importPath.startsWith("java:");
+    }
+
+    private static String parseInteropClassName(
+            final String importPath,
+            final Path sourceFile,
+            final int line
+    ) {
+        final Matcher matcher = INTEROP_MODULE_PATTERN.matcher(importPath);
+        if (!matcher.matches()) {
+            throw unsupportedModuleFeature(
+                    sourceFile,
+                    line,
+                    FEATURE_INTEROP_MODULE_SPECIFIER,
+                    "Invalid Java interop module specifier `" + importPath + "` in TSJ-26.",
+                    GUIDANCE_INTEROP_MODULE_SPECIFIER
+            );
+        }
+        return matcher.group(1);
+    }
+
+    private static JvmCompilationException invalidNamedBinding(
+            final Path sourceFile,
+            final int line,
+            final String binding,
+            final String featureId,
+            final String guidance
+    ) {
+        if (featureId != null) {
+            return unsupportedModuleFeature(
+                    sourceFile,
+                    line,
+                    featureId,
+                    "Invalid Java interop binding: " + binding,
+                    guidance
+            );
+        }
+        return new JvmCompilationException(
+                "TSJ-BACKEND-PARSE",
+                "Invalid named import binding: " + binding,
+                line,
+                1
+        );
+    }
+
     private static JvmCompilationException unsupportedModuleFeature(
             final Path sourceFile,
             final int line,
@@ -548,6 +810,10 @@ public final class JvmBytecodeCompiler {
                 featureId,
                 guidance
         );
+    }
+
+    private static String escapeJavaLiteral(final String value) {
+        return value.replace("\\", "\\\\").replace("\"", "\\\"");
     }
 
     private static void appendBundledLine(
@@ -643,6 +909,7 @@ public final class JvmBytecodeCompiler {
             final List<String> options = List.of(
                     "--release",
                     "21",
+                    "-parameters",
                     "-classpath",
                     classPath,
                     "-d",
@@ -1168,6 +1435,7 @@ public final class JvmBytecodeCompiler {
 
     private enum ModuleImportKind {
         NAMED,
+        INTEROP,
         SIDE_EFFECT
     }
 
@@ -1177,15 +1445,24 @@ public final class JvmBytecodeCompiler {
     private record ModuleImport(
             ModuleImportKind kind,
             Path dependency,
+            String interopClassName,
             List<ImportBinding> bindings,
             int line
     ) {
         private static ModuleImport named(final Path dependency, final List<ImportBinding> bindings, final int line) {
-            return new ModuleImport(ModuleImportKind.NAMED, dependency, List.copyOf(bindings), line);
+            return new ModuleImport(ModuleImportKind.NAMED, dependency, null, List.copyOf(bindings), line);
+        }
+
+        private static ModuleImport interop(
+                final String interopClassName,
+                final List<ImportBinding> bindings,
+                final int line
+        ) {
+            return new ModuleImport(ModuleImportKind.INTEROP, null, interopClassName, List.copyOf(bindings), line);
         }
 
         private static ModuleImport sideEffect(final Path dependency, final int line) {
-            return new ModuleImport(ModuleImportKind.SIDE_EFFECT, dependency, List.of(), line);
+            return new ModuleImport(ModuleImportKind.SIDE_EFFECT, dependency, null, List.of(), line);
         }
     }
 
@@ -2895,14 +3172,15 @@ public final class JvmBytecodeCompiler {
         }
 
         private String generate() {
-            final StringBuilder mainBody = new StringBuilder();
+            final StringBuilder bootstrapBody = new StringBuilder();
             final EmissionContext mainContext = new EmissionContext(null);
             if (requiresTopLevelAwaitLowering(program.statements())) {
-                emitTopLevelAwaitStatements(mainBody, mainContext, program.statements(), "        ");
+                emitTopLevelAwaitStatements(bootstrapBody, mainContext, program.statements(), "        ");
             } else {
-                emitStatements(mainBody, mainContext, program.statements(), "        ", false);
+                emitStatements(bootstrapBody, mainContext, program.statements(), "        ", false);
             }
-            mainBody.append("        dev.tsj.runtime.TsjRuntime.flushMicrotasks();\n");
+            bootstrapBody.append("        dev.tsj.runtime.TsjRuntime.flushMicrotasks();\n");
+            bootstrapBody.append("        ").append(BOOTSTRAP_GUARD_FIELD).append(" = true;\n");
 
             final StringBuilder builder = new StringBuilder();
             builder.append("package ").append(packageName).append(";\n\n");
@@ -2917,6 +3195,12 @@ public final class JvmBytecodeCompiler {
             builder.append("    private static final Object ")
                     .append(ASYNC_CONTINUE_SIGNAL_FIELD)
                     .append(" = new Object();\n");
+            builder.append("    private static final java.util.Map<String, Object> ")
+                    .append(TOP_LEVEL_CLASS_MAP_FIELD)
+                    .append(" = new java.util.LinkedHashMap<>();\n");
+            builder.append("    private static boolean ")
+                    .append(BOOTSTRAP_GUARD_FIELD)
+                    .append(" = false;\n");
             if (!propertyCacheFieldDeclarations.isEmpty()) {
                 builder.append("\n");
             }
@@ -2926,8 +3210,67 @@ public final class JvmBytecodeCompiler {
             if (!propertyCacheFieldDeclarations.isEmpty()) {
                 builder.append("\n");
             }
+            builder.append("    private static synchronized void __tsjBootstrap() {\n");
+            builder.append("        if (").append(BOOTSTRAP_GUARD_FIELD).append(") {\n");
+            builder.append("            return;\n");
+            builder.append("        }\n");
+            builder.append("        ").append(TOP_LEVEL_CLASS_MAP_FIELD).append(".clear();\n");
+            builder.append(bootstrapBody);
+            builder.append("    }\n\n");
+            builder.append("    public static Object __tsjInvokeClass(")
+                    .append("final String className, final String methodName, ")
+                    .append("final Object[] constructorArgs, final Object... args")
+                    .append(") {\n");
+            builder.append("        return __tsjInvokeClassWithInjection(")
+                    .append("className, methodName, constructorArgs, ")
+                    .append("new String[0], new Object[0], new String[0], new Object[0], args")
+                    .append(");\n");
+            builder.append("    }\n\n");
+            builder.append("    public static Object __tsjInvokeClassWithInjection(")
+                    .append("final String className, final String methodName, ")
+                    .append("final Object[] constructorArgs, ")
+                    .append("final String[] fieldNames, final Object[] fieldValues, ")
+                    .append("final String[] setterNames, final Object[] setterValues, ")
+                    .append("final Object... args")
+                    .append(") {\n");
+            builder.append("        __tsjBootstrap();\n");
+            builder.append("        final Object classValue = ")
+                    .append(TOP_LEVEL_CLASS_MAP_FIELD)
+                    .append(".get(className);\n");
+            builder.append("        if (classValue == null) {\n");
+            builder.append("            throw new IllegalArgumentException(")
+                    .append("\"TSJ controller class not found: \" + className);\n");
+            builder.append("        }\n");
+            builder.append("        final Object[] ctorArgs = constructorArgs == null ? new Object[0] : constructorArgs;\n");
+            builder.append("        final String[] safeFieldNames = fieldNames == null ? new String[0] : fieldNames;\n");
+            builder.append("        final Object[] safeFieldValues = fieldValues == null ? new Object[0] : fieldValues;\n");
+            builder.append("        if (safeFieldNames.length != safeFieldValues.length) {\n");
+            builder.append("            throw new IllegalArgumentException(\"TSJ injection field name/value length mismatch.\");\n");
+            builder.append("        }\n");
+            builder.append("        final String[] safeSetterNames = setterNames == null ? new String[0] : setterNames;\n");
+            builder.append("        final Object[] safeSetterValues = setterValues == null ? new Object[0] : setterValues;\n");
+            builder.append("        if (safeSetterNames.length != safeSetterValues.length) {\n");
+            builder.append("            throw new IllegalArgumentException(\"TSJ injection setter name/value length mismatch.\");\n");
+            builder.append("        }\n");
+            builder.append("        final Object instance = dev.tsj.runtime.TsjRuntime.construct(classValue, ctorArgs);\n");
+            builder.append("        for (int i = 0; i < safeFieldNames.length; i++) {\n");
+            builder.append("            dev.tsj.runtime.TsjRuntime.setProperty(instance, safeFieldNames[i], safeFieldValues[i]);\n");
+            builder.append("        }\n");
+            builder.append("        for (int i = 0; i < safeSetterNames.length; i++) {\n");
+            builder.append("            dev.tsj.runtime.TsjRuntime.invokeMember(instance, safeSetterNames[i], safeSetterValues[i]);\n");
+            builder.append("        }\n");
+            builder.append("        final Object result = dev.tsj.runtime.TsjRuntime.invokeMember(")
+                    .append("instance, methodName, args);\n");
+            builder.append("        dev.tsj.runtime.TsjRuntime.flushMicrotasks();\n");
+            builder.append("        return result;\n");
+            builder.append("    }\n\n");
+            builder.append("    public static Object __tsjInvokeController(")
+                    .append("final String className, final String methodName, final Object... args")
+                    .append(") {\n");
+            builder.append("        return __tsjInvokeClass(className, methodName, new Object[0], args);\n");
+            builder.append("    }\n\n");
             builder.append("    public static void main(String[] args) {\n");
-            builder.append(mainBody);
+            builder.append("        __tsjBootstrap();\n");
             builder.append("    }\n");
             builder.append("}\n");
             return builder.toString();
@@ -3282,6 +3625,15 @@ public final class JvmBytecodeCompiler {
                     .append(".set(")
                     .append(classVar)
                     .append(");\n");
+            if (context.isTopLevelScope()) {
+                builder.append(indent)
+                        .append(TOP_LEVEL_CLASS_MAP_FIELD)
+                        .append(".put(\"")
+                        .append(escapeJava(declaration.name()))
+                        .append("\", ")
+                        .append(classCellName)
+                        .append(".get());\n");
+            }
 
             if (declaration.constructorMethod() != null) {
                 emitClassMethod(
@@ -4874,6 +5226,9 @@ public final class JvmBytecodeCompiler {
                 return "dev.tsj.runtime.TsjRuntime.arrayLiteral(" + String.join(", ", renderedElements) + ")";
             }
             if (expression instanceof CallExpression callExpression) {
+                if (isJavaInteropFactoryCall(callExpression)) {
+                    return emitJavaInteropFactoryCall(callExpression);
+                }
                 if (callExpression.callee() instanceof MemberAccessExpression memberAccessExpression
                         && isObjectSetPrototypeOfCall(memberAccessExpression)) {
                     if (callExpression.arguments().size() != 2) {
@@ -4930,6 +5285,31 @@ public final class JvmBytecodeCompiler {
                 return false;
             }
             return "Object".equals(variableExpression.name());
+        }
+
+        private boolean isJavaInteropFactoryCall(final CallExpression callExpression) {
+            if (!(callExpression.callee() instanceof VariableExpression variableExpression)) {
+                return false;
+            }
+            if (!"__tsj_java_binding".equals(variableExpression.name())
+                    && !"__tsj_java_static_method".equals(variableExpression.name())) {
+                return false;
+            }
+            if (callExpression.arguments().size() != 2) {
+                return false;
+            }
+            return callExpression.arguments().get(0) instanceof StringLiteral
+                    && callExpression.arguments().get(1) instanceof StringLiteral;
+        }
+
+        private String emitJavaInteropFactoryCall(final CallExpression callExpression) {
+            final StringLiteral className = (StringLiteral) callExpression.arguments().get(0);
+            final StringLiteral methodName = (StringLiteral) callExpression.arguments().get(1);
+            return "dev.tsj.runtime.TsjRuntime.javaBinding(\""
+                    + escapeJava(className.value())
+                    + "\", \""
+                    + escapeJava(methodName.value())
+                    + "\")";
         }
 
         private String sanitizeIdentifier(final String identifier) {
@@ -5090,6 +5470,10 @@ public final class JvmBytecodeCompiler {
                     return parent.isNameUsed(value);
                 }
                 return false;
+            }
+
+            private boolean isTopLevelScope() {
+                return parent == null;
             }
 
             private boolean isConstructorContext() {

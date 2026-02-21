@@ -1,5 +1,6 @@
 package dev.tsj.runtime;
 
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -65,6 +66,10 @@ public class TsjObject {
 
     public long shapeToken() {
         return shapeToken;
+    }
+
+    public Map<String, Object> ownPropertiesView() {
+        return Collections.unmodifiableMap(ownProperties);
     }
 
     private void ensureNoPrototypeCycle(final TsjObject candidatePrototype) {

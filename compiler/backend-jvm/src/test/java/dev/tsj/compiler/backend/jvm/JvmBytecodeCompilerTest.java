@@ -2574,6 +2574,164 @@ class JvmBytecodeCompilerTest {
     }
 
     @Test
+    void supportsJavaInteropNamedImportBindingsInTsj26() throws Exception {
+        final Path entry = tempDir.resolve("interop-main.ts");
+        Files.writeString(
+                entry,
+                """
+                import { max, min as minimum } from "java:java.lang.Math";
+                console.log("max=" + max(3, 7));
+                console.log("min=" + minimum(3, 7));
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(entry, tempDir.resolve("out26interop"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals("max=7\nmin=3\n", stdout.toString(UTF_8));
+    }
+
+    @Test
+    void supportsTsj29InteropConstructorInstanceFieldsAndVarArgs() throws Exception {
+        final Path entry = tempDir.resolve("interop-tsj29.ts");
+        Files.writeString(
+                entry,
+                """
+                import { $new as makeFixture, $instance$add as add, $instance$get$value as getValue, $instance$set$value as setValue, $static$get$GLOBAL as getGlobal, $static$set$GLOBAL as setGlobal, pick, join } from "java:dev.tsj.compiler.backend.jvm.fixtures.InteropFixtureType";
+
+                const fixture = makeFixture(5);
+                console.log("add=" + add(fixture, 4));
+                console.log("value=" + getValue(fixture));
+                console.log("set=" + setValue(fixture, 21));
+                console.log("value2=" + getValue(fixture));
+                console.log("global=" + getGlobal());
+                setGlobal(9);
+                console.log("global2=" + getGlobal());
+                console.log("pickInt=" + pick(3));
+                console.log("pickDouble=" + pick(3.5));
+                console.log("join=" + join("p", "a", "b"));
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(entry, tempDir.resolve("out29interop"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals(
+                "add=9\n"
+                        + "value=9\n"
+                        + "set=21\n"
+                        + "value2=21\n"
+                        + "global=100\n"
+                        + "global2=9\n"
+                        + "pickInt=int\n"
+                        + "pickDouble=double\n"
+                        + "join=p:a:b\n",
+                stdout.toString(UTF_8)
+        );
+    }
+
+    @Test
+    void supportsTsj30InteropCallbacksAndCompletableFutureAwait() throws Exception {
+        final Path entry = tempDir.resolve("interop-tsj30.ts");
+        Files.writeString(
+                entry,
+                """
+                import { applyOperator, upperAsync } from "java:dev.tsj.compiler.backend.jvm.fixtures.InteropFixtureType";
+
+                const callbackResult = applyOperator((value: number) => value + 3, 4);
+                console.log("callback=" + callbackResult);
+
+                async function run() {
+                  const upper = await upperAsync("tsj");
+                  console.log("upper=" + upper);
+                }
+
+                run();
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(entry, tempDir.resolve("out30interop"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals("callback=7\nupper=TSJ\n", stdout.toString(UTF_8));
+    }
+
+    @Test
+    void rejectsJavaInteropDefaultImportWithFeatureDiagnosticMetadata() throws Exception {
+        final Path entry = tempDir.resolve("interop-default.ts");
+        Files.writeString(
+                entry,
+                """
+                import Math from "java:java.lang.Math";
+                console.log(Math);
+                """,
+                UTF_8
+        );
+
+        final JvmCompilationException exception = org.junit.jupiter.api.Assertions.assertThrows(
+                JvmCompilationException.class,
+                () -> new JvmBytecodeCompiler().compile(entry, tempDir.resolve("out26interop2"))
+        );
+        assertUnsupportedFeature(
+                exception,
+                "TSJ26-INTEROP-SYNTAX",
+                "Use named imports"
+        );
+    }
+
+    @Test
+    void rejectsJavaInteropNamespaceImportWithFeatureDiagnosticMetadata() throws Exception {
+        final Path entry = tempDir.resolve("interop-namespace.ts");
+        Files.writeString(
+                entry,
+                """
+                import * as math from "java:java.lang.Math";
+                console.log(math);
+                """,
+                UTF_8
+        );
+
+        final JvmCompilationException exception = org.junit.jupiter.api.Assertions.assertThrows(
+                JvmCompilationException.class,
+                () -> new JvmBytecodeCompiler().compile(entry, tempDir.resolve("out26interop3"))
+        );
+        assertUnsupportedFeature(
+                exception,
+                "TSJ26-INTEROP-SYNTAX",
+                "Use named imports"
+        );
+    }
+
+    @Test
+    void rejectsInvalidJavaInteropModuleSpecifierWithFeatureDiagnosticMetadata() throws Exception {
+        final Path entry = tempDir.resolve("interop-invalid-specifier.ts");
+        Files.writeString(
+                entry,
+                """
+                import { max } from "java:java.lang.Math#max";
+                console.log(max(1, 2));
+                """,
+                UTF_8
+        );
+
+        final JvmCompilationException exception = org.junit.jupiter.api.Assertions.assertThrows(
+                JvmCompilationException.class,
+                () -> new JvmBytecodeCompiler().compile(entry, tempDir.resolve("out26interop4"))
+        );
+        assertUnsupportedFeature(
+                exception,
+                "TSJ26-INTEROP-MODULE-SPECIFIER",
+                "java:<fully.qualified.ClassName>"
+        );
+    }
+
+    @Test
     void rejectsSuperCallOutsideConstructor() throws Exception {
         final Path sourceFile = tempDir.resolve("invalid-super.ts");
         Files.writeString(
@@ -2741,6 +2899,86 @@ class JvmBytecodeCompilerTest {
         );
         assertEquals(1, exception.line());
         assertEquals(module.toAbsolutePath().normalize().toString(), exception.sourceFile());
+    }
+
+    @Test
+    void supportsTsj34ControllerDecoratorLinesInBackendParser() throws Exception {
+        final Path sourceFile = tempDir.resolve("decorated-controller.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                @RestController
+                class EchoController {
+                  @GetMapping("/echo")
+                  echo(value: string) {
+                    return "echo:" + value;
+                  }
+                }
+
+                const controller = new EchoController();
+                console.log(controller.echo("ok"));
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out33"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals("echo:ok\n", stdout.toString(UTF_8));
+    }
+
+    @Test
+    void stripsSupportedParameterDecoratorsBeforeBackendParsing() throws Exception {
+        final Path sourceFile = tempDir.resolve("decorated-controller-params.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                @RestController
+                class EchoController {
+                  @GetMapping("/echo")
+                  echo(@RequestParam("value") value: string) {
+                    return "echo:" + value;
+                  }
+                }
+
+                const controller = new EchoController();
+                console.log(controller.echo("ok"));
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out34"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals("echo:ok\n", stdout.toString(UTF_8));
+    }
+
+    @Test
+    void rejectsUnsupportedDecoratorLineWithTargetedDiagnostic() throws Exception {
+        final Path sourceFile = tempDir.resolve("unsupported-decorator.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                @UnknownDecorator
+                class Demo {
+                  value() {
+                    return 1;
+                  }
+                }
+                console.log(new Demo().value());
+                """,
+                UTF_8
+        );
+
+        final JvmCompilationException exception = org.junit.jupiter.api.Assertions.assertThrows(
+                JvmCompilationException.class,
+                () -> new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out34"))
+        );
+
+        assertEquals("TSJ-BACKEND-UNSUPPORTED", exception.code());
+        assertTrue(exception.getMessage().contains("@UnknownDecorator"));
     }
 
     @Test

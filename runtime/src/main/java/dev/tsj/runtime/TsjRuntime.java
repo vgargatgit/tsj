@@ -94,6 +94,18 @@ public final class TsjRuntime {
         throw new IllegalArgumentException("Value is not callable: " + toDisplayString(callee));
     }
 
+    public static Object javaStaticMethod(final String className, final String methodName) {
+        Objects.requireNonNull(className, "className");
+        Objects.requireNonNull(methodName, "methodName");
+        return javaBinding(className, methodName);
+    }
+
+    public static Object javaBinding(final String className, final String bindingName) {
+        Objects.requireNonNull(className, "className");
+        Objects.requireNonNull(bindingName, "bindingName");
+        return (TsjCallable) args -> TsjJavaInterop.invokeBinding(className, bindingName, args);
+    }
+
     public static TsjClass asClass(final Object value) {
         if (value instanceof TsjClass tsjClass) {
             return tsjClass;
@@ -188,6 +200,9 @@ public final class TsjRuntime {
                 return callableWithThis.callWithThis(tsjObject, args);
             }
             return call(member, args);
+        }
+        if (target != null && target != TsjUndefined.INSTANCE) {
+            return TsjJavaInterop.invokeInstanceMember(target, methodName, args);
         }
         throw new IllegalArgumentException("Cannot invoke member `" + methodName + "` on " + toDisplayString(target));
     }

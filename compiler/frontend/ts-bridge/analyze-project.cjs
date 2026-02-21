@@ -96,6 +96,114 @@ function isProjectSourceFile(filePath, projectRoot) {
   return normalized.startsWith(projectRoot + path.sep) || normalized === projectRoot;
 }
 
+const JAVA_IMPORT_PREFIX = 'java:';
+const JAVA_CLASS_NAME_PATTERN = /^[A-Za-z_$][A-Za-z0-9_$]*(?:\.[A-Za-z_$][A-Za-z0-9_$]*)*$/;
+const IDENTIFIER_PATTERN = /^[A-Za-z_$][A-Za-z0-9_$]*$/;
+
+function diagnosticAtNode(ts, sourceFile, node, code, message) {
+  let line = null;
+  let column = null;
+  if (sourceFile && node) {
+    const start = node.getStart(sourceFile, false);
+    const position = sourceFile.getLineAndCharacterOfPosition(start);
+    line = position.line + 1;
+    column = position.character + 1;
+  }
+  return {
+    code,
+    category: 'Error',
+    message,
+    filePath: sourceFile ? normalizeFilePath(sourceFile.fileName) : null,
+    line,
+    column
+  };
+}
+
+function collectInteropBindings(ts, sourceFile) {
+  const bindings = [];
+  const diagnostics = [];
+
+  function visit(node) {
+    if (ts.isImportDeclaration(node) && node.moduleSpecifier && ts.isStringLiteral(node.moduleSpecifier)) {
+      const specifier = node.moduleSpecifier.text;
+      if (specifier.startsWith(JAVA_IMPORT_PREFIX)) {
+        const className = specifier.slice(JAVA_IMPORT_PREFIX.length);
+        if (!JAVA_CLASS_NAME_PATTERN.test(className)) {
+          diagnostics.push(
+            diagnosticAtNode(
+              ts,
+              sourceFile,
+              node.moduleSpecifier,
+              'TSJ26-INTEROP-MODULE-SPECIFIER',
+              'Invalid Java interop specifier. Expected `java:<fully.qualified.ClassName>`.'
+            )
+          );
+          return;
+        }
+
+        const importClause = node.importClause;
+        const namedBindings = importClause && importClause.namedBindings;
+        if (!importClause || importClause.name || !namedBindings || !ts.isNamedImports(namedBindings)) {
+          diagnostics.push(
+            diagnosticAtNode(
+              ts,
+              sourceFile,
+              node,
+              'TSJ26-INTEROP-SYNTAX',
+              'Java interop imports must use named imports, for example `import { max } from \"java:java.lang.Math\"`.'
+            )
+          );
+          return;
+        }
+
+        if (namedBindings.elements.length === 0) {
+          diagnostics.push(
+            diagnosticAtNode(
+              ts,
+              sourceFile,
+              namedBindings,
+              'TSJ26-INTEROP-SYNTAX',
+              'Java interop imports must declare at least one named binding.'
+            )
+          );
+          return;
+        }
+
+        for (const element of namedBindings.elements) {
+          const importedName = element.propertyName ? element.propertyName.text : element.name.text;
+          const localName = element.name.text;
+          if (!IDENTIFIER_PATTERN.test(importedName) || !IDENTIFIER_PATTERN.test(localName)) {
+            diagnostics.push(
+              diagnosticAtNode(
+                ts,
+                sourceFile,
+                element,
+                'TSJ26-INTEROP-BINDING',
+                `Invalid Java interop binding \`${importedName} as ${localName}\`.`
+              )
+            );
+            continue;
+          }
+          const start = element.getStart(sourceFile, false);
+          const position = sourceFile.getLineAndCharacterOfPosition(start);
+          bindings.push({
+            filePath: normalizeFilePath(sourceFile.fileName),
+            line: position.line + 1,
+            column: position.character + 1,
+            className,
+            importedName,
+            localName
+          });
+        }
+      }
+    }
+    ts.forEachChild(node, visit);
+  }
+
+  visit(sourceFile);
+  return { bindings, diagnostics };
+}
+
 function main() {
   const ts = loadTypeScript();
   const tsconfigArg = process.argv[2];
@@ -153,11 +261,21 @@ function main() {
     ...parseResult.errors,
     ...ts.getPreEmitDiagnostics(program)
   ].map((diagnostic) => diagnosticToJson(ts, diagnostic));
+  const interopBindings = [];
+  for (const sourceFile of program.getSourceFiles()) {
+    if (sourceFile.isDeclarationFile || !isProjectSourceFile(sourceFile.fileName, projectRoot)) {
+      continue;
+    }
+    const interopResult = collectInteropBindings(ts, sourceFile);
+    interopBindings.push(...interopResult.bindings);
+    diagnostics.push(...interopResult.diagnostics);
+  }
 
   const output = {
     tsconfigPath,
     sourceFiles,
-    diagnostics
+    diagnostics,
+    interopBindings
   };
 
   process.stdout.write(JSON.stringify(output));

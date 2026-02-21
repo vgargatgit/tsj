@@ -4,11 +4,18 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Comparator;
 import java.util.List;
+import java.util.jar.JarEntry;
+import java.util.jar.JarOutputStream;
 import java.util.stream.Collectors;
+import javax.tools.JavaCompiler;
+import javax.tools.JavaFileObject;
+import javax.tools.StandardJavaFileManager;
+import javax.tools.ToolProvider;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -98,6 +105,74 @@ class FixtureHarnessTest {
 
         assertEquals(List.of("--ts-stacktrace"), fixture.tsjArgs());
         assertTrue(result.passed(), result.minimizedRepro());
+    }
+
+    @Test
+    void harnessSupportsExternalJarInteropFixtureViaTsjArgs() throws Exception {
+        final Path jarFile = buildInteropJar(
+                "sample.interop.Numbers",
+                """
+                package sample.interop;
+
+                public final class Numbers {
+                    private Numbers() {
+                    }
+
+                    public static int triple(final int value) {
+                        return value * 3;
+                    }
+                }
+                """
+        );
+        final Path fixtureDir = tempDir.resolve("tsj27-jar-interop");
+        final Path inputDir = fixtureDir.resolve("input");
+        final Path expectedDir = fixtureDir.resolve("expected");
+        Files.createDirectories(inputDir);
+        Files.createDirectories(expectedDir);
+
+        Files.writeString(
+                inputDir.resolve("main.ts"),
+                """
+                import { triple } from "java:sample.interop.Numbers";
+                console.log("triple=" + triple(6));
+                """,
+                UTF_8
+        );
+        Files.writeString(expectedDir.resolve("node.stdout"), "", UTF_8);
+        Files.writeString(expectedDir.resolve("node.stderr"), "ERR_UNSUPPORTED_ESM_URL_SCHEME", UTF_8);
+        Files.writeString(expectedDir.resolve("tsj.stdout"), "triple=18\n\"code\":\"TSJ-RUN-SUCCESS\"", UTF_8);
+        Files.writeString(expectedDir.resolve("tsj.stderr"), "", UTF_8);
+        Files.writeString(
+                fixtureDir.resolve("fixture.properties"),
+                String.join(
+                        "\n",
+                        "name=tsj27-jar-interop",
+                        "entry=input/main.ts",
+                        "expected.node.exitCode=1",
+                        "expected.node.stdout=expected/node.stdout",
+                        "expected.node.stderr=expected/node.stderr",
+                        "expected.node.stdoutMode=exact",
+                        "expected.node.stderrMode=contains",
+                        "expected.tsj.exitCode=0",
+                        "expected.tsj.stdout=expected/tsj.stdout",
+                        "expected.tsj.stderr=expected/tsj.stderr",
+                        "expected.tsj.stdoutMode=contains",
+                        "expected.tsj.stderrMode=exact",
+                        "assert.nodeMatchesTsj=false",
+                        "tsj.args=--jar " + jarFile + " --interop-policy broad --ack-interop-risk",
+                        ""
+                ),
+                UTF_8
+        );
+
+        final FixtureSpec fixture = FixtureLoader.loadFixture(fixtureDir);
+        final FixtureRunResult result = new FixtureHarness().runFixture(fixture);
+
+        assertTrue(result.passed(), result.minimizedRepro());
+        assertEquals(
+                List.of("--jar", jarFile.toString(), "--interop-policy", "broad", "--ack-interop-risk"),
+                fixture.tsjArgs()
+        );
     }
 
     @Test
@@ -555,6 +630,85 @@ class FixtureHarnessTest {
                 "tsjStderr=" + result.tsjResult().stderr()
         ).stream().collect(Collectors.joining(" | "));
         assertTrue(result.passed(), "tsj25-async-stacktrace should pass: " + failureDetails);
+    }
+
+    @Test
+    void committedTsj26InteropBindingPositiveFixtureRunsSuccessfully() throws Exception {
+        final Path fixturesRoot = Path.of("..", "tests", "fixtures").toAbsolutePath().normalize();
+        final FixtureSpec fixture = FixtureLoader.loadFixture(fixturesRoot.resolve("tsj26-interop-binding-positive"));
+
+        final FixtureRunResult result = new FixtureHarness().runFixture(fixture);
+
+        final String failureDetails = List.of(
+                "nodeDiff=" + result.nodeResult().diff(),
+                "tsjDiff=" + result.tsjResult().diff(),
+                "nodeToTsjDiff=" + result.nodeToTsjDiff(),
+                "nodeStdout=" + result.nodeResult().stdout(),
+                "nodeStderr=" + result.nodeResult().stderr(),
+                "tsjStdout=" + result.tsjResult().stdout(),
+                "tsjStderr=" + result.tsjResult().stderr()
+        ).stream().collect(Collectors.joining(" | "));
+        assertTrue(result.passed(), "tsj26-interop-binding-positive should pass: " + failureDetails);
+    }
+
+    @Test
+    void committedTsj26InteropBindingInvalidFixtureRunsSuccessfully() throws Exception {
+        final Path fixturesRoot = Path.of("..", "tests", "fixtures").toAbsolutePath().normalize();
+        final FixtureSpec fixture = FixtureLoader.loadFixture(fixturesRoot.resolve("tsj26-interop-binding-invalid"));
+
+        final FixtureRunResult result = new FixtureHarness().runFixture(fixture);
+
+        final String failureDetails = List.of(
+                "nodeDiff=" + result.nodeResult().diff(),
+                "tsjDiff=" + result.tsjResult().diff(),
+                "nodeToTsjDiff=" + result.nodeToTsjDiff(),
+                "nodeStdout=" + result.nodeResult().stdout(),
+                "nodeStderr=" + result.nodeResult().stderr(),
+                "tsjStdout=" + result.tsjResult().stdout(),
+                "tsjStderr=" + result.tsjResult().stderr()
+        ).stream().collect(Collectors.joining(" | "));
+        assertTrue(result.passed(), "tsj26-interop-binding-invalid should pass: " + failureDetails);
+    }
+
+    private Path buildInteropJar(final String className, final String sourceText) throws Exception {
+        final JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
+        if (compiler == null) {
+            throw new IllegalStateException("JDK compiler is required for integration tests.");
+        }
+        final Path sourceRoot = tempDir.resolve("java-src-" + className.replace('.', '_'));
+        final Path classesRoot = tempDir.resolve("java-classes-" + className.replace('.', '_'));
+        final Path javaSource = sourceRoot.resolve(className.replace('.', '/') + ".java");
+        Files.createDirectories(javaSource.getParent());
+        Files.createDirectories(classesRoot);
+        Files.writeString(javaSource, sourceText, UTF_8);
+
+        try (StandardJavaFileManager fileManager = compiler.getStandardFileManager(null, null, UTF_8)) {
+            final Iterable<? extends JavaFileObject> compilationUnits =
+                    fileManager.getJavaFileObjectsFromPaths(List.of(javaSource));
+            final Boolean success = compiler.getTask(
+                    null,
+                    fileManager,
+                    null,
+                    List.of("--release", "21", "-d", classesRoot.toString()),
+                    null,
+                    compilationUnits
+            ).call();
+            if (!Boolean.TRUE.equals(success)) {
+                throw new IllegalStateException("Failed to compile Java fixture class " + className);
+            }
+        }
+
+        final Path jarFile = tempDir.resolve(className.replace('.', '_') + ".jar");
+        final Path classFile = classesRoot.resolve(className.replace('.', '/') + ".class");
+        try (JarOutputStream jarOutputStream = new JarOutputStream(Files.newOutputStream(jarFile))) {
+            final JarEntry entry = new JarEntry(className.replace('.', '/') + ".class");
+            jarOutputStream.putNextEntry(entry);
+            try (InputStream inputStream = Files.newInputStream(classFile)) {
+                inputStream.transferTo(jarOutputStream);
+            }
+            jarOutputStream.closeEntry();
+        }
+        return jarFile.toAbsolutePath().normalize();
     }
 
     private Path writeFixture(final String name, final boolean assertNodeMatchesTsj) throws IOException {

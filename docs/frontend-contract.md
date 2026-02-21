@@ -17,11 +17,13 @@ Output:
 1. `tsconfigPath`: normalized absolute config path.
 2. `sourceFiles`: typed summaries for project source files.
 3. `diagnostics`: TypeScript parser/type diagnostics with source coordinates.
+4. `interopBindings`: discovered TSJ Java interop bindings from `java:` imports.
 
 ## Data Models
 1. `FrontendAnalysisResult`
 2. `FrontendSourceFileSummary`
 3. `FrontendDiagnostic`
+4. `FrontendInteropBinding`
 
 ## Bridge Runtime
 Node bridge script:
@@ -33,6 +35,12 @@ Behavior:
 3. Parses `tsconfig.json` with TypeScript API.
 4. Creates a `Program`, computes source-file node counts and typed-node counts.
 5. Returns parser and semantic diagnostics with file/line/column mapping.
+6. Scans project imports for TSJ-26 interop bindings:
+   - accepted form: `import { member } from "java:<fully.qualified.ClassName>"`
+   - `member` can be a static method binding or TSJ-29 binding token (`$new`, `$instance$...`, `$static$get$...`, etc.)
+   - emits diagnostics:
+     `TSJ26-INTEROP-SYNTAX`, `TSJ26-INTEROP-MODULE-SPECIFIER`, `TSJ26-INTEROP-BINDING`
+   - emits normalized binding metadata for backend lowering.
 
 ## TSJ-4 Acceptance Mapping
 1. Loads `tsconfig.json`: covered by `TypeScriptFrontendService.analyzeProject`.

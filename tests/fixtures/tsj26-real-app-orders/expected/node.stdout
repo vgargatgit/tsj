@@ -1,0 +1,15 @@
+bootstrap:init
+module:init=ready
+sync:ready=ready
+sync:total=15
+sync:boosted=15
+sync:account=6:12
+sync:user=ada#30
+sync:coerce=true:false
+sync:missing=undefined
+async:boost=12
+async:series=12
+promise:catch=boom
+promise:finally
+async:lab=3:win:2:ok
+sync:done

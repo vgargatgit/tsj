@@ -250,6 +250,14 @@ public final class TsjPromise extends TsjObject {
         );
     }
 
+    public void resolveExternal(final Object value) {
+        resolveInternal(value);
+    }
+
+    public void rejectExternal(final Object reason) {
+        rejectInternal(reason);
+    }
+
     private void resolveInternal(final Object value) {
         if (state != PromiseState.PENDING) {
             return;

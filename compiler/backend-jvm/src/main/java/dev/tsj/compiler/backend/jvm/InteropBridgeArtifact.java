@@ -10,7 +10,9 @@ import java.util.Objects;
 public record InteropBridgeArtifact(
         Path outputDirectory,
         List<Path> sourceFiles,
-        List<String> targets
+        List<String> targets,
+        List<SelectedTargetIdentity> selectedTargets,
+        List<UnresolvedTarget> unresolvedTargets
 ) {
     public InteropBridgeArtifact {
         outputDirectory = Objects.requireNonNull(outputDirectory, "outputDirectory")
@@ -18,5 +20,20 @@ public record InteropBridgeArtifact(
                 .normalize();
         sourceFiles = List.copyOf(Objects.requireNonNull(sourceFiles, "sourceFiles"));
         targets = List.copyOf(Objects.requireNonNull(targets, "targets"));
+        selectedTargets = List.copyOf(Objects.requireNonNull(selectedTargets, "selectedTargets"));
+        unresolvedTargets = List.copyOf(Objects.requireNonNull(unresolvedTargets, "unresolvedTargets"));
+    }
+
+    public record SelectedTargetIdentity(
+            String className,
+            String bindingName,
+            String owner,
+            String name,
+            String descriptor,
+            String invokeKind
+    ) {
+    }
+
+    public record UnresolvedTarget(String className, String bindingName, String reason) {
     }
 }

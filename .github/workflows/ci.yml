@@ -9,32 +9,189 @@ on:
 
 jobs:
   lint-and-test:
+    name: lint-and-test (jdk${{ matrix.jdk }}, node${{ matrix.node }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        jdk: ["21"]
+        node: ["24"]
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up JDK 21
+      - name: Set up JDK
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: "21"
+          java-version: ${{ matrix.jdk }}
           cache: maven
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "24"
+          node-version: ${{ matrix.node }}
+          cache: npm
+          cache-dependency-path: package-lock.json
 
-      - name: Verify Node
-        run: node --version
-        
+      - name: Install Node deps
+        run: npm ci
+
+      - name: Verify toolchain
+        run: |
+          java -version
+          mvn -version
+          node --version
+          npm --version
+          npx tsc --version
+          test "$(npx tsc --version)" = "Version 5.9.3"
+
       - name: Lint
         run: mvn -B -ntp checkstyle:check
 
       - name: Unit tests
         run: mvn -B -ntp test
+
+      - name: TSJ-36 Spring Package Smoke
+        run: >
+          mvn -B -ntp -pl cli -am
+          -Dsurefire.failIfNoSpecifiedTests=false
+          -Dtest=TsjCliTest#springPackageBuildsRunnableJarAndIncludesResourceFiles
+          test
+
+      - name: TSJ-36b Spring Endpoint Smoke
+        run: >
+          mvn -B -ntp -pl cli -am
+          -Dsurefire.failIfNoSpecifiedTests=false
+          -Dtest=TsjCliTest#springPackageSmokeRunVerifiesEmbeddedEndpointAvailability
+          test
+
+      - name: TSJ-34f Packaged Web Conformance
+        run: >
+          mvn -B -ntp -pl cli -am
+          -Dsurefire.failIfNoSpecifiedTests=false
+          -Dtest=TsjSpringPackagedWebConformanceTest#packagedWebConformanceGateProducesTsJavaKotlinReport
+          test
+
+      - name: TSJ-40d Dependency Mediation Certification
+        run: >
+          mvn -B -ntp -pl cli -am
+          -Dsurefire.failIfNoSpecifiedTests=false
+          -Dtest=TsjDependencyMediationCertificationTest#certificationGateRequiresGraphScopeAndIsolationParity
+          test
+
+      - name: TSJ-41d Invocation Conversion Certification
+        run: >
+          mvn -B -ntp -pl cli -am
+          -Dsurefire.failIfNoSpecifiedTests=false
+          -Dtest=TsjInvocationConversionCertificationTest#certificationGateRequiresAllFamilySuitesToPass
+          test
+
+      - name: TSJ-43d Guardrail Certification
+        run: >
+          mvn -B -ntp -pl cli -am
+          -Dsurefire.failIfNoSpecifiedTests=false
+          -Dtest=TsjGuardrailCertificationTest#certificationGateRequiresAllGuardrailFamiliesToPass
+          test
+
+      - name: TSJ-37b Data JDBC Matrix Baseline
+        run: >
+          mvn -B -ntp -pl compiler/backend-jvm -am
+          -Dsurefire.failIfNoSpecifiedTests=false
+          -Dtest=TsjSpringIntegrationMatrixTest#springModuleMatrixDataJdbcModuleRunsCrudAndQueryParityWithUnsupportedQueryGate
+          test
+
+      - name: TSJ-37d Security Matrix Baseline
+        run: >
+          mvn -B -ntp -pl compiler/backend-jvm -am
+          -Dsurefire.failIfNoSpecifiedTests=false
+          -Dtest=TsjSpringIntegrationMatrixTest#springModuleMatrixSecurityModuleRunsBaselineParityAndUnsupportedExpressionGate
+          test
+
+      - name: TSJ-44b Version-Range Certification
+        run: >
+          mvn -B -ntp -pl cli -am
+          -Dsurefire.failIfNoSpecifiedTests=false
+          -Dtest=TsjVersionRangeCertificationTest#certificationGatePassesWhenCertifiedVersionRangesAreGreen
+          test
+
+      - name: TSJ-44c Real-App Certification
+        run: >
+          mvn -B -ntp -pl cli -am
+          -Dsurefire.failIfNoSpecifiedTests=false
+          -Dtest=TsjRealAppCertificationTest#realAppGateRequiresReliabilityAndPerformanceBudgets
+          test
+
+      - name: TSJ-44d Any-JAR Governance Signoff
+        run: >
+          mvn -B -ntp -pl cli -am
+          -Dsurefire.failIfNoSpecifiedTests=false
+          -Dtest=TsjAnyJarGovernanceCertificationTest#governanceGateRequiresMatrixVersionAndWorkloadSignoffCriteria
+          test
+
+      - name: TSJ-42a JPA Real-DB Parity
+        run: >
+          mvn -B -ntp -pl cli -am
+          -Dsurefire.failIfNoSpecifiedTests=false
+          -Dtest=TsjJpaRealDatabaseParityTest#parityGateRequiresCrudAndQueryParityAcrossRealDbBackends
+          test
+
+      - name: TSJ-42b JPA Lazy/Proxy Parity
+        run: >
+          mvn -B -ntp -pl cli -am
+          -Dsurefire.failIfNoSpecifiedTests=false
+          -Dtest=TsjJpaLazyProxyParityTest#parityGateRequiresSupportedLazyProxyScenariosToPass
+          test
+
+      - name: TSJ-42c JPA Lifecycle/Transaction Parity
+        run: >
+          mvn -B -ntp -pl cli -am
+          -Dsurefire.failIfNoSpecifiedTests=false
+          -Dtest=TsjJpaLifecycleParityTest#parityGateRequiresLifecycleAndTransactionScenariosToPass
+          test
+
+      - name: TSJ-42d JPA Certification Closure
+        run: >
+          mvn -B -ntp -pl cli -am
+          -Dsurefire.failIfNoSpecifiedTests=false
+          -Dtest=TsjJpaCertificationClosureTest#certificationGateRequiresAllOrmFamilySuitesToPass
+          test
+
+      - name: TSJ-38a DB-Backed Reference Parity
+        run: >
+          mvn -B -ntp -pl compiler/backend-jvm -am
+          -Dsurefire.failIfNoSpecifiedTests=false
+          -Dtest=TsjKotlinDbParityTest#dbParityGateRequiresTsAndKotlinDifferentialMatchAcrossBackends
+          test
+
+      - name: TSJ-38b Security Reference Parity
+        run: >
+          mvn -B -ntp -pl compiler/backend-jvm -am
+          -Dsurefire.failIfNoSpecifiedTests=false
+          -Dtest=TsjKotlinSecurityParityTest#securityParityGateRequiresAuthenticatedAndRoleBasedParityScenarios
+          test
+
+      - name: TSJ-38c Kotlin Parity Certification
+        run: >
+          mvn -B -ntp -pl compiler/backend-jvm -am
+          -Dsurefire.failIfNoSpecifiedTests=false
+          -Dtest=TsjKotlinParityCertificationTest#certificationGateRequiresAllDimensionThresholdsAndParitySignalsToPass
+          test
+
+      - name: TSJ-37e Spring Module Certification
+        run: >
+          mvn -B -ntp -pl compiler/backend-jvm -am
+          -Dsurefire.failIfNoSpecifiedTests=false
+          -Dtest=TsjSpringModuleCertificationTest#certificationGateRequiresAllModuleParityScenariosToPass
+          test
+
+      - name: TSJ-36c Dev-Loop Parity
+        run: >
+          mvn -B -ntp -pl cli -am
+          -Dsurefire.failIfNoSpecifiedTests=false
+          -Dtest=TsjDevLoopParityTest#parityGateRequiresAllDevLoopScenariosToPass
+          test
 
       - name: Upload fixture coverage report
         if: always()
@@ -50,4 +207,188 @@ jobs:
         with:
           name: benchmark-baseline-report
           path: benchmarks/tsj-benchmark-baseline.json
+          if-no-files-found: warn
+
+      - name: Upload TSJ-34c web conformance report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tsj34c-web-conformance-report
+          path: compiler/backend-jvm/target/tsj34c-web-conformance-report.json
+          if-no-files-found: warn
+
+      - name: Upload TSJ-34f packaged web conformance report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tsj34f-packaged-web-conformance-report
+          path: cli/target/tsj34f-packaged-web-conformance-report.json
+          if-no-files-found: warn
+
+      - name: Upload TSJ-40d dependency mediation certification report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tsj40d-dependency-mediation-certification-report
+          path: cli/target/tsj40d-dependency-mediation-certification.json
+          if-no-files-found: warn
+
+      - name: Upload TSJ-41d invocation conversion certification report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tsj41d-invocation-conversion-certification-report
+          path: cli/target/tsj41d-invocation-conversion-certification.json
+          if-no-files-found: warn
+
+      - name: Upload TSJ-43d guardrail certification report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tsj43d-guardrail-certification-report
+          path: cli/target/tsj43d-guardrail-certification.json
+          if-no-files-found: warn
+
+      - name: Upload TSJ-37 spring ecosystem matrix report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tsj37-spring-module-matrix-report
+          path: compiler/backend-jvm/target/tsj37-spring-module-matrix.json
+          if-no-files-found: warn
+
+      - name: Upload TSJ-38 Kotlin parity readiness report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tsj38-kotlin-parity-readiness-report
+          path: compiler/backend-jvm/target/tsj38-kotlin-parity-readiness.json
+          if-no-files-found: warn
+
+      - name: Upload TSJ-39 metadata conformance report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tsj39-metadata-conformance-report
+          path: compiler/backend-jvm/target/tsj39-metadata-conformance-report.json
+          if-no-files-found: warn
+
+      - name: Upload TSJ-39b introspector matrix report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tsj39b-introspector-matrix-report
+          path: compiler/backend-jvm/target/tsj39b-introspector-matrix.json
+          if-no-files-found: warn
+
+      - name: Upload TSJ-44 any-jar certification report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tsj44-anyjar-certification-report
+          path: cli/target/tsj44-anyjar-certification-report.json
+          if-no-files-found: warn
+
+      - name: Upload TSJ-44a real-library matrix report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tsj44a-real-library-matrix-report
+          path: cli/target/tsj44a-real-library-matrix-report.json
+          if-no-files-found: warn
+
+      - name: Upload TSJ-44b version-range certification report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tsj44b-version-range-certification-report
+          path: cli/target/tsj44b-version-range-certification.json
+          if-no-files-found: warn
+
+      - name: Upload TSJ-44c real-app certification report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tsj44c-real-app-certification-report
+          path: cli/target/tsj44c-real-app-certification.json
+          if-no-files-found: warn
+
+      - name: Upload TSJ-44d governance certification report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tsj44d-anyjar-governance-report
+          path: cli/target/tsj44d-anyjar-governance.json
+          if-no-files-found: warn
+
+      - name: Upload TSJ-42a JPA real-db parity report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tsj42a-jpa-realdb-parity-report
+          path: cli/target/tsj42a-jpa-realdb-parity.json
+          if-no-files-found: warn
+
+      - name: Upload TSJ-42b JPA lazy/proxy parity report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tsj42b-jpa-lazy-proxy-parity-report
+          path: cli/target/tsj42b-jpa-lazy-proxy-parity.json
+          if-no-files-found: warn
+
+      - name: Upload TSJ-42c JPA lifecycle parity report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tsj42c-jpa-lifecycle-parity-report
+          path: cli/target/tsj42c-jpa-lifecycle-parity.json
+          if-no-files-found: warn
+
+      - name: Upload TSJ-42d JPA certification closure report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tsj42d-jpa-certification-report
+          path: cli/target/tsj42d-jpa-certification.json
+          if-no-files-found: warn
+
+      - name: Upload TSJ-38a db parity report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tsj38a-db-parity-report
+          path: compiler/backend-jvm/target/tsj38a-db-parity-report.json
+          if-no-files-found: warn
+
+      - name: Upload TSJ-38b security parity report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tsj38b-security-parity-report
+          path: compiler/backend-jvm/target/tsj38b-security-parity-report.json
+          if-no-files-found: warn
+
+      - name: Upload TSJ-38c parity certification report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tsj38c-kotlin-parity-certification-report
+          path: compiler/backend-jvm/target/tsj38c-kotlin-parity-certification.json
+          if-no-files-found: warn
+
+      - name: Upload TSJ-37e spring module certification report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tsj37e-spring-module-certification-report
+          path: compiler/backend-jvm/target/tsj37e-spring-module-certification.json
+          if-no-files-found: warn
+
+      - name: Upload TSJ-36c dev-loop parity report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tsj36c-dev-loop-parity-report
+          path: cli/target/tsj36c-dev-loop-parity.json
           if-no-files-found: warn

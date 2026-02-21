@@ -62,7 +62,29 @@ public final class TypeScriptFrontendService {
                 ));
             }
 
-            return new FrontendAnalysisResult(normalizedTsconfig, sourceFiles, diagnostics);
+            final List<FrontendInteropBinding> interopBindings = new ArrayList<>();
+            for (JsonNode bindingNode : root.path("interopBindings")) {
+                interopBindings.add(new FrontendInteropBinding(
+                        bindingNode.path("filePath").asText(),
+                        bindingNode.path("line").asInt(),
+                        bindingNode.path("column").asInt(),
+                        bindingNode.path("className").asText(),
+                        bindingNode.path("importedName").asText(),
+                        bindingNode.path("localName").asText()
+                ));
+            }
+
+            final JavaInteropSymbolResolver.Resolution interopResolution =
+                    new JavaInteropSymbolResolver().resolve(interopBindings);
+            diagnostics.addAll(interopResolution.diagnostics());
+
+            return new FrontendAnalysisResult(
+                    normalizedTsconfig,
+                    sourceFiles,
+                    diagnostics,
+                    interopBindings,
+                    interopResolution.symbols()
+            );
         } catch (final IOException ioException) {
             throw new IllegalStateException(
                     "Failed to parse TypeScript bridge output: " + ioException.getMessage()

@@ -114,4 +114,194 @@ class TypeScriptFrontendServiceTest {
         assertTrue(diagnostic.line() >= 1);
         assertTrue(diagnostic.column() >= 1);
     }
+
+    @Test
+    void collectsJavaInteropBindingsFromNamedImports() throws Exception {
+        final Path projectDir = tempDir.resolve("interop-project");
+        Files.createDirectories(projectDir.resolve("src"));
+        Files.writeString(
+                projectDir.resolve("tsconfig.json"),
+                """
+                {
+                  "compilerOptions": {
+                    "target": "ES2022",
+                    "module": "ESNext",
+                    "strict": true,
+                    "noEmit": true
+                  },
+                  "include": ["src/**/*.ts"]
+                }
+                """,
+                UTF_8
+        );
+        Files.writeString(
+                projectDir.resolve("src/main.ts"),
+                """
+                import { max, min as lowest } from "java:java.lang.Math";
+                console.log(max(7, lowest(2, 5)));
+                """,
+                UTF_8
+        );
+
+        final TypeScriptFrontendService service = new TypeScriptFrontendService(Path.of("").toAbsolutePath());
+        final FrontendAnalysisResult result = service.analyzeProject(projectDir.resolve("tsconfig.json"));
+
+        assertEquals(2, result.interopBindings().size());
+        assertTrue(result.interopBindings().stream().anyMatch(binding ->
+                binding.className().equals("java.lang.Math")
+                        && binding.importedName().equals("max")
+                        && binding.localName().equals("max")
+        ));
+        assertTrue(result.interopBindings().stream().anyMatch(binding ->
+                binding.className().equals("java.lang.Math")
+                        && binding.importedName().equals("min")
+                        && binding.localName().equals("lowest")
+        ));
+        assertEquals(2, result.interopSymbols().size());
+        assertTrue(result.interopSymbols().stream().anyMatch(symbol ->
+                symbol.className().equals("java.lang.Math")
+                        && symbol.importedName().equals("max")
+                        && symbol.symbolKind().equals("STATIC_METHOD")
+                        && symbol.descriptors().stream().anyMatch(descriptor -> descriptor.startsWith("(II)"))
+        ));
+    }
+
+    @Test
+    void surfacesInteropBindingDiagnosticsForUnsupportedImportShape() throws Exception {
+        final Path projectDir = tempDir.resolve("interop-bad-project");
+        Files.createDirectories(projectDir.resolve("src"));
+        Files.writeString(
+                projectDir.resolve("tsconfig.json"),
+                """
+                {
+                  "compilerOptions": {
+                    "target": "ES2022",
+                    "module": "ESNext",
+                    "strict": true,
+                    "noEmit": true
+                  },
+                  "include": ["src/**/*.ts"]
+                }
+                """,
+                UTF_8
+        );
+        Files.writeString(
+                projectDir.resolve("src/main.ts"),
+                """
+                import Math from "java:java.lang.Math";
+                console.log(Math);
+                """,
+                UTF_8
+        );
+
+        final TypeScriptFrontendService service = new TypeScriptFrontendService(Path.of("").toAbsolutePath());
+        final FrontendAnalysisResult result = service.analyzeProject(projectDir.resolve("tsconfig.json"));
+
+        assertTrue(result.diagnostics().stream().anyMatch(diagnostic ->
+                "TSJ26-INTEROP-SYNTAX".equals(diagnostic.code())
+                        && diagnostic.message().contains("named imports")
+        ));
+        assertEquals(0, result.interopBindings().size());
+    }
+
+    @Test
+    void resolvesDescriptorBackedSymbolsForConstructorsAndFieldAccessors() throws Exception {
+        final Path projectDir = tempDir.resolve("interop-descriptor-project");
+        Files.createDirectories(projectDir.resolve("src"));
+        Files.writeString(
+                projectDir.resolve("tsconfig.json"),
+                """
+                {
+                  "compilerOptions": {
+                    "target": "ES2022",
+                    "module": "ESNext",
+                    "strict": true,
+                    "noEmit": true
+                  },
+                  "include": ["src/**/*.ts"]
+                }
+                """,
+                UTF_8
+        );
+        Files.writeString(
+                projectDir.resolve("src/main.ts"),
+                """
+                import { $new, $instance$append, $instance$toString } from "java:java.lang.StringBuilder";
+                import { $static$get$PUBLIC_COUNT } from "java:dev.tsj.compiler.frontend.fixtures.FrontendInteropFixture";
+                const builder = $new();
+                console.log($instance$toString($instance$append(builder, "ok")));
+                console.log($static$get$PUBLIC_COUNT());
+                """,
+                UTF_8
+        );
+
+        final TypeScriptFrontendService service = new TypeScriptFrontendService(Path.of("").toAbsolutePath());
+        final FrontendAnalysisResult result = service.analyzeProject(projectDir.resolve("tsconfig.json"));
+
+        assertTrue(result.interopSymbols().stream().anyMatch(symbol ->
+                symbol.importedName().equals("$new")
+                        && symbol.symbolKind().equals("CONSTRUCTOR")
+                        && symbol.descriptors().stream().anyMatch(descriptor -> descriptor.startsWith("("))
+        ));
+        assertTrue(result.interopSymbols().stream().anyMatch(symbol ->
+                symbol.importedName().equals("$instance$append")
+                        && symbol.symbolKind().equals("INSTANCE_METHOD")
+                        && symbol.descriptors().stream().anyMatch(descriptor -> descriptor.contains("Ljava/lang/String;"))
+        ));
+        assertTrue(result.interopSymbols().stream().anyMatch(symbol ->
+                symbol.importedName().equals("$static$get$PUBLIC_COUNT")
+                        && symbol.symbolKind().equals("STATIC_FIELD_GET")
+                        && symbol.descriptors().contains("()I")
+        ));
+    }
+
+    @Test
+    void emitsDescriptorAwareDiagnosticsForMissingClassesAndVisibilityViolations() throws Exception {
+        final Path projectDir = tempDir.resolve("interop-diagnostics-project");
+        Files.createDirectories(projectDir.resolve("src"));
+        Files.writeString(
+                projectDir.resolve("tsconfig.json"),
+                """
+                {
+                  "compilerOptions": {
+                    "target": "ES2022",
+                    "module": "ESNext",
+                    "strict": true,
+                    "noEmit": true
+                  },
+                  "include": ["src/**/*.ts"]
+                }
+                """,
+                UTF_8
+        );
+        Files.writeString(
+                projectDir.resolve("src/main.ts"),
+                """
+                import { nope } from "java:dev.tsj.compiler.frontend.DoesNotExist";
+                import { hiddenEcho, missingEcho, $static$get$HIDDEN_COUNT } from "java:dev.tsj.compiler.frontend.fixtures.FrontendInteropFixture";
+                console.log(nope, hiddenEcho, missingEcho, $static$get$HIDDEN_COUNT);
+                """,
+                UTF_8
+        );
+
+        final TypeScriptFrontendService service = new TypeScriptFrontendService(Path.of("").toAbsolutePath());
+        final FrontendAnalysisResult result = service.analyzeProject(projectDir.resolve("tsconfig.json"));
+
+        assertTrue(result.diagnostics().stream().anyMatch(diagnostic ->
+                "TSJ55-INTEROP-CLASS-NOT-FOUND".equals(diagnostic.code())
+                        && diagnostic.message().contains("DoesNotExist")
+        ));
+        assertTrue(result.diagnostics().stream().anyMatch(diagnostic ->
+                "TSJ55-INTEROP-VISIBILITY".equals(diagnostic.code())
+                        && diagnostic.message().contains("hiddenEcho")
+        ));
+        assertTrue(result.diagnostics().stream().anyMatch(diagnostic ->
+                "TSJ55-INTEROP-MEMBER-NOT-FOUND".equals(diagnostic.code())
+                        && diagnostic.message().contains("missingEcho")
+        ));
+        assertTrue(result.diagnostics().stream().anyMatch(diagnostic ->
+                "TSJ55-INTEROP-VISIBILITY".equals(diagnostic.code())
+                        && diagnostic.message().contains("HIDDEN_COUNT")
+        ));
+    }
 }

@@ -2,7 +2,7 @@
 
 ## Commands
 
-### `tsj compile <input.ts> --out <dir> [--optimize|--no-optimize]`
+### `tsj compile <input.ts> --out <dir> [--classpath <entries>] [--jar <jar-file>] [--interop-spec <interop.properties>] [--interop-policy strict|broad] [--ack-interop-risk] [--interop-role <roles>] [--interop-approval <token>] [--interop-denylist <patterns>] [--interop-audit-log <path>] [--interop-audit-aggregate <path>] [--interop-trace] [--optimize|--no-optimize]`
 Behavior:
 1. Validates input file exists and has `.ts`/`.tsx` extension.
 2. Compiles supported TSJ-7 subset into JVM classes.
@@ -30,28 +30,115 @@ Behavior:
    - `<out>/program.tsj.properties`
    - includes optimization metadata keys:
      `optimization.constantFoldingEnabled` and `optimization.deadCodeEliminationEnabled`.
+   - includes interop classpath metadata keys:
+     `interopClasspath.count` and `interopClasspath.<index>`.
+   - includes interop bridge metadata keys:
+     `interopBridges.enabled`, `interopBridges.regenerated`,
+     `interopBridges.targetCount`, `interopBridges.generatedSourceCount`.
+   - includes TS-authored web adapter metadata keys:
+     `tsjWebControllers.controllerCount`, `tsjWebControllers.generatedSourceCount`.
 6. Emits source-map file for generated class stack frame mapping:
    - `<out>/classes/dev/tsj/generated/*Program.tsj.map`
 7. Emits structured JSON diagnostics to stdout/stderr.
+8. When `--interop-spec` is present:
+   - auto-discovers `java:` bindings from entry + relative imports,
+   - writes effective auto spec and generated sources under `<out>/generated-interop`,
+   - compiles generated bridge sources in the same compile invocation.
+9. Interop policy mode:
+   - default `strict`: `java:` bindings require `--interop-spec` allowlist input.
+   - opt-in `broad`: allows classpath interop without allowlist enforcement.
+   - `broad` requires explicit `--ack-interop-risk`.
+   - TSJ-43a policy-source precedence when flags are omitted:
+     default -> global (`TSJ_INTEROP_GLOBAL_POLICY` / `tsj.interop.globalPolicy`) ->
+     project (`.tsj/interop-policy.properties`) -> explicit command flags.
+   - conflicting global/project sources without explicit `--interop-policy` fail with
+     `TSJ-INTEROP-POLICY-CONFLICT`.
+10. Broad-mode guardrails:
+   - `--interop-denylist <patterns>` blocks discovered interop targets matching configured package/class patterns.
+   - `--interop-role <roles>` supplies actor roles for RBAC-scoped broad-mode authorization.
+   - `--interop-approval <token>` supplies approval token for approval-gated interop targets.
+   - `--interop-audit-log <path>` appends JSON-line allow/deny decisions for discovered targets.
+   - `--interop-audit-aggregate <path>` emits centralized schema-stable JSON-line events
+     (`schema=tsj.interop.audit.v1`) for policy/target/outcome reporting.
+   - aggregate sink configuration requires local fallback log (`--interop-audit-log`).
+   - `--interop-trace` records runtime interop invocation traces when executing generated code.
+11. Classpath mediation subset:
+   - classpath entries preserve user-specified order for artifact metadata persistence.
+   - conflicting jar versions for the same detected artifact stem (for example,
+     `foo-1.0.jar` and `foo-2.0.jar`) fail fast with deterministic diagnostics.
+   - when jars provide Maven metadata (`META-INF/maven/**/pom.properties` + `pom.xml`),
+     TSJ applies deterministic transitive mediation subset rules:
+     `nearest` dependency depth, then `root-order`, then deterministic discovery order.
+   - mediation decisions are persisted in compile artifact metadata under
+     `interopClasspath.mediation.*`.
+   - scope-aware resolution subset is applied by command path:
+     `compile` allows `compile,runtime,provided`;
+     `run` and `spring-package` allow `compile,runtime`.
+   - scope filtering metadata is persisted under `interopClasspath.scope.*`.
+   - interop targets available only via excluded scopes fail with `TSJ-CLASSPATH-SCOPE`.
+12. TSJ-34 decorator path:
+   - scans TS source/module graph for supported decorators:
+     `@RestController`, `@RequestMapping`,
+     `@GetMapping|@PostMapping|@PutMapping|@DeleteMapping|@PatchMapping`,
+     `@ExceptionHandler`, `@ResponseStatus`.
+   - auto-generates Spring adapter source files under:
+     `<out>/generated-web/dev/tsj/generated/web/*.java`.
+   - generated adapter methods delegate to compiled TS program via `__tsjInvokeController(...)`.
 
 Success diagnostic:
 - Code: `TSJ-COMPILE-SUCCESS`
 
 Failure diagnostics:
 - `TSJ-CLI-003` missing required `--out`
+- `TSJ-CLI-011` invalid classpath/jar input
+- `TSJ-CLASSPATH-CONFLICT` conflicting jar versions for one artifact stem
+- `TSJ-CLASSPATH-SCOPE` interop target requires dependency scope excluded for current command path
+- `TSJ-CLI-012` missing/invalid interop spec input
+- `TSJ-CLI-013` invalid interop policy value
+- `TSJ-INTEROP-POLICY-CONFLICT` conflicting fleet policy sources without explicit command override
+- `TSJ-INTEROP-POLICY` strict mode violation (interop bindings used without allowlist spec)
+- `TSJ-INTEROP-RISK` broad mode used without explicit risk acknowledgement
+- `TSJ-INTEROP-RBAC` broad mode authorization failed due missing required role scope
+- `TSJ-INTEROP-APPROVAL` broad mode authorization failed due missing/invalid approval token
+- `TSJ-INTEROP-DENYLIST` interop target blocked by denylist policy
+- `TSJ-INTEROP-AUDIT` local interop audit log write failure
 - `TSJ-COMPILE-001` input file not found
 - `TSJ-COMPILE-002` unsupported input extension
 - `TSJ-COMPILE-500` artifact write error
+- `TSJ-WEB-CONTROLLER` TS-authored web decorator parse/generation failure
 - backend diagnostics like `TSJ-BACKEND-*` for unsupported syntax or JVM compile failures
   - TSJ-15 unsupported-feature failures use `TSJ-BACKEND-UNSUPPORTED` with context:
     `file`, `line`, `column`, `featureId`, `guidance`.
 
-### `tsj run <entry.ts> [--out <dir>] [--ts-stacktrace] [--optimize|--no-optimize]`
+### `tsj run <entry.ts> [--out <dir>] [--classpath <entries>] [--jar <jar-file>] [--interop-spec <interop.properties>] [--interop-policy strict|broad] [--ack-interop-risk] [--interop-role <roles>] [--interop-approval <token>] [--interop-denylist <patterns>] [--interop-audit-log <path>] [--interop-audit-aggregate <path>] [--interop-trace] [--classloader-isolation shared|app-isolated] [--ts-stacktrace] [--optimize|--no-optimize]`
 Behavior:
 1. Compiles entry to artifact (default out dir `.tsj-build` when omitted).
    - Optimization defaults to enabled (`--optimize`) and can be disabled with `--no-optimize`.
+   - Interop classpath can be provided explicitly through `--classpath` and/or repeated `--jar`.
+   - `--interop-spec <interop.properties>` enables integrated auto-bridge generation during compile phase.
+   - Interop policy defaults to `strict`; use `--interop-policy broad` for unrestricted classpath interop.
+   - Broad mode requires `--ack-interop-risk`.
+   - When command policy flags are omitted, fleet policy-source precedence applies:
+     default -> global -> project -> command.
+   - Optional broad-mode guardrails:
+     `--interop-role`, `--interop-approval`, `--interop-denylist`,
+     `--interop-audit-log`, `--interop-audit-aggregate`, `--interop-trace`.
 2. Reads generated artifact.
-3. Executes generated JVM class.
+3. Executes generated JVM class with artifact output classes plus configured interop classpath entries.
+   - Classloader isolation subset:
+     `--classloader-isolation shared|app-isolated` (default `shared`).
+   - App-isolated conflict/boundary diagnostics:
+     `TSJ-RUN-009`, `TSJ-RUN-010`.
+   - TSJ-41a numeric overload subset applies deterministic widening selection across
+     primitive/wrapper numeric candidates:
+     widening distance first, then stable primitive-vs-wrapper tie-break.
+   - Numeric narrowing candidates are rejected with explicit numeric-conversion diagnostics
+     in no-match error messages.
+   - TSJ-41b generic adaptation subset applies reflective `Type`-aware conversion for nested
+     `List`/`Set`/`Map`/`Optional`/array/`CompletableFuture` signatures with target-type context
+     in conversion failures (`Generic interop conversion failed ...`).
+   - TSJ-41c reflective subset supports default-interface method dispatch and bridge-aware candidate
+     selection; non-public reflective member access fails with `TSJ-INTEROP-REFLECTIVE` context.
 4. When `--ts-stacktrace` is present and runtime execution fails, emits best-effort mapped TS stack frames to stderr.
    - Output is grouped by cause (`Cause[0]`, `Cause[1]`, ...).
    - Frames are filtered to generated-program methods and deduplicated at method level per cause.
@@ -62,18 +149,101 @@ Success diagnostic:
 
 Failure diagnostics:
 - `TSJ-CLI-004` missing entry path
+- `TSJ-CLI-011` invalid classpath/jar input
+- `TSJ-CLASSPATH-CONFLICT` conflicting jar versions for one artifact stem
+- `TSJ-CLI-013` invalid interop policy value
+- `TSJ-INTEROP-POLICY-CONFLICT` conflicting fleet policy sources without explicit command override
+- `TSJ-INTEROP-POLICY` strict mode violation (interop bindings used without allowlist spec)
+- `TSJ-INTEROP-RISK` broad mode used without explicit risk acknowledgement
+- `TSJ-INTEROP-RBAC` broad mode authorization failed due missing required role scope
+- `TSJ-INTEROP-APPROVAL` broad mode authorization failed due missing/invalid approval token
+- `TSJ-INTEROP-DENYLIST` interop target blocked by denylist policy
+- `TSJ-INTEROP-AUDIT` local interop audit log write failure
 - `TSJ-RUN-001` artifact read error
 - `TSJ-RUN-007` missing class metadata in artifact
+- `TSJ-RUN-008` configured classpath entry not found at execution time
+- `TSJ-INTEROP-REFLECTIVE` runtime reflective subset violation
 - `TSJ-RUN-*` runtime class load/execute failures
 - compile-phase failure codes from `tsj compile`
+
+### `tsj spring-package <entry.ts> --out <dir> [--classpath <entries>] [--jar <jar-file>] [--interop-spec <interop.properties>] [--interop-policy strict|broad] [--ack-interop-risk] [--interop-role <roles>] [--interop-approval <token>] [--interop-denylist <patterns>] [--interop-audit-log <path>] [--interop-audit-aggregate <path>] [--interop-trace] [--resource-dir <dir>] [--boot-jar <jar-file>] [--smoke-run] [--smoke-endpoint-url <http(s)-url|stdout://marker>] [--smoke-timeout-ms <ms>] [--smoke-poll-ms <ms>] [--optimize|--no-optimize]`
+Behavior:
+1. Compiles entry to TSJ artifact using the same compile path as `tsj compile`.
+2. Compiles generated TS-authored Spring adapter sources (web/component) into packaged classes output when present.
+3. Packages generated classes into a runnable jar:
+   - default jar path: `<out>/tsj-spring-app.jar`
+   - override with `--boot-jar <jar-file>`.
+   - jar layout is fat/self-contained for TSJ runtime + configured interop dependencies.
+4. Copies resource files into jar from supported directories:
+   - auto-discovery under entry parent:
+     - `<entry-parent>/src/main/resources`
+     - `<entry-parent>/resources`
+   - plus explicit repeated `--resource-dir <dir>`.
+5. Persists compile artifact metadata into jar:
+   - `META-INF/tsj/program.tsj.properties`.
+6. Optional smoke run (`--smoke-run`):
+   - launches packaged app via `java -jar <jar>`.
+   - emits startup diagnostic for runtime failures.
+   - optional endpoint verification:
+     - `--smoke-endpoint-url` supports:
+       - `http(s)://...` endpoint probes
+       - `stdout://<marker>` deterministic marker probes for constrained CI/test environments
+     - `--smoke-timeout-ms` controls total wait budget (default `5000`)
+     - `--smoke-poll-ms` controls probe polling interval (default `150`)
+   - emits endpoint smoke diagnostics with runtime context and repro command.
+7. Emits structured JSON diagnostics to stdout/stderr.
+8. Interop guardrails and policy behavior match `tsj compile`/`tsj run`:
+   - broad mode requires `--ack-interop-risk`,
+   - optional role/approval/denylist/audit-log/audit-aggregate/trace controls apply,
+   - fleet policy-source precedence and conflict diagnostics apply when command flags are omitted.
+
+Success diagnostics:
+- `TSJ-SPRING-PACKAGE-SUCCESS`
+- `TSJ-SPRING-SMOKE-ENDPOINT-SUCCESS` (when endpoint smoke probe is configured and passes)
+- `TSJ-SPRING-SMOKE-SUCCESS` (when `--smoke-run` is enabled)
+
+Failure diagnostics:
+- compile-stage failures from `tsj compile` (annotated with `context.stage=compile`)
+- `TSJ-SPRING-PACKAGE` generated-adapter compile failures
+  (`context.stage=compile`, `context.failureKind=generated-adapter-compile`)
+- interop/bridge-stage failures from integrated bridge generation (annotated with `context.stage=bridge`)
+- `TSJ-SPRING-PACKAGE` packaging failures (`context.stage=package`,
+  `context.failureKind=manifest|repackage|resource`)
+- `TSJ-SPRING-BOOT` smoke startup failures (`context.stage=runtime`)
+- `TSJ-SPRING-ENDPOINT` smoke endpoint probe failures (`context.stage=runtime`,
+  `context.failureKind=endpoint`)
+- `TSJ-CLI-014` invalid `spring-package` usage
+- `TSJ-CLI-017` invalid endpoint smoke option usage/values
+- `TSJ-INTEROP-RISK` broad mode used without explicit risk acknowledgement
+- `TSJ-INTEROP-POLICY-CONFLICT` conflicting fleet policy sources without explicit command override
+- `TSJ-INTEROP-RBAC` broad mode authorization failed due missing required role scope
+- `TSJ-INTEROP-APPROVAL` broad mode authorization failed due missing/invalid approval token
+- `TSJ-INTEROP-DENYLIST` interop target blocked by denylist policy
 
 ### `tsj interop <interop.properties> --out <dir>`
 Behavior:
 1. Reads opt-in interop bridge spec (`allowlist` and optional `targets`).
 2. Validates each requested target is allowlisted.
-3. Validates target classes/methods exist and are static Java methods.
+3. Validates target classes/bindings exist for supported interop binding forms.
+   - static method binding: `<class>#<method>`
+   - constructor binding: `<class>#$new`
+   - instance method binding: `<class>#$instance$<method>`
+   - field bindings:
+     `<class>#$static$get$<field>`, `<class>#$static$set$<field>`,
+     `<class>#$instance$get$<field>`, `<class>#$instance$set$<field>`
 4. Generates bridge source stubs under:
    - `<out>/dev/tsj/generated/interop/*.java`
+   - optional class/method annotation emission via:
+     `classAnnotations` and `bindingAnnotations.<binding>` spec keys.
+   - TSJ-33 subset Spring bridge options:
+     `springConfiguration=true` and
+     `springBeanTargets=<class>#<binding>,...`
+     for typed `@Configuration` + `@Bean` emission on supported targets.
+   - TSJ-34 subset Spring web bridge options:
+     `springWebController=true`,
+     `springWebBasePath=/base`,
+     `springRequestMappings.<binding>=<HTTP_METHOD> <path>`,
+     `springErrorMappings=<exceptionFqcn>:<statusCode>,...`.
 5. Emits bridge metadata:
    - `<out>/interop-bridges.properties`
 6. Emits structured JSON diagnostics.
@@ -86,6 +256,9 @@ Failure diagnostics:
 - `TSJ-INTEROP-INPUT` spec read/write failures
 - `TSJ-INTEROP-INVALID` malformed target or missing class/method
 - `TSJ-INTEROP-DISALLOWED` requested target not in allowlist
+- `TSJ-INTEROP-ANNOTATION` invalid annotation type/configuration
+- `TSJ-INTEROP-SPRING` invalid Spring bridge configuration/target compatibility
+- `TSJ-INTEROP-WEB` invalid Spring web bridge configuration/target compatibility
 
 ### `tsj fixtures <fixturesRoot>`
 Behavior:

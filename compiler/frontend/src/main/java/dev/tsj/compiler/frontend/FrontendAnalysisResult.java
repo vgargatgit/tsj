@@ -9,10 +9,14 @@ import java.util.List;
  * @param tsconfigPath analyzed tsconfig file
  * @param sourceFiles source-file typed summaries
  * @param diagnostics parser/type diagnostics with source mapping
+ * @param interopBindings discovered TSJ interop bindings from source imports
+ * @param interopSymbols descriptor-backed Java interop symbol metadata
  */
 public record FrontendAnalysisResult(
         Path tsconfigPath,
         List<FrontendSourceFileSummary> sourceFiles,
-        List<FrontendDiagnostic> diagnostics
+        List<FrontendDiagnostic> diagnostics,
+        List<FrontendInteropBinding> interopBindings,
+        List<FrontendInteropSymbol> interopSymbols
 ) {
 }

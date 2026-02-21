@@ -17,3 +17,8 @@ This project follows a comprehensive test-driven development (TDD) strategy.
 1. Relevant tests exist and pass locally/CI.
 2. Lint checks pass.
 3. Behavior changes are documented in story or architecture docs when needed.
+
+## Story Execution Directive
+1. Work on all planned stories in sequence.
+2. Only change the sequence when the user explicitly reprioritizes or skips stories.
+3. Continue execution until all stories are completed.
