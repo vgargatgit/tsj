@@ -1,0 +1,1899 @@
+{
+  "children": [
+    {
+      "children": [
+        {
+          "children": [],
+          "kind": "Identifier",
+          "span": {
+            "endCol": 19,
+            "endLine": 1,
+            "file": "src/ok/060_classes.ts",
+            "startCol": 11,
+            "startLine": 1
+          },
+          "tokenText": "Runnable"
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "kind": "Identifier",
+              "span": {
+                "endCol": 6,
+                "endLine": 2,
+                "file": "src/ok/060_classes.ts",
+                "startCol": 3,
+                "startLine": 2
+              },
+              "tokenText": "run"
+            },
+            {
+              "children": [],
+              "kind": "VoidKeyword",
+              "span": {
+                "endCol": 14,
+                "endLine": 2,
+                "file": "src/ok/060_classes.ts",
+                "startCol": 10,
+                "startLine": 2
+              },
+              "tokenText": "void"
+            }
+          ],
+          "kind": "MethodSignature",
+          "span": {
+            "endCol": 15,
+            "endLine": 2,
+            "file": "src/ok/060_classes.ts",
+            "startCol": 3,
+            "startLine": 2
+          }
+        }
+      ],
+      "kind": "InterfaceDeclaration",
+      "span": {
+        "endCol": 2,
+        "endLine": 3,
+        "file": "src/ok/060_classes.ts",
+        "startCol": 1,
+        "startLine": 1
+      }
+    },
+    {
+      "children": [
+        {
+          "children": [],
+          "kind": "FirstContextualKeyword",
+          "span": {
+            "endCol": 9,
+            "endLine": 5,
+            "file": "src/ok/060_classes.ts",
+            "startCol": 1,
+            "startLine": 5
+          },
+          "tokenText": "abstract"
+        },
+        {
+          "children": [],
+          "kind": "Identifier",
+          "span": {
+            "endCol": 25,
+            "endLine": 5,
+            "file": "src/ok/060_classes.ts",
+            "startCol": 16,
+            "startLine": 5
+          },
+          "tokenText": "BaseClass"
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "kind": "ProtectedKeyword",
+              "span": {
+                "endCol": 12,
+                "endLine": 6,
+                "file": "src/ok/060_classes.ts",
+                "startCol": 3,
+                "startLine": 6
+              },
+              "tokenText": "protected"
+            },
+            {
+              "children": [],
+              "kind": "Identifier",
+              "span": {
+                "endCol": 18,
+                "endLine": 6,
+                "file": "src/ok/060_classes.ts",
+                "startCol": 13,
+                "startLine": 6
+              },
+              "tokenText": "count"
+            },
+            {
+              "children": [],
+              "kind": "FirstLiteralToken",
+              "span": {
+                "endCol": 22,
+                "endLine": 6,
+                "file": "src/ok/060_classes.ts",
+                "startCol": 21,
+                "startLine": 6
+              },
+              "tokenText": "0"
+            }
+          ],
+          "kind": "PropertyDeclaration",
+          "span": {
+            "endCol": 23,
+            "endLine": 6,
+            "file": "src/ok/060_classes.ts",
+            "startCol": 3,
+            "startLine": 6
+          }
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "kind": "FirstContextualKeyword",
+              "span": {
+                "endCol": 11,
+                "endLine": 8,
+                "file": "src/ok/060_classes.ts",
+                "startCol": 3,
+                "startLine": 8
+              },
+              "tokenText": "abstract"
+            },
+            {
+              "children": [],
+              "kind": "Identifier",
+              "span": {
+                "endCol": 15,
+                "endLine": 8,
+                "file": "src/ok/060_classes.ts",
+                "startCol": 12,
+                "startLine": 8
+              },
+              "tokenText": "run"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 20,
+                    "endLine": 8,
+                    "file": "src/ok/060_classes.ts",
+                    "startCol": 16,
+                    "startLine": 8
+                  },
+                  "tokenText": "this"
+                },
+                {
+                  "children": [],
+                  "kind": "ThisType",
+                  "span": {
+                    "endCol": 26,
+                    "endLine": 8,
+                    "file": "src/ok/060_classes.ts",
+                    "startCol": 22,
+                    "startLine": 8
+                  }
+                }
+              ],
+              "kind": "Parameter",
+              "span": {
+                "endCol": 26,
+                "endLine": 8,
+                "file": "src/ok/060_classes.ts",
+                "startCol": 16,
+                "startLine": 8
+              }
+            },
+            {
+              "children": [],
+              "kind": "VoidKeyword",
+              "span": {
+                "endCol": 33,
+                "endLine": 8,
+                "file": "src/ok/060_classes.ts",
+                "startCol": 29,
+                "startLine": 8
+              },
+              "tokenText": "void"
+            }
+          ],
+          "kind": "MethodDeclaration",
+          "span": {
+            "endCol": 34,
+            "endLine": 8,
+            "file": "src/ok/060_classes.ts",
+            "startCol": 3,
+            "startLine": 8
+          }
+        }
+      ],
+      "kind": "ClassDeclaration",
+      "span": {
+        "endCol": 2,
+        "endLine": 9,
+        "file": "src/ok/060_classes.ts",
+        "startCol": 1,
+        "startLine": 5
+      }
+    },
+    {
+      "children": [
+        {
+          "children": [],
+          "kind": "Identifier",
+          "span": {
+            "endCol": 19,
+            "endLine": 11,
+            "file": "src/ok/060_classes.ts",
+            "startCol": 7,
+            "startLine": 11
+          },
+          "tokenText": "DerivedClass"
+        },
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 37,
+                    "endLine": 11,
+                    "file": "src/ok/060_classes.ts",
+                    "startCol": 28,
+                    "startLine": 11
+                  },
+                  "tokenText": "BaseClass"
+                }
+              ],
+              "kind": "ExpressionWithTypeArguments",
+              "span": {
+                "endCol": 37,
+                "endLine": 11,
+                "file": "src/ok/060_classes.ts",
+                "startCol": 28,
+                "startLine": 11
+              }
+            }
+          ],
+          "kind": "HeritageClause",
+          "span": {
+            "endCol": 37,
+            "endLine": 11,
+            "file": "src/ok/060_classes.ts",
+            "startCol": 20,
+            "startLine": 11
+          }
+        },
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 57,
+                    "endLine": 11,
+                    "file": "src/ok/060_classes.ts",
+                    "startCol": 49,
+                    "startLine": 11
+                  },
+                  "tokenText": "Runnable"
+                }
+              ],
+              "kind": "ExpressionWithTypeArguments",
+              "span": {
+                "endCol": 57,
+                "endLine": 11,
+                "file": "src/ok/060_classes.ts",
+                "startCol": 49,
+                "startLine": 11
+              }
+            }
+          ],
+          "kind": "HeritageClause",
+          "span": {
+            "endCol": 57,
+            "endLine": 11,
+            "file": "src/ok/060_classes.ts",
+            "startCol": 38,
+            "startLine": 11
+          }
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "kind": "PublicKeyword",
+              "span": {
+                "endCol": 9,
+                "endLine": 12,
+                "file": "src/ok/060_classes.ts",
+                "startCol": 3,
+                "startLine": 12
+              },
+              "tokenText": "public"
+            },
+            {
+              "children": [],
+              "kind": "Identifier",
+              "span": {
+                "endCol": 15,
+                "endLine": 12,
+                "file": "src/ok/060_classes.ts",
+                "startCol": 10,
+                "startLine": 12
+              },
+              "tokenText": "ready"
+            },
+            {
+              "children": [],
+              "kind": "ExclamationToken",
+              "span": {
+                "endCol": 16,
+                "endLine": 12,
+                "file": "src/ok/060_classes.ts",
+                "startCol": 15,
+                "startLine": 12
+              },
+              "tokenText": "!"
+            },
+            {
+              "children": [],
+              "kind": "BooleanKeyword",
+              "span": {
+                "endCol": 25,
+                "endLine": 12,
+                "file": "src/ok/060_classes.ts",
+                "startCol": 18,
+                "startLine": 12
+              },
+              "tokenText": "boolean"
+            }
+          ],
+          "kind": "PropertyDeclaration",
+          "span": {
+            "endCol": 26,
+            "endLine": 12,
+            "file": "src/ok/060_classes.ts",
+            "startCol": 3,
+            "startLine": 12
+          }
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "kind": "PrivateKeyword",
+              "span": {
+                "endCol": 10,
+                "endLine": 13,
+                "file": "src/ok/060_classes.ts",
+                "startCol": 3,
+                "startLine": 13
+              },
+              "tokenText": "private"
+            },
+            {
+              "children": [],
+              "kind": "ReadonlyKeyword",
+              "span": {
+                "endCol": 19,
+                "endLine": 13,
+                "file": "src/ok/060_classes.ts",
+                "startCol": 11,
+                "startLine": 13
+              },
+              "tokenText": "readonly"
+            },
+            {
+              "children": [],
+              "kind": "Identifier",
+              "span": {
+                "endCol": 25,
+                "endLine": 13,
+                "file": "src/ok/060_classes.ts",
+                "startCol": 20,
+                "startLine": 13
+              },
+              "tokenText": "label"
+            },
+            {
+              "children": [],
+              "kind": "StringKeyword",
+              "span": {
+                "endCol": 33,
+                "endLine": 13,
+                "file": "src/ok/060_classes.ts",
+                "startCol": 27,
+                "startLine": 13
+              },
+              "tokenText": "string"
+            }
+          ],
+          "kind": "PropertyDeclaration",
+          "span": {
+            "endCol": 34,
+            "endLine": 13,
+            "file": "src/ok/060_classes.ts",
+            "startCol": 3,
+            "startLine": 13
+          }
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "kind": "ProtectedKeyword",
+              "span": {
+                "endCol": 12,
+                "endLine": 14,
+                "file": "src/ok/060_classes.ts",
+                "startCol": 3,
+                "startLine": 14
+              },
+              "tokenText": "protected"
+            },
+            {
+              "children": [],
+              "kind": "Identifier",
+              "span": {
+                "endCol": 18,
+                "endLine": 14,
+                "file": "src/ok/060_classes.ts",
+                "startCol": 13,
+                "startLine": 14
+              },
+              "tokenText": "value"
+            },
+            {
+              "children": [],
+              "kind": "FirstLiteralToken",
+              "span": {
+                "endCol": 22,
+                "endLine": 14,
+                "file": "src/ok/060_classes.ts",
+                "startCol": 21,
+                "startLine": 14
+              },
+              "tokenText": "1"
+            }
+          ],
+          "kind": "PropertyDeclaration",
+          "span": {
+            "endCol": 23,
+            "endLine": 14,
+            "file": "src/ok/060_classes.ts",
+            "startCol": 3,
+            "startLine": 14
+          }
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "kind": "StaticKeyword",
+              "span": {
+                "endCol": 9,
+                "endLine": 15,
+                "file": "src/ok/060_classes.ts",
+                "startCol": 3,
+                "startLine": 15
+              },
+              "tokenText": "static"
+            },
+            {
+              "children": [],
+              "kind": "Identifier",
+              "span": {
+                "endCol": 15,
+                "endLine": 15,
+                "file": "src/ok/060_classes.ts",
+                "startCol": 10,
+                "startLine": 15
+              },
+              "tokenText": "total"
+            },
+            {
+              "children": [],
+              "kind": "FirstLiteralToken",
+              "span": {
+                "endCol": 19,
+                "endLine": 15,
+                "file": "src/ok/060_classes.ts",
+                "startCol": 18,
+                "startLine": 15
+              },
+              "tokenText": "0"
+            }
+          ],
+          "kind": "PropertyDeclaration",
+          "span": {
+            "endCol": 20,
+            "endLine": 15,
+            "file": "src/ok/060_classes.ts",
+            "startCol": 3,
+            "startLine": 15
+          }
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "kind": "PrivateIdentifier",
+              "span": {
+                "endCol": 10,
+                "endLine": 16,
+                "file": "src/ok/060_classes.ts",
+                "startCol": 3,
+                "startLine": 16
+              },
+              "tokenText": "#secret"
+            },
+            {
+              "children": [],
+              "kind": "FirstLiteralToken",
+              "span": {
+                "endCol": 15,
+                "endLine": 16,
+                "file": "src/ok/060_classes.ts",
+                "startCol": 13,
+                "startLine": 16
+              },
+              "tokenText": "41"
+            }
+          ],
+          "kind": "PropertyDeclaration",
+          "span": {
+            "endCol": 16,
+            "endLine": 16,
+            "file": "src/ok/060_classes.ts",
+            "startCol": 3,
+            "startLine": 16
+          }
+        },
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "kind": "PublicKeyword",
+                  "span": {
+                    "endCol": 21,
+                    "endLine": 18,
+                    "file": "src/ok/060_classes.ts",
+                    "startCol": 15,
+                    "startLine": 18
+                  },
+                  "tokenText": "public"
+                },
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 23,
+                    "endLine": 18,
+                    "file": "src/ok/060_classes.ts",
+                    "startCol": 22,
+                    "startLine": 18
+                  },
+                  "tokenText": "x"
+                },
+                {
+                  "children": [],
+                  "kind": "NumberKeyword",
+                  "span": {
+                    "endCol": 31,
+                    "endLine": 18,
+                    "file": "src/ok/060_classes.ts",
+                    "startCol": 25,
+                    "startLine": 18
+                  },
+                  "tokenText": "number"
+                }
+              ],
+              "kind": "Parameter",
+              "span": {
+                "endCol": 31,
+                "endLine": 18,
+                "file": "src/ok/060_classes.ts",
+                "startCol": 15,
+                "startLine": 18
+              }
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 38,
+                    "endLine": 18,
+                    "file": "src/ok/060_classes.ts",
+                    "startCol": 33,
+                    "startLine": 18
+                  },
+                  "tokenText": "label"
+                },
+                {
+                  "children": [],
+                  "kind": "StringLiteral",
+                  "span": {
+                    "endCol": 50,
+                    "endLine": 18,
+                    "file": "src/ok/060_classes.ts",
+                    "startCol": 41,
+                    "startLine": 18
+                  },
+                  "tokenText": "\"derived\""
+                }
+              ],
+              "kind": "Parameter",
+              "span": {
+                "endCol": 50,
+                "endLine": 18,
+                "file": "src/ok/060_classes.ts",
+                "startCol": 33,
+                "startLine": 18
+              }
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "kind": "SuperKeyword",
+                          "span": {
+                            "endCol": 10,
+                            "endLine": 19,
+                            "file": "src/ok/060_classes.ts",
+                            "startCol": 5,
+                            "startLine": 19
+                          },
+                          "tokenText": "super"
+                        }
+                      ],
+                      "kind": "CallExpression",
+                      "span": {
+                        "endCol": 12,
+                        "endLine": 19,
+                        "file": "src/ok/060_classes.ts",
+                        "startCol": 5,
+                        "startLine": 19
+                      }
+                    }
+                  ],
+                  "kind": "ExpressionStatement",
+                  "span": {
+                    "endCol": 13,
+                    "endLine": 19,
+                    "file": "src/ok/060_classes.ts",
+                    "startCol": 5,
+                    "startLine": 19
+                  }
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "kind": "ThisKeyword",
+                              "span": {
+                                "endCol": 9,
+                                "endLine": 20,
+                                "file": "src/ok/060_classes.ts",
+                                "startCol": 5,
+                                "startLine": 20
+                              },
+                              "tokenText": "this"
+                            },
+                            {
+                              "children": [],
+                              "kind": "Identifier",
+                              "span": {
+                                "endCol": 15,
+                                "endLine": 20,
+                                "file": "src/ok/060_classes.ts",
+                                "startCol": 10,
+                                "startLine": 20
+                              },
+                              "tokenText": "label"
+                            }
+                          ],
+                          "kind": "PropertyAccessExpression",
+                          "span": {
+                            "endCol": 15,
+                            "endLine": 20,
+                            "file": "src/ok/060_classes.ts",
+                            "startCol": 5,
+                            "startLine": 20
+                          }
+                        },
+                        {
+                          "children": [],
+                          "kind": "FirstAssignment",
+                          "span": {
+                            "endCol": 17,
+                            "endLine": 20,
+                            "file": "src/ok/060_classes.ts",
+                            "startCol": 16,
+                            "startLine": 20
+                          },
+                          "tokenText": "="
+                        },
+                        {
+                          "children": [],
+                          "kind": "Identifier",
+                          "span": {
+                            "endCol": 23,
+                            "endLine": 20,
+                            "file": "src/ok/060_classes.ts",
+                            "startCol": 18,
+                            "startLine": 20
+                          },
+                          "tokenText": "label"
+                        }
+                      ],
+                      "kind": "BinaryExpression",
+                      "operator": "=",
+                      "span": {
+                        "endCol": 23,
+                        "endLine": 20,
+                        "file": "src/ok/060_classes.ts",
+                        "startCol": 5,
+                        "startLine": 20
+                      }
+                    }
+                  ],
+                  "kind": "ExpressionStatement",
+                  "span": {
+                    "endCol": 24,
+                    "endLine": 20,
+                    "file": "src/ok/060_classes.ts",
+                    "startCol": 5,
+                    "startLine": 20
+                  }
+                }
+              ],
+              "kind": "Block",
+              "span": {
+                "endCol": 4,
+                "endLine": 21,
+                "file": "src/ok/060_classes.ts",
+                "startCol": 52,
+                "startLine": 18
+              }
+            }
+          ],
+          "kind": "Constructor",
+          "span": {
+            "endCol": 4,
+            "endLine": 21,
+            "file": "src/ok/060_classes.ts",
+            "startCol": 3,
+            "startLine": 18
+          }
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "kind": "Identifier",
+              "span": {
+                "endCol": 11,
+                "endLine": 23,
+                "file": "src/ok/060_classes.ts",
+                "startCol": 7,
+                "startLine": 23
+              },
+              "tokenText": "size"
+            },
+            {
+              "children": [],
+              "kind": "NumberKeyword",
+              "span": {
+                "endCol": 21,
+                "endLine": 23,
+                "file": "src/ok/060_classes.ts",
+                "startCol": 15,
+                "startLine": 23
+              },
+              "tokenText": "number"
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "kind": "ThisKeyword",
+                          "span": {
+                            "endCol": 16,
+                            "endLine": 24,
+                            "file": "src/ok/060_classes.ts",
+                            "startCol": 12,
+                            "startLine": 24
+                          },
+                          "tokenText": "this"
+                        },
+                        {
+                          "children": [],
+                          "kind": "PrivateIdentifier",
+                          "span": {
+                            "endCol": 24,
+                            "endLine": 24,
+                            "file": "src/ok/060_classes.ts",
+                            "startCol": 17,
+                            "startLine": 24
+                          },
+                          "tokenText": "#secret"
+                        }
+                      ],
+                      "kind": "PropertyAccessExpression",
+                      "span": {
+                        "endCol": 24,
+                        "endLine": 24,
+                        "file": "src/ok/060_classes.ts",
+                        "startCol": 12,
+                        "startLine": 24
+                      }
+                    }
+                  ],
+                  "kind": "ReturnStatement",
+                  "span": {
+                    "endCol": 25,
+                    "endLine": 24,
+                    "file": "src/ok/060_classes.ts",
+                    "startCol": 5,
+                    "startLine": 24
+                  }
+                }
+              ],
+              "kind": "Block",
+              "span": {
+                "endCol": 4,
+                "endLine": 25,
+                "file": "src/ok/060_classes.ts",
+                "startCol": 22,
+                "startLine": 23
+              }
+            }
+          ],
+          "kind": "GetAccessor",
+          "span": {
+            "endCol": 4,
+            "endLine": 25,
+            "file": "src/ok/060_classes.ts",
+            "startCol": 3,
+            "startLine": 23
+          }
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "kind": "Identifier",
+              "span": {
+                "endCol": 11,
+                "endLine": 27,
+                "file": "src/ok/060_classes.ts",
+                "startCol": 7,
+                "startLine": 27
+              },
+              "tokenText": "size"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 16,
+                    "endLine": 27,
+                    "file": "src/ok/060_classes.ts",
+                    "startCol": 12,
+                    "startLine": 27
+                  },
+                  "tokenText": "next"
+                },
+                {
+                  "children": [],
+                  "kind": "NumberKeyword",
+                  "span": {
+                    "endCol": 24,
+                    "endLine": 27,
+                    "file": "src/ok/060_classes.ts",
+                    "startCol": 18,
+                    "startLine": 27
+                  },
+                  "tokenText": "number"
+                }
+              ],
+              "kind": "Parameter",
+              "span": {
+                "endCol": 24,
+                "endLine": 27,
+                "file": "src/ok/060_classes.ts",
+                "startCol": 12,
+                "startLine": 27
+              }
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "kind": "ThisKeyword",
+                              "span": {
+                                "endCol": 9,
+                                "endLine": 28,
+                                "file": "src/ok/060_classes.ts",
+                                "startCol": 5,
+                                "startLine": 28
+                              },
+                              "tokenText": "this"
+                            },
+                            {
+                              "children": [],
+                              "kind": "PrivateIdentifier",
+                              "span": {
+                                "endCol": 17,
+                                "endLine": 28,
+                                "file": "src/ok/060_classes.ts",
+                                "startCol": 10,
+                                "startLine": 28
+                              },
+                              "tokenText": "#secret"
+                            }
+                          ],
+                          "kind": "PropertyAccessExpression",
+                          "span": {
+                            "endCol": 17,
+                            "endLine": 28,
+                            "file": "src/ok/060_classes.ts",
+                            "startCol": 5,
+                            "startLine": 28
+                          }
+                        },
+                        {
+                          "children": [],
+                          "kind": "FirstAssignment",
+                          "span": {
+                            "endCol": 19,
+                            "endLine": 28,
+                            "file": "src/ok/060_classes.ts",
+                            "startCol": 18,
+                            "startLine": 28
+                          },
+                          "tokenText": "="
+                        },
+                        {
+                          "children": [],
+                          "kind": "Identifier",
+                          "span": {
+                            "endCol": 24,
+                            "endLine": 28,
+                            "file": "src/ok/060_classes.ts",
+                            "startCol": 20,
+                            "startLine": 28
+                          },
+                          "tokenText": "next"
+                        }
+                      ],
+                      "kind": "BinaryExpression",
+                      "operator": "=",
+                      "span": {
+                        "endCol": 24,
+                        "endLine": 28,
+                        "file": "src/ok/060_classes.ts",
+                        "startCol": 5,
+                        "startLine": 28
+                      }
+                    }
+                  ],
+                  "kind": "ExpressionStatement",
+                  "span": {
+                    "endCol": 25,
+                    "endLine": 28,
+                    "file": "src/ok/060_classes.ts",
+                    "startCol": 5,
+                    "startLine": 28
+                  }
+                }
+              ],
+              "kind": "Block",
+              "span": {
+                "endCol": 4,
+                "endLine": 29,
+                "file": "src/ok/060_classes.ts",
+                "startCol": 26,
+                "startLine": 27
+              }
+            }
+          ],
+          "kind": "SetAccessor",
+          "span": {
+            "endCol": 4,
+            "endLine": 29,
+            "file": "src/ok/060_classes.ts",
+            "startCol": 3,
+            "startLine": 27
+          }
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "kind": "PrivateIdentifier",
+              "span": {
+                "endCol": 9,
+                "endLine": 31,
+                "file": "src/ok/060_classes.ts",
+                "startCol": 3,
+                "startLine": 31
+              },
+              "tokenText": "#touch"
+            },
+            {
+              "children": [],
+              "kind": "VoidKeyword",
+              "span": {
+                "endCol": 17,
+                "endLine": 31,
+                "file": "src/ok/060_classes.ts",
+                "startCol": 13,
+                "startLine": 31
+              },
+              "tokenText": "void"
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "kind": "ThisKeyword",
+                              "span": {
+                                "endCol": 9,
+                                "endLine": 32,
+                                "file": "src/ok/060_classes.ts",
+                                "startCol": 5,
+                                "startLine": 32
+                              },
+                              "tokenText": "this"
+                            },
+                            {
+                              "children": [],
+                              "kind": "PrivateIdentifier",
+                              "span": {
+                                "endCol": 17,
+                                "endLine": 32,
+                                "file": "src/ok/060_classes.ts",
+                                "startCol": 10,
+                                "startLine": 32
+                              },
+                              "tokenText": "#secret"
+                            }
+                          ],
+                          "kind": "PropertyAccessExpression",
+                          "span": {
+                            "endCol": 17,
+                            "endLine": 32,
+                            "file": "src/ok/060_classes.ts",
+                            "startCol": 5,
+                            "startLine": 32
+                          }
+                        },
+                        {
+                          "children": [],
+                          "kind": "FirstCompoundAssignment",
+                          "span": {
+                            "endCol": 20,
+                            "endLine": 32,
+                            "file": "src/ok/060_classes.ts",
+                            "startCol": 18,
+                            "startLine": 32
+                          },
+                          "tokenText": "+="
+                        },
+                        {
+                          "children": [],
+                          "kind": "FirstLiteralToken",
+                          "span": {
+                            "endCol": 22,
+                            "endLine": 32,
+                            "file": "src/ok/060_classes.ts",
+                            "startCol": 21,
+                            "startLine": 32
+                          },
+                          "tokenText": "1"
+                        }
+                      ],
+                      "kind": "BinaryExpression",
+                      "operator": "+=",
+                      "span": {
+                        "endCol": 22,
+                        "endLine": 32,
+                        "file": "src/ok/060_classes.ts",
+                        "startCol": 5,
+                        "startLine": 32
+                      }
+                    }
+                  ],
+                  "kind": "ExpressionStatement",
+                  "span": {
+                    "endCol": 23,
+                    "endLine": 32,
+                    "file": "src/ok/060_classes.ts",
+                    "startCol": 5,
+                    "startLine": 32
+                  }
+                }
+              ],
+              "kind": "Block",
+              "span": {
+                "endCol": 4,
+                "endLine": 33,
+                "file": "src/ok/060_classes.ts",
+                "startCol": 18,
+                "startLine": 31
+              }
+            }
+          ],
+          "kind": "MethodDeclaration",
+          "span": {
+            "endCol": 4,
+            "endLine": 33,
+            "file": "src/ok/060_classes.ts",
+            "startCol": 3,
+            "startLine": 31
+          }
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "kind": "OverrideKeyword",
+              "span": {
+                "endCol": 11,
+                "endLine": 35,
+                "file": "src/ok/060_classes.ts",
+                "startCol": 3,
+                "startLine": 35
+              },
+              "tokenText": "override"
+            },
+            {
+              "children": [],
+              "kind": "Identifier",
+              "span": {
+                "endCol": 15,
+                "endLine": 35,
+                "file": "src/ok/060_classes.ts",
+                "startCol": 12,
+                "startLine": 35
+              },
+              "tokenText": "run"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 20,
+                    "endLine": 35,
+                    "file": "src/ok/060_classes.ts",
+                    "startCol": 16,
+                    "startLine": 35
+                  },
+                  "tokenText": "this"
+                },
+                {
+                  "children": [],
+                  "kind": "ThisType",
+                  "span": {
+                    "endCol": 26,
+                    "endLine": 35,
+                    "file": "src/ok/060_classes.ts",
+                    "startCol": 22,
+                    "startLine": 35
+                  }
+                }
+              ],
+              "kind": "Parameter",
+              "span": {
+                "endCol": 26,
+                "endLine": 35,
+                "file": "src/ok/060_classes.ts",
+                "startCol": 16,
+                "startLine": 35
+              }
+            },
+            {
+              "children": [],
+              "kind": "VoidKeyword",
+              "span": {
+                "endCol": 33,
+                "endLine": 35,
+                "file": "src/ok/060_classes.ts",
+                "startCol": 29,
+                "startLine": 35
+              },
+              "tokenText": "void"
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "kind": "ThisKeyword",
+                              "span": {
+                                "endCol": 9,
+                                "endLine": 36,
+                                "file": "src/ok/060_classes.ts",
+                                "startCol": 5,
+                                "startLine": 36
+                              },
+                              "tokenText": "this"
+                            },
+                            {
+                              "children": [],
+                              "kind": "PrivateIdentifier",
+                              "span": {
+                                "endCol": 16,
+                                "endLine": 36,
+                                "file": "src/ok/060_classes.ts",
+                                "startCol": 10,
+                                "startLine": 36
+                              },
+                              "tokenText": "#touch"
+                            }
+                          ],
+                          "kind": "PropertyAccessExpression",
+                          "span": {
+                            "endCol": 16,
+                            "endLine": 36,
+                            "file": "src/ok/060_classes.ts",
+                            "startCol": 5,
+                            "startLine": 36
+                          }
+                        }
+                      ],
+                      "kind": "CallExpression",
+                      "span": {
+                        "endCol": 18,
+                        "endLine": 36,
+                        "file": "src/ok/060_classes.ts",
+                        "startCol": 5,
+                        "startLine": 36
+                      }
+                    }
+                  ],
+                  "kind": "ExpressionStatement",
+                  "span": {
+                    "endCol": 19,
+                    "endLine": 36,
+                    "file": "src/ok/060_classes.ts",
+                    "startCol": 5,
+                    "startLine": 36
+                  }
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "kind": "ThisKeyword",
+                              "span": {
+                                "endCol": 9,
+                                "endLine": 37,
+                                "file": "src/ok/060_classes.ts",
+                                "startCol": 5,
+                                "startLine": 37
+                              },
+                              "tokenText": "this"
+                            },
+                            {
+                              "children": [],
+                              "kind": "Identifier",
+                              "span": {
+                                "endCol": 15,
+                                "endLine": 37,
+                                "file": "src/ok/060_classes.ts",
+                                "startCol": 10,
+                                "startLine": 37
+                              },
+                              "tokenText": "count"
+                            }
+                          ],
+                          "kind": "PropertyAccessExpression",
+                          "span": {
+                            "endCol": 15,
+                            "endLine": 37,
+                            "file": "src/ok/060_classes.ts",
+                            "startCol": 5,
+                            "startLine": 37
+                          }
+                        },
+                        {
+                          "children": [],
+                          "kind": "FirstCompoundAssignment",
+                          "span": {
+                            "endCol": 18,
+                            "endLine": 37,
+                            "file": "src/ok/060_classes.ts",
+                            "startCol": 16,
+                            "startLine": 37
+                          },
+                          "tokenText": "+="
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "kind": "ThisKeyword",
+                              "span": {
+                                "endCol": 23,
+                                "endLine": 37,
+                                "file": "src/ok/060_classes.ts",
+                                "startCol": 19,
+                                "startLine": 37
+                              },
+                              "tokenText": "this"
+                            },
+                            {
+                              "children": [],
+                              "kind": "Identifier",
+                              "span": {
+                                "endCol": 25,
+                                "endLine": 37,
+                                "file": "src/ok/060_classes.ts",
+                                "startCol": 24,
+                                "startLine": 37
+                              },
+                              "tokenText": "x"
+                            }
+                          ],
+                          "kind": "PropertyAccessExpression",
+                          "span": {
+                            "endCol": 25,
+                            "endLine": 37,
+                            "file": "src/ok/060_classes.ts",
+                            "startCol": 19,
+                            "startLine": 37
+                          }
+                        }
+                      ],
+                      "kind": "BinaryExpression",
+                      "operator": "+=",
+                      "span": {
+                        "endCol": 25,
+                        "endLine": 37,
+                        "file": "src/ok/060_classes.ts",
+                        "startCol": 5,
+                        "startLine": 37
+                      }
+                    }
+                  ],
+                  "kind": "ExpressionStatement",
+                  "span": {
+                    "endCol": 26,
+                    "endLine": 37,
+                    "file": "src/ok/060_classes.ts",
+                    "startCol": 5,
+                    "startLine": 37
+                  }
+                }
+              ],
+              "kind": "Block",
+              "span": {
+                "endCol": 4,
+                "endLine": 38,
+                "file": "src/ok/060_classes.ts",
+                "startCol": 34,
+                "startLine": 35
+              }
+            }
+          ],
+          "kind": "MethodDeclaration",
+          "span": {
+            "endCol": 4,
+            "endLine": 38,
+            "file": "src/ok/060_classes.ts",
+            "startCol": 3,
+            "startLine": 35
+          }
+        },
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "kind": "ThisKeyword",
+                              "span": {
+                                "endCol": 9,
+                                "endLine": 41,
+                                "file": "src/ok/060_classes.ts",
+                                "startCol": 5,
+                                "startLine": 41
+                              },
+                              "tokenText": "this"
+                            },
+                            {
+                              "children": [],
+                              "kind": "Identifier",
+                              "span": {
+                                "endCol": 15,
+                                "endLine": 41,
+                                "file": "src/ok/060_classes.ts",
+                                "startCol": 10,
+                                "startLine": 41
+                              },
+                              "tokenText": "total"
+                            }
+                          ],
+                          "kind": "PropertyAccessExpression",
+                          "span": {
+                            "endCol": 15,
+                            "endLine": 41,
+                            "file": "src/ok/060_classes.ts",
+                            "startCol": 5,
+                            "startLine": 41
+                          }
+                        },
+                        {
+                          "children": [],
+                          "kind": "FirstCompoundAssignment",
+                          "span": {
+                            "endCol": 18,
+                            "endLine": 41,
+                            "file": "src/ok/060_classes.ts",
+                            "startCol": 16,
+                            "startLine": 41
+                          },
+                          "tokenText": "+="
+                        },
+                        {
+                          "children": [],
+                          "kind": "FirstLiteralToken",
+                          "span": {
+                            "endCol": 20,
+                            "endLine": 41,
+                            "file": "src/ok/060_classes.ts",
+                            "startCol": 19,
+                            "startLine": 41
+                          },
+                          "tokenText": "1"
+                        }
+                      ],
+                      "kind": "BinaryExpression",
+                      "operator": "+=",
+                      "span": {
+                        "endCol": 20,
+                        "endLine": 41,
+                        "file": "src/ok/060_classes.ts",
+                        "startCol": 5,
+                        "startLine": 41
+                      }
+                    }
+                  ],
+                  "kind": "ExpressionStatement",
+                  "span": {
+                    "endCol": 21,
+                    "endLine": 41,
+                    "file": "src/ok/060_classes.ts",
+                    "startCol": 5,
+                    "startLine": 41
+                  }
+                }
+              ],
+              "kind": "Block",
+              "span": {
+                "endCol": 4,
+                "endLine": 42,
+                "file": "src/ok/060_classes.ts",
+                "startCol": 10,
+                "startLine": 40
+              }
+            }
+          ],
+          "kind": "ClassStaticBlockDeclaration",
+          "span": {
+            "endCol": 4,
+            "endLine": 42,
+            "file": "src/ok/060_classes.ts",
+            "startCol": 3,
+            "startLine": 40
+          }
+        }
+      ],
+      "kind": "ClassDeclaration",
+      "span": {
+        "endCol": 2,
+        "endLine": 43,
+        "file": "src/ok/060_classes.ts",
+        "startCol": 1,
+        "startLine": 11
+      }
+    },
+    {
+      "children": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 16,
+                    "endLine": 45,
+                    "file": "src/ok/060_classes.ts",
+                    "startCol": 7,
+                    "startLine": 45
+                  },
+                  "tokenText": "ClassExpr"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "kind": "Identifier",
+                      "span": {
+                        "endCol": 34,
+                        "endLine": 45,
+                        "file": "src/ok/060_classes.ts",
+                        "startCol": 25,
+                        "startLine": 45
+                      },
+                      "tokenText": "LocalExpr"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "kind": "Identifier",
+                          "span": {
+                            "endCol": 8,
+                            "endLine": 46,
+                            "file": "src/ok/060_classes.ts",
+                            "startCol": 3,
+                            "startLine": 46
+                          },
+                          "tokenText": "value"
+                        },
+                        {
+                          "children": [],
+                          "kind": "FirstLiteralToken",
+                          "span": {
+                            "endCol": 12,
+                            "endLine": 46,
+                            "file": "src/ok/060_classes.ts",
+                            "startCol": 11,
+                            "startLine": 46
+                          },
+                          "tokenText": "0"
+                        }
+                      ],
+                      "kind": "PropertyDeclaration",
+                      "span": {
+                        "endCol": 13,
+                        "endLine": 46,
+                        "file": "src/ok/060_classes.ts",
+                        "startCol": 3,
+                        "startLine": 46
+                      }
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "kind": "Identifier",
+                          "span": {
+                            "endCol": 9,
+                            "endLine": 48,
+                            "file": "src/ok/060_classes.ts",
+                            "startCol": 3,
+                            "startLine": 48
+                          },
+                          "tokenText": "method"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "kind": "Identifier",
+                              "span": {
+                                "endCol": 14,
+                                "endLine": 48,
+                                "file": "src/ok/060_classes.ts",
+                                "startCol": 10,
+                                "startLine": 48
+                              },
+                              "tokenText": "this"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "kind": "Identifier",
+                                  "span": {
+                                    "endCol": 25,
+                                    "endLine": 48,
+                                    "file": "src/ok/060_classes.ts",
+                                    "startCol": 16,
+                                    "startLine": 48
+                                  },
+                                  "tokenText": "LocalExpr"
+                                }
+                              ],
+                              "kind": "TypeReference",
+                              "span": {
+                                "endCol": 25,
+                                "endLine": 48,
+                                "file": "src/ok/060_classes.ts",
+                                "startCol": 16,
+                                "startLine": 48
+                              }
+                            }
+                          ],
+                          "kind": "Parameter",
+                          "span": {
+                            "endCol": 25,
+                            "endLine": 48,
+                            "file": "src/ok/060_classes.ts",
+                            "startCol": 10,
+                            "startLine": 48
+                          }
+                        },
+                        {
+                          "children": [],
+                          "kind": "NumberKeyword",
+                          "span": {
+                            "endCol": 34,
+                            "endLine": 48,
+                            "file": "src/ok/060_classes.ts",
+                            "startCol": 28,
+                            "startLine": 48
+                          },
+                          "tokenText": "number"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "kind": "ThisKeyword",
+                                      "span": {
+                                        "endCol": 16,
+                                        "endLine": 49,
+                                        "file": "src/ok/060_classes.ts",
+                                        "startCol": 12,
+                                        "startLine": 49
+                                      },
+                                      "tokenText": "this"
+                                    },
+                                    {
+                                      "children": [],
+                                      "kind": "Identifier",
+                                      "span": {
+                                        "endCol": 22,
+                                        "endLine": 49,
+                                        "file": "src/ok/060_classes.ts",
+                                        "startCol": 17,
+                                        "startLine": 49
+                                      },
+                                      "tokenText": "value"
+                                    }
+                                  ],
+                                  "kind": "PropertyAccessExpression",
+                                  "span": {
+                                    "endCol": 22,
+                                    "endLine": 49,
+                                    "file": "src/ok/060_classes.ts",
+                                    "startCol": 12,
+                                    "startLine": 49
+                                  }
+                                }
+                              ],
+                              "kind": "ReturnStatement",
+                              "span": {
+                                "endCol": 23,
+                                "endLine": 49,
+                                "file": "src/ok/060_classes.ts",
+                                "startCol": 5,
+                                "startLine": 49
+                              }
+                            }
+                          ],
+                          "kind": "Block",
+                          "span": {
+                            "endCol": 4,
+                            "endLine": 50,
+                            "file": "src/ok/060_classes.ts",
+                            "startCol": 35,
+                            "startLine": 48
+                          }
+                        }
+                      ],
+                      "kind": "MethodDeclaration",
+                      "span": {
+                        "endCol": 4,
+                        "endLine": 50,
+                        "file": "src/ok/060_classes.ts",
+                        "startCol": 3,
+                        "startLine": 48
+                      }
+                    }
+                  ],
+                  "kind": "ClassExpression",
+                  "span": {
+                    "endCol": 2,
+                    "endLine": 51,
+                    "file": "src/ok/060_classes.ts",
+                    "startCol": 19,
+                    "startLine": 45
+                  }
+                }
+              ],
+              "kind": "VariableDeclaration",
+              "span": {
+                "endCol": 2,
+                "endLine": 51,
+                "file": "src/ok/060_classes.ts",
+                "startCol": 7,
+                "startLine": 45
+              }
+            }
+          ],
+          "kind": "VariableDeclarationList",
+          "span": {
+            "endCol": 2,
+            "endLine": 51,
+            "file": "src/ok/060_classes.ts",
+            "startCol": 1,
+            "startLine": 45
+          }
+        }
+      ],
+      "kind": "FirstStatement",
+      "span": {
+        "endCol": 3,
+        "endLine": 51,
+        "file": "src/ok/060_classes.ts",
+        "startCol": 1,
+        "startLine": 45
+      }
+    },
+    {
+      "children": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 19,
+                    "endLine": 53,
+                    "file": "src/ok/060_classes.ts",
+                    "startCol": 7,
+                    "startLine": 53
+                  },
+                  "tokenText": "DerivedClass"
+                },
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 30,
+                    "endLine": 53,
+                    "file": "src/ok/060_classes.ts",
+                    "startCol": 21,
+                    "startLine": 53
+                  },
+                  "tokenText": "ClassExpr"
+                }
+              ],
+              "kind": "ArrayLiteralExpression",
+              "span": {
+                "endCol": 31,
+                "endLine": 53,
+                "file": "src/ok/060_classes.ts",
+                "startCol": 6,
+                "startLine": 53
+              }
+            }
+          ],
+          "kind": "VoidExpression",
+          "span": {
+            "endCol": 31,
+            "endLine": 53,
+            "file": "src/ok/060_classes.ts",
+            "startCol": 1,
+            "startLine": 53
+          }
+        }
+      ],
+      "kind": "ExpressionStatement",
+      "span": {
+        "endCol": 32,
+        "endLine": 53,
+        "file": "src/ok/060_classes.ts",
+        "startCol": 1,
+        "startLine": 53
+      }
+    },
+    {
+      "children": [],
+      "kind": "EndOfFileToken",
+      "span": {
+        "endCol": 1,
+        "endLine": 54,
+        "file": "src/ok/060_classes.ts",
+        "startCol": 1,
+        "startLine": 54
+      },
+      "tokenText": ""
+    }
+  ],
+  "kind": "SourceFile",
+  "span": {
+    "endCol": 1,
+    "endLine": 54,
+    "file": "src/ok/060_classes.ts",
+    "startCol": 1,
+    "startLine": 1
+  }
+}

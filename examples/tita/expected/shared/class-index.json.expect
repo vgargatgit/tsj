@@ -1,0 +1,7 @@
+{
+  "notes": [
+    "Produced at runtime: .out/shared/class-index.json",
+    "Must include duplicate symbol metadata for dev/tita/fixtures/Conflict in shared mode.",
+    "Must include jrt symbols when jrt:/java.base/java/util is on classpath."
+  ]
+}

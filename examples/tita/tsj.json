@@ -1,0 +1,13 @@
+{
+  "entry": "src/main.ts",
+  "out": ".out/shared",
+  "classpath": [
+    "deps/tita-fixtures-1.0.jar",
+    "deps/tita-duplicates-1.0.jar",
+    "jrt:/java.base/java/util"
+  ],
+  "interopPolicy": "broad",
+  "ackInteropRisk": true,
+  "classloaderIsolation": "shared",
+  "notes": "Current TSJ CLI does not consume --config JSON directly; use README commands."
+}

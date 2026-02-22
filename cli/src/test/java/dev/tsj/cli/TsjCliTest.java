@@ -205,6 +205,51 @@ class TsjCliTest {
     }
 
     @Test
+    void compileSupportsMixedJarAndJrtClasspathEntries() throws Exception {
+        final Path entryFile = tempDir.resolve("tsj45-mixed-jrt-classpath.ts");
+        Files.writeString(entryFile, "console.log('mixed');\n", UTF_8);
+        final Path outDir = tempDir.resolve("tsj45-mixed-jrt-classpath-out");
+        final Path interopJar = buildInteropJar(
+                "sample.mixed.Helper",
+                """
+                package sample.mixed;
+
+                public final class Helper {
+                    private Helper() {
+                    }
+
+                    public static String ping() {
+                        return "pong";
+                    }
+                }
+                """
+        );
+
+        final String classpath = interopJar + File.pathSeparator + "jrt:/java.base/java/lang";
+        final int exitCode = TsjCli.execute(
+                new String[]{
+                        "compile",
+                        entryFile.toString(),
+                        "--out",
+                        outDir.toString(),
+                        "--classpath",
+                        classpath
+                },
+                new PrintStream(new ByteArrayOutputStream()),
+                new PrintStream(new ByteArrayOutputStream())
+        );
+
+        assertEquals(0, exitCode);
+        final Properties artifact = loadArtifactProperties(outDir.resolve("program.tsj.properties"));
+        final Path classIndexFile = Path.of(
+                artifact.getProperty("interopClasspath.classIndex.path")
+        ).toAbsolutePath().normalize();
+        final String classIndexJson = Files.readString(classIndexFile, UTF_8);
+        assertTrue(classIndexJson.contains("\"internalName\":\"sample/mixed/Helper\""), classIndexJson);
+        assertTrue(classIndexJson.contains("\"internalName\":\"java/lang/String\""), classIndexJson);
+    }
+
+    @Test
     void runSupportsExternalJarInteropViaJarOption() throws Exception {
         final Path entryFile = tempDir.resolve("run-jar-interop.ts");
         Files.writeString(
@@ -259,6 +304,126 @@ class TsjCliTest {
         assertTrue(stdoutText.contains("triple=21"));
         assertTrue(stdoutText.contains("\"code\":\"TSJ-RUN-SUCCESS\""));
         assertEquals("", stderr.toString(UTF_8));
+    }
+
+    @Test
+    void runAcceptsJrtClasspathEntries() throws Exception {
+        final Path entryFile = tempDir.resolve("run-jrt-classpath.ts");
+        Files.writeString(entryFile, "console.log('jrt-run-ok');\n", UTF_8);
+
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+        final int exitCode = TsjCli.execute(
+                new String[]{
+                        "run",
+                        entryFile.toString(),
+                        "--out",
+                        tempDir.resolve("run-jrt-classpath-out").toString(),
+                        "--classpath",
+                        "jrt:/java.base/java/lang"
+                },
+                new PrintStream(stdout),
+                new PrintStream(stderr)
+        );
+
+        final String stdoutText = stdout.toString(UTF_8);
+        assertEquals(
+                0,
+                exitCode,
+                "stdout:\n" + stdoutText + "\nstderr:\n" + stderr.toString(UTF_8)
+        );
+        assertTrue(stdoutText.contains("jrt-run-ok"));
+        assertEquals("", stderr.toString(UTF_8));
+    }
+
+    @Test
+    void runRoundTripsMixedJarAndJrtClasspathEntriesDeterministically() throws Exception {
+        final Path entryFile = tempDir.resolve("run-jrt-mixed-roundtrip.ts");
+        Files.writeString(
+                entryFile,
+                """
+                import { ping } from "java:sample.mixed.Helper";
+                console.log("mixed=" + ping());
+                """,
+                UTF_8
+        );
+        final Path interopJar = buildInteropJar(
+                "sample.mixed.Helper",
+                """
+                package sample.mixed;
+
+                public final class Helper {
+                    private Helper() {
+                    }
+
+                    public static String ping() {
+                        return "pong";
+                    }
+                }
+                """
+        );
+        final String mixedClasspath = interopJar + File.pathSeparator + "jrt:/java.base/java/lang";
+
+        final Path firstOutDir = tempDir.resolve("run-jrt-mixed-roundtrip-first-out");
+        final ByteArrayOutputStream firstStdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream firstStderr = new ByteArrayOutputStream();
+        final int firstExitCode = TsjCli.execute(
+                new String[]{
+                        "run",
+                        entryFile.toString(),
+                        "--out",
+                        firstOutDir.toString(),
+                        "--classpath",
+                        mixedClasspath,
+                        "--interop-policy",
+                        "broad",
+                        "--ack-interop-risk"
+                },
+                new PrintStream(firstStdout),
+                new PrintStream(firstStderr)
+        );
+
+        final String firstStdoutText = firstStdout.toString(UTF_8);
+        assertEquals(
+                0,
+                firstExitCode,
+                "stdout:\n" + firstStdoutText + "\nstderr:\n" + firstStderr.toString(UTF_8)
+        );
+        assertTrue(firstStdoutText.contains("mixed=pong"));
+        final Properties firstArtifact = loadArtifactProperties(firstOutDir.resolve("program.tsj.properties"));
+        final List<String> firstClasspathEntries = classpathEntries(firstArtifact);
+        assertTrue(firstClasspathEntries.contains(interopJar.toAbsolutePath().normalize().toString()));
+        assertTrue(firstClasspathEntries.contains("jrt:/java.base/java/lang"));
+
+        final String roundTripClasspath = String.join(File.pathSeparator, firstClasspathEntries);
+        final Path secondOutDir = tempDir.resolve("run-jrt-mixed-roundtrip-second-out");
+        final ByteArrayOutputStream secondStdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream secondStderr = new ByteArrayOutputStream();
+        final int secondExitCode = TsjCli.execute(
+                new String[]{
+                        "run",
+                        entryFile.toString(),
+                        "--out",
+                        secondOutDir.toString(),
+                        "--classpath",
+                        roundTripClasspath,
+                        "--interop-policy",
+                        "broad",
+                        "--ack-interop-risk"
+                },
+                new PrintStream(secondStdout),
+                new PrintStream(secondStderr)
+        );
+
+        final String secondStdoutText = secondStdout.toString(UTF_8);
+        assertEquals(
+                0,
+                secondExitCode,
+                "stdout:\n" + secondStdoutText + "\nstderr:\n" + secondStderr.toString(UTF_8)
+        );
+        assertTrue(secondStdoutText.contains("mixed=pong"));
+        final Properties secondArtifact = loadArtifactProperties(secondOutDir.resolve("program.tsj.properties"));
+        assertEquals(firstClasspathEntries, classpathEntries(secondArtifact));
     }
 
     @Test
@@ -602,6 +767,212 @@ class TsjCliTest {
         assertMediationDecisionPresent(artifact, "sample.graph:shared-lib", "1.0.0", "2.0.0", "nearest");
         assertTrue(classpathEntries(artifact).contains(sharedOne.toAbsolutePath().normalize().toString()));
         assertFalse(classpathEntries(artifact).contains(sharedTwo.toAbsolutePath().normalize().toString()));
+    }
+
+    @Test
+    void runKeepsNearestMediationWinnerStableWhenSharedClasspathInputsAreReordered() throws Exception {
+        final MavenCoordinate sharedOneCoordinate = new MavenCoordinate("sample.graph", "shared-lib", "1.0.0");
+        final MavenCoordinate sharedTwoCoordinate = new MavenCoordinate("sample.graph", "shared-lib", "2.0.0");
+        final MavenCoordinate bridgeCoordinate = new MavenCoordinate("sample.graph", "bridge-lib", "1.0.0");
+        final MavenCoordinate nearCoordinate = new MavenCoordinate("sample.graph", "near-api", "1.0.0");
+        final MavenCoordinate farCoordinate = new MavenCoordinate("sample.graph", "far-api", "1.0.0");
+
+        final Path sharedOne = buildInteropJarWithMavenMetadata(
+                "sample.graph.Shared",
+                """
+                package sample.graph;
+
+                public final class Shared {
+                    private Shared() {
+                    }
+
+                    public static String label() {
+                        return "shared-v1";
+                    }
+                }
+                """,
+                List.of(),
+                "shared-lib-1.0.0.jar",
+                sharedOneCoordinate,
+                List.of()
+        );
+        final Path sharedTwo = buildInteropJarWithMavenMetadata(
+                "sample.graph.Shared",
+                """
+                package sample.graph;
+
+                public final class Shared {
+                    private Shared() {
+                    }
+
+                    public static String label() {
+                        return "shared-v2";
+                    }
+                }
+                """,
+                List.of(),
+                "shared-lib-2.0.0.jar",
+                sharedTwoCoordinate,
+                List.of()
+        );
+        final Path bridgeJar = buildInteropJarWithMavenMetadata(
+                "sample.graph.Bridge",
+                """
+                package sample.graph;
+
+                public final class Bridge {
+                    private Bridge() {
+                    }
+
+                    public static String relay() {
+                        return Shared.label();
+                    }
+                }
+                """,
+                List.of(sharedTwo),
+                "bridge-lib-1.0.0.jar",
+                bridgeCoordinate,
+                List.of(sharedTwoCoordinate)
+        );
+        final Path nearJar = buildInteropJarWithMavenMetadata(
+                "sample.graph.NearApi",
+                """
+                package sample.graph;
+
+                public final class NearApi {
+                    private NearApi() {
+                    }
+
+                    public static String describe() {
+                        return "near->" + Shared.label();
+                    }
+                }
+                """,
+                List.of(sharedOne),
+                "near-api-1.0.0.jar",
+                nearCoordinate,
+                List.of(sharedOneCoordinate)
+        );
+        final Path farJar = buildInteropJarWithMavenMetadata(
+                "sample.graph.FarApi",
+                """
+                package sample.graph;
+
+                public final class FarApi {
+                    private FarApi() {
+                    }
+
+                    public static String describe() {
+                        return "far->" + Bridge.relay();
+                    }
+                }
+                """,
+                List.of(bridgeJar),
+                "far-api-1.0.0.jar",
+                farCoordinate,
+                List.of(bridgeCoordinate)
+        );
+
+        final Path entryFile = tempDir.resolve("tsj40a-nearest-reordered.ts");
+        Files.writeString(
+                entryFile,
+                """
+                import { describe as nearDescribe } from "java:sample.graph.NearApi";
+                import { describe as farDescribe } from "java:sample.graph.FarApi";
+
+                console.log(nearDescribe());
+                console.log(farDescribe());
+                """,
+                UTF_8
+        );
+
+        final Path firstOutDir = tempDir.resolve("tsj40a-nearest-reordered-first-out");
+        final String firstClasspath = String.join(
+                File.pathSeparator,
+                nearJar.toString(),
+                farJar.toString(),
+                bridgeJar.toString(),
+                sharedOne.toString(),
+                sharedTwo.toString()
+        );
+        final ByteArrayOutputStream firstStdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream firstStderr = new ByteArrayOutputStream();
+        final int firstExitCode = TsjCli.execute(
+                new String[]{
+                        "run",
+                        entryFile.toString(),
+                        "--out",
+                        firstOutDir.toString(),
+                        "--classpath",
+                        firstClasspath,
+                        "--interop-policy",
+                        "broad",
+                        "--ack-interop-risk",
+                        "--classloader-isolation",
+                        "shared"
+                },
+                new PrintStream(firstStdout),
+                new PrintStream(firstStderr)
+        );
+
+        final Path secondOutDir = tempDir.resolve("tsj40a-nearest-reordered-second-out");
+        final String secondClasspath = String.join(
+                File.pathSeparator,
+                sharedTwo.toString(),
+                bridgeJar.toString(),
+                farJar.toString(),
+                nearJar.toString(),
+                sharedOne.toString()
+        );
+        final ByteArrayOutputStream secondStdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream secondStderr = new ByteArrayOutputStream();
+        final int secondExitCode = TsjCli.execute(
+                new String[]{
+                        "run",
+                        entryFile.toString(),
+                        "--out",
+                        secondOutDir.toString(),
+                        "--classpath",
+                        secondClasspath,
+                        "--interop-policy",
+                        "broad",
+                        "--ack-interop-risk",
+                        "--classloader-isolation",
+                        "shared"
+                },
+                new PrintStream(secondStdout),
+                new PrintStream(secondStderr)
+        );
+
+        final String firstStdoutText = firstStdout.toString(UTF_8);
+        final String secondStdoutText = secondStdout.toString(UTF_8);
+        assertEquals(
+                0,
+                firstExitCode,
+                "stdout:\n" + firstStdoutText + "\nstderr:\n" + firstStderr.toString(UTF_8)
+        );
+        assertEquals(
+                0,
+                secondExitCode,
+                "stdout:\n" + secondStdoutText + "\nstderr:\n" + secondStderr.toString(UTF_8)
+        );
+        assertTrue(firstStdoutText.contains("near->shared-v1"));
+        assertTrue(firstStdoutText.contains("far->shared-v1"));
+        assertTrue(secondStdoutText.contains("near->shared-v1"));
+        assertTrue(secondStdoutText.contains("far->shared-v1"));
+
+        final Properties firstArtifact = loadArtifactProperties(firstOutDir.resolve("program.tsj.properties"));
+        final Properties secondArtifact = loadArtifactProperties(secondOutDir.resolve("program.tsj.properties"));
+        final MediationDecision firstDecision = requireMediationDecision(firstArtifact, "sample.graph:shared-lib");
+        final MediationDecision secondDecision = requireMediationDecision(secondArtifact, "sample.graph:shared-lib");
+        assertEquals(firstDecision, secondDecision);
+        assertEquals("1.0.0", firstDecision.selectedVersion());
+        assertEquals("2.0.0", firstDecision.rejectedVersion());
+        assertEquals("nearest", firstDecision.rule());
+        assertTrue(classpathEntries(firstArtifact).contains(sharedOne.toAbsolutePath().normalize().toString()));
+        assertFalse(classpathEntries(firstArtifact).contains(sharedTwo.toAbsolutePath().normalize().toString()));
+        assertTrue(classpathEntries(secondArtifact).contains(sharedOne.toAbsolutePath().normalize().toString()));
+        assertFalse(classpathEntries(secondArtifact).contains(sharedTwo.toAbsolutePath().normalize().toString()));
     }
 
     @Test
@@ -1044,6 +1415,19 @@ class TsjCliTest {
         assertTrue(stderrText.contains("\"code\":\"TSJ-RUN-009\""), stderrText);
         assertTrue(stderrText.contains(generatedMainClass), stderrText);
         assertTrue(stderrText.contains("app-isolated"), stderrText);
+        assertTrue(
+                stderrText.contains("\"appOrigin\":\""),
+                stderrText
+        );
+        assertTrue(
+                stderrText.contains("\"dependencyOrigin\":\""),
+                stderrText
+        );
+        assertTrue(stderrText.contains("\"conflictClass\":\"" + generatedMainClass + "\""), stderrText);
+        assertTrue(
+                stderrText.contains("--classloader-isolation shared"),
+                stderrText
+        );
     }
 
     @Test
@@ -1372,6 +1756,76 @@ class TsjCliTest {
         assertEquals(0, exitCode);
         assertTrue(stdoutText.contains("callback=7"));
         assertTrue(stdoutText.contains("upper=TSJ"));
+        assertTrue(stdoutText.contains("\"code\":\"TSJ-RUN-SUCCESS\""));
+        assertEquals("", stderr.toString(UTF_8));
+    }
+
+    @Test
+    void runSupportsTsj53SamInteropForInterfaceThatRedeclaresObjectMethod() throws Exception {
+        final Path entryFile = tempDir.resolve("run-tsj53-sam.ts");
+        Files.writeString(
+                entryFile,
+                """
+                import { run } from "java:sample.interop.SamRunner";
+
+                const callback = (value: string) => value + "-ok";
+                console.log("sam=" + run(callback, "sam"));
+                """,
+                UTF_8
+        );
+        final Path jarFile = buildInteropJar(
+                "sample.interop.SamRunner",
+                """
+                package sample.interop;
+
+                public final class SamRunner {
+                    private SamRunner() {
+                    }
+
+                    @FunctionalInterface
+                    public interface MyFn<T, R> {
+                        R apply(T value);
+
+                        default String name() {
+                            return "fn";
+                        }
+
+                        String toString();
+                    }
+
+                    public static String run(final MyFn<String, String> callback, final String input) {
+                        return callback.apply(input);
+                    }
+                }
+                """
+        );
+
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+
+        final int exitCode = TsjCli.execute(
+                new String[]{
+                        "run",
+                        entryFile.toString(),
+                        "--out",
+                        tempDir.resolve("run-tsj53-sam-out").toString(),
+                        "--jar",
+                        jarFile.toString(),
+                        "--interop-policy",
+                        "broad",
+                        "--ack-interop-risk"
+                },
+                new PrintStream(stdout),
+                new PrintStream(stderr)
+        );
+
+        final String stdoutText = stdout.toString(UTF_8);
+        assertEquals(
+                0,
+                exitCode,
+                "stdout:\n" + stdoutText + "\nstderr:\n" + stderr.toString(UTF_8)
+        );
+        assertTrue(stdoutText.contains("sam=sam-ok"));
         assertTrue(stdoutText.contains("\"code\":\"TSJ-RUN-SUCCESS\""));
         assertEquals("", stderr.toString(UTF_8));
     }
@@ -2349,6 +2803,539 @@ class TsjCliTest {
         assertEquals("toHexString", artifact.getProperty("interopBridges.selectedTarget.0.name"));
         assertEquals("(I)Ljava/lang/String;", artifact.getProperty("interopBridges.selectedTarget.0.descriptor"));
         assertEquals("STATIC_METHOD", artifact.getProperty("interopBridges.selectedTarget.0.invokeKind"));
+    }
+
+    @Test
+    void compileWithBroadPolicyAutoGeneratesSelectedInteropMetadataWithoutInteropSpec() throws Exception {
+        final Path entryFile = tempDir.resolve("auto-interop-broad-no-spec.ts");
+        Files.writeString(
+                entryFile,
+                """
+                import { toHexString } from "java:java.lang.Integer";
+                console.log(toHexString(255));
+                """,
+                UTF_8
+        );
+        final Path outDir = tempDir.resolve("auto-interop-broad-no-spec-out");
+
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+        final int exitCode = TsjCli.execute(
+                new String[]{
+                        "compile",
+                        entryFile.toString(),
+                        "--out",
+                        outDir.toString(),
+                        "--interop-policy",
+                        "broad",
+                        "--ack-interop-risk"
+                },
+                new PrintStream(stdout),
+                new PrintStream(stderr)
+        );
+
+        assertEquals(0, exitCode);
+        assertEquals("", stderr.toString(UTF_8));
+        final Path bridgeSource = outDir.resolve("generated-interop/dev/tsj/generated/interop/JavaLangIntegerBridge.java");
+        assertTrue(Files.exists(bridgeSource));
+        final Properties artifact = loadArtifactProperties(outDir.resolve("program.tsj.properties"));
+        assertEquals("true", artifact.getProperty("interopBridges.enabled"));
+        assertEquals("1", artifact.getProperty("interopBridges.selectedTargetCount"));
+        assertEquals("toHexString", artifact.getProperty("interopBridges.selectedTarget.0.binding"));
+        assertEquals("java.lang.Integer", artifact.getProperty("interopBridges.selectedTarget.0.owner"));
+        assertEquals("(I)Ljava/lang/String;", artifact.getProperty("interopBridges.selectedTarget.0.descriptor"));
+    }
+
+    @Test
+    void compileWithBroadPolicyAutoGeneratesSelectedInteropMetadataForMultilineNamedJavaImportWithoutInteropSpec()
+            throws Exception {
+        final Path entryFile = tempDir.resolve("auto-interop-broad-no-spec-multiline.ts");
+        Files.writeString(
+                entryFile,
+                """
+                import {
+                    toHexString
+                } from "java:java.lang.Integer";
+                console.log(toHexString(255));
+                """,
+                UTF_8
+        );
+        final Path outDir = tempDir.resolve("auto-interop-broad-no-spec-multiline-out");
+
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+        final int exitCode = TsjCli.execute(
+                new String[]{
+                        "compile",
+                        entryFile.toString(),
+                        "--out",
+                        outDir.toString(),
+                        "--interop-policy",
+                        "broad",
+                        "--ack-interop-risk"
+                },
+                new PrintStream(stdout),
+                new PrintStream(stderr)
+        );
+
+        assertEquals(0, exitCode);
+        assertEquals("", stderr.toString(UTF_8));
+        final Path bridgeSource = outDir.resolve("generated-interop/dev/tsj/generated/interop/JavaLangIntegerBridge.java");
+        assertTrue(Files.exists(bridgeSource));
+        final Properties artifact = loadArtifactProperties(outDir.resolve("program.tsj.properties"));
+        assertEquals("true", artifact.getProperty("interopBridges.enabled"));
+        assertEquals("1", artifact.getProperty("interopBridges.selectedTargetCount"));
+        assertEquals("toHexString", artifact.getProperty("interopBridges.selectedTarget.0.binding"));
+        assertEquals("java.lang.Integer", artifact.getProperty("interopBridges.selectedTarget.0.owner"));
+        assertEquals("(I)Ljava/lang/String;", artifact.getProperty("interopBridges.selectedTarget.0.descriptor"));
+    }
+
+    @Test
+    void compileWithBroadPolicyAutoGeneratesSelectedInteropMetadataThroughMultilineNamedRelativeImportWithoutInteropSpec()
+            throws Exception {
+        final Path dependencyFile = tempDir.resolve("interop-helper.ts");
+        Files.writeString(
+                dependencyFile,
+                """
+                import { toHexString } from "java:java.lang.Integer";
+                export function formatHex(): string {
+                    return toHexString(255);
+                }
+                """,
+                UTF_8
+        );
+        final Path entryFile = tempDir.resolve("auto-interop-broad-no-spec-relative-multiline.ts");
+        Files.writeString(
+                entryFile,
+                """
+                import {
+                    formatHex
+                } from "./interop-helper";
+                console.log(formatHex());
+                """,
+                UTF_8
+        );
+        final Path outDir = tempDir.resolve("auto-interop-broad-no-spec-relative-multiline-out");
+
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+        final int exitCode = TsjCli.execute(
+                new String[]{
+                        "compile",
+                        entryFile.toString(),
+                        "--out",
+                        outDir.toString(),
+                        "--interop-policy",
+                        "broad",
+                        "--ack-interop-risk"
+                },
+                new PrintStream(stdout),
+                new PrintStream(stderr)
+        );
+
+        assertEquals(0, exitCode);
+        assertEquals("", stderr.toString(UTF_8));
+        final Path bridgeSource = outDir.resolve("generated-interop/dev/tsj/generated/interop/JavaLangIntegerBridge.java");
+        assertTrue(Files.exists(bridgeSource));
+        final Properties artifact = loadArtifactProperties(outDir.resolve("program.tsj.properties"));
+        assertEquals("true", artifact.getProperty("interopBridges.enabled"));
+        assertEquals("1", artifact.getProperty("interopBridges.selectedTargetCount"));
+        assertEquals("toHexString", artifact.getProperty("interopBridges.selectedTarget.0.binding"));
+        assertEquals("java.lang.Integer", artifact.getProperty("interopBridges.selectedTarget.0.owner"));
+        assertEquals("(I)Ljava/lang/String;", artifact.getProperty("interopBridges.selectedTarget.0.descriptor"));
+    }
+
+    @Test
+    void compileWithBroadPolicyAutoGeneratesSelectedInteropMetadataForJavaImportAttributesWithoutInteropSpec()
+            throws Exception {
+        final Path entryFile = tempDir.resolve("auto-interop-broad-no-spec-import-attributes.ts");
+        Files.writeString(
+                entryFile,
+                """
+                import { toHexString } from "java:java.lang.Integer" with { type: "java" };
+                console.log(toHexString(255));
+                """,
+                UTF_8
+        );
+        final Path outDir = tempDir.resolve("auto-interop-broad-no-spec-import-attributes-out");
+
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+        final int exitCode = TsjCli.execute(
+                new String[]{
+                        "compile",
+                        entryFile.toString(),
+                        "--out",
+                        outDir.toString(),
+                        "--interop-policy",
+                        "broad",
+                        "--ack-interop-risk"
+                },
+                new PrintStream(stdout),
+                new PrintStream(stderr)
+        );
+
+        assertEquals(0, exitCode);
+        assertEquals("", stderr.toString(UTF_8));
+        final Path bridgeSource = outDir.resolve("generated-interop/dev/tsj/generated/interop/JavaLangIntegerBridge.java");
+        assertTrue(Files.exists(bridgeSource));
+        final Properties artifact = loadArtifactProperties(outDir.resolve("program.tsj.properties"));
+        assertEquals("true", artifact.getProperty("interopBridges.enabled"));
+        assertEquals("1", artifact.getProperty("interopBridges.selectedTargetCount"));
+        assertEquals("toHexString", artifact.getProperty("interopBridges.selectedTarget.0.binding"));
+        assertEquals("java.lang.Integer", artifact.getProperty("interopBridges.selectedTarget.0.owner"));
+        assertEquals("(I)Ljava/lang/String;", artifact.getProperty("interopBridges.selectedTarget.0.descriptor"));
+    }
+
+    @Test
+    void compileWithBroadPolicyAutoGeneratesSelectedInteropMetadataForJavaImportAssertionsWithoutInteropSpec()
+            throws Exception {
+        final Path entryFile = tempDir.resolve("auto-interop-broad-no-spec-import-assertions.ts");
+        Files.writeString(
+                entryFile,
+                """
+                import { toHexString } from "java:java.lang.Integer" assert { type: "java" };
+                console.log(toHexString(255));
+                """,
+                UTF_8
+        );
+        final Path outDir = tempDir.resolve("auto-interop-broad-no-spec-import-assertions-out");
+
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+        final int exitCode = TsjCli.execute(
+                new String[]{
+                        "compile",
+                        entryFile.toString(),
+                        "--out",
+                        outDir.toString(),
+                        "--interop-policy",
+                        "broad",
+                        "--ack-interop-risk"
+                },
+                new PrintStream(stdout),
+                new PrintStream(stderr)
+        );
+
+        assertEquals(0, exitCode);
+        assertEquals("", stderr.toString(UTF_8));
+        final Path bridgeSource = outDir.resolve("generated-interop/dev/tsj/generated/interop/JavaLangIntegerBridge.java");
+        assertTrue(Files.exists(bridgeSource));
+        final Properties artifact = loadArtifactProperties(outDir.resolve("program.tsj.properties"));
+        assertEquals("true", artifact.getProperty("interopBridges.enabled"));
+        assertEquals("1", artifact.getProperty("interopBridges.selectedTargetCount"));
+        assertEquals("toHexString", artifact.getProperty("interopBridges.selectedTarget.0.binding"));
+        assertEquals("java.lang.Integer", artifact.getProperty("interopBridges.selectedTarget.0.owner"));
+        assertEquals("(I)Ljava/lang/String;", artifact.getProperty("interopBridges.selectedTarget.0.descriptor"));
+    }
+
+    @Test
+    void compileWithBroadPolicyPersistsSelectedInteropTargetMetadataForSamInterfaceInvocation() throws Exception {
+        final Path entryFile = tempDir.resolve("auto-interop-broad-sam-selected.ts");
+        Files.writeString(
+                entryFile,
+                """
+                import { run } from "java:sample.interop.SamRunner";
+                const callback = (value: string) => value + "-ok";
+                console.log(run(callback, "sam"));
+                """,
+                UTF_8
+        );
+        final Path jarFile = buildInteropJar(
+                "sample.interop.SamRunner",
+                """
+                package sample.interop;
+
+                public final class SamRunner {
+                    private SamRunner() {
+                    }
+
+                    @FunctionalInterface
+                    public interface MyFn<T, R> {
+                        R apply(T value);
+
+                        default String name() {
+                            return "fn";
+                        }
+
+                        String toString();
+                    }
+
+                    public static String run(final MyFn<String, String> callback, final String input) {
+                        return callback.apply(input);
+                    }
+                }
+                """
+        );
+        final Path outDir = tempDir.resolve("auto-interop-broad-sam-selected-out");
+
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+        final int exitCode = TsjCli.execute(
+                new String[]{
+                        "compile",
+                        entryFile.toString(),
+                        "--out",
+                        outDir.toString(),
+                        "--jar",
+                        jarFile.toString(),
+                        "--interop-policy",
+                        "broad",
+                        "--ack-interop-risk"
+                },
+                new PrintStream(stdout),
+                new PrintStream(stderr)
+        );
+
+        assertEquals(0, exitCode);
+        assertEquals("", stderr.toString(UTF_8));
+        final Properties artifact = loadArtifactProperties(outDir.resolve("program.tsj.properties"));
+        assertEquals("1", artifact.getProperty("interopBridges.selectedTargetCount"));
+        assertEquals("run", artifact.getProperty("interopBridges.selectedTarget.0.binding"));
+        assertEquals("sample.interop.SamRunner", artifact.getProperty("interopBridges.selectedTarget.0.owner"));
+        assertEquals(
+                "(Lsample/interop/SamRunner$MyFn;Ljava/lang/String;)Ljava/lang/String;",
+                artifact.getProperty("interopBridges.selectedTarget.0.descriptor")
+        );
+        assertEquals("STATIC_METHOD", artifact.getProperty("interopBridges.selectedTarget.0.invokeKind"));
+    }
+
+    @Test
+    void compileWithBroadPolicyPersistsSelectedInteropTargetMetadataForConstructorAndInstanceBindings()
+            throws Exception {
+        final Path entryFile = tempDir.resolve("auto-interop-broad-instance-selected.ts");
+        Files.writeString(
+                entryFile,
+                """
+                import { $new, $instance$echo } from "java:sample.interop.InstanceApi";
+                const value = $new("seed");
+                console.log($instance$echo(value, "x"));
+                """,
+                UTF_8
+        );
+        final Path jarFile = buildInteropJar(
+                "sample.interop.InstanceApi",
+                """
+                package sample.interop;
+
+                public final class InstanceApi {
+                    private final String seed;
+
+                    public InstanceApi(final String seed) {
+                        this.seed = seed;
+                    }
+
+                    public String echo(final String suffix) {
+                        return seed + "-" + suffix;
+                    }
+                }
+                """
+        );
+        final Path outDir = tempDir.resolve("auto-interop-broad-instance-selected-out");
+
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+        final int exitCode = TsjCli.execute(
+                new String[]{
+                        "compile",
+                        entryFile.toString(),
+                        "--out",
+                        outDir.toString(),
+                        "--jar",
+                        jarFile.toString(),
+                        "--interop-policy",
+                        "broad",
+                        "--ack-interop-risk"
+                },
+                new PrintStream(stdout),
+                new PrintStream(stderr)
+        );
+
+        assertEquals(0, exitCode);
+        assertEquals("", stderr.toString(UTF_8));
+        final Properties artifact = loadArtifactProperties(outDir.resolve("program.tsj.properties"));
+        assertEquals("2", artifact.getProperty("interopBridges.selectedTargetCount"));
+        int constructorIndex = -1;
+        int instanceIndex = -1;
+        for (int index = 0; index < 2; index++) {
+            final String binding = artifact.getProperty("interopBridges.selectedTarget." + index + ".binding");
+            if ("$new".equals(binding)) {
+                constructorIndex = index;
+            } else if ("$instance$echo".equals(binding)) {
+                instanceIndex = index;
+            }
+        }
+        assertTrue(constructorIndex >= 0);
+        assertTrue(instanceIndex >= 0);
+        assertEquals(
+                "sample.interop.InstanceApi",
+                artifact.getProperty("interopBridges.selectedTarget." + constructorIndex + ".owner")
+        );
+        assertEquals(
+                "CONSTRUCTOR",
+                artifact.getProperty("interopBridges.selectedTarget." + constructorIndex + ".invokeKind")
+        );
+        assertEquals(
+                "sample.interop.InstanceApi",
+                artifact.getProperty("interopBridges.selectedTarget." + instanceIndex + ".owner")
+        );
+        assertEquals(
+                "INSTANCE_METHOD",
+                artifact.getProperty("interopBridges.selectedTarget." + instanceIndex + ".invokeKind")
+        );
+    }
+
+    @Test
+    void compileWithBroadPolicyPersistsSelectedInteropTargetMetadataForFieldBindings() throws Exception {
+        final Path entryFile = tempDir.resolve("auto-interop-broad-field-selected.ts");
+        Files.writeString(
+                entryFile,
+                """
+                import {
+                    $new,
+                    $instance$get$value,
+                    $instance$set$value,
+                    $static$get$count,
+                    $static$set$count
+                } from "java:sample.interop.FieldApi";
+                const value = $new("seed");
+                $instance$set$value(value, "next");
+                $static$set$count(7);
+                console.log($instance$get$value(value) + ":" + $static$get$count());
+                """,
+                UTF_8
+        );
+        final Path jarFile = buildInteropJar(
+                "sample.interop.FieldApi",
+                """
+                package sample.interop;
+
+                public final class FieldApi {
+                    public static int count = 0;
+                    public String value;
+
+                    public FieldApi(final String value) {
+                        this.value = value;
+                    }
+                }
+                """
+        );
+        final Path outDir = tempDir.resolve("auto-interop-broad-field-selected-out");
+
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+        final int exitCode = TsjCli.execute(
+                new String[]{
+                        "compile",
+                        entryFile.toString(),
+                        "--out",
+                        outDir.toString(),
+                        "--jar",
+                        jarFile.toString(),
+                        "--interop-policy",
+                        "broad",
+                        "--ack-interop-risk"
+                },
+                new PrintStream(stdout),
+                new PrintStream(stderr)
+        );
+
+        assertEquals(0, exitCode);
+        assertEquals("", stderr.toString(UTF_8));
+        final Properties artifact = loadArtifactProperties(outDir.resolve("program.tsj.properties"));
+        assertEquals("5", artifact.getProperty("interopBridges.selectedTargetCount"));
+        assertEquals("0", artifact.getProperty("interopBridges.unresolvedTargetCount"));
+
+        int constructorIndex = -1;
+        int instanceGetIndex = -1;
+        int instanceSetIndex = -1;
+        int staticGetIndex = -1;
+        int staticSetIndex = -1;
+        for (int index = 0; index < 5; index++) {
+            final String binding = artifact.getProperty("interopBridges.selectedTarget." + index + ".binding");
+            if ("$new".equals(binding)) {
+                constructorIndex = index;
+            } else if ("$instance$get$value".equals(binding)) {
+                instanceGetIndex = index;
+            } else if ("$instance$set$value".equals(binding)) {
+                instanceSetIndex = index;
+            } else if ("$static$get$count".equals(binding)) {
+                staticGetIndex = index;
+            } else if ("$static$set$count".equals(binding)) {
+                staticSetIndex = index;
+            }
+        }
+
+        assertTrue(constructorIndex >= 0);
+        assertTrue(instanceGetIndex >= 0);
+        assertTrue(instanceSetIndex >= 0);
+        assertTrue(staticGetIndex >= 0);
+        assertTrue(staticSetIndex >= 0);
+
+        assertEquals(
+                "sample.interop.FieldApi",
+                artifact.getProperty("interopBridges.selectedTarget." + constructorIndex + ".owner")
+        );
+        assertEquals(
+                "(Ljava/lang/String;)V",
+                artifact.getProperty("interopBridges.selectedTarget." + constructorIndex + ".descriptor")
+        );
+        assertEquals(
+                "CONSTRUCTOR",
+                artifact.getProperty("interopBridges.selectedTarget." + constructorIndex + ".invokeKind")
+        );
+
+        assertEquals(
+                "sample.interop.FieldApi",
+                artifact.getProperty("interopBridges.selectedTarget." + instanceGetIndex + ".owner")
+        );
+        assertEquals(
+                "()Ljava/lang/String;",
+                artifact.getProperty("interopBridges.selectedTarget." + instanceGetIndex + ".descriptor")
+        );
+        assertEquals(
+                "INSTANCE_FIELD_GET",
+                artifact.getProperty("interopBridges.selectedTarget." + instanceGetIndex + ".invokeKind")
+        );
+
+        assertEquals(
+                "sample.interop.FieldApi",
+                artifact.getProperty("interopBridges.selectedTarget." + instanceSetIndex + ".owner")
+        );
+        assertEquals(
+                "(Ljava/lang/String;)V",
+                artifact.getProperty("interopBridges.selectedTarget." + instanceSetIndex + ".descriptor")
+        );
+        assertEquals(
+                "INSTANCE_FIELD_SET",
+                artifact.getProperty("interopBridges.selectedTarget." + instanceSetIndex + ".invokeKind")
+        );
+
+        assertEquals(
+                "sample.interop.FieldApi",
+                artifact.getProperty("interopBridges.selectedTarget." + staticGetIndex + ".owner")
+        );
+        assertEquals(
+                "()I",
+                artifact.getProperty("interopBridges.selectedTarget." + staticGetIndex + ".descriptor")
+        );
+        assertEquals(
+                "STATIC_FIELD_GET",
+                artifact.getProperty("interopBridges.selectedTarget." + staticGetIndex + ".invokeKind")
+        );
+
+        assertEquals(
+                "sample.interop.FieldApi",
+                artifact.getProperty("interopBridges.selectedTarget." + staticSetIndex + ".owner")
+        );
+        assertEquals(
+                "(I)V",
+                artifact.getProperty("interopBridges.selectedTarget." + staticSetIndex + ".descriptor")
+        );
+        assertEquals(
+                "STATIC_FIELD_SET",
+                artifact.getProperty("interopBridges.selectedTarget." + staticSetIndex + ".invokeKind")
+        );
     }
 
     @Test
@@ -6736,6 +7723,29 @@ class TsjCliTest {
         );
     }
 
+    private static MediationDecision requireMediationDecision(
+            final Properties artifact,
+            final String artifactId
+    ) {
+        final int count = Integer.parseInt(artifact.getProperty("interopClasspath.mediation.count", "0"));
+        for (int index = 0; index < count; index++) {
+            final String prefix = "interopClasspath.mediation." + index + ".";
+            final String candidateArtifact = artifact.getProperty(prefix + "artifact");
+            if (!artifactId.equals(candidateArtifact)) {
+                continue;
+            }
+            return new MediationDecision(
+                    candidateArtifact,
+                    artifact.getProperty(prefix + "selectedVersion"),
+                    artifact.getProperty(prefix + "selectedPath"),
+                    artifact.getProperty(prefix + "rejectedVersion"),
+                    artifact.getProperty(prefix + "rejectedPath"),
+                    artifact.getProperty(prefix + "rule")
+            );
+        }
+        throw new IllegalStateException("Mediation decision not found for artifact " + artifactId);
+    }
+
     private static List<String> classpathEntries(final Properties artifact) {
         final int count = Integer.parseInt(artifact.getProperty("interopClasspath.count", "0"));
         final List<String> entries = new java.util.ArrayList<>();
@@ -6857,5 +7867,15 @@ class TsjCliTest {
     }
 
     private record MavenDependencySpec(MavenCoordinate coordinate, String scope) {
+    }
+
+    private record MediationDecision(
+            String artifact,
+            String selectedVersion,
+            String selectedPath,
+            String rejectedVersion,
+            String rejectedPath,
+            String rule
+    ) {
     }
 }

@@ -1,0 +1,277 @@
+{
+  "astNodes" : [ {
+    "column" : 1,
+    "endColumn" : 1,
+    "endLine" : 5,
+    "kind" : "SourceFile",
+    "line" : 1
+  }, {
+    "column" : 1,
+    "endColumn" : 57,
+    "endLine" : 1,
+    "kind" : "TypeAliasDeclaration",
+    "line" : 1
+  }, {
+    "column" : 6,
+    "endColumn" : 23,
+    "endLine" : 1,
+    "kind" : "Identifier",
+    "line" : 1
+  }, {
+    "column" : 24,
+    "endColumn" : 25,
+    "endLine" : 1,
+    "kind" : "TypeParameter",
+    "line" : 1
+  }, {
+    "column" : 24,
+    "endColumn" : 25,
+    "endLine" : 1,
+    "kind" : "Identifier",
+    "line" : 1
+  }, {
+    "column" : 29,
+    "endColumn" : 56,
+    "endLine" : 1,
+    "kind" : "ConditionalType",
+    "line" : 1
+  }, {
+    "column" : 29,
+    "endColumn" : 30,
+    "endLine" : 1,
+    "kind" : "TypeReference",
+    "line" : 1
+  }, {
+    "column" : 29,
+    "endColumn" : 30,
+    "endLine" : 1,
+    "kind" : "Identifier",
+    "line" : 1
+  }, {
+    "column" : 39,
+    "endColumn" : 47,
+    "endLine" : 1,
+    "kind" : "JSDocNullableType",
+    "line" : 1
+  }, {
+    "column" : 41,
+    "endColumn" : 47,
+    "endLine" : 1,
+    "kind" : "StringKeyword",
+    "line" : 1
+  }, {
+    "column" : 47,
+    "endColumn" : 47,
+    "endLine" : 1,
+    "kind" : "TypeReference",
+    "line" : 1
+  }, {
+    "column" : 47,
+    "endColumn" : 47,
+    "endLine" : 1,
+    "kind" : "Identifier",
+    "line" : 1
+  }, {
+    "column" : 50,
+    "endColumn" : 56,
+    "endLine" : 1,
+    "kind" : "NumberKeyword",
+    "line" : 1
+  }, {
+    "column" : 1,
+    "endColumn" : 53,
+    "endLine" : 2,
+    "kind" : "TypeAliasDeclaration",
+    "line" : 2
+  }, {
+    "column" : 6,
+    "endColumn" : 18,
+    "endLine" : 2,
+    "kind" : "Identifier",
+    "line" : 2
+  }, {
+    "column" : 19,
+    "endColumn" : 20,
+    "endLine" : 2,
+    "kind" : "TypeParameter",
+    "line" : 2
+  }, {
+    "column" : 19,
+    "endColumn" : 20,
+    "endLine" : 2,
+    "kind" : "Identifier",
+    "line" : 2
+  }, {
+    "column" : 24,
+    "endColumn" : 52,
+    "endLine" : 2,
+    "kind" : "MappedType",
+    "line" : 2
+  }, {
+    "column" : 27,
+    "endColumn" : 39,
+    "endLine" : 2,
+    "kind" : "TypeParameter",
+    "line" : 2
+  }, {
+    "column" : 27,
+    "endColumn" : 28,
+    "endLine" : 2,
+    "kind" : "Identifier",
+    "line" : 2
+  }, {
+    "column" : 32,
+    "endColumn" : 39,
+    "endLine" : 2,
+    "kind" : "TypeOperator",
+    "line" : 2
+  }, {
+    "column" : 38,
+    "endColumn" : 39,
+    "endLine" : 2,
+    "kind" : "TypeReference",
+    "line" : 2
+  }, {
+    "column" : 38,
+    "endColumn" : 39,
+    "endLine" : 2,
+    "kind" : "Identifier",
+    "line" : 2
+  }, {
+    "column" : 42,
+    "endColumn" : 42,
+    "endLine" : 2,
+    "kind" : "TypeReference",
+    "line" : 2
+  }, {
+    "column" : 42,
+    "endColumn" : 42,
+    "endLine" : 2,
+    "kind" : "Identifier",
+    "line" : 2
+  }, {
+    "column" : 46,
+    "endColumn" : 50,
+    "endLine" : 2,
+    "kind" : "IndexedAccessType",
+    "line" : 2
+  }, {
+    "column" : 46,
+    "endColumn" : 47,
+    "endLine" : 2,
+    "kind" : "TypeReference",
+    "line" : 2
+  }, {
+    "column" : 46,
+    "endColumn" : 47,
+    "endLine" : 2,
+    "kind" : "Identifier",
+    "line" : 2
+  }, {
+    "column" : 48,
+    "endColumn" : 49,
+    "endLine" : 2,
+    "kind" : "TypeReference",
+    "line" : 2
+  }, {
+    "column" : 48,
+    "endColumn" : 49,
+    "endLine" : 2,
+    "kind" : "Identifier",
+    "line" : 2
+  }, {
+    "column" : 1,
+    "endColumn" : 28,
+    "endLine" : 3,
+    "kind" : "TypeAliasDeclaration",
+    "line" : 3
+  }, {
+    "column" : 6,
+    "endColumn" : 17,
+    "endLine" : 3,
+    "kind" : "Identifier",
+    "line" : 3
+  }, {
+    "column" : 20,
+    "endColumn" : 27,
+    "endLine" : 3,
+    "kind" : "InferType",
+    "line" : 3
+  }, {
+    "column" : 26,
+    "endColumn" : 27,
+    "endLine" : 3,
+    "kind" : "TypeParameter",
+    "line" : 3
+  }, {
+    "column" : 26,
+    "endColumn" : 27,
+    "endLine" : 3,
+    "kind" : "Identifier",
+    "line" : 3
+  }, {
+    "column" : 1,
+    "endColumn" : 28,
+    "endLine" : 4,
+    "kind" : "FirstStatement",
+    "line" : 4
+  }, {
+    "column" : 1,
+    "endColumn" : 27,
+    "endLine" : 4,
+    "kind" : "VariableDeclarationList",
+    "line" : 4
+  }, {
+    "column" : 7,
+    "endColumn" : 27,
+    "endLine" : 4,
+    "kind" : "VariableDeclaration",
+    "line" : 4
+  }, {
+    "column" : 7,
+    "endColumn" : 22,
+    "endLine" : 4,
+    "kind" : "Identifier",
+    "line" : 4
+  }, {
+    "column" : 25,
+    "endColumn" : 27,
+    "endLine" : 4,
+    "kind" : "FirstLiteralToken",
+    "line" : 4
+  }, {
+    "column" : 1,
+    "endColumn" : 1,
+    "endLine" : 5,
+    "kind" : "EndOfFileToken",
+    "line" : 5
+  } ],
+  "diagnostics" : [ {
+    "code" : "TS1005",
+    "column" : 48,
+    "line" : 1,
+    "message" : "'?' expected."
+  }, {
+    "code" : "TS1110",
+    "column" : 43,
+    "line" : 2,
+    "message" : "Type expected."
+  } ],
+  "fixture" : "err/e010_bad_type.ts",
+  "normalizedProgram" : {
+    "kind" : "Program",
+    "statements" : [ {
+      "column" : 1,
+      "expression" : {
+        "column" : 25,
+        "kind" : "NumberLiteral",
+        "line" : 4,
+        "text" : "42"
+      },
+      "kind" : "VariableDeclaration",
+      "line" : 4,
+      "name" : "afterTypeErrors"
+    } ]
+  },
+  "schemaVersion" : "tsj-backend-token-v1"
+}

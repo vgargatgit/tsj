@@ -1,0 +1,410 @@
+{
+  "astNodes" : [ {
+    "column" : 1,
+    "endColumn" : 1,
+    "endLine" : 26,
+    "kind" : "SourceFile",
+    "line" : 1
+  }, {
+    "column" : 1,
+    "endColumn" : 2,
+    "endLine" : 3,
+    "kind" : "ModuleDeclaration",
+    "line" : 1
+  }, {
+    "column" : 1,
+    "endColumn" : 8,
+    "endLine" : 1,
+    "kind" : "DeclareKeyword",
+    "line" : 1
+  }, {
+    "column" : 19,
+    "endColumn" : 28,
+    "endLine" : 1,
+    "kind" : "Identifier",
+    "line" : 1
+  }, {
+    "column" : 29,
+    "endColumn" : 2,
+    "endLine" : 3,
+    "kind" : "ModuleBlock",
+    "line" : 1
+  }, {
+    "column" : 3,
+    "endColumn" : 40,
+    "endLine" : 2,
+    "kind" : "FunctionDeclaration",
+    "line" : 2
+  }, {
+    "column" : 12,
+    "endColumn" : 16,
+    "endLine" : 2,
+    "kind" : "Identifier",
+    "line" : 2
+  }, {
+    "column" : 17,
+    "endColumn" : 30,
+    "endLine" : 2,
+    "kind" : "Parameter",
+    "line" : 2
+  }, {
+    "column" : 17,
+    "endColumn" : 22,
+    "endLine" : 2,
+    "kind" : "Identifier",
+    "line" : 2
+  }, {
+    "column" : 24,
+    "endColumn" : 30,
+    "endLine" : 2,
+    "kind" : "NumberKeyword",
+    "line" : 2
+  }, {
+    "column" : 33,
+    "endColumn" : 39,
+    "endLine" : 2,
+    "kind" : "StringKeyword",
+    "line" : 2
+  }, {
+    "column" : 1,
+    "endColumn" : 2,
+    "endLine" : 8,
+    "kind" : "ModuleDeclaration",
+    "line" : 5
+  }, {
+    "column" : 1,
+    "endColumn" : 8,
+    "endLine" : 5,
+    "kind" : "DeclareKeyword",
+    "line" : 5
+  }, {
+    "column" : 16,
+    "endColumn" : 29,
+    "endLine" : 5,
+    "kind" : "StringLiteral",
+    "line" : 5
+  }, {
+    "column" : 30,
+    "endColumn" : 2,
+    "endLine" : 8,
+    "kind" : "ModuleBlock",
+    "line" : 5
+  }, {
+    "column" : 3,
+    "endColumn" : 30,
+    "endLine" : 6,
+    "kind" : "FirstStatement",
+    "line" : 6
+  }, {
+    "column" : 3,
+    "endColumn" : 9,
+    "endLine" : 6,
+    "kind" : "ExportKeyword",
+    "line" : 6
+  }, {
+    "column" : 10,
+    "endColumn" : 29,
+    "endLine" : 6,
+    "kind" : "VariableDeclarationList",
+    "line" : 6
+  }, {
+    "column" : 16,
+    "endColumn" : 29,
+    "endLine" : 6,
+    "kind" : "VariableDeclaration",
+    "line" : 6
+  }, {
+    "column" : 16,
+    "endColumn" : 21,
+    "endLine" : 6,
+    "kind" : "Identifier",
+    "line" : 6
+  }, {
+    "column" : 23,
+    "endColumn" : 29,
+    "endLine" : 6,
+    "kind" : "NumberKeyword",
+    "line" : 6
+  }, {
+    "column" : 3,
+    "endColumn" : 31,
+    "endLine" : 7,
+    "kind" : "FunctionDeclaration",
+    "line" : 7
+  }, {
+    "column" : 3,
+    "endColumn" : 9,
+    "endLine" : 7,
+    "kind" : "ExportKeyword",
+    "line" : 7
+  }, {
+    "column" : 19,
+    "endColumn" : 22,
+    "endLine" : 7,
+    "kind" : "Identifier",
+    "line" : 7
+  }, {
+    "column" : 26,
+    "endColumn" : 30,
+    "endLine" : 7,
+    "kind" : "VoidKeyword",
+    "line" : 7
+  }, {
+    "column" : 1,
+    "endColumn" : 36,
+    "endLine" : 10,
+    "kind" : "FirstStatement",
+    "line" : 10
+  }, {
+    "column" : 1,
+    "endColumn" : 8,
+    "endLine" : 10,
+    "kind" : "DeclareKeyword",
+    "line" : 10
+  }, {
+    "column" : 9,
+    "endColumn" : 35,
+    "endLine" : 10,
+    "kind" : "VariableDeclarationList",
+    "line" : 10
+  }, {
+    "column" : 15,
+    "endColumn" : 35,
+    "endLine" : 10,
+    "kind" : "VariableDeclaration",
+    "line" : 10
+  }, {
+    "column" : 15,
+    "endColumn" : 27,
+    "endLine" : 10,
+    "kind" : "Identifier",
+    "line" : 10
+  }, {
+    "column" : 29,
+    "endColumn" : 35,
+    "endLine" : 10,
+    "kind" : "StringKeyword",
+    "line" : 10
+  }, {
+    "column" : 1,
+    "endColumn" : 51,
+    "endLine" : 11,
+    "kind" : "FunctionDeclaration",
+    "line" : 11
+  }, {
+    "column" : 1,
+    "endColumn" : 8,
+    "endLine" : 11,
+    "kind" : "DeclareKeyword",
+    "line" : 11
+  }, {
+    "column" : 18,
+    "endColumn" : 27,
+    "endLine" : 11,
+    "kind" : "Identifier",
+    "line" : 11
+  }, {
+    "column" : 28,
+    "endColumn" : 41,
+    "endLine" : 11,
+    "kind" : "Parameter",
+    "line" : 11
+  }, {
+    "column" : 28,
+    "endColumn" : 33,
+    "endLine" : 11,
+    "kind" : "Identifier",
+    "line" : 11
+  }, {
+    "column" : 35,
+    "endColumn" : 41,
+    "endLine" : 11,
+    "kind" : "StringKeyword",
+    "line" : 11
+  }, {
+    "column" : 44,
+    "endColumn" : 50,
+    "endLine" : 11,
+    "kind" : "NumberKeyword",
+    "line" : 11
+  }, {
+    "column" : 1,
+    "endColumn" : 2,
+    "endLine" : 16,
+    "kind" : "InterfaceDeclaration",
+    "line" : 13
+  }, {
+    "column" : 11,
+    "endColumn" : 23,
+    "endLine" : 13,
+    "kind" : "Identifier",
+    "line" : 13
+  }, {
+    "column" : 3,
+    "endColumn" : 23,
+    "endLine" : 14,
+    "kind" : "PropertySignature",
+    "line" : 14
+  }, {
+    "column" : 3,
+    "endColumn" : 11,
+    "endLine" : 14,
+    "kind" : "ReadonlyKeyword",
+    "line" : 14
+  }, {
+    "column" : 12,
+    "endColumn" : 14,
+    "endLine" : 14,
+    "kind" : "Identifier",
+    "line" : 14
+  }, {
+    "column" : 16,
+    "endColumn" : 22,
+    "endLine" : 14,
+    "kind" : "StringKeyword",
+    "line" : 14
+  }, {
+    "column" : 3,
+    "endColumn" : 21,
+    "endLine" : 15,
+    "kind" : "PropertySignature",
+    "line" : 15
+  }, {
+    "column" : 3,
+    "endColumn" : 11,
+    "endLine" : 15,
+    "kind" : "Identifier",
+    "line" : 15
+  }, {
+    "column" : 11,
+    "endColumn" : 12,
+    "endLine" : 15,
+    "kind" : "QuestionToken",
+    "line" : 15
+  }, {
+    "column" : 14,
+    "endColumn" : 20,
+    "endLine" : 15,
+    "kind" : "NumberKeyword",
+    "line" : 15
+  }, {
+    "column" : 1,
+    "endColumn" : 2,
+    "endLine" : 22,
+    "kind" : "ModuleDeclaration",
+    "line" : 18
+  }, {
+    "column" : 1,
+    "endColumn" : 8,
+    "endLine" : 18,
+    "kind" : "DeclareKeyword",
+    "line" : 18
+  }, {
+    "column" : 9,
+    "endColumn" : 15,
+    "endLine" : 18,
+    "kind" : "Identifier",
+    "line" : 18
+  }, {
+    "column" : 16,
+    "endColumn" : 2,
+    "endLine" : 22,
+    "kind" : "ModuleBlock",
+    "line" : 18
+  }, {
+    "column" : 3,
+    "endColumn" : 4,
+    "endLine" : 21,
+    "kind" : "InterfaceDeclaration",
+    "line" : 19
+  }, {
+    "column" : 13,
+    "endColumn" : 18,
+    "endLine" : 19,
+    "kind" : "Identifier",
+    "line" : 19
+  }, {
+    "column" : 19,
+    "endColumn" : 20,
+    "endLine" : 19,
+    "kind" : "TypeParameter",
+    "line" : 19
+  }, {
+    "column" : 19,
+    "endColumn" : 20,
+    "endLine" : 19,
+    "kind" : "Identifier",
+    "line" : 19
+  }, {
+    "column" : 5,
+    "endColumn" : 22,
+    "endLine" : 20,
+    "kind" : "PropertySignature",
+    "line" : 20
+  }, {
+    "column" : 5,
+    "endColumn" : 12,
+    "endLine" : 20,
+    "kind" : "Identifier",
+    "line" : 20
+  }, {
+    "column" : 12,
+    "endColumn" : 13,
+    "endLine" : 20,
+    "kind" : "QuestionToken",
+    "line" : 20
+  }, {
+    "column" : 15,
+    "endColumn" : 21,
+    "endLine" : 20,
+    "kind" : "StringKeyword",
+    "line" : 20
+  }, {
+    "column" : 1,
+    "endColumn" : 35,
+    "endLine" : 24,
+    "kind" : "NamespaceExportDeclaration",
+    "line" : 24
+  }, {
+    "column" : 21,
+    "endColumn" : 34,
+    "endLine" : 24,
+    "kind" : "Identifier",
+    "line" : 24
+  }, {
+    "column" : 1,
+    "endColumn" : 11,
+    "endLine" : 25,
+    "kind" : "ExportDeclaration",
+    "line" : 25
+  }, {
+    "column" : 8,
+    "endColumn" : 10,
+    "endLine" : 25,
+    "kind" : "NamedExports",
+    "line" : 25
+  }, {
+    "column" : 1,
+    "endColumn" : 1,
+    "endLine" : 26,
+    "kind" : "EndOfFileToken",
+    "line" : 26
+  } ],
+  "diagnostics" : [ ],
+  "fixture" : "ok/130_ambient_dts.d.ts",
+  "normalizedProgram" : {
+    "kind" : "Program",
+    "statements" : [ {
+      "column" : 1,
+      "expression" : {
+        "column" : 15,
+        "kind" : "UndefinedLiteral",
+        "line" : 10
+      },
+      "kind" : "VariableDeclaration",
+      "line" : 10,
+      "name" : "ambientConst"
+    } ]
+  },
+  "schemaVersion" : "tsj-backend-token-v1"
+}

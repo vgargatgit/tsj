@@ -53,6 +53,20 @@ jobs:
       - name: Unit tests
         run: mvn -B -ntp test
 
+      - name: TGTA Non-TSX Compile Gate
+        run: >
+          mvn -B -ntp -pl cli -am
+          -Dsurefire.failIfNoSpecifiedTests=false
+          -Dtest=TsjTgtaCompileGateTest#tgtaNonTsxFixturesCompileWithTsjCompileSuccess
+          test
+
+      - name: Grammar Feature Gate (Parser/Backend/CLI)
+        run: >
+          mvn -B -ntp -pl compiler/backend-jvm,cli -am
+          -Dsurefire.failIfNoSpecifiedTests=false
+          -Dtest=TypeScriptSyntaxBridgeTest,TypeScriptSyntaxBridgeConformanceSnapshotTest,JvmBytecodeCompilerTest#supportsNamespaceValueExportsInTsjGrammarPath,FixtureHarnessTest#harnessSupportsLogicalChainsDifferentialFixture,FixtureHarnessTest#harnessSupportsOptionalChainingDifferentialFixture,FixtureHarnessTest#harnessSupportsDestructuringDifferentialFixture,FixtureHarnessTest#harnessSupportsTemplateLiteralDifferentialFixture
+          test
+
       - name: TSJ-36 Spring Package Smoke
         run: >
           mvn -B -ntp -pl cli -am

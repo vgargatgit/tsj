@@ -2848,3 +2848,257 @@ Full async parity is reached when:
 - TSJ-55, TSJ-53, TSJ-52, TSJ-56
 - Status: `Complete`
 - Progress: `TSJ-55 Complete; TSJ-53 Complete; TSJ-52 Complete; TSJ-56 Complete`
+
+## Epic L: Full TypeScript Syntax Coverage
+
+### TSJ-58: Replace handwritten backend parser with frontend AST ingestion
+- Why: Full syntax coverage is blocked by the current handwritten parser/tokenizer in backend.
+- Acceptance Criteria:
+  - Backend compile path consumes frontend-produced TypeScript AST/semantic payload instead of reparsing source text.
+  - AST transport contract is versioned and schema-validated between `compiler/frontend` and backend.
+  - Legacy handwritten parser path is removable or gated behind explicit fallback flag.
+  - Source-mapped diagnostics remain stable or improve in precision.
+- Status: `Complete (Subset)`.
+- Progress:
+  - Backend compile path now consumes frontend TypeScript token payload via `emit-backend-tokens.cjs` (`tsj-backend-token-v1`) instead of handwritten tokenization.
+  - Contract is schema-versioned/validated, bridge diagnostics are mapped back to source modules, and legacy tokenizer remains behind `-Dtsj.backend.legacyTokenizer=true`.
+  - `TypeScriptSyntaxBridge` now resolves bridge script deterministically even when compile is launched from fixture subdirectories.
+- Remaining Gap:
+  - Backend still reparses tokens with handwritten parser; full typed-AST ingestion is not complete.
+- Dependencies: TSJ-4, TSJ-5, TSJ-7.
+
+### TSJ-58a: Replace backend handwritten parser with frontend typed AST contract
+- Why: TSJ-58 token-bridge reduced tokenizer drift, but full syntax parity still requires removing backend parser ownership.
+- Acceptance Criteria:
+  - Frontend emits typed AST payload (statement/expression node kinds + source ranges) under versioned schema.
+  - Backend lowering consumes typed AST payload directly; handwritten parser is removed or excluded from default path.
+  - Conformance fixtures show no regression vs TSJ-58 token-bridge baseline.
+- Status: `Complete (Subset)`.
+- Progress:
+  - Frontend token bridge now emits a typed AST node stream (`astNodes`) with node kind and source range coordinates.
+  - Backend now validates and consumes the AST contract during compile (`TSJ-BACKEND-AST-SCHEMA` on missing/invalid AST payload).
+  - Added bridge + compiler tests for AST payload contract enforcement and schema diagnostics.
+- Remaining Gap:
+  - Backend lowering still depends on handwritten parser for statement/expression reconstruction.
+- Dependencies: TSJ-58.
+
+### TSJ-58b: Complete backend lowering cutover to typed AST as source-of-truth
+- Why: TSJ-58a introduced AST contract consumption but not full parser ownership transfer.
+- Acceptance Criteria:
+  - Lowering pipeline reconstructs internal program directly from typed AST payload without handwritten token parser.
+  - Handwritten parser is fully removed from default path (optional debug fallback only).
+  - Existing conformance suites remain green and differential behavior remains stable.
+- Status: `Complete (Subset)`.
+- Progress:
+  - Added typed-AST lowering for `ClassDeclarationStatement` (class name, `extends`, fields, constructor, methods).
+  - Added typed-AST lowering for constructor `super(...)` calls through `SuperCallStatement`.
+  - Added AST-only backend tests (with parser fallback disabled) for class and inheritance execution paths.
+  - Backend + differential conformance suites remain green after the AST-lowering expansion.
+- Remaining Gap:
+  - Handwritten parser fallback is still enabled on unsupported normalized AST shapes.
+  - Full default-path parser removal and complete AST lowering coverage remain outstanding.
+- Dependencies: TSJ-58a.
+
+### TSJ-58c: Remove default parser fallback after typed-AST lowering reaches full in-scope coverage
+- Why: TSJ-58b closed major lowering gaps but default compile path still relies on handwritten parser fallback.
+- Acceptance Criteria:
+  - Default compile path fails without handwritten parser fallback for unsupported AST shapes.
+  - Typed-AST lowering covers all in-scope syntax required by TSJ-59/TSJ-60 baseline stories.
+  - Legacy parser path is debug-only and excluded from default compile behavior.
+  - Differential/conformance suites remain green with default parser fallback disabled.
+- Status: `Planned`.
+- Dependencies: TSJ-58b, TSJ-59a, TSJ-60.
+
+### TSJ-59: Statement syntax completeness
+- Why: Modern TS/JS programs rely on control-flow forms beyond current subset.
+- Acceptance Criteria:
+  - Support `for`, `for...of`, `for...in`, `do...while`, and `switch` lowering.
+  - Support labeled `break`/`continue` with correct control-flow semantics.
+  - Support optional catch binding and full `try/catch/finally` statement shapes.
+  - Differential fixtures cover nested and mixed control-flow edge cases.
+- Status: `Complete (Subset)`.
+- Progress:
+  - Added `do...while` parsing/lowering in backend subset and coverage tests.
+  - Added targeted unsupported diagnostic for `continue` targeting `do...while` until full lowering semantics are implemented.
+  - Optional catch binding and core `try/catch/finally` shapes remain supported.
+- Remaining Gap:
+  - `for`, `for...of`, `for...in`, `switch`, labeled control flow, and full `do...while` continue semantics remain incomplete.
+- Dependencies: TSJ-58.
+
+### TSJ-59a: Complete remaining statement-form lowering for TSJ-59
+- Why: TSJ-59 subset progress needs closure across loop/switch/labeled forms.
+- Acceptance Criteria:
+  - Implement lowering for `for`, `for...of`, `for...in`, and `switch`.
+  - Implement labeled `break`/`continue` with correct target resolution.
+  - Complete `do...while` continue semantics and remove temporary guardrail diagnostic.
+  - Add differential fixtures for nested mixed statement forms.
+- Status: `Complete (Subset)`.
+- Progress:
+  - Added frontend normalized-AST lowering for `for` statements into existing backend-compatible control-flow forms.
+  - Added frontend normalized-AST lowering for `switch` statements into deterministic dispatch loops for non-fallthrough clauses.
+  - Implemented `do...while` continue semantics in normalized-AST lowering by rewriting current-loop `continue` paths to execute condition checks before re-entry.
+  - Added/updated backend tests for `for`, `switch`, and `do...while`-`continue` behavior and bridge normalization coverage.
+- Remaining Gap:
+  - `for...of` and `for...in` lowering is still unsupported in normalized AST and falls back to unsupported backend parser diagnostics.
+  - Labeled `break`/`continue` target-resolution semantics are not yet implemented.
+  - Full switch fallthrough semantics (without terminal `break`) remain incomplete.
+- Dependencies: TSJ-59.
+
+### TSJ-59b: Close remaining statement-form semantics for iteration labels and switch fallthrough
+- Why: TSJ-59a closed major statement lowering gaps, but iteration variants/labels/fallthrough are still missing.
+- Acceptance Criteria:
+  - Implement `for...of` and `for...in` lowering with deterministic semantics for supported iterable/object subsets.
+  - Implement labeled `break`/`continue` with correct target resolution across nested loops/switch blocks.
+  - Implement switch fallthrough semantics and conformance coverage for explicit fallthrough cases.
+  - Add differential fixtures for mixed nested loops, labels, and switch fallthrough control flow.
+- Status: `Planned`.
+- Dependencies: TSJ-59a, TSJ-60.
+
+### TSJ-60: Expression/operator completeness
+- Why: Syntax parity requires full operator and expression grammar support.
+- Acceptance Criteria:
+  - Support optional chaining (`?.`), nullish coalescing (`??`), and compound assignment variants.
+  - Support bitwise, `in`, `instanceof`, exponentiation, and comma/sequence expressions with correct precedence.
+  - Support template literals (plain/tagged) and computed property expressions in expression positions.
+  - Conformance tests assert operator precedence/associativity parity against Node for covered subset.
+- Status: `Planned`.
+- Dependencies: TSJ-58.
+
+### TSJ-61: Binding patterns and destructuring
+- Why: Real TS code heavily uses destructuring in declarations, parameters, and assignments.
+- Acceptance Criteria:
+  - Support object/array destructuring in variable declarations and assignment targets.
+  - Support default initializers and rest elements in binding patterns.
+  - Support destructuring in function parameters and loop headers.
+  - Diagnostics clearly distinguish unsupported binding shapes if any temporary subset remains.
+- Status: `Planned`.
+- Dependencies: TSJ-58, TSJ-59, TSJ-60.
+
+### TSJ-62: Class/object syntax completeness
+- Why: Current class/object subset blocks mainstream framework and app authoring.
+- Acceptance Criteria:
+  - Support class field declarations (instance/static) including initializer expressions.
+  - Support getters/setters, computed member names, and parameter properties.
+  - Support object literal spread/shorthand/computed keys and method variants.
+  - Class/object syntax fixtures compile without backend parse failures.
+- Status: `Planned`.
+- Dependencies: TSJ-58, TSJ-60.
+
+### TSJ-63: Function forms completeness
+- Why: Function syntax variance is central to TypeScript ergonomics and library APIs.
+- Acceptance Criteria:
+  - Support default parameters, optional parameters, rest parameters, and destructured parameters.
+  - Support generator and async-generator syntax with documented runtime semantics.
+  - Support overload signature declarations as type-level declarations (erased at runtime).
+  - Add conformance fixtures for nested async/generator/control-flow combinations.
+- Status: `Planned`.
+- Dependencies: TSJ-58, TSJ-59, TSJ-60, TSJ-61.
+
+### TSJ-64: Type-syntax erasure completeness
+- Why: Full TS syntax support requires parsing type-level constructs even when erased at runtime.
+- Acceptance Criteria:
+  - Parse and typecheck (via frontend) interfaces, type aliases, unions/intersections, generics, conditional/mapped/template-literal types.
+  - Backend lowering accepts type-only syntax without parse failures and with correct runtime erasure behavior.
+  - Support `import type` / `export type` syntax without runtime emission.
+  - Diagnostics separate typecheck failures from backend lowering/runtime failures.
+- Status: `Planned`.
+- Dependencies: TSJ-58, TSJ-4.
+
+### TSJ-65: Module/import-export syntax parity
+- Why: Full TS syntax requires full module-surface support beyond current relative named-import subset.
+- Acceptance Criteria:
+  - Support default imports/exports, namespace imports, re-export forms (`export *`, `export { ... } from`), and type-only re-exports.
+  - Support dynamic `import()` lowering with documented runtime semantics.
+  - Preserve top-level-await ordering semantics across expanded module forms.
+  - Multi-file conformance suite validates live bindings and evaluation order for expanded forms.
+- Status: `Planned`.
+- Dependencies: TSJ-58, TSJ-12, TSJ-13f, TSJ-64.
+
+### TSJ-66: Decorator syntax parity (legacy + TC39 model)
+- Why: Full TS syntax support requires robust handling of both legacy and evolving decorator forms.
+- Acceptance Criteria:
+  - Parse supported legacy TypeScript decorators and stage-3 decorator syntax through frontend AST ingestion.
+  - Lower class/method/field/accessor/parameter decorators under explicit policy/configuration.
+  - Ensure generated metadata/annotation paths remain deterministic and source-mapped.
+  - Provide explicit diagnostics for unsupported decorator proposal features.
+- Status: `Planned`.
+- Dependencies: TSJ-58, TSJ-32a, TSJ-64.
+
+### TSJ-67: TSX/JSX syntax support
+- Why: Full TypeScript syntax support includes TSX for frontend/server-rendered workloads.
+- Acceptance Criteria:
+  - Parse `.tsx` entry/modules and lower JSX according to configured JSX mode (`preserve`/`react-jsx` subset).
+  - Ensure source maps and diagnostics map to TSX source coordinates.
+  - Add multi-file TSX fixture coverage in compile/run/differential harness paths.
+  - Document JSX mode limitations and runtime requirements.
+- Status: `Planned`.
+- Dependencies: TSJ-58, TSJ-60, TSJ-65.
+
+### TSJ-68: Large-scale conformance gate for full syntax
+- Why: “Full syntax support” claim requires broad, measurable evidence.
+- Acceptance Criteria:
+  - Add a large conformance corpus sourced from TypeScript conformance tests + selected OSS fixtures.
+  - CI publishes pass/fail breakdown by syntax category and tracks regressions.
+  - Define and enforce minimum pass-rate thresholds for release gating.
+  - Failing categories must emit actionable diagnostics with minimized repros.
+- Status: `Planned`.
+- Dependencies: TSJ-59, TSJ-60, TSJ-61, TSJ-62, TSJ-63, TSJ-64, TSJ-65, TSJ-66, TSJ-67.
+
+### TSJ-69: Incremental performance closure for full syntax pipeline
+- Why: Full syntax support must be practical for developer loops and CI.
+- Acceptance Criteria:
+  - Add AST/IR incremental cache keyed by source/module graph fingerprint and compiler version.
+  - Warm builds demonstrate significant reuse on unchanged projects (target threshold defined in benchmark docs).
+  - Compile diagnostics expose reuse/invalidations at each stage (frontend, lowering, backend).
+  - Watch/dev-loop workflow docs and CI smoke benchmarks are updated for new pipeline.
+- Status: `Planned`.
+- Dependencies: TSJ-58, TSJ-68.
+
+### TSJ-70: Full TypeScript syntax GA readiness gate
+- Why: Need explicit closure criteria before claiming full TS syntax support.
+- Acceptance Criteria:
+  - No backend parse failures on certified syntax corpus for in-scope language level.
+  - Compatibility manifest lists supported TS version/language features and residual exclusions.
+  - Differential/runtime conformance gates are green for all mandatory suites.
+  - Release signoff artifact is generated and referenced in docs.
+- Status: `Planned`.
+- Dependencies: TSJ-68, TSJ-69.
+
+## Planned Story Implementation Sequence (Epic L)
+
+1. TSJ-58
+2. TSJ-58a
+3. TSJ-58b
+4. TSJ-59
+5. TSJ-59a
+6. TSJ-59b
+7. TSJ-60
+8. TSJ-58c
+9. TSJ-61
+10. TSJ-62
+11. TSJ-63
+12. TSJ-64
+13. TSJ-65
+14. TSJ-66
+15. TSJ-67
+16. TSJ-68
+17. TSJ-69
+18. TSJ-70
+
+## Planned Sprint Plan (Epic L)
+
+### Sprint P14: AST Pipeline Cutover
+- TSJ-58, TSJ-58a, TSJ-58b, TSJ-58c, TSJ-59, TSJ-59a, TSJ-59b, TSJ-60
+- Status: `In Progress`
+
+### Sprint P15: Core Syntax Closure
+- TSJ-61, TSJ-62, TSJ-63, TSJ-64
+- Status: `Planned`
+
+### Sprint P16: Module/Decorator/TSX Expansion
+- TSJ-65, TSJ-66, TSJ-67
+- Status: `Planned`
+
+### Sprint P17: Conformance and GA Closure
+- TSJ-68, TSJ-69, TSJ-70
+- Status: `Planned`

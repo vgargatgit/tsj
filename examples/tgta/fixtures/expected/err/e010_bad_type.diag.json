@@ -1,0 +1,26 @@
+{
+  "diagnostics": [
+    {
+      "code": "TS1005",
+      "message": "'?' expected.",
+      "span": {
+        "endCol": 49,
+        "endLine": 1,
+        "file": "src/err/e010_bad_type.ts",
+        "startCol": 48,
+        "startLine": 1
+      }
+    },
+    {
+      "code": "TS1110",
+      "message": "Type expected.",
+      "span": {
+        "endCol": 44,
+        "endLine": 2,
+        "file": "src/err/e010_bad_type.ts",
+        "startCol": 43,
+        "startLine": 2
+      }
+    }
+  ]
+}

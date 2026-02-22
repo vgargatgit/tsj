@@ -148,7 +148,8 @@ final class ClasspathSymbolIndexer {
         builder.append("\"location\":\"").append(escapeJson(origin.location())).append("\",");
         builder.append("\"entry\":\"").append(escapeJson(origin.entry())).append("\",");
         builder.append("\"moduleName\":\"").append(escapeJson(origin.moduleName())).append("\",");
-        builder.append("\"packageName\":\"").append(escapeJson(origin.packageName())).append("\"");
+        builder.append("\"packageName\":\"").append(escapeJson(origin.packageName())).append("\",");
+        builder.append("\"mrJarSource\":\"").append(escapeJson(origin.mrJarSource())).append("\"");
         builder.append("}");
     }
 
@@ -177,7 +178,8 @@ final class ClasspathSymbolIndexer {
                                 location.toString(),
                                 entry,
                                 "",
-                                packageNameFromInternalName(internalName)
+                                packageNameFromInternalName(internalName),
+                                ""
                         );
                         registerSymbol(internalName, origin, winners, duplicates, isolationMode);
                     });
@@ -207,7 +209,8 @@ final class ClasspathSymbolIndexer {
                                 root.toString(),
                                 jrtClassRecord.entry(),
                                 jrtClassRecord.moduleName(),
-                                packageNameFromInternalName(jrtClassRecord.internalName())
+                                packageNameFromInternalName(jrtClassRecord.internalName()),
+                                ""
                         );
                         registerSymbol(
                                 jrtClassRecord.internalName(),
@@ -229,30 +232,145 @@ final class ClasspathSymbolIndexer {
             final JvmBytecodeRunner.ClassloaderIsolationMode isolationMode
     ) {
         try (JarFile jarFile = new JarFile(jarPath.toFile())) {
+            final boolean multiRelease = isMultiReleaseJar(jarFile);
+            final int runtimeFeature = Runtime.version().feature();
+            final Map<String, List<JarClassCandidate>> candidatesByInternalName = new LinkedHashMap<>();
             final Enumeration<JarEntry> entries = jarFile.entries();
             while (entries.hasMoreElements()) {
                 final JarEntry jarEntry = entries.nextElement();
                 if (jarEntry.isDirectory()) {
                     continue;
                 }
-                final String entryName = jarEntry.getName();
-                final String internalName = internalNameFromEntry(entryName);
-                if (internalName == null) {
+                final JarClassCandidate candidate = parseJarClassCandidate(jarEntry.getName());
+                if (candidate == null) {
+                    continue;
+                }
+                candidatesByInternalName.computeIfAbsent(
+                        candidate.internalName(),
+                        ignored -> new ArrayList<>()
+                ).add(candidate);
+            }
+            final List<String> internalNames = new ArrayList<>(candidatesByInternalName.keySet());
+            internalNames.sort(String::compareTo);
+            for (String internalName : internalNames) {
+                final JarClassCandidate winner = selectJarClassCandidate(
+                        candidatesByInternalName.get(internalName),
+                        multiRelease,
+                        runtimeFeature
+                );
+                if (winner == null) {
                     continue;
                 }
                 final ClassOrigin origin = new ClassOrigin(
                         "dependency",
                         "jar",
                         jarPath.toString(),
-                        entryName,
+                        winner.entryName(),
                         "",
-                        packageNameFromInternalName(internalName)
+                        packageNameFromInternalName(internalName),
+                        winner.mrJarSource()
                 );
                 registerSymbol(internalName, origin, winners, duplicates, isolationMode);
             }
         } catch (final IOException ignored) {
             // Best-effort indexing for unreadable jar files.
         }
+    }
+
+    private static JarClassCandidate parseJarClassCandidate(final String entryName) {
+        final String versionPrefix = "META-INF/versions/";
+        if (entryName.startsWith(versionPrefix)) {
+            final int versionSeparator = entryName.indexOf('/', versionPrefix.length());
+            if (versionSeparator <= versionPrefix.length()) {
+                return null;
+            }
+            final String rawVersion = entryName.substring(versionPrefix.length(), versionSeparator);
+            final int version;
+            try {
+                version = Integer.parseInt(rawVersion);
+            } catch (final NumberFormatException numberFormatException) {
+                return null;
+            }
+            if (version <= 0) {
+                return null;
+            }
+            final String nestedEntry = entryName.substring(versionSeparator + 1);
+            final String internalName = internalNameFromEntry(nestedEntry);
+            if (internalName == null) {
+                return null;
+            }
+            return new JarClassCandidate(
+                    internalName,
+                    entryName,
+                    version,
+                    "META-INF/versions/" + version
+            );
+        }
+        if (entryName.startsWith("META-INF/")) {
+            return null;
+        }
+        final String internalName = internalNameFromEntry(entryName);
+        if (internalName == null) {
+            return null;
+        }
+        return new JarClassCandidate(internalName, entryName, 0, "base");
+    }
+
+    private static JarClassCandidate selectJarClassCandidate(
+            final List<JarClassCandidate> candidates,
+            final boolean multiRelease,
+            final int runtimeFeature
+    ) {
+        if (candidates == null || candidates.isEmpty()) {
+            return null;
+        }
+        final List<JarClassCandidate> sortedCandidates = new ArrayList<>(candidates);
+        sortedCandidates.sort(
+                Comparator.comparingInt(JarClassCandidate::version)
+                        .thenComparing(JarClassCandidate::entryName)
+        );
+        JarClassCandidate baseCandidate = null;
+        JarClassCandidate selectedVersionCandidate = null;
+        for (JarClassCandidate candidate : sortedCandidates) {
+            if (candidate.version() == 0) {
+                if (baseCandidate == null) {
+                    baseCandidate = candidate;
+                }
+                continue;
+            }
+            if (!multiRelease || candidate.version() > runtimeFeature) {
+                continue;
+            }
+            selectedVersionCandidate = candidate;
+        }
+        if (selectedVersionCandidate != null) {
+            return selectedVersionCandidate;
+        }
+        if (baseCandidate != null) {
+            return baseCandidate;
+        }
+        if (!multiRelease) {
+            return null;
+        }
+        return sortedCandidates.stream()
+                .filter(candidate -> candidate.version() <= runtimeFeature)
+                .max(Comparator.comparingInt(JarClassCandidate::version)
+                        .thenComparing(JarClassCandidate::entryName))
+                .orElse(null);
+    }
+
+    private static boolean isMultiReleaseJar(final JarFile jarFile) {
+        final java.util.jar.Manifest manifest;
+        try {
+            manifest = jarFile.getManifest();
+        } catch (final IOException ioException) {
+            return false;
+        }
+        if (manifest == null) {
+            return false;
+        }
+        final String multiReleaseValue = manifest.getMainAttributes().getValue("Multi-Release");
+        return "true".equalsIgnoreCase(multiReleaseValue);
     }
 
     private static void registerSymbol(
@@ -359,6 +477,24 @@ final class ClasspathSymbolIndexer {
         int duplicateCount() {
             return duplicates.size();
         }
+
+        int mrJarWinnerCount() {
+            return (int) symbols.stream()
+                    .filter(symbol -> !symbol.origin().mrJarSource().isBlank())
+                    .count();
+        }
+
+        int mrJarBaseWinnerCount() {
+            return (int) symbols.stream()
+                    .filter(symbol -> "base".equals(symbol.origin().mrJarSource()))
+                    .count();
+        }
+
+        int mrJarVersionedWinnerCount() {
+            return (int) symbols.stream()
+                    .filter(symbol -> symbol.origin().mrJarSource().startsWith("META-INF/versions/"))
+                    .count();
+        }
     }
 
     record SymbolEntry(String internalName, ClassOrigin origin) {
@@ -379,11 +515,20 @@ final class ClasspathSymbolIndexer {
             String location,
             String entry,
             String moduleName,
-            String packageName
+            String packageName,
+            String mrJarSource
     ) {
     }
 
     record JrtClassRecord(String internalName, String entry, String moduleName) {
+    }
+
+    record JarClassCandidate(
+            String internalName,
+            String entryName,
+            int version,
+            String mrJarSource
+    ) {
     }
 
     static final class AppIsolationConflictException extends RuntimeException {

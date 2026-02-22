@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.Deque;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
@@ -78,6 +79,15 @@ final class JavaOverloadResolver {
             final String methodName,
             final InvokeKind invokeKind
     ) {
+        return candidatesForClassMethod(ownerClass, methodName, invokeKind, Map.of());
+    }
+
+    static List<Candidate> candidatesForClassMethod(
+            final Class<?> ownerClass,
+            final String methodName,
+            final InvokeKind invokeKind,
+            final Map<String, List<JavaNullabilityAnalyzer.NullabilityState>> parameterNullabilityByMethodKey
+    ) {
         Objects.requireNonNull(ownerClass, "ownerClass");
         Objects.requireNonNull(methodName, "methodName");
         if (invokeKind != InvokeKind.STATIC_METHOD && invokeKind != InvokeKind.INSTANCE_METHOD) {
@@ -99,14 +109,23 @@ final class JavaOverloadResolver {
             }
         }
         final List<Method> selected = nonBridge.isEmpty() ? visible : nonBridge;
+        selected.sort(java.util.Comparator
+                .comparing(JavaOverloadResolver::methodDescriptor)
+                .thenComparing(method -> method.getDeclaringClass().getName()));
         final List<Candidate> candidates = new ArrayList<>();
         for (Method method : selected) {
             final String descriptor = methodDescriptor(method);
+            final List<String> parameterDescriptors = parseParameterDescriptors(descriptor);
+            final List<JavaNullabilityAnalyzer.NullabilityState> parameterNullability = resolveParameterNullability(
+                    method.getName() + descriptor,
+                    parameterDescriptors.size(),
+                    parameterNullabilityByMethodKey
+            );
             candidates.add(new Candidate(
                     new MemberIdentity(ownerClass.getName(), method.getName(), descriptor, invokeKind),
                     method.isVarArgs(),
-                    parseParameterDescriptors(descriptor),
-                    platformNullability(parseParameterDescriptors(descriptor).size())
+                    parameterDescriptors,
+                    parameterNullability
             ));
         }
         return List.copyOf(candidates);
@@ -114,8 +133,12 @@ final class JavaOverloadResolver {
 
     static List<Candidate> candidatesForConstructors(final Class<?> ownerClass) {
         Objects.requireNonNull(ownerClass, "ownerClass");
+        final List<Constructor<?>> constructors = new ArrayList<>(List.of(ownerClass.getConstructors()));
+        constructors.sort(java.util.Comparator
+                .comparing(JavaOverloadResolver::constructorDescriptor)
+                .thenComparing(constructor -> constructor.getDeclaringClass().getName()));
         final List<Candidate> candidates = new ArrayList<>();
-        for (Constructor<?> constructor : ownerClass.getConstructors()) {
+        for (Constructor<?> constructor : constructors) {
             final String descriptor = constructorDescriptor(constructor);
             final List<String> parameterDescriptors = parseParameterDescriptors(descriptor);
             candidates.add(new Candidate(
@@ -134,6 +157,30 @@ final class JavaOverloadResolver {
             states.add(JavaNullabilityAnalyzer.NullabilityState.PLATFORM);
         }
         return List.copyOf(states);
+    }
+
+    private static List<JavaNullabilityAnalyzer.NullabilityState> resolveParameterNullability(
+            final String methodKey,
+            final int parameterCount,
+            final Map<String, List<JavaNullabilityAnalyzer.NullabilityState>> parameterNullabilityByMethodKey
+    ) {
+        if (parameterNullabilityByMethodKey == null) {
+            return platformNullability(parameterCount);
+        }
+        final List<JavaNullabilityAnalyzer.NullabilityState> analyzed =
+                parameterNullabilityByMethodKey.get(methodKey);
+        if (analyzed == null || analyzed.isEmpty()) {
+            return platformNullability(parameterCount);
+        }
+        final List<JavaNullabilityAnalyzer.NullabilityState> resolved = new ArrayList<>(parameterCount);
+        for (int index = 0; index < parameterCount; index++) {
+            if (index < analyzed.size()) {
+                resolved.add(analyzed.get(index));
+            } else {
+                resolved.add(JavaNullabilityAnalyzer.NullabilityState.PLATFORM);
+            }
+        }
+        return List.copyOf(resolved);
     }
 
     private static CandidateOutcome evaluate(

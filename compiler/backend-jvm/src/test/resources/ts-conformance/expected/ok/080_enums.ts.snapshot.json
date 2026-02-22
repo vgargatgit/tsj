@@ -1,0 +1,526 @@
+{
+  "astNodes" : [ {
+    "column" : 1,
+    "endColumn" : 1,
+    "endLine" : 25,
+    "kind" : "SourceFile",
+    "line" : 1
+  }, {
+    "column" : 1,
+    "endColumn" : 2,
+    "endLine" : 5,
+    "kind" : "EnumDeclaration",
+    "line" : 1
+  }, {
+    "column" : 6,
+    "endColumn" : 17,
+    "endLine" : 1,
+    "kind" : "Identifier",
+    "line" : 1
+  }, {
+    "column" : 3,
+    "endColumn" : 8,
+    "endLine" : 2,
+    "kind" : "EnumMember",
+    "line" : 2
+  }, {
+    "column" : 3,
+    "endColumn" : 8,
+    "endLine" : 2,
+    "kind" : "Identifier",
+    "line" : 2
+  }, {
+    "column" : 3,
+    "endColumn" : 13,
+    "endLine" : 3,
+    "kind" : "EnumMember",
+    "line" : 3
+  }, {
+    "column" : 3,
+    "endColumn" : 9,
+    "endLine" : 3,
+    "kind" : "Identifier",
+    "line" : 3
+  }, {
+    "column" : 12,
+    "endColumn" : 13,
+    "endLine" : 3,
+    "kind" : "FirstLiteralToken",
+    "line" : 3
+  }, {
+    "column" : 3,
+    "endColumn" : 8,
+    "endLine" : 4,
+    "kind" : "EnumMember",
+    "line" : 4
+  }, {
+    "column" : 3,
+    "endColumn" : 8,
+    "endLine" : 4,
+    "kind" : "Identifier",
+    "line" : 4
+  }, {
+    "column" : 1,
+    "endColumn" : 2,
+    "endLine" : 10,
+    "kind" : "EnumDeclaration",
+    "line" : 7
+  }, {
+    "column" : 6,
+    "endColumn" : 16,
+    "endLine" : 7,
+    "kind" : "Identifier",
+    "line" : 7
+  }, {
+    "column" : 3,
+    "endColumn" : 12,
+    "endLine" : 8,
+    "kind" : "EnumMember",
+    "line" : 8
+  }, {
+    "column" : 3,
+    "endColumn" : 5,
+    "endLine" : 8,
+    "kind" : "Identifier",
+    "line" : 8
+  }, {
+    "column" : 8,
+    "endColumn" : 12,
+    "endLine" : 8,
+    "kind" : "StringLiteral",
+    "line" : 8
+  }, {
+    "column" : 3,
+    "endColumn" : 16,
+    "endLine" : 9,
+    "kind" : "EnumMember",
+    "line" : 9
+  }, {
+    "column" : 3,
+    "endColumn" : 7,
+    "endLine" : 9,
+    "kind" : "Identifier",
+    "line" : 9
+  }, {
+    "column" : 10,
+    "endColumn" : 16,
+    "endLine" : 9,
+    "kind" : "StringLiteral",
+    "line" : 9
+  }, {
+    "column" : 1,
+    "endColumn" : 2,
+    "endLine" : 15,
+    "kind" : "EnumDeclaration",
+    "line" : 12
+  }, {
+    "column" : 6,
+    "endColumn" : 15,
+    "endLine" : 12,
+    "kind" : "Identifier",
+    "line" : 12
+  }, {
+    "column" : 3,
+    "endColumn" : 9,
+    "endLine" : 13,
+    "kind" : "EnumMember",
+    "line" : 13
+  }, {
+    "column" : 3,
+    "endColumn" : 5,
+    "endLine" : 13,
+    "kind" : "Identifier",
+    "line" : 13
+  }, {
+    "column" : 8,
+    "endColumn" : 9,
+    "endLine" : 13,
+    "kind" : "FirstLiteralToken",
+    "line" : 13
+  }, {
+    "column" : 3,
+    "endColumn" : 14,
+    "endLine" : 14,
+    "kind" : "EnumMember",
+    "line" : 14
+  }, {
+    "column" : 3,
+    "endColumn" : 6,
+    "endLine" : 14,
+    "kind" : "Identifier",
+    "line" : 14
+  }, {
+    "column" : 9,
+    "endColumn" : 14,
+    "endLine" : 14,
+    "kind" : "StringLiteral",
+    "line" : 14
+  }, {
+    "column" : 1,
+    "endColumn" : 2,
+    "endLine" : 21,
+    "kind" : "EnumDeclaration",
+    "line" : 17
+  }, {
+    "column" : 1,
+    "endColumn" : 6,
+    "endLine" : 17,
+    "kind" : "ConstKeyword",
+    "line" : 17
+  }, {
+    "column" : 12,
+    "endColumn" : 17,
+    "endLine" : 17,
+    "kind" : "Identifier",
+    "line" : 17
+  }, {
+    "column" : 3,
+    "endColumn" : 11,
+    "endLine" : 18,
+    "kind" : "EnumMember",
+    "line" : 18
+  }, {
+    "column" : 3,
+    "endColumn" : 7,
+    "endLine" : 18,
+    "kind" : "Identifier",
+    "line" : 18
+  }, {
+    "column" : 10,
+    "endColumn" : 11,
+    "endLine" : 18,
+    "kind" : "FirstLiteralToken",
+    "line" : 18
+  }, {
+    "column" : 3,
+    "endColumn" : 11,
+    "endLine" : 19,
+    "kind" : "EnumMember",
+    "line" : 19
+  }, {
+    "column" : 3,
+    "endColumn" : 7,
+    "endLine" : 19,
+    "kind" : "Identifier",
+    "line" : 19
+  }, {
+    "column" : 10,
+    "endColumn" : 11,
+    "endLine" : 19,
+    "kind" : "FirstLiteralToken",
+    "line" : 19
+  }, {
+    "column" : 3,
+    "endColumn" : 12,
+    "endLine" : 20,
+    "kind" : "EnumMember",
+    "line" : 20
+  }, {
+    "column" : 3,
+    "endColumn" : 8,
+    "endLine" : 20,
+    "kind" : "Identifier",
+    "line" : 20
+  }, {
+    "column" : 11,
+    "endColumn" : 12,
+    "endLine" : 20,
+    "kind" : "FirstLiteralToken",
+    "line" : 20
+  }, {
+    "column" : 1,
+    "endColumn" : 44,
+    "endLine" : 23,
+    "kind" : "FirstStatement",
+    "line" : 23
+  }, {
+    "column" : 1,
+    "endColumn" : 43,
+    "endLine" : 23,
+    "kind" : "VariableDeclarationList",
+    "line" : 23
+  }, {
+    "column" : 7,
+    "endColumn" : 43,
+    "endLine" : 23,
+    "kind" : "VariableDeclaration",
+    "line" : 23
+  }, {
+    "column" : 7,
+    "endColumn" : 16,
+    "endLine" : 23,
+    "kind" : "Identifier",
+    "line" : 23
+  }, {
+    "column" : 19,
+    "endColumn" : 43,
+    "endLine" : 23,
+    "kind" : "BinaryExpression",
+    "line" : 23
+  }, {
+    "column" : 19,
+    "endColumn" : 29,
+    "endLine" : 23,
+    "kind" : "PropertyAccessExpression",
+    "line" : 23
+  }, {
+    "column" : 19,
+    "endColumn" : 24,
+    "endLine" : 23,
+    "kind" : "Identifier",
+    "line" : 23
+  }, {
+    "column" : 25,
+    "endColumn" : 29,
+    "endLine" : 23,
+    "kind" : "Identifier",
+    "line" : 23
+  }, {
+    "column" : 30,
+    "endColumn" : 31,
+    "endLine" : 23,
+    "kind" : "BarToken",
+    "line" : 23
+  }, {
+    "column" : 32,
+    "endColumn" : 43,
+    "endLine" : 23,
+    "kind" : "PropertyAccessExpression",
+    "line" : 23
+  }, {
+    "column" : 32,
+    "endColumn" : 37,
+    "endLine" : 23,
+    "kind" : "Identifier",
+    "line" : 23
+  }, {
+    "column" : 38,
+    "endColumn" : 43,
+    "endLine" : 23,
+    "kind" : "Identifier",
+    "line" : 23
+  }, {
+    "column" : 1,
+    "endColumn" : 54,
+    "endLine" : 24,
+    "kind" : "ExpressionStatement",
+    "line" : 24
+  }, {
+    "column" : 1,
+    "endColumn" : 53,
+    "endLine" : 24,
+    "kind" : "VoidExpression",
+    "line" : 24
+  }, {
+    "column" : 6,
+    "endColumn" : 53,
+    "endLine" : 24,
+    "kind" : "ArrayLiteralExpression",
+    "line" : 24
+  }, {
+    "column" : 7,
+    "endColumn" : 18,
+    "endLine" : 24,
+    "kind" : "Identifier",
+    "line" : 24
+  }, {
+    "column" : 20,
+    "endColumn" : 30,
+    "endLine" : 24,
+    "kind" : "Identifier",
+    "line" : 24
+  }, {
+    "column" : 32,
+    "endColumn" : 41,
+    "endLine" : 24,
+    "kind" : "Identifier",
+    "line" : 24
+  }, {
+    "column" : 43,
+    "endColumn" : 52,
+    "endLine" : 24,
+    "kind" : "Identifier",
+    "line" : 24
+  }, {
+    "column" : 1,
+    "endColumn" : 1,
+    "endLine" : 25,
+    "kind" : "EndOfFileToken",
+    "line" : 25
+  } ],
+  "diagnostics" : [ ],
+  "fixture" : "ok/080_enums.ts",
+  "normalizedProgram" : {
+    "kind" : "Program",
+    "statements" : [ {
+      "column" : 1,
+      "expression" : {
+        "column" : 1,
+        "entries" : [ {
+          "key" : "First",
+          "value" : {
+            "column" : 1,
+            "kind" : "NumberLiteral",
+            "line" : 1,
+            "text" : "0"
+          }
+        }, {
+          "key" : "Second",
+          "value" : {
+            "column" : 12,
+            "kind" : "NumberLiteral",
+            "line" : 3,
+            "text" : "4"
+          }
+        }, {
+          "key" : "Third",
+          "value" : {
+            "column" : 1,
+            "kind" : "NumberLiteral",
+            "line" : 1,
+            "text" : "5"
+          }
+        } ],
+        "kind" : "ObjectLiteralExpression",
+        "line" : 1
+      },
+      "kind" : "VariableDeclaration",
+      "line" : 1,
+      "name" : "NumericEnum"
+    }, {
+      "column" : 1,
+      "expression" : {
+        "column" : 1,
+        "entries" : [ {
+          "key" : "Up",
+          "value" : {
+            "column" : 8,
+            "kind" : "StringLiteral",
+            "line" : 8,
+            "text" : "UP"
+          }
+        }, {
+          "key" : "Down",
+          "value" : {
+            "column" : 10,
+            "kind" : "StringLiteral",
+            "line" : 9,
+            "text" : "DOWN"
+          }
+        } ],
+        "kind" : "ObjectLiteralExpression",
+        "line" : 7
+      },
+      "kind" : "VariableDeclaration",
+      "line" : 7,
+      "name" : "StringEnum"
+    }, {
+      "column" : 1,
+      "expression" : {
+        "column" : 1,
+        "entries" : [ {
+          "key" : "No",
+          "value" : {
+            "column" : 8,
+            "kind" : "NumberLiteral",
+            "line" : 13,
+            "text" : "0"
+          }
+        }, {
+          "key" : "Yes",
+          "value" : {
+            "column" : 9,
+            "kind" : "StringLiteral",
+            "line" : 14,
+            "text" : "YES"
+          }
+        } ],
+        "kind" : "ObjectLiteralExpression",
+        "line" : 12
+      },
+      "kind" : "VariableDeclaration",
+      "line" : 12,
+      "name" : "MixedEnum"
+    }, {
+      "column" : 1,
+      "expression" : {
+        "column" : 1,
+        "entries" : [ {
+          "key" : "None",
+          "value" : {
+            "column" : 10,
+            "kind" : "NumberLiteral",
+            "line" : 18,
+            "text" : "0"
+          }
+        }, {
+          "key" : "Read",
+          "value" : {
+            "column" : 10,
+            "kind" : "NumberLiteral",
+            "line" : 19,
+            "text" : "1"
+          }
+        }, {
+          "key" : "Write",
+          "value" : {
+            "column" : 11,
+            "kind" : "NumberLiteral",
+            "line" : 20,
+            "text" : "2"
+          }
+        } ],
+        "kind" : "ObjectLiteralExpression",
+        "line" : 17
+      },
+      "kind" : "VariableDeclaration",
+      "line" : 17,
+      "name" : "Flags"
+    }, {
+      "column" : 1,
+      "expression" : {
+        "column" : 19,
+        "kind" : "BinaryExpression",
+        "left" : {
+          "column" : 19,
+          "kind" : "MemberAccessExpression",
+          "line" : 23,
+          "member" : "Read",
+          "receiver" : {
+            "column" : 19,
+            "kind" : "VariableExpression",
+            "line" : 23,
+            "name" : "Flags"
+          }
+        },
+        "line" : 23,
+        "operator" : "+",
+        "right" : {
+          "column" : 32,
+          "kind" : "MemberAccessExpression",
+          "line" : 23,
+          "member" : "Write",
+          "receiver" : {
+            "column" : 32,
+            "kind" : "VariableExpression",
+            "line" : 23,
+            "name" : "Flags"
+          }
+        }
+      },
+      "kind" : "VariableDeclaration",
+      "line" : 23,
+      "name" : "maskValue"
+    }, {
+      "column" : 1,
+      "expression" : {
+        "column" : 1,
+        "kind" : "UndefinedLiteral",
+        "line" : 24
+      },
+      "kind" : "ExpressionStatement",
+      "line" : 24
+    } ]
+  },
+  "schemaVersion" : "tsj-backend-token-v1"
+}

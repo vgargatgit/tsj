@@ -1,0 +1,48 @@
+{
+  "diagnostics": [
+    {
+      "code": "TS1003",
+      "message": "Identifier expected.",
+      "span": {
+        "endCol": 13,
+        "endLine": 1,
+        "file": "src/err/e020_bad_import.ts",
+        "startCol": 12,
+        "startLine": 1
+      }
+    },
+    {
+      "code": "TS1005",
+      "message": "'from' expected.",
+      "span": {
+        "endCol": 25,
+        "endLine": 2,
+        "file": "src/err/e020_bad_import.ts",
+        "startCol": 18,
+        "startLine": 2
+      }
+    },
+    {
+      "code": "TS1005",
+      "message": "'=' expected.",
+      "span": {
+        "endCol": 19,
+        "endLine": 3,
+        "file": "src/err/e020_bad_import.ts",
+        "startCol": 18,
+        "startLine": 3
+      }
+    },
+    {
+      "code": "TS1434",
+      "message": "Unexpected keyword or identifier.",
+      "span": {
+        "endCol": 28,
+        "endLine": 3,
+        "file": "src/err/e020_bad_import.ts",
+        "startCol": 24,
+        "startLine": 3
+      }
+    }
+  ]
+}

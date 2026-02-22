@@ -1,0 +1,2198 @@
+{
+  "children": [
+    {
+      "children": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "kind": "Identifier",
+                          "span": {
+                            "endCol": 8,
+                            "endLine": 1,
+                            "file": "src/ok/040_declarations.ts",
+                            "startCol": 6,
+                            "startLine": 1
+                          },
+                          "tokenText": "vx"
+                        }
+                      ],
+                      "kind": "BindingElement",
+                      "span": {
+                        "endCol": 8,
+                        "endLine": 1,
+                        "file": "src/ok/040_declarations.ts",
+                        "startCol": 6,
+                        "startLine": 1
+                      }
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "kind": "Identifier",
+                          "span": {
+                            "endCol": 12,
+                            "endLine": 1,
+                            "file": "src/ok/040_declarations.ts",
+                            "startCol": 10,
+                            "startLine": 1
+                          },
+                          "tokenText": "vy"
+                        }
+                      ],
+                      "kind": "BindingElement",
+                      "span": {
+                        "endCol": 12,
+                        "endLine": 1,
+                        "file": "src/ok/040_declarations.ts",
+                        "startCol": 10,
+                        "startLine": 1
+                      }
+                    }
+                  ],
+                  "kind": "ArrayBindingPattern",
+                  "span": {
+                    "endCol": 13,
+                    "endLine": 1,
+                    "file": "src/ok/040_declarations.ts",
+                    "startCol": 5,
+                    "startLine": 1
+                  }
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "kind": "NumberKeyword",
+                      "span": {
+                        "endCol": 22,
+                        "endLine": 1,
+                        "file": "src/ok/040_declarations.ts",
+                        "startCol": 16,
+                        "startLine": 1
+                      },
+                      "tokenText": "number"
+                    },
+                    {
+                      "children": [],
+                      "kind": "NumberKeyword",
+                      "span": {
+                        "endCol": 30,
+                        "endLine": 1,
+                        "file": "src/ok/040_declarations.ts",
+                        "startCol": 24,
+                        "startLine": 1
+                      },
+                      "tokenText": "number"
+                    }
+                  ],
+                  "kind": "TupleType",
+                  "span": {
+                    "endCol": 31,
+                    "endLine": 1,
+                    "file": "src/ok/040_declarations.ts",
+                    "startCol": 15,
+                    "startLine": 1
+                  }
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "kind": "FirstLiteralToken",
+                      "span": {
+                        "endCol": 36,
+                        "endLine": 1,
+                        "file": "src/ok/040_declarations.ts",
+                        "startCol": 35,
+                        "startLine": 1
+                      },
+                      "tokenText": "1"
+                    },
+                    {
+                      "children": [],
+                      "kind": "FirstLiteralToken",
+                      "span": {
+                        "endCol": 39,
+                        "endLine": 1,
+                        "file": "src/ok/040_declarations.ts",
+                        "startCol": 38,
+                        "startLine": 1
+                      },
+                      "tokenText": "2"
+                    }
+                  ],
+                  "kind": "ArrayLiteralExpression",
+                  "span": {
+                    "endCol": 40,
+                    "endLine": 1,
+                    "file": "src/ok/040_declarations.ts",
+                    "startCol": 34,
+                    "startLine": 1
+                  }
+                }
+              ],
+              "kind": "VariableDeclaration",
+              "span": {
+                "endCol": 40,
+                "endLine": 1,
+                "file": "src/ok/040_declarations.ts",
+                "startCol": 5,
+                "startLine": 1
+              }
+            }
+          ],
+          "kind": "VariableDeclarationList",
+          "span": {
+            "endCol": 40,
+            "endLine": 1,
+            "file": "src/ok/040_declarations.ts",
+            "startCol": 1,
+            "startLine": 1
+          }
+        }
+      ],
+      "kind": "FirstStatement",
+      "span": {
+        "endCol": 41,
+        "endLine": 1,
+        "file": "src/ok/040_declarations.ts",
+        "startCol": 1,
+        "startLine": 1
+      }
+    },
+    {
+      "children": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "kind": "Identifier",
+                          "span": {
+                            "endCol": 9,
+                            "endLine": 2,
+                            "file": "src/ok/040_declarations.ts",
+                            "startCol": 7,
+                            "startLine": 2
+                          },
+                          "tokenText": "lx"
+                        }
+                      ],
+                      "kind": "BindingElement",
+                      "span": {
+                        "endCol": 9,
+                        "endLine": 2,
+                        "file": "src/ok/040_declarations.ts",
+                        "startCol": 7,
+                        "startLine": 2
+                      }
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "kind": "Identifier",
+                          "span": {
+                            "endCol": 13,
+                            "endLine": 2,
+                            "file": "src/ok/040_declarations.ts",
+                            "startCol": 11,
+                            "startLine": 2
+                          },
+                          "tokenText": "ly"
+                        }
+                      ],
+                      "kind": "BindingElement",
+                      "span": {
+                        "endCol": 13,
+                        "endLine": 2,
+                        "file": "src/ok/040_declarations.ts",
+                        "startCol": 11,
+                        "startLine": 2
+                      }
+                    }
+                  ],
+                  "kind": "ObjectBindingPattern",
+                  "span": {
+                    "endCol": 15,
+                    "endLine": 2,
+                    "file": "src/ok/040_declarations.ts",
+                    "startCol": 5,
+                    "startLine": 2
+                  }
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "kind": "Identifier",
+                          "span": {
+                            "endCol": 21,
+                            "endLine": 2,
+                            "file": "src/ok/040_declarations.ts",
+                            "startCol": 19,
+                            "startLine": 2
+                          },
+                          "tokenText": "lx"
+                        },
+                        {
+                          "children": [],
+                          "kind": "NumberKeyword",
+                          "span": {
+                            "endCol": 29,
+                            "endLine": 2,
+                            "file": "src/ok/040_declarations.ts",
+                            "startCol": 23,
+                            "startLine": 2
+                          },
+                          "tokenText": "number"
+                        }
+                      ],
+                      "kind": "PropertySignature",
+                      "span": {
+                        "endCol": 30,
+                        "endLine": 2,
+                        "file": "src/ok/040_declarations.ts",
+                        "startCol": 19,
+                        "startLine": 2
+                      }
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "kind": "Identifier",
+                          "span": {
+                            "endCol": 33,
+                            "endLine": 2,
+                            "file": "src/ok/040_declarations.ts",
+                            "startCol": 31,
+                            "startLine": 2
+                          },
+                          "tokenText": "ly"
+                        },
+                        {
+                          "children": [],
+                          "kind": "NumberKeyword",
+                          "span": {
+                            "endCol": 41,
+                            "endLine": 2,
+                            "file": "src/ok/040_declarations.ts",
+                            "startCol": 35,
+                            "startLine": 2
+                          },
+                          "tokenText": "number"
+                        }
+                      ],
+                      "kind": "PropertySignature",
+                      "span": {
+                        "endCol": 41,
+                        "endLine": 2,
+                        "file": "src/ok/040_declarations.ts",
+                        "startCol": 31,
+                        "startLine": 2
+                      }
+                    }
+                  ],
+                  "kind": "TypeLiteral",
+                  "span": {
+                    "endCol": 43,
+                    "endLine": 2,
+                    "file": "src/ok/040_declarations.ts",
+                    "startCol": 17,
+                    "startLine": 2
+                  }
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "kind": "Identifier",
+                          "span": {
+                            "endCol": 50,
+                            "endLine": 2,
+                            "file": "src/ok/040_declarations.ts",
+                            "startCol": 48,
+                            "startLine": 2
+                          },
+                          "tokenText": "lx"
+                        },
+                        {
+                          "children": [],
+                          "kind": "FirstLiteralToken",
+                          "span": {
+                            "endCol": 53,
+                            "endLine": 2,
+                            "file": "src/ok/040_declarations.ts",
+                            "startCol": 52,
+                            "startLine": 2
+                          },
+                          "tokenText": "3"
+                        }
+                      ],
+                      "kind": "PropertyAssignment",
+                      "span": {
+                        "endCol": 53,
+                        "endLine": 2,
+                        "file": "src/ok/040_declarations.ts",
+                        "startCol": 48,
+                        "startLine": 2
+                      }
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "kind": "Identifier",
+                          "span": {
+                            "endCol": 57,
+                            "endLine": 2,
+                            "file": "src/ok/040_declarations.ts",
+                            "startCol": 55,
+                            "startLine": 2
+                          },
+                          "tokenText": "ly"
+                        },
+                        {
+                          "children": [],
+                          "kind": "FirstLiteralToken",
+                          "span": {
+                            "endCol": 60,
+                            "endLine": 2,
+                            "file": "src/ok/040_declarations.ts",
+                            "startCol": 59,
+                            "startLine": 2
+                          },
+                          "tokenText": "4"
+                        }
+                      ],
+                      "kind": "PropertyAssignment",
+                      "span": {
+                        "endCol": 60,
+                        "endLine": 2,
+                        "file": "src/ok/040_declarations.ts",
+                        "startCol": 55,
+                        "startLine": 2
+                      }
+                    }
+                  ],
+                  "kind": "ObjectLiteralExpression",
+                  "span": {
+                    "endCol": 62,
+                    "endLine": 2,
+                    "file": "src/ok/040_declarations.ts",
+                    "startCol": 46,
+                    "startLine": 2
+                  }
+                }
+              ],
+              "kind": "VariableDeclaration",
+              "span": {
+                "endCol": 62,
+                "endLine": 2,
+                "file": "src/ok/040_declarations.ts",
+                "startCol": 5,
+                "startLine": 2
+              }
+            }
+          ],
+          "kind": "VariableDeclarationList",
+          "span": {
+            "endCol": 62,
+            "endLine": 2,
+            "file": "src/ok/040_declarations.ts",
+            "startCol": 1,
+            "startLine": 2
+          }
+        }
+      ],
+      "kind": "FirstStatement",
+      "span": {
+        "endCol": 63,
+        "endLine": 2,
+        "file": "src/ok/040_declarations.ts",
+        "startCol": 1,
+        "startLine": 2
+      }
+    },
+    {
+      "children": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 9,
+                    "endLine": 3,
+                    "file": "src/ok/040_declarations.ts",
+                    "startCol": 7,
+                    "startLine": 3
+                  },
+                  "tokenText": "cz"
+                },
+                {
+                  "children": [],
+                  "kind": "NumberKeyword",
+                  "span": {
+                    "endCol": 17,
+                    "endLine": 3,
+                    "file": "src/ok/040_declarations.ts",
+                    "startCol": 11,
+                    "startLine": 3
+                  },
+                  "tokenText": "number"
+                },
+                {
+                  "children": [],
+                  "kind": "FirstLiteralToken",
+                  "span": {
+                    "endCol": 21,
+                    "endLine": 3,
+                    "file": "src/ok/040_declarations.ts",
+                    "startCol": 20,
+                    "startLine": 3
+                  },
+                  "tokenText": "5"
+                }
+              ],
+              "kind": "VariableDeclaration",
+              "span": {
+                "endCol": 21,
+                "endLine": 3,
+                "file": "src/ok/040_declarations.ts",
+                "startCol": 7,
+                "startLine": 3
+              }
+            }
+          ],
+          "kind": "VariableDeclarationList",
+          "span": {
+            "endCol": 21,
+            "endLine": 3,
+            "file": "src/ok/040_declarations.ts",
+            "startCol": 1,
+            "startLine": 3
+          }
+        }
+      ],
+      "kind": "FirstStatement",
+      "span": {
+        "endCol": 22,
+        "endLine": 3,
+        "file": "src/ok/040_declarations.ts",
+        "startCol": 1,
+        "startLine": 3
+      }
+    },
+    {
+      "children": [
+        {
+          "children": [],
+          "kind": "Identifier",
+          "span": {
+            "endCol": 20,
+            "endLine": 5,
+            "file": "src/ok/040_declarations.ts",
+            "startCol": 10,
+            "startLine": 5
+          },
+          "tokenText": "overloaded"
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "kind": "Identifier",
+              "span": {
+                "endCol": 26,
+                "endLine": 5,
+                "file": "src/ok/040_declarations.ts",
+                "startCol": 21,
+                "startLine": 5
+              },
+              "tokenText": "value"
+            },
+            {
+              "children": [],
+              "kind": "StringKeyword",
+              "span": {
+                "endCol": 34,
+                "endLine": 5,
+                "file": "src/ok/040_declarations.ts",
+                "startCol": 28,
+                "startLine": 5
+              },
+              "tokenText": "string"
+            }
+          ],
+          "kind": "Parameter",
+          "span": {
+            "endCol": 34,
+            "endLine": 5,
+            "file": "src/ok/040_declarations.ts",
+            "startCol": 21,
+            "startLine": 5
+          }
+        },
+        {
+          "children": [],
+          "kind": "StringKeyword",
+          "span": {
+            "endCol": 43,
+            "endLine": 5,
+            "file": "src/ok/040_declarations.ts",
+            "startCol": 37,
+            "startLine": 5
+          },
+          "tokenText": "string"
+        }
+      ],
+      "kind": "FunctionDeclaration",
+      "span": {
+        "endCol": 44,
+        "endLine": 5,
+        "file": "src/ok/040_declarations.ts",
+        "startCol": 1,
+        "startLine": 5
+      }
+    },
+    {
+      "children": [
+        {
+          "children": [],
+          "kind": "Identifier",
+          "span": {
+            "endCol": 20,
+            "endLine": 6,
+            "file": "src/ok/040_declarations.ts",
+            "startCol": 10,
+            "startLine": 6
+          },
+          "tokenText": "overloaded"
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "kind": "Identifier",
+              "span": {
+                "endCol": 26,
+                "endLine": 6,
+                "file": "src/ok/040_declarations.ts",
+                "startCol": 21,
+                "startLine": 6
+              },
+              "tokenText": "value"
+            },
+            {
+              "children": [],
+              "kind": "NumberKeyword",
+              "span": {
+                "endCol": 34,
+                "endLine": 6,
+                "file": "src/ok/040_declarations.ts",
+                "startCol": 28,
+                "startLine": 6
+              },
+              "tokenText": "number"
+            }
+          ],
+          "kind": "Parameter",
+          "span": {
+            "endCol": 34,
+            "endLine": 6,
+            "file": "src/ok/040_declarations.ts",
+            "startCol": 21,
+            "startLine": 6
+          }
+        },
+        {
+          "children": [],
+          "kind": "NumberKeyword",
+          "span": {
+            "endCol": 43,
+            "endLine": 6,
+            "file": "src/ok/040_declarations.ts",
+            "startCol": 37,
+            "startLine": 6
+          },
+          "tokenText": "number"
+        }
+      ],
+      "kind": "FunctionDeclaration",
+      "span": {
+        "endCol": 44,
+        "endLine": 6,
+        "file": "src/ok/040_declarations.ts",
+        "startCol": 1,
+        "startLine": 6
+      }
+    },
+    {
+      "children": [
+        {
+          "children": [],
+          "kind": "Identifier",
+          "span": {
+            "endCol": 20,
+            "endLine": 7,
+            "file": "src/ok/040_declarations.ts",
+            "startCol": 10,
+            "startLine": 7
+          },
+          "tokenText": "overloaded"
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "kind": "Identifier",
+              "span": {
+                "endCol": 26,
+                "endLine": 7,
+                "file": "src/ok/040_declarations.ts",
+                "startCol": 21,
+                "startLine": 7
+              },
+              "tokenText": "value"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "kind": "StringKeyword",
+                  "span": {
+                    "endCol": 34,
+                    "endLine": 7,
+                    "file": "src/ok/040_declarations.ts",
+                    "startCol": 28,
+                    "startLine": 7
+                  },
+                  "tokenText": "string"
+                },
+                {
+                  "children": [],
+                  "kind": "NumberKeyword",
+                  "span": {
+                    "endCol": 43,
+                    "endLine": 7,
+                    "file": "src/ok/040_declarations.ts",
+                    "startCol": 37,
+                    "startLine": 7
+                  },
+                  "tokenText": "number"
+                }
+              ],
+              "kind": "UnionType",
+              "span": {
+                "endCol": 43,
+                "endLine": 7,
+                "file": "src/ok/040_declarations.ts",
+                "startCol": 28,
+                "startLine": 7
+              }
+            }
+          ],
+          "kind": "Parameter",
+          "span": {
+            "endCol": 43,
+            "endLine": 7,
+            "file": "src/ok/040_declarations.ts",
+            "startCol": 21,
+            "startLine": 7
+          }
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "kind": "StringKeyword",
+              "span": {
+                "endCol": 52,
+                "endLine": 7,
+                "file": "src/ok/040_declarations.ts",
+                "startCol": 46,
+                "startLine": 7
+              },
+              "tokenText": "string"
+            },
+            {
+              "children": [],
+              "kind": "NumberKeyword",
+              "span": {
+                "endCol": 61,
+                "endLine": 7,
+                "file": "src/ok/040_declarations.ts",
+                "startCol": 55,
+                "startLine": 7
+              },
+              "tokenText": "number"
+            }
+          ],
+          "kind": "UnionType",
+          "span": {
+            "endCol": 61,
+            "endLine": 7,
+            "file": "src/ok/040_declarations.ts",
+            "startCol": 46,
+            "startLine": 7
+          }
+        },
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 15,
+                    "endLine": 8,
+                    "file": "src/ok/040_declarations.ts",
+                    "startCol": 10,
+                    "startLine": 8
+                  },
+                  "tokenText": "value"
+                }
+              ],
+              "kind": "ReturnStatement",
+              "span": {
+                "endCol": 16,
+                "endLine": 8,
+                "file": "src/ok/040_declarations.ts",
+                "startCol": 3,
+                "startLine": 8
+              }
+            }
+          ],
+          "kind": "Block",
+          "span": {
+            "endCol": 2,
+            "endLine": 9,
+            "file": "src/ok/040_declarations.ts",
+            "startCol": 62,
+            "startLine": 7
+          }
+        }
+      ],
+      "kind": "FunctionDeclaration",
+      "span": {
+        "endCol": 2,
+        "endLine": 9,
+        "file": "src/ok/040_declarations.ts",
+        "startCol": 1,
+        "startLine": 7
+      }
+    },
+    {
+      "children": [
+        {
+          "children": [],
+          "kind": "Identifier",
+          "span": {
+            "endCol": 22,
+            "endLine": 11,
+            "file": "src/ok/040_declarations.ts",
+            "startCol": 10,
+            "startLine": 11
+          },
+          "tokenText": "withDefaults"
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "kind": "Identifier",
+              "span": {
+                "endCol": 27,
+                "endLine": 11,
+                "file": "src/ok/040_declarations.ts",
+                "startCol": 23,
+                "startLine": 11
+              },
+              "tokenText": "this"
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "kind": "Identifier",
+                      "span": {
+                        "endCol": 37,
+                        "endLine": 11,
+                        "file": "src/ok/040_declarations.ts",
+                        "startCol": 31,
+                        "startLine": 11
+                      },
+                      "tokenText": "factor"
+                    },
+                    {
+                      "children": [],
+                      "kind": "NumberKeyword",
+                      "span": {
+                        "endCol": 45,
+                        "endLine": 11,
+                        "file": "src/ok/040_declarations.ts",
+                        "startCol": 39,
+                        "startLine": 11
+                      },
+                      "tokenText": "number"
+                    }
+                  ],
+                  "kind": "PropertySignature",
+                  "span": {
+                    "endCol": 45,
+                    "endLine": 11,
+                    "file": "src/ok/040_declarations.ts",
+                    "startCol": 31,
+                    "startLine": 11
+                  }
+                }
+              ],
+              "kind": "TypeLiteral",
+              "span": {
+                "endCol": 47,
+                "endLine": 11,
+                "file": "src/ok/040_declarations.ts",
+                "startCol": 29,
+                "startLine": 11
+              }
+            }
+          ],
+          "kind": "Parameter",
+          "span": {
+            "endCol": 47,
+            "endLine": 11,
+            "file": "src/ok/040_declarations.ts",
+            "startCol": 23,
+            "startLine": 11
+          }
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "kind": "Identifier",
+              "span": {
+                "endCol": 54,
+                "endLine": 11,
+                "file": "src/ok/040_declarations.ts",
+                "startCol": 49,
+                "startLine": 11
+              },
+              "tokenText": "value"
+            },
+            {
+              "children": [],
+              "kind": "FirstLiteralToken",
+              "span": {
+                "endCol": 58,
+                "endLine": 11,
+                "file": "src/ok/040_declarations.ts",
+                "startCol": 57,
+                "startLine": 11
+              },
+              "tokenText": "2"
+            }
+          ],
+          "kind": "Parameter",
+          "span": {
+            "endCol": 58,
+            "endLine": 11,
+            "file": "src/ok/040_declarations.ts",
+            "startCol": 49,
+            "startLine": 11
+          }
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "kind": "DotDotDotToken",
+              "span": {
+                "endCol": 63,
+                "endLine": 11,
+                "file": "src/ok/040_declarations.ts",
+                "startCol": 60,
+                "startLine": 11
+              },
+              "tokenText": "..."
+            },
+            {
+              "children": [],
+              "kind": "Identifier",
+              "span": {
+                "endCol": 67,
+                "endLine": 11,
+                "file": "src/ok/040_declarations.ts",
+                "startCol": 63,
+                "startLine": 11
+              },
+              "tokenText": "rest"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "kind": "NumberKeyword",
+                  "span": {
+                    "endCol": 75,
+                    "endLine": 11,
+                    "file": "src/ok/040_declarations.ts",
+                    "startCol": 69,
+                    "startLine": 11
+                  },
+                  "tokenText": "number"
+                }
+              ],
+              "kind": "ArrayType",
+              "span": {
+                "endCol": 77,
+                "endLine": 11,
+                "file": "src/ok/040_declarations.ts",
+                "startCol": 69,
+                "startLine": 11
+              }
+            }
+          ],
+          "kind": "Parameter",
+          "span": {
+            "endCol": 77,
+            "endLine": 11,
+            "file": "src/ok/040_declarations.ts",
+            "startCol": 60,
+            "startLine": 11
+          }
+        },
+        {
+          "children": [],
+          "kind": "NumberKeyword",
+          "span": {
+            "endCol": 86,
+            "endLine": 11,
+            "file": "src/ok/040_declarations.ts",
+            "startCol": 80,
+            "startLine": 11
+          },
+          "tokenText": "number"
+        },
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "kind": "Identifier",
+                          "span": {
+                            "endCol": 14,
+                            "endLine": 12,
+                            "file": "src/ok/040_declarations.ts",
+                            "startCol": 9,
+                            "startLine": 12
+                          },
+                          "tokenText": "total"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "kind": "Identifier",
+                                  "span": {
+                                    "endCol": 21,
+                                    "endLine": 12,
+                                    "file": "src/ok/040_declarations.ts",
+                                    "startCol": 17,
+                                    "startLine": 12
+                                  },
+                                  "tokenText": "rest"
+                                },
+                                {
+                                  "children": [],
+                                  "kind": "Identifier",
+                                  "span": {
+                                    "endCol": 28,
+                                    "endLine": 12,
+                                    "file": "src/ok/040_declarations.ts",
+                                    "startCol": 22,
+                                    "startLine": 12
+                                  },
+                                  "tokenText": "reduce"
+                                }
+                              ],
+                              "kind": "PropertyAccessExpression",
+                              "span": {
+                                "endCol": 28,
+                                "endLine": 12,
+                                "file": "src/ok/040_declarations.ts",
+                                "startCol": 17,
+                                "startLine": 12
+                              }
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "kind": "Identifier",
+                                      "span": {
+                                        "endCol": 33,
+                                        "endLine": 12,
+                                        "file": "src/ok/040_declarations.ts",
+                                        "startCol": 30,
+                                        "startLine": 12
+                                      },
+                                      "tokenText": "sum"
+                                    }
+                                  ],
+                                  "kind": "Parameter",
+                                  "span": {
+                                    "endCol": 33,
+                                    "endLine": 12,
+                                    "file": "src/ok/040_declarations.ts",
+                                    "startCol": 30,
+                                    "startLine": 12
+                                  }
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "kind": "Identifier",
+                                      "span": {
+                                        "endCol": 39,
+                                        "endLine": 12,
+                                        "file": "src/ok/040_declarations.ts",
+                                        "startCol": 35,
+                                        "startLine": 12
+                                      },
+                                      "tokenText": "item"
+                                    }
+                                  ],
+                                  "kind": "Parameter",
+                                  "span": {
+                                    "endCol": 39,
+                                    "endLine": 12,
+                                    "file": "src/ok/040_declarations.ts",
+                                    "startCol": 35,
+                                    "startLine": 12
+                                  }
+                                },
+                                {
+                                  "children": [],
+                                  "kind": "EqualsGreaterThanToken",
+                                  "span": {
+                                    "endCol": 43,
+                                    "endLine": 12,
+                                    "file": "src/ok/040_declarations.ts",
+                                    "startCol": 41,
+                                    "startLine": 12
+                                  },
+                                  "tokenText": "=>"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "kind": "Identifier",
+                                      "span": {
+                                        "endCol": 47,
+                                        "endLine": 12,
+                                        "file": "src/ok/040_declarations.ts",
+                                        "startCol": 44,
+                                        "startLine": 12
+                                      },
+                                      "tokenText": "sum"
+                                    },
+                                    {
+                                      "children": [],
+                                      "kind": "PlusToken",
+                                      "span": {
+                                        "endCol": 49,
+                                        "endLine": 12,
+                                        "file": "src/ok/040_declarations.ts",
+                                        "startCol": 48,
+                                        "startLine": 12
+                                      },
+                                      "tokenText": "+"
+                                    },
+                                    {
+                                      "children": [],
+                                      "kind": "Identifier",
+                                      "span": {
+                                        "endCol": 54,
+                                        "endLine": 12,
+                                        "file": "src/ok/040_declarations.ts",
+                                        "startCol": 50,
+                                        "startLine": 12
+                                      },
+                                      "tokenText": "item"
+                                    }
+                                  ],
+                                  "kind": "BinaryExpression",
+                                  "operator": "+",
+                                  "span": {
+                                    "endCol": 54,
+                                    "endLine": 12,
+                                    "file": "src/ok/040_declarations.ts",
+                                    "startCol": 44,
+                                    "startLine": 12
+                                  }
+                                }
+                              ],
+                              "kind": "ArrowFunction",
+                              "span": {
+                                "endCol": 54,
+                                "endLine": 12,
+                                "file": "src/ok/040_declarations.ts",
+                                "startCol": 29,
+                                "startLine": 12
+                              }
+                            },
+                            {
+                              "children": [],
+                              "kind": "Identifier",
+                              "span": {
+                                "endCol": 61,
+                                "endLine": 12,
+                                "file": "src/ok/040_declarations.ts",
+                                "startCol": 56,
+                                "startLine": 12
+                              },
+                              "tokenText": "value"
+                            }
+                          ],
+                          "kind": "CallExpression",
+                          "span": {
+                            "endCol": 62,
+                            "endLine": 12,
+                            "file": "src/ok/040_declarations.ts",
+                            "startCol": 17,
+                            "startLine": 12
+                          }
+                        }
+                      ],
+                      "kind": "VariableDeclaration",
+                      "span": {
+                        "endCol": 62,
+                        "endLine": 12,
+                        "file": "src/ok/040_declarations.ts",
+                        "startCol": 9,
+                        "startLine": 12
+                      }
+                    }
+                  ],
+                  "kind": "VariableDeclarationList",
+                  "span": {
+                    "endCol": 62,
+                    "endLine": 12,
+                    "file": "src/ok/040_declarations.ts",
+                    "startCol": 3,
+                    "startLine": 12
+                  }
+                }
+              ],
+              "kind": "FirstStatement",
+              "span": {
+                "endCol": 63,
+                "endLine": 12,
+                "file": "src/ok/040_declarations.ts",
+                "startCol": 3,
+                "startLine": 12
+              }
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "kind": "Identifier",
+                      "span": {
+                        "endCol": 15,
+                        "endLine": 13,
+                        "file": "src/ok/040_declarations.ts",
+                        "startCol": 10,
+                        "startLine": 13
+                      },
+                      "tokenText": "total"
+                    },
+                    {
+                      "children": [],
+                      "kind": "AsteriskToken",
+                      "span": {
+                        "endCol": 17,
+                        "endLine": 13,
+                        "file": "src/ok/040_declarations.ts",
+                        "startCol": 16,
+                        "startLine": 13
+                      },
+                      "tokenText": "*"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "kind": "ThisKeyword",
+                          "span": {
+                            "endCol": 22,
+                            "endLine": 13,
+                            "file": "src/ok/040_declarations.ts",
+                            "startCol": 18,
+                            "startLine": 13
+                          },
+                          "tokenText": "this"
+                        },
+                        {
+                          "children": [],
+                          "kind": "Identifier",
+                          "span": {
+                            "endCol": 29,
+                            "endLine": 13,
+                            "file": "src/ok/040_declarations.ts",
+                            "startCol": 23,
+                            "startLine": 13
+                          },
+                          "tokenText": "factor"
+                        }
+                      ],
+                      "kind": "PropertyAccessExpression",
+                      "span": {
+                        "endCol": 29,
+                        "endLine": 13,
+                        "file": "src/ok/040_declarations.ts",
+                        "startCol": 18,
+                        "startLine": 13
+                      }
+                    }
+                  ],
+                  "kind": "BinaryExpression",
+                  "operator": "*",
+                  "span": {
+                    "endCol": 29,
+                    "endLine": 13,
+                    "file": "src/ok/040_declarations.ts",
+                    "startCol": 10,
+                    "startLine": 13
+                  }
+                }
+              ],
+              "kind": "ReturnStatement",
+              "span": {
+                "endCol": 30,
+                "endLine": 13,
+                "file": "src/ok/040_declarations.ts",
+                "startCol": 3,
+                "startLine": 13
+              }
+            }
+          ],
+          "kind": "Block",
+          "span": {
+            "endCol": 2,
+            "endLine": 14,
+            "file": "src/ok/040_declarations.ts",
+            "startCol": 87,
+            "startLine": 11
+          }
+        }
+      ],
+      "kind": "FunctionDeclaration",
+      "span": {
+        "endCol": 2,
+        "endLine": 14,
+        "file": "src/ok/040_declarations.ts",
+        "startCol": 1,
+        "startLine": 11
+      }
+    },
+    {
+      "children": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 15,
+                    "endLine": 16,
+                    "file": "src/ok/040_declarations.ts",
+                    "startCol": 7,
+                    "startLine": 16
+                  },
+                  "tokenText": "identity"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "kind": "Identifier",
+                          "span": {
+                            "endCol": 20,
+                            "endLine": 16,
+                            "file": "src/ok/040_declarations.ts",
+                            "startCol": 19,
+                            "startLine": 16
+                          },
+                          "tokenText": "T"
+                        }
+                      ],
+                      "kind": "TypeParameter",
+                      "span": {
+                        "endCol": 20,
+                        "endLine": 16,
+                        "file": "src/ok/040_declarations.ts",
+                        "startCol": 19,
+                        "startLine": 16
+                      }
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "kind": "Identifier",
+                          "span": {
+                            "endCol": 23,
+                            "endLine": 16,
+                            "file": "src/ok/040_declarations.ts",
+                            "startCol": 22,
+                            "startLine": 16
+                          },
+                          "tokenText": "x"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "kind": "Identifier",
+                              "span": {
+                                "endCol": 26,
+                                "endLine": 16,
+                                "file": "src/ok/040_declarations.ts",
+                                "startCol": 25,
+                                "startLine": 16
+                              },
+                              "tokenText": "T"
+                            }
+                          ],
+                          "kind": "TypeReference",
+                          "span": {
+                            "endCol": 26,
+                            "endLine": 16,
+                            "file": "src/ok/040_declarations.ts",
+                            "startCol": 25,
+                            "startLine": 16
+                          }
+                        }
+                      ],
+                      "kind": "Parameter",
+                      "span": {
+                        "endCol": 26,
+                        "endLine": 16,
+                        "file": "src/ok/040_declarations.ts",
+                        "startCol": 22,
+                        "startLine": 16
+                      }
+                    },
+                    {
+                      "children": [],
+                      "kind": "EqualsGreaterThanToken",
+                      "span": {
+                        "endCol": 30,
+                        "endLine": 16,
+                        "file": "src/ok/040_declarations.ts",
+                        "startCol": 28,
+                        "startLine": 16
+                      },
+                      "tokenText": "=>"
+                    },
+                    {
+                      "children": [],
+                      "kind": "Identifier",
+                      "span": {
+                        "endCol": 32,
+                        "endLine": 16,
+                        "file": "src/ok/040_declarations.ts",
+                        "startCol": 31,
+                        "startLine": 16
+                      },
+                      "tokenText": "x"
+                    }
+                  ],
+                  "kind": "ArrowFunction",
+                  "span": {
+                    "endCol": 32,
+                    "endLine": 16,
+                    "file": "src/ok/040_declarations.ts",
+                    "startCol": 18,
+                    "startLine": 16
+                  }
+                }
+              ],
+              "kind": "VariableDeclaration",
+              "span": {
+                "endCol": 32,
+                "endLine": 16,
+                "file": "src/ok/040_declarations.ts",
+                "startCol": 7,
+                "startLine": 16
+              }
+            }
+          ],
+          "kind": "VariableDeclarationList",
+          "span": {
+            "endCol": 32,
+            "endLine": 16,
+            "file": "src/ok/040_declarations.ts",
+            "startCol": 1,
+            "startLine": 16
+          }
+        }
+      ],
+      "kind": "FirstStatement",
+      "span": {
+        "endCol": 33,
+        "endLine": 16,
+        "file": "src/ok/040_declarations.ts",
+        "startCol": 1,
+        "startLine": 16
+      }
+    },
+    {
+      "children": [
+        {
+          "children": [],
+          "kind": "DeclareKeyword",
+          "span": {
+            "endCol": 8,
+            "endLine": 18,
+            "file": "src/ok/040_declarations.ts",
+            "startCol": 1,
+            "startLine": 18
+          },
+          "tokenText": "declare"
+        },
+        {
+          "children": [],
+          "kind": "Identifier",
+          "span": {
+            "endCol": 28,
+            "endLine": 18,
+            "file": "src/ok/040_declarations.ts",
+            "startCol": 18,
+            "startLine": 18
+          },
+          "tokenText": "declaredFn"
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "kind": "Identifier",
+              "span": {
+                "endCol": 34,
+                "endLine": 18,
+                "file": "src/ok/040_declarations.ts",
+                "startCol": 29,
+                "startLine": 18
+              },
+              "tokenText": "value"
+            },
+            {
+              "children": [],
+              "kind": "StringKeyword",
+              "span": {
+                "endCol": 42,
+                "endLine": 18,
+                "file": "src/ok/040_declarations.ts",
+                "startCol": 36,
+                "startLine": 18
+              },
+              "tokenText": "string"
+            }
+          ],
+          "kind": "Parameter",
+          "span": {
+            "endCol": 42,
+            "endLine": 18,
+            "file": "src/ok/040_declarations.ts",
+            "startCol": 29,
+            "startLine": 18
+          }
+        },
+        {
+          "children": [],
+          "kind": "NumberKeyword",
+          "span": {
+            "endCol": 51,
+            "endLine": 18,
+            "file": "src/ok/040_declarations.ts",
+            "startCol": 45,
+            "startLine": 18
+          },
+          "tokenText": "number"
+        }
+      ],
+      "kind": "FunctionDeclaration",
+      "span": {
+        "endCol": 52,
+        "endLine": 18,
+        "file": "src/ok/040_declarations.ts",
+        "startCol": 1,
+        "startLine": 18
+      }
+    },
+    {
+      "children": [
+        {
+          "children": [],
+          "kind": "DeclareKeyword",
+          "span": {
+            "endCol": 8,
+            "endLine": 19,
+            "file": "src/ok/040_declarations.ts",
+            "startCol": 1,
+            "startLine": 19
+          },
+          "tokenText": "declare"
+        },
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 28,
+                    "endLine": 19,
+                    "file": "src/ok/040_declarations.ts",
+                    "startCol": 15,
+                    "startLine": 19
+                  },
+                  "tokenText": "declaredConst"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "kind": "ReadonlyKeyword",
+                          "span": {
+                            "endCol": 40,
+                            "endLine": 19,
+                            "file": "src/ok/040_declarations.ts",
+                            "startCol": 32,
+                            "startLine": 19
+                          },
+                          "tokenText": "readonly"
+                        },
+                        {
+                          "children": [],
+                          "kind": "Identifier",
+                          "span": {
+                            "endCol": 43,
+                            "endLine": 19,
+                            "file": "src/ok/040_declarations.ts",
+                            "startCol": 41,
+                            "startLine": 19
+                          },
+                          "tokenText": "id"
+                        },
+                        {
+                          "children": [],
+                          "kind": "StringKeyword",
+                          "span": {
+                            "endCol": 51,
+                            "endLine": 19,
+                            "file": "src/ok/040_declarations.ts",
+                            "startCol": 45,
+                            "startLine": 19
+                          },
+                          "tokenText": "string"
+                        }
+                      ],
+                      "kind": "PropertySignature",
+                      "span": {
+                        "endCol": 51,
+                        "endLine": 19,
+                        "file": "src/ok/040_declarations.ts",
+                        "startCol": 32,
+                        "startLine": 19
+                      }
+                    }
+                  ],
+                  "kind": "TypeLiteral",
+                  "span": {
+                    "endCol": 53,
+                    "endLine": 19,
+                    "file": "src/ok/040_declarations.ts",
+                    "startCol": 30,
+                    "startLine": 19
+                  }
+                }
+              ],
+              "kind": "VariableDeclaration",
+              "span": {
+                "endCol": 53,
+                "endLine": 19,
+                "file": "src/ok/040_declarations.ts",
+                "startCol": 15,
+                "startLine": 19
+              }
+            }
+          ],
+          "kind": "VariableDeclarationList",
+          "span": {
+            "endCol": 53,
+            "endLine": 19,
+            "file": "src/ok/040_declarations.ts",
+            "startCol": 9,
+            "startLine": 19
+          }
+        }
+      ],
+      "kind": "FirstStatement",
+      "span": {
+        "endCol": 54,
+        "endLine": 19,
+        "file": "src/ok/040_declarations.ts",
+        "startCol": 1,
+        "startLine": 19
+      }
+    },
+    {
+      "children": [
+        {
+          "children": [],
+          "kind": "DeclareKeyword",
+          "span": {
+            "endCol": 8,
+            "endLine": 20,
+            "file": "src/ok/040_declarations.ts",
+            "startCol": 1,
+            "startLine": 20
+          },
+          "tokenText": "declare"
+        },
+        {
+          "children": [],
+          "kind": "Identifier",
+          "span": {
+            "endCol": 28,
+            "endLine": 20,
+            "file": "src/ok/040_declarations.ts",
+            "startCol": 15,
+            "startLine": 20
+          },
+          "tokenText": "DeclaredClass"
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "kind": "Identifier",
+              "span": {
+                "endCol": 8,
+                "endLine": 21,
+                "file": "src/ok/040_declarations.ts",
+                "startCol": 3,
+                "startLine": 21
+              },
+              "tokenText": "value"
+            },
+            {
+              "children": [],
+              "kind": "NumberKeyword",
+              "span": {
+                "endCol": 16,
+                "endLine": 21,
+                "file": "src/ok/040_declarations.ts",
+                "startCol": 10,
+                "startLine": 21
+              },
+              "tokenText": "number"
+            }
+          ],
+          "kind": "PropertyDeclaration",
+          "span": {
+            "endCol": 17,
+            "endLine": 21,
+            "file": "src/ok/040_declarations.ts",
+            "startCol": 3,
+            "startLine": 21
+          }
+        }
+      ],
+      "kind": "ClassDeclaration",
+      "span": {
+        "endCol": 2,
+        "endLine": 22,
+        "file": "src/ok/040_declarations.ts",
+        "startCol": 1,
+        "startLine": 20
+      }
+    },
+    {
+      "children": [
+        {
+          "children": [],
+          "kind": "Identifier",
+          "span": {
+            "endCol": 14,
+            "endLine": 24,
+            "file": "src/ok/040_declarations.ts",
+            "startCol": 8,
+            "startLine": 24
+          },
+          "tokenText": "legacy"
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "kind": "StringLiteral",
+              "span": {
+                "endCol": 37,
+                "endLine": 24,
+                "file": "src/ok/040_declarations.ts",
+                "startCol": 25,
+                "startLine": 24
+              },
+              "tokenText": "\"legacy-lib\""
+            }
+          ],
+          "kind": "ExternalModuleReference",
+          "span": {
+            "endCol": 38,
+            "endLine": 24,
+            "file": "src/ok/040_declarations.ts",
+            "startCol": 17,
+            "startLine": 24
+          }
+        }
+      ],
+      "kind": "ImportEqualsDeclaration",
+      "span": {
+        "endCol": 39,
+        "endLine": 24,
+        "file": "src/ok/040_declarations.ts",
+        "startCol": 1,
+        "startLine": 24
+      }
+    },
+    {
+      "children": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 20,
+                    "endLine": 25,
+                    "file": "src/ok/040_declarations.ts",
+                    "startCol": 7,
+                    "startLine": 25
+                  },
+                  "tokenText": "declaredShape"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "kind": "Identifier",
+                              "span": {
+                                "endCol": 27,
+                                "endLine": 25,
+                                "file": "src/ok/040_declarations.ts",
+                                "startCol": 25,
+                                "startLine": 25
+                              },
+                              "tokenText": "id"
+                            },
+                            {
+                              "children": [],
+                              "kind": "StringLiteral",
+                              "span": {
+                                "endCol": 33,
+                                "endLine": 25,
+                                "file": "src/ok/040_declarations.ts",
+                                "startCol": 29,
+                                "startLine": 25
+                              },
+                              "tokenText": "\"ok\""
+                            }
+                          ],
+                          "kind": "PropertyAssignment",
+                          "span": {
+                            "endCol": 33,
+                            "endLine": 25,
+                            "file": "src/ok/040_declarations.ts",
+                            "startCol": 25,
+                            "startLine": 25
+                          }
+                        }
+                      ],
+                      "kind": "ObjectLiteralExpression",
+                      "span": {
+                        "endCol": 35,
+                        "endLine": 25,
+                        "file": "src/ok/040_declarations.ts",
+                        "startCol": 23,
+                        "startLine": 25
+                      }
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "kind": "Identifier",
+                              "span": {
+                                "endCol": 50,
+                                "endLine": 25,
+                                "file": "src/ok/040_declarations.ts",
+                                "startCol": 48,
+                                "startLine": 25
+                              },
+                              "tokenText": "id"
+                            },
+                            {
+                              "children": [],
+                              "kind": "StringKeyword",
+                              "span": {
+                                "endCol": 58,
+                                "endLine": 25,
+                                "file": "src/ok/040_declarations.ts",
+                                "startCol": 52,
+                                "startLine": 25
+                              },
+                              "tokenText": "string"
+                            }
+                          ],
+                          "kind": "PropertySignature",
+                          "span": {
+                            "endCol": 58,
+                            "endLine": 25,
+                            "file": "src/ok/040_declarations.ts",
+                            "startCol": 48,
+                            "startLine": 25
+                          }
+                        }
+                      ],
+                      "kind": "TypeLiteral",
+                      "span": {
+                        "endCol": 60,
+                        "endLine": 25,
+                        "file": "src/ok/040_declarations.ts",
+                        "startCol": 46,
+                        "startLine": 25
+                      }
+                    }
+                  ],
+                  "kind": "SatisfiesExpression",
+                  "span": {
+                    "endCol": 60,
+                    "endLine": 25,
+                    "file": "src/ok/040_declarations.ts",
+                    "startCol": 23,
+                    "startLine": 25
+                  }
+                }
+              ],
+              "kind": "VariableDeclaration",
+              "span": {
+                "endCol": 60,
+                "endLine": 25,
+                "file": "src/ok/040_declarations.ts",
+                "startCol": 7,
+                "startLine": 25
+              }
+            }
+          ],
+          "kind": "VariableDeclarationList",
+          "span": {
+            "endCol": 60,
+            "endLine": 25,
+            "file": "src/ok/040_declarations.ts",
+            "startCol": 1,
+            "startLine": 25
+          }
+        }
+      ],
+      "kind": "FirstStatement",
+      "span": {
+        "endCol": 61,
+        "endLine": 25,
+        "file": "src/ok/040_declarations.ts",
+        "startCol": 1,
+        "startLine": 25
+      }
+    },
+    {
+      "children": [
+        {
+          "children": [],
+          "kind": "Identifier",
+          "span": {
+            "endCol": 16,
+            "endLine": 27,
+            "file": "src/ok/040_declarations.ts",
+            "startCol": 10,
+            "startLine": 27
+          },
+          "tokenText": "legacy"
+        }
+      ],
+      "kind": "ExportAssignment",
+      "span": {
+        "endCol": 17,
+        "endLine": 27,
+        "file": "src/ok/040_declarations.ts",
+        "startCol": 1,
+        "startLine": 27
+      }
+    },
+    {
+      "children": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 5,
+                    "endLine": 30,
+                    "file": "src/ok/040_declarations.ts",
+                    "startCol": 3,
+                    "startLine": 30
+                  },
+                  "tokenText": "vx"
+                },
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 5,
+                    "endLine": 31,
+                    "file": "src/ok/040_declarations.ts",
+                    "startCol": 3,
+                    "startLine": 31
+                  },
+                  "tokenText": "vy"
+                },
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 5,
+                    "endLine": 32,
+                    "file": "src/ok/040_declarations.ts",
+                    "startCol": 3,
+                    "startLine": 32
+                  },
+                  "tokenText": "lx"
+                },
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 5,
+                    "endLine": 33,
+                    "file": "src/ok/040_declarations.ts",
+                    "startCol": 3,
+                    "startLine": 33
+                  },
+                  "tokenText": "ly"
+                },
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 5,
+                    "endLine": 34,
+                    "file": "src/ok/040_declarations.ts",
+                    "startCol": 3,
+                    "startLine": 34
+                  },
+                  "tokenText": "cz"
+                },
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 13,
+                    "endLine": 35,
+                    "file": "src/ok/040_declarations.ts",
+                    "startCol": 3,
+                    "startLine": 35
+                  },
+                  "tokenText": "overloaded"
+                },
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 15,
+                    "endLine": 36,
+                    "file": "src/ok/040_declarations.ts",
+                    "startCol": 3,
+                    "startLine": 36
+                  },
+                  "tokenText": "withDefaults"
+                },
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 11,
+                    "endLine": 37,
+                    "file": "src/ok/040_declarations.ts",
+                    "startCol": 3,
+                    "startLine": 37
+                  },
+                  "tokenText": "identity"
+                },
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 13,
+                    "endLine": 38,
+                    "file": "src/ok/040_declarations.ts",
+                    "startCol": 3,
+                    "startLine": 38
+                  },
+                  "tokenText": "declaredFn"
+                },
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 16,
+                    "endLine": 39,
+                    "file": "src/ok/040_declarations.ts",
+                    "startCol": 3,
+                    "startLine": 39
+                  },
+                  "tokenText": "declaredConst"
+                },
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 16,
+                    "endLine": 40,
+                    "file": "src/ok/040_declarations.ts",
+                    "startCol": 3,
+                    "startLine": 40
+                  },
+                  "tokenText": "DeclaredClass"
+                },
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 16,
+                    "endLine": 41,
+                    "file": "src/ok/040_declarations.ts",
+                    "startCol": 3,
+                    "startLine": 41
+                  },
+                  "tokenText": "declaredShape"
+                }
+              ],
+              "kind": "ArrayLiteralExpression",
+              "span": {
+                "endCol": 2,
+                "endLine": 42,
+                "file": "src/ok/040_declarations.ts",
+                "startCol": 6,
+                "startLine": 29
+              }
+            }
+          ],
+          "kind": "VoidExpression",
+          "span": {
+            "endCol": 2,
+            "endLine": 42,
+            "file": "src/ok/040_declarations.ts",
+            "startCol": 1,
+            "startLine": 29
+          }
+        }
+      ],
+      "kind": "ExpressionStatement",
+      "span": {
+        "endCol": 3,
+        "endLine": 42,
+        "file": "src/ok/040_declarations.ts",
+        "startCol": 1,
+        "startLine": 29
+      }
+    },
+    {
+      "children": [],
+      "kind": "EndOfFileToken",
+      "span": {
+        "endCol": 1,
+        "endLine": 43,
+        "file": "src/ok/040_declarations.ts",
+        "startCol": 1,
+        "startLine": 43
+      },
+      "tokenText": ""
+    }
+  ],
+  "kind": "SourceFile",
+  "span": {
+    "endCol": 1,
+    "endLine": 43,
+    "file": "src/ok/040_declarations.ts",
+    "startCol": 1,
+    "startLine": 1
+  }
+}

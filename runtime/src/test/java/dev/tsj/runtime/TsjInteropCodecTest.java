@@ -161,6 +161,76 @@ class TsjInteropCodecTest {
     }
 
     @Test
+    void invokeBindingConvertsNullishArgumentsAcrossStaticInstanceAndPreselectedPaths() {
+        final String className = InteropSample.class.getName();
+        final Object instance = TsjJavaInterop.invokeBinding(className, "$new", 2);
+
+        assertEquals("null", TsjJavaInterop.invokeBinding(className, "nullKind", (Object) null));
+        assertEquals("null", TsjJavaInterop.invokeBinding(className, "nullKind", TsjRuntime.undefined()));
+        assertEquals(
+                "null",
+                TsjJavaInterop.invokeBinding(className, "$instance$nullKindInstance", instance, TsjRuntime.undefined())
+        );
+
+        assertEquals(
+                "null",
+                TsjJavaInterop.invokeBindingPreselected(
+                        className,
+                        "nullKind",
+                        className,
+                        "nullKind",
+                        "(Ljava/lang/Object;)Ljava/lang/String;",
+                        "STATIC_METHOD",
+                        TsjRuntime.undefined()
+                )
+        );
+        assertEquals(
+                "null",
+                TsjJavaInterop.invokeBindingPreselected(
+                        className,
+                        "$instance$nullKindInstance",
+                        className,
+                        "nullKindInstance",
+                        "(Ljava/lang/Object;)Ljava/lang/String;",
+                        "INSTANCE_METHOD",
+                        instance,
+                        TsjRuntime.undefined()
+                )
+        );
+    }
+
+    @Test
+    void invokeBindingPreservesNullLiteralBehaviorForVarargsWithAndWithoutPreselectedTarget() {
+        final String className = InteropSample.class.getName();
+        assertEquals(
+                "prefix:null:<null>:x",
+                TsjJavaInterop.invokeBinding(
+                        className,
+                        "joinNullAware",
+                        "prefix",
+                        null,
+                        TsjRuntime.undefined(),
+                        "x"
+                )
+        );
+        assertEquals(
+                "prefix:null:<null>:x",
+                TsjJavaInterop.invokeBindingPreselected(
+                        className,
+                        "joinNullAware",
+                        className,
+                        "joinNullAware",
+                        "(Ljava/lang/String;[Ljava/lang/String;)Ljava/lang/String;",
+                        "STATIC_METHOD",
+                        "prefix",
+                        null,
+                        TsjRuntime.undefined(),
+                        "x"
+                )
+        );
+    }
+
+    @Test
     void invokeBindingPreselectedRejectsUnknownDescriptorWithDiagnostic() {
         final String className = InteropSample.class.getName();
         final IllegalArgumentException exception = assertThrows(
@@ -409,6 +479,41 @@ class TsjInteropCodecTest {
     }
 
     @Test
+    void invokeBindingUsesWildcardSuperLowerBoundDuringGenericListElementConversion() {
+        final String className = InteropSample.class.getName();
+        final Object result = TsjJavaInterop.invokeBinding(
+                className,
+                "wildcardSuperElementType",
+                TsjRuntime.arrayLiteral("7")
+        );
+        assertEquals("java.lang.Integer:7", result);
+    }
+
+    @Test
+    void invokeBindingRejectsIntersectionTypeVariableWhenSecondaryBoundIsNotSatisfied() {
+        final String className = InteropSample.class.getName();
+        assertEquals(
+                "ok",
+                TsjJavaInterop.invokeBinding(
+                        className,
+                        "requireRunnableAndCloseable",
+                        new RunnableAndCloseableSample()
+                )
+        );
+
+        final IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> TsjJavaInterop.invokeBinding(
+                        className,
+                        "requireRunnableAndCloseable",
+                        (TsjCallable) args -> TsjRuntime.undefined()
+                )
+        );
+        assertTrue(exception.getMessage().contains("No compatible static method"));
+        assertTrue(exception.getMessage().contains("AutoCloseable"));
+    }
+
+    @Test
     void invokeBindingSupportsTsj41cDefaultInterfaceMethodDispatch() {
         final String className = DefaultGreeterImpl.class.getName();
         final Object receiver = TsjJavaInterop.invokeBinding(className, "$new");
@@ -518,8 +623,29 @@ class TsjInteropCodecTest {
             return builder.toString();
         }
 
+        public static String joinNullAware(final String prefix, final String... values) {
+            final StringBuilder builder = new StringBuilder(prefix);
+            for (String value : values) {
+                builder.append(":");
+                if (value == null) {
+                    builder.append("<null>");
+                } else {
+                    builder.append(value);
+                }
+            }
+            return builder.toString();
+        }
+
         public static String needsSample(final InteropSample sample) {
             return sample.describe();
+        }
+
+        public static String nullKind(final Object value) {
+            return value == null ? "null" : value.getClass().getSimpleName();
+        }
+
+        public String nullKindInstance(final Object value) {
+            return value == null ? "null" : value.getClass().getSimpleName();
         }
 
         public static String classify(final List<?> values) {
@@ -606,6 +732,27 @@ class TsjInteropCodecTest {
             return builder.toString();
         }
 
+        public static String wildcardSuperElementType(final List<? super Integer> values) {
+            if (values.isEmpty()) {
+                return "empty";
+            }
+            final Object first = values.get(0);
+            if (first == null) {
+                return "null";
+            }
+            return first.getClass().getName() + ":" + first;
+        }
+
+        public static <T extends Runnable & AutoCloseable> String requireRunnableAndCloseable(final T callback) {
+            callback.run();
+            try {
+                callback.close();
+            } catch (final Exception exception) {
+                throw new IllegalStateException(exception);
+            }
+            return "ok";
+        }
+
         public static int applyOperator(final IntUnaryOperator operator, final int seed) {
             return operator.applyAsInt(seed);
         }
@@ -645,6 +792,18 @@ class TsjInteropCodecTest {
     public static final class RestrictedInteropSample {
         static String hiddenStatic() {
             return "hidden";
+        }
+    }
+
+    public static final class RunnableAndCloseableSample implements Runnable, AutoCloseable {
+        @Override
+        public void run() {
+            // no-op
+        }
+
+        @Override
+        public void close() {
+            // no-op
         }
     }
 }

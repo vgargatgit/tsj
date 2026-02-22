@@ -1,0 +1,308 @@
+{
+  "astNodes" : [ {
+    "column" : 1,
+    "endColumn" : 1,
+    "endLine" : 9,
+    "kind" : "SourceFile",
+    "line" : 1
+  }, {
+    "column" : 1,
+    "endColumn" : 5,
+    "endLine" : 3,
+    "kind" : "FunctionDeclaration",
+    "line" : 1
+  }, {
+    "column" : 10,
+    "endColumn" : 15,
+    "endLine" : 1,
+    "kind" : "Identifier",
+    "line" : 1
+  }, {
+    "column" : 17,
+    "endColumn" : 5,
+    "endLine" : 3,
+    "kind" : "Parameter",
+    "line" : 1
+  }, {
+    "column" : 17,
+    "endColumn" : 5,
+    "endLine" : 3,
+    "kind" : "ObjectBindingPattern",
+    "line" : 1
+  }, {
+    "column" : 3,
+    "endColumn" : 17,
+    "endLine" : 2,
+    "kind" : "BindingElement",
+    "line" : 2
+  }, {
+    "column" : 3,
+    "endColumn" : 8,
+    "endLine" : 2,
+    "kind" : "Identifier",
+    "line" : 2
+  }, {
+    "column" : 9,
+    "endColumn" : 10,
+    "endLine" : 2,
+    "kind" : "Identifier",
+    "line" : 2
+  }, {
+    "column" : 13,
+    "endColumn" : 17,
+    "endLine" : 2,
+    "kind" : "BinaryExpression",
+    "line" : 2
+  }, {
+    "column" : 13,
+    "endColumn" : 16,
+    "endLine" : 2,
+    "kind" : "BinaryExpression",
+    "line" : 2
+  }, {
+    "column" : 12,
+    "endColumn" : 12,
+    "endLine" : 2,
+    "kind" : "Identifier",
+    "line" : 2
+  }, {
+    "column" : 13,
+    "endColumn" : 16,
+    "endLine" : 2,
+    "kind" : "GreaterThanGreaterThanGreaterThanToken",
+    "line" : 2
+  }, {
+    "column" : 16,
+    "endColumn" : 16,
+    "endLine" : 2,
+    "kind" : "Identifier",
+    "line" : 2
+  }, {
+    "column" : 16,
+    "endColumn" : 17,
+    "endLine" : 2,
+    "kind" : "GreaterThanToken",
+    "line" : 2
+  }, {
+    "column" : 17,
+    "endColumn" : 17,
+    "endLine" : 2,
+    "kind" : "Identifier",
+    "line" : 2
+  }, {
+    "column" : 3,
+    "endColumn" : 5,
+    "endLine" : 3,
+    "kind" : "BindingElement",
+    "line" : 3
+  }, {
+    "column" : 3,
+    "endColumn" : 5,
+    "endLine" : 3,
+    "kind" : "Identifier",
+    "line" : 3
+  }, {
+    "column" : 5,
+    "endColumn" : 5,
+    "endLine" : 3,
+    "kind" : "Identifier",
+    "line" : 3
+  }, {
+    "column" : 5,
+    "endColumn" : 5,
+    "endLine" : 3,
+    "kind" : "Block",
+    "line" : 3
+  }, {
+    "column" : 6,
+    "endColumn" : 11,
+    "endLine" : 3,
+    "kind" : "ExpressionStatement",
+    "line" : 3
+  }, {
+    "column" : 6,
+    "endColumn" : 11,
+    "endLine" : 3,
+    "kind" : "ParenthesizedExpression",
+    "line" : 3
+  }, {
+    "column" : 7,
+    "endColumn" : 11,
+    "endLine" : 3,
+    "kind" : "ParenthesizedExpression",
+    "line" : 3
+  }, {
+    "column" : 8,
+    "endColumn" : 10,
+    "endLine" : 3,
+    "kind" : "ParenthesizedExpression",
+    "line" : 3
+  }, {
+    "column" : 9,
+    "endColumn" : 9,
+    "endLine" : 3,
+    "kind" : "Identifier",
+    "line" : 3
+  }, {
+    "column" : 12,
+    "endColumn" : 4,
+    "endLine" : 5,
+    "kind" : "Block",
+    "line" : 3
+  }, {
+    "column" : 5,
+    "endColumn" : 15,
+    "endLine" : 4,
+    "kind" : "ReturnStatement",
+    "line" : 4
+  }, {
+    "column" : 12,
+    "endColumn" : 15,
+    "endLine" : 4,
+    "kind" : "ConditionalExpression",
+    "line" : 4
+  }, {
+    "column" : 12,
+    "endColumn" : 14,
+    "endLine" : 4,
+    "kind" : "BinaryExpression",
+    "line" : 4
+  }, {
+    "column" : 11,
+    "endColumn" : 11,
+    "endLine" : 4,
+    "kind" : "Identifier",
+    "line" : 4
+  }, {
+    "column" : 12,
+    "endColumn" : 14,
+    "endLine" : 4,
+    "kind" : "QuestionQuestionToken",
+    "line" : 4
+  }, {
+    "column" : 14,
+    "endColumn" : 14,
+    "endLine" : 4,
+    "kind" : "Identifier",
+    "line" : 4
+  }, {
+    "column" : 14,
+    "endColumn" : 15,
+    "endLine" : 4,
+    "kind" : "QuestionToken",
+    "line" : 4
+  }, {
+    "column" : 15,
+    "endColumn" : 15,
+    "endLine" : 4,
+    "kind" : "Identifier",
+    "line" : 4
+  }, {
+    "column" : 15,
+    "endColumn" : 15,
+    "endLine" : 4,
+    "kind" : "ColonToken",
+    "line" : 4
+  }, {
+    "column" : 15,
+    "endColumn" : 15,
+    "endLine" : 4,
+    "kind" : "Identifier",
+    "line" : 4
+  }, {
+    "column" : 1,
+    "endColumn" : 16,
+    "endLine" : 8,
+    "kind" : "FirstStatement",
+    "line" : 8
+  }, {
+    "column" : 1,
+    "endColumn" : 15,
+    "endLine" : 8,
+    "kind" : "VariableDeclarationList",
+    "line" : 8
+  }, {
+    "column" : 7,
+    "endColumn" : 15,
+    "endLine" : 8,
+    "kind" : "VariableDeclaration",
+    "line" : 8
+  }, {
+    "column" : 7,
+    "endColumn" : 11,
+    "endLine" : 8,
+    "kind" : "Identifier",
+    "line" : 8
+  }, {
+    "column" : 14,
+    "endColumn" : 15,
+    "endLine" : 8,
+    "kind" : "FirstLiteralToken",
+    "line" : 8
+  }, {
+    "column" : 1,
+    "endColumn" : 1,
+    "endLine" : 9,
+    "kind" : "EndOfFileToken",
+    "line" : 9
+  } ],
+  "diagnostics" : [ {
+    "code" : "TS1005",
+    "column" : 9,
+    "line" : 2,
+    "message" : "':' expected."
+  }, {
+    "code" : "TS1109",
+    "column" : 13,
+    "line" : 2,
+    "message" : "Expression expected."
+  }, {
+    "code" : "TS1109",
+    "column" : 16,
+    "line" : 2,
+    "message" : "Expression expected."
+  }, {
+    "code" : "TS1109",
+    "column" : 17,
+    "line" : 2,
+    "message" : "Expression expected."
+  }, {
+    "code" : "TS1005",
+    "column" : 6,
+    "line" : 3,
+    "message" : "':' expected."
+  }, {
+    "code" : "TS1109",
+    "column" : 9,
+    "line" : 3,
+    "message" : "Expression expected."
+  }, {
+    "code" : "TS1005",
+    "column" : 12,
+    "line" : 3,
+    "message" : "')' expected."
+  }, {
+    "code" : "TS1109",
+    "column" : 12,
+    "line" : 4,
+    "message" : "Expression expected."
+  }, {
+    "code" : "TS1109",
+    "column" : 14,
+    "line" : 4,
+    "message" : "Expression expected."
+  }, {
+    "code" : "TS1109",
+    "column" : 3,
+    "line" : 5,
+    "message" : "Expression expected."
+  }, {
+    "code" : "TS1128",
+    "column" : 1,
+    "line" : 6,
+    "message" : "Declaration or statement expected."
+  } ],
+  "fixture" : "err/e900_recovery_stress.ts",
+  "normalizedProgram" : null,
+  "schemaVersion" : "tsj-backend-token-v1"
+}

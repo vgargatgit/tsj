@@ -203,6 +203,30 @@ class InteropBridgeGeneratorTest {
     }
 
     @Test
+    void bindingArgsNullRespectsNonNullParameterNullabilityDuringSelection() throws Exception {
+        final String fixtureClass = "dev.tsj.compiler.backend.jvm.fixtures.InteropNullabilityFixtureType";
+        final Path specFile = tempDir.resolve("interop-tsj49-nonnull.properties");
+        Files.writeString(
+                specFile,
+                """
+                allowlist=%s#requireNonNull
+                targets=%s#requireNonNull
+                bindingArgs.requireNonNull=null
+                """.formatted(fixtureClass, fixtureClass),
+                UTF_8
+        );
+
+        final JvmCompilationException exception = org.junit.jupiter.api.Assertions.assertThrows(
+                JvmCompilationException.class,
+                () -> new InteropBridgeGenerator().generate(specFile, tempDir.resolve("out-tsj49-nonnull"))
+        );
+
+        assertEquals("TSJ-INTEROP-INVALID", exception.code());
+        assertTrue(exception.getMessage().contains("requireNonNull"));
+        assertTrue(exception.getMessage().contains("nullability"));
+    }
+
+    @Test
     void rejectsUnknownTsj29BindingPrefixInInteropSpec() throws Exception {
         final Path specFile = tempDir.resolve("interop-tsj29-invalid.properties");
         Files.writeString(

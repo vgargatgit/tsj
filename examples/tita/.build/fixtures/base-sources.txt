@@ -1,0 +1,16 @@
+/mnt/d/coding/tsj/examples/tita/fixtures-src/base/dev/tita/fixtures/Base.java
+/mnt/d/coding/tsj/examples/tita/fixtures-src/base/dev/tita/fixtures/Bean.java
+/mnt/d/coding/tsj/examples/tita/fixtures-src/base/dev/tita/fixtures/Conflict.java
+/mnt/d/coding/tsj/examples/tita/fixtures-src/base/dev/tita/fixtures/CovariantBase.java
+/mnt/d/coding/tsj/examples/tita/fixtures-src/base/dev/tita/fixtures/CovariantDerived.java
+/mnt/d/coding/tsj/examples/tita/fixtures-src/base/dev/tita/fixtures/Derived.java
+/mnt/d/coding/tsj/examples/tita/fixtures-src/base/dev/tita/fixtures/Generics.java
+/mnt/d/coding/tsj/examples/tita/fixtures-src/base/dev/tita/fixtures/MyFn.java
+/mnt/d/coding/tsj/examples/tita/fixtures-src/base/dev/tita/fixtures/Overloads.java
+/mnt/d/coding/tsj/examples/tita/fixtures-src/base/dev/tita/fixtures/SamRunner.java
+/mnt/d/coding/tsj/examples/tita/fixtures-src/base/dev/tita/fixtures/mr/MrPick.java
+/mnt/d/coding/tsj/examples/tita/fixtures-src/base/dev/tita/fixtures/package-info.java
+/mnt/d/coding/tsj/examples/tita/fixtures-src/base/javax/annotation/Nullable.java
+/mnt/d/coding/tsj/examples/tita/fixtures-src/base/javax/annotation/ParametersAreNonnullByDefault.java
+/mnt/d/coding/tsj/examples/tita/fixtures-src/base/org/jetbrains/annotations/NotNull.java
+/mnt/d/coding/tsj/examples/tita/fixtures-src/base/org/jetbrains/annotations/Nullable.java

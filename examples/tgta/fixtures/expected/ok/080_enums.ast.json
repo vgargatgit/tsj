@@ -1,0 +1,697 @@
+{
+  "children": [
+    {
+      "children": [
+        {
+          "children": [],
+          "kind": "Identifier",
+          "span": {
+            "endCol": 17,
+            "endLine": 1,
+            "file": "src/ok/080_enums.ts",
+            "startCol": 6,
+            "startLine": 1
+          },
+          "tokenText": "NumericEnum"
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "kind": "Identifier",
+              "span": {
+                "endCol": 8,
+                "endLine": 2,
+                "file": "src/ok/080_enums.ts",
+                "startCol": 3,
+                "startLine": 2
+              },
+              "tokenText": "First"
+            }
+          ],
+          "kind": "EnumMember",
+          "span": {
+            "endCol": 8,
+            "endLine": 2,
+            "file": "src/ok/080_enums.ts",
+            "startCol": 3,
+            "startLine": 2
+          }
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "kind": "Identifier",
+              "span": {
+                "endCol": 9,
+                "endLine": 3,
+                "file": "src/ok/080_enums.ts",
+                "startCol": 3,
+                "startLine": 3
+              },
+              "tokenText": "Second"
+            },
+            {
+              "children": [],
+              "kind": "FirstLiteralToken",
+              "span": {
+                "endCol": 13,
+                "endLine": 3,
+                "file": "src/ok/080_enums.ts",
+                "startCol": 12,
+                "startLine": 3
+              },
+              "tokenText": "4"
+            }
+          ],
+          "kind": "EnumMember",
+          "span": {
+            "endCol": 13,
+            "endLine": 3,
+            "file": "src/ok/080_enums.ts",
+            "startCol": 3,
+            "startLine": 3
+          }
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "kind": "Identifier",
+              "span": {
+                "endCol": 8,
+                "endLine": 4,
+                "file": "src/ok/080_enums.ts",
+                "startCol": 3,
+                "startLine": 4
+              },
+              "tokenText": "Third"
+            }
+          ],
+          "kind": "EnumMember",
+          "span": {
+            "endCol": 8,
+            "endLine": 4,
+            "file": "src/ok/080_enums.ts",
+            "startCol": 3,
+            "startLine": 4
+          }
+        }
+      ],
+      "kind": "EnumDeclaration",
+      "span": {
+        "endCol": 2,
+        "endLine": 5,
+        "file": "src/ok/080_enums.ts",
+        "startCol": 1,
+        "startLine": 1
+      }
+    },
+    {
+      "children": [
+        {
+          "children": [],
+          "kind": "Identifier",
+          "span": {
+            "endCol": 16,
+            "endLine": 7,
+            "file": "src/ok/080_enums.ts",
+            "startCol": 6,
+            "startLine": 7
+          },
+          "tokenText": "StringEnum"
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "kind": "Identifier",
+              "span": {
+                "endCol": 5,
+                "endLine": 8,
+                "file": "src/ok/080_enums.ts",
+                "startCol": 3,
+                "startLine": 8
+              },
+              "tokenText": "Up"
+            },
+            {
+              "children": [],
+              "kind": "StringLiteral",
+              "span": {
+                "endCol": 12,
+                "endLine": 8,
+                "file": "src/ok/080_enums.ts",
+                "startCol": 8,
+                "startLine": 8
+              },
+              "tokenText": "\"UP\""
+            }
+          ],
+          "kind": "EnumMember",
+          "span": {
+            "endCol": 12,
+            "endLine": 8,
+            "file": "src/ok/080_enums.ts",
+            "startCol": 3,
+            "startLine": 8
+          }
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "kind": "Identifier",
+              "span": {
+                "endCol": 7,
+                "endLine": 9,
+                "file": "src/ok/080_enums.ts",
+                "startCol": 3,
+                "startLine": 9
+              },
+              "tokenText": "Down"
+            },
+            {
+              "children": [],
+              "kind": "StringLiteral",
+              "span": {
+                "endCol": 16,
+                "endLine": 9,
+                "file": "src/ok/080_enums.ts",
+                "startCol": 10,
+                "startLine": 9
+              },
+              "tokenText": "\"DOWN\""
+            }
+          ],
+          "kind": "EnumMember",
+          "span": {
+            "endCol": 16,
+            "endLine": 9,
+            "file": "src/ok/080_enums.ts",
+            "startCol": 3,
+            "startLine": 9
+          }
+        }
+      ],
+      "kind": "EnumDeclaration",
+      "span": {
+        "endCol": 2,
+        "endLine": 10,
+        "file": "src/ok/080_enums.ts",
+        "startCol": 1,
+        "startLine": 7
+      }
+    },
+    {
+      "children": [
+        {
+          "children": [],
+          "kind": "Identifier",
+          "span": {
+            "endCol": 15,
+            "endLine": 12,
+            "file": "src/ok/080_enums.ts",
+            "startCol": 6,
+            "startLine": 12
+          },
+          "tokenText": "MixedEnum"
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "kind": "Identifier",
+              "span": {
+                "endCol": 5,
+                "endLine": 13,
+                "file": "src/ok/080_enums.ts",
+                "startCol": 3,
+                "startLine": 13
+              },
+              "tokenText": "No"
+            },
+            {
+              "children": [],
+              "kind": "FirstLiteralToken",
+              "span": {
+                "endCol": 9,
+                "endLine": 13,
+                "file": "src/ok/080_enums.ts",
+                "startCol": 8,
+                "startLine": 13
+              },
+              "tokenText": "0"
+            }
+          ],
+          "kind": "EnumMember",
+          "span": {
+            "endCol": 9,
+            "endLine": 13,
+            "file": "src/ok/080_enums.ts",
+            "startCol": 3,
+            "startLine": 13
+          }
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "kind": "Identifier",
+              "span": {
+                "endCol": 6,
+                "endLine": 14,
+                "file": "src/ok/080_enums.ts",
+                "startCol": 3,
+                "startLine": 14
+              },
+              "tokenText": "Yes"
+            },
+            {
+              "children": [],
+              "kind": "StringLiteral",
+              "span": {
+                "endCol": 14,
+                "endLine": 14,
+                "file": "src/ok/080_enums.ts",
+                "startCol": 9,
+                "startLine": 14
+              },
+              "tokenText": "\"YES\""
+            }
+          ],
+          "kind": "EnumMember",
+          "span": {
+            "endCol": 14,
+            "endLine": 14,
+            "file": "src/ok/080_enums.ts",
+            "startCol": 3,
+            "startLine": 14
+          }
+        }
+      ],
+      "kind": "EnumDeclaration",
+      "span": {
+        "endCol": 2,
+        "endLine": 15,
+        "file": "src/ok/080_enums.ts",
+        "startCol": 1,
+        "startLine": 12
+      }
+    },
+    {
+      "children": [
+        {
+          "children": [],
+          "kind": "ConstKeyword",
+          "span": {
+            "endCol": 6,
+            "endLine": 17,
+            "file": "src/ok/080_enums.ts",
+            "startCol": 1,
+            "startLine": 17
+          },
+          "tokenText": "const"
+        },
+        {
+          "children": [],
+          "kind": "Identifier",
+          "span": {
+            "endCol": 17,
+            "endLine": 17,
+            "file": "src/ok/080_enums.ts",
+            "startCol": 12,
+            "startLine": 17
+          },
+          "tokenText": "Flags"
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "kind": "Identifier",
+              "span": {
+                "endCol": 7,
+                "endLine": 18,
+                "file": "src/ok/080_enums.ts",
+                "startCol": 3,
+                "startLine": 18
+              },
+              "tokenText": "None"
+            },
+            {
+              "children": [],
+              "kind": "FirstLiteralToken",
+              "span": {
+                "endCol": 11,
+                "endLine": 18,
+                "file": "src/ok/080_enums.ts",
+                "startCol": 10,
+                "startLine": 18
+              },
+              "tokenText": "0"
+            }
+          ],
+          "kind": "EnumMember",
+          "span": {
+            "endCol": 11,
+            "endLine": 18,
+            "file": "src/ok/080_enums.ts",
+            "startCol": 3,
+            "startLine": 18
+          }
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "kind": "Identifier",
+              "span": {
+                "endCol": 7,
+                "endLine": 19,
+                "file": "src/ok/080_enums.ts",
+                "startCol": 3,
+                "startLine": 19
+              },
+              "tokenText": "Read"
+            },
+            {
+              "children": [],
+              "kind": "FirstLiteralToken",
+              "span": {
+                "endCol": 11,
+                "endLine": 19,
+                "file": "src/ok/080_enums.ts",
+                "startCol": 10,
+                "startLine": 19
+              },
+              "tokenText": "1"
+            }
+          ],
+          "kind": "EnumMember",
+          "span": {
+            "endCol": 11,
+            "endLine": 19,
+            "file": "src/ok/080_enums.ts",
+            "startCol": 3,
+            "startLine": 19
+          }
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "kind": "Identifier",
+              "span": {
+                "endCol": 8,
+                "endLine": 20,
+                "file": "src/ok/080_enums.ts",
+                "startCol": 3,
+                "startLine": 20
+              },
+              "tokenText": "Write"
+            },
+            {
+              "children": [],
+              "kind": "FirstLiteralToken",
+              "span": {
+                "endCol": 12,
+                "endLine": 20,
+                "file": "src/ok/080_enums.ts",
+                "startCol": 11,
+                "startLine": 20
+              },
+              "tokenText": "2"
+            }
+          ],
+          "kind": "EnumMember",
+          "span": {
+            "endCol": 12,
+            "endLine": 20,
+            "file": "src/ok/080_enums.ts",
+            "startCol": 3,
+            "startLine": 20
+          }
+        }
+      ],
+      "kind": "EnumDeclaration",
+      "span": {
+        "endCol": 2,
+        "endLine": 21,
+        "file": "src/ok/080_enums.ts",
+        "startCol": 1,
+        "startLine": 17
+      }
+    },
+    {
+      "children": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 16,
+                    "endLine": 23,
+                    "file": "src/ok/080_enums.ts",
+                    "startCol": 7,
+                    "startLine": 23
+                  },
+                  "tokenText": "maskValue"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "kind": "Identifier",
+                          "span": {
+                            "endCol": 24,
+                            "endLine": 23,
+                            "file": "src/ok/080_enums.ts",
+                            "startCol": 19,
+                            "startLine": 23
+                          },
+                          "tokenText": "Flags"
+                        },
+                        {
+                          "children": [],
+                          "kind": "Identifier",
+                          "span": {
+                            "endCol": 29,
+                            "endLine": 23,
+                            "file": "src/ok/080_enums.ts",
+                            "startCol": 25,
+                            "startLine": 23
+                          },
+                          "tokenText": "Read"
+                        }
+                      ],
+                      "kind": "PropertyAccessExpression",
+                      "span": {
+                        "endCol": 29,
+                        "endLine": 23,
+                        "file": "src/ok/080_enums.ts",
+                        "startCol": 19,
+                        "startLine": 23
+                      }
+                    },
+                    {
+                      "children": [],
+                      "kind": "BarToken",
+                      "span": {
+                        "endCol": 31,
+                        "endLine": 23,
+                        "file": "src/ok/080_enums.ts",
+                        "startCol": 30,
+                        "startLine": 23
+                      },
+                      "tokenText": "|"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "kind": "Identifier",
+                          "span": {
+                            "endCol": 37,
+                            "endLine": 23,
+                            "file": "src/ok/080_enums.ts",
+                            "startCol": 32,
+                            "startLine": 23
+                          },
+                          "tokenText": "Flags"
+                        },
+                        {
+                          "children": [],
+                          "kind": "Identifier",
+                          "span": {
+                            "endCol": 43,
+                            "endLine": 23,
+                            "file": "src/ok/080_enums.ts",
+                            "startCol": 38,
+                            "startLine": 23
+                          },
+                          "tokenText": "Write"
+                        }
+                      ],
+                      "kind": "PropertyAccessExpression",
+                      "span": {
+                        "endCol": 43,
+                        "endLine": 23,
+                        "file": "src/ok/080_enums.ts",
+                        "startCol": 32,
+                        "startLine": 23
+                      }
+                    }
+                  ],
+                  "kind": "BinaryExpression",
+                  "operator": "|",
+                  "span": {
+                    "endCol": 43,
+                    "endLine": 23,
+                    "file": "src/ok/080_enums.ts",
+                    "startCol": 19,
+                    "startLine": 23
+                  }
+                }
+              ],
+              "kind": "VariableDeclaration",
+              "span": {
+                "endCol": 43,
+                "endLine": 23,
+                "file": "src/ok/080_enums.ts",
+                "startCol": 7,
+                "startLine": 23
+              }
+            }
+          ],
+          "kind": "VariableDeclarationList",
+          "span": {
+            "endCol": 43,
+            "endLine": 23,
+            "file": "src/ok/080_enums.ts",
+            "startCol": 1,
+            "startLine": 23
+          }
+        }
+      ],
+      "kind": "FirstStatement",
+      "span": {
+        "endCol": 44,
+        "endLine": 23,
+        "file": "src/ok/080_enums.ts",
+        "startCol": 1,
+        "startLine": 23
+      }
+    },
+    {
+      "children": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 18,
+                    "endLine": 24,
+                    "file": "src/ok/080_enums.ts",
+                    "startCol": 7,
+                    "startLine": 24
+                  },
+                  "tokenText": "NumericEnum"
+                },
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 30,
+                    "endLine": 24,
+                    "file": "src/ok/080_enums.ts",
+                    "startCol": 20,
+                    "startLine": 24
+                  },
+                  "tokenText": "StringEnum"
+                },
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 41,
+                    "endLine": 24,
+                    "file": "src/ok/080_enums.ts",
+                    "startCol": 32,
+                    "startLine": 24
+                  },
+                  "tokenText": "MixedEnum"
+                },
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 52,
+                    "endLine": 24,
+                    "file": "src/ok/080_enums.ts",
+                    "startCol": 43,
+                    "startLine": 24
+                  },
+                  "tokenText": "maskValue"
+                }
+              ],
+              "kind": "ArrayLiteralExpression",
+              "span": {
+                "endCol": 53,
+                "endLine": 24,
+                "file": "src/ok/080_enums.ts",
+                "startCol": 6,
+                "startLine": 24
+              }
+            }
+          ],
+          "kind": "VoidExpression",
+          "span": {
+            "endCol": 53,
+            "endLine": 24,
+            "file": "src/ok/080_enums.ts",
+            "startCol": 1,
+            "startLine": 24
+          }
+        }
+      ],
+      "kind": "ExpressionStatement",
+      "span": {
+        "endCol": 54,
+        "endLine": 24,
+        "file": "src/ok/080_enums.ts",
+        "startCol": 1,
+        "startLine": 24
+      }
+    },
+    {
+      "children": [],
+      "kind": "EndOfFileToken",
+      "span": {
+        "endCol": 1,
+        "endLine": 25,
+        "file": "src/ok/080_enums.ts",
+        "startCol": 1,
+        "startLine": 25
+      },
+      "tokenText": ""
+    }
+  ],
+  "kind": "SourceFile",
+  "span": {
+    "endCol": 1,
+    "endLine": 25,
+    "file": "src/ok/080_enums.ts",
+    "startCol": 1,
+    "startLine": 1
+  }
+}

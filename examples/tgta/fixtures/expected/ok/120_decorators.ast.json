@@ -1,0 +1,673 @@
+{
+  "children": [
+    {
+      "children": [
+        {
+          "children": [],
+          "kind": "Identifier",
+          "span": {
+            "endCol": 13,
+            "endLine": 1,
+            "file": "src/ok/120_decorators.ts",
+            "startCol": 10,
+            "startLine": 1
+          },
+          "tokenText": "dec"
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "kind": "DotDotDotToken",
+              "span": {
+                "endCol": 17,
+                "endLine": 1,
+                "file": "src/ok/120_decorators.ts",
+                "startCol": 14,
+                "startLine": 1
+              },
+              "tokenText": "..."
+            },
+            {
+              "children": [],
+              "kind": "Identifier",
+              "span": {
+                "endCol": 22,
+                "endLine": 1,
+                "file": "src/ok/120_decorators.ts",
+                "startCol": 17,
+                "startLine": 1
+              },
+              "tokenText": "_args"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "kind": "UnknownKeyword",
+                  "span": {
+                    "endCol": 31,
+                    "endLine": 1,
+                    "file": "src/ok/120_decorators.ts",
+                    "startCol": 24,
+                    "startLine": 1
+                  },
+                  "tokenText": "unknown"
+                }
+              ],
+              "kind": "ArrayType",
+              "span": {
+                "endCol": 33,
+                "endLine": 1,
+                "file": "src/ok/120_decorators.ts",
+                "startCol": 24,
+                "startLine": 1
+              }
+            }
+          ],
+          "kind": "Parameter",
+          "span": {
+            "endCol": 33,
+            "endLine": 1,
+            "file": "src/ok/120_decorators.ts",
+            "startCol": 14,
+            "startLine": 1
+          }
+        },
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "kind": "Identifier",
+                      "span": {
+                        "endCol": 34,
+                        "endLine": 2,
+                        "file": "src/ok/120_decorators.ts",
+                        "startCol": 19,
+                        "startLine": 2
+                      },
+                      "tokenText": "decoratorTarget"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "kind": "DotDotDotToken",
+                          "span": {
+                            "endCol": 38,
+                            "endLine": 2,
+                            "file": "src/ok/120_decorators.ts",
+                            "startCol": 35,
+                            "startLine": 2
+                          },
+                          "tokenText": "..."
+                        },
+                        {
+                          "children": [],
+                          "kind": "Identifier",
+                          "span": {
+                            "endCol": 43,
+                            "endLine": 2,
+                            "file": "src/ok/120_decorators.ts",
+                            "startCol": 38,
+                            "startLine": 2
+                          },
+                          "tokenText": "inner"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "kind": "UnknownKeyword",
+                              "span": {
+                                "endCol": 52,
+                                "endLine": 2,
+                                "file": "src/ok/120_decorators.ts",
+                                "startCol": 45,
+                                "startLine": 2
+                              },
+                              "tokenText": "unknown"
+                            }
+                          ],
+                          "kind": "ArrayType",
+                          "span": {
+                            "endCol": 54,
+                            "endLine": 2,
+                            "file": "src/ok/120_decorators.ts",
+                            "startCol": 45,
+                            "startLine": 2
+                          }
+                        }
+                      ],
+                      "kind": "Parameter",
+                      "span": {
+                        "endCol": 54,
+                        "endLine": 2,
+                        "file": "src/ok/120_decorators.ts",
+                        "startCol": 35,
+                        "startLine": 2
+                      }
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "kind": "Identifier",
+                                  "span": {
+                                    "endCol": 17,
+                                    "endLine": 3,
+                                    "file": "src/ok/120_decorators.ts",
+                                    "startCol": 12,
+                                    "startLine": 3
+                                  },
+                                  "tokenText": "inner"
+                                },
+                                {
+                                  "children": [],
+                                  "kind": "FirstLiteralToken",
+                                  "span": {
+                                    "endCol": 19,
+                                    "endLine": 3,
+                                    "file": "src/ok/120_decorators.ts",
+                                    "startCol": 18,
+                                    "startLine": 3
+                                  },
+                                  "tokenText": "0"
+                                }
+                              ],
+                              "kind": "ElementAccessExpression",
+                              "span": {
+                                "endCol": 20,
+                                "endLine": 3,
+                                "file": "src/ok/120_decorators.ts",
+                                "startCol": 12,
+                                "startLine": 3
+                              }
+                            }
+                          ],
+                          "kind": "ReturnStatement",
+                          "span": {
+                            "endCol": 21,
+                            "endLine": 3,
+                            "file": "src/ok/120_decorators.ts",
+                            "startCol": 5,
+                            "startLine": 3
+                          }
+                        }
+                      ],
+                      "kind": "Block",
+                      "span": {
+                        "endCol": 4,
+                        "endLine": 4,
+                        "file": "src/ok/120_decorators.ts",
+                        "startCol": 56,
+                        "startLine": 2
+                      }
+                    }
+                  ],
+                  "kind": "FunctionExpression",
+                  "span": {
+                    "endCol": 4,
+                    "endLine": 4,
+                    "file": "src/ok/120_decorators.ts",
+                    "startCol": 10,
+                    "startLine": 2
+                  }
+                }
+              ],
+              "kind": "ReturnStatement",
+              "span": {
+                "endCol": 5,
+                "endLine": 4,
+                "file": "src/ok/120_decorators.ts",
+                "startCol": 3,
+                "startLine": 2
+              }
+            }
+          ],
+          "kind": "Block",
+          "span": {
+            "endCol": 2,
+            "endLine": 5,
+            "file": "src/ok/120_decorators.ts",
+            "startCol": 35,
+            "startLine": 1
+          }
+        }
+      ],
+      "kind": "FunctionDeclaration",
+      "span": {
+        "endCol": 2,
+        "endLine": 5,
+        "file": "src/ok/120_decorators.ts",
+        "startCol": 1,
+        "startLine": 1
+      }
+    },
+    {
+      "children": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 5,
+                    "endLine": 7,
+                    "file": "src/ok/120_decorators.ts",
+                    "startCol": 2,
+                    "startLine": 7
+                  },
+                  "tokenText": "dec"
+                }
+              ],
+              "kind": "CallExpression",
+              "span": {
+                "endCol": 7,
+                "endLine": 7,
+                "file": "src/ok/120_decorators.ts",
+                "startCol": 2,
+                "startLine": 7
+              }
+            }
+          ],
+          "kind": "Decorator",
+          "span": {
+            "endCol": 7,
+            "endLine": 7,
+            "file": "src/ok/120_decorators.ts",
+            "startCol": 1,
+            "startLine": 7
+          }
+        },
+        {
+          "children": [],
+          "kind": "Identifier",
+          "span": {
+            "endCol": 21,
+            "endLine": 8,
+            "file": "src/ok/120_decorators.ts",
+            "startCol": 7,
+            "startLine": 8
+          },
+          "tokenText": "DecoratedClass"
+        },
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "kind": "Identifier",
+                      "span": {
+                        "endCol": 7,
+                        "endLine": 9,
+                        "file": "src/ok/120_decorators.ts",
+                        "startCol": 4,
+                        "startLine": 9
+                      },
+                      "tokenText": "dec"
+                    }
+                  ],
+                  "kind": "CallExpression",
+                  "span": {
+                    "endCol": 9,
+                    "endLine": 9,
+                    "file": "src/ok/120_decorators.ts",
+                    "startCol": 4,
+                    "startLine": 9
+                  }
+                }
+              ],
+              "kind": "Decorator",
+              "span": {
+                "endCol": 9,
+                "endLine": 9,
+                "file": "src/ok/120_decorators.ts",
+                "startCol": 3,
+                "startLine": 9
+              }
+            },
+            {
+              "children": [],
+              "kind": "AccessorKeyword",
+              "span": {
+                "endCol": 11,
+                "endLine": 10,
+                "file": "src/ok/120_decorators.ts",
+                "startCol": 3,
+                "startLine": 10
+              },
+              "tokenText": "accessor"
+            },
+            {
+              "children": [],
+              "kind": "Identifier",
+              "span": {
+                "endCol": 17,
+                "endLine": 10,
+                "file": "src/ok/120_decorators.ts",
+                "startCol": 12,
+                "startLine": 10
+              },
+              "tokenText": "value"
+            },
+            {
+              "children": [],
+              "kind": "NumberKeyword",
+              "span": {
+                "endCol": 25,
+                "endLine": 10,
+                "file": "src/ok/120_decorators.ts",
+                "startCol": 19,
+                "startLine": 10
+              },
+              "tokenText": "number"
+            },
+            {
+              "children": [],
+              "kind": "FirstLiteralToken",
+              "span": {
+                "endCol": 29,
+                "endLine": 10,
+                "file": "src/ok/120_decorators.ts",
+                "startCol": 28,
+                "startLine": 10
+              },
+              "tokenText": "1"
+            }
+          ],
+          "kind": "PropertyDeclaration",
+          "span": {
+            "endCol": 30,
+            "endLine": 10,
+            "file": "src/ok/120_decorators.ts",
+            "startCol": 3,
+            "startLine": 9
+          }
+        },
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "kind": "Identifier",
+                      "span": {
+                        "endCol": 7,
+                        "endLine": 12,
+                        "file": "src/ok/120_decorators.ts",
+                        "startCol": 4,
+                        "startLine": 12
+                      },
+                      "tokenText": "dec"
+                    }
+                  ],
+                  "kind": "CallExpression",
+                  "span": {
+                    "endCol": 9,
+                    "endLine": 12,
+                    "file": "src/ok/120_decorators.ts",
+                    "startCol": 4,
+                    "startLine": 12
+                  }
+                }
+              ],
+              "kind": "Decorator",
+              "span": {
+                "endCol": 9,
+                "endLine": 12,
+                "file": "src/ok/120_decorators.ts",
+                "startCol": 3,
+                "startLine": 12
+              }
+            },
+            {
+              "children": [],
+              "kind": "Identifier",
+              "span": {
+                "endCol": 9,
+                "endLine": 13,
+                "file": "src/ok/120_decorators.ts",
+                "startCol": 3,
+                "startLine": 13
+              },
+              "tokenText": "method"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 15,
+                    "endLine": 13,
+                    "file": "src/ok/120_decorators.ts",
+                    "startCol": 10,
+                    "startLine": 13
+                  },
+                  "tokenText": "input"
+                },
+                {
+                  "children": [],
+                  "kind": "NumberKeyword",
+                  "span": {
+                    "endCol": 23,
+                    "endLine": 13,
+                    "file": "src/ok/120_decorators.ts",
+                    "startCol": 17,
+                    "startLine": 13
+                  },
+                  "tokenText": "number"
+                }
+              ],
+              "kind": "Parameter",
+              "span": {
+                "endCol": 23,
+                "endLine": 13,
+                "file": "src/ok/120_decorators.ts",
+                "startCol": 10,
+                "startLine": 13
+              }
+            },
+            {
+              "children": [],
+              "kind": "NumberKeyword",
+              "span": {
+                "endCol": 32,
+                "endLine": 13,
+                "file": "src/ok/120_decorators.ts",
+                "startCol": 26,
+                "startLine": 13
+              },
+              "tokenText": "number"
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "kind": "Identifier",
+                          "span": {
+                            "endCol": 17,
+                            "endLine": 14,
+                            "file": "src/ok/120_decorators.ts",
+                            "startCol": 12,
+                            "startLine": 14
+                          },
+                          "tokenText": "input"
+                        },
+                        {
+                          "children": [],
+                          "kind": "PlusToken",
+                          "span": {
+                            "endCol": 19,
+                            "endLine": 14,
+                            "file": "src/ok/120_decorators.ts",
+                            "startCol": 18,
+                            "startLine": 14
+                          },
+                          "tokenText": "+"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "kind": "ThisKeyword",
+                              "span": {
+                                "endCol": 24,
+                                "endLine": 14,
+                                "file": "src/ok/120_decorators.ts",
+                                "startCol": 20,
+                                "startLine": 14
+                              },
+                              "tokenText": "this"
+                            },
+                            {
+                              "children": [],
+                              "kind": "Identifier",
+                              "span": {
+                                "endCol": 30,
+                                "endLine": 14,
+                                "file": "src/ok/120_decorators.ts",
+                                "startCol": 25,
+                                "startLine": 14
+                              },
+                              "tokenText": "value"
+                            }
+                          ],
+                          "kind": "PropertyAccessExpression",
+                          "span": {
+                            "endCol": 30,
+                            "endLine": 14,
+                            "file": "src/ok/120_decorators.ts",
+                            "startCol": 20,
+                            "startLine": 14
+                          }
+                        }
+                      ],
+                      "kind": "BinaryExpression",
+                      "operator": "+",
+                      "span": {
+                        "endCol": 30,
+                        "endLine": 14,
+                        "file": "src/ok/120_decorators.ts",
+                        "startCol": 12,
+                        "startLine": 14
+                      }
+                    }
+                  ],
+                  "kind": "ReturnStatement",
+                  "span": {
+                    "endCol": 31,
+                    "endLine": 14,
+                    "file": "src/ok/120_decorators.ts",
+                    "startCol": 5,
+                    "startLine": 14
+                  }
+                }
+              ],
+              "kind": "Block",
+              "span": {
+                "endCol": 4,
+                "endLine": 15,
+                "file": "src/ok/120_decorators.ts",
+                "startCol": 33,
+                "startLine": 13
+              }
+            }
+          ],
+          "kind": "MethodDeclaration",
+          "span": {
+            "endCol": 4,
+            "endLine": 15,
+            "file": "src/ok/120_decorators.ts",
+            "startCol": 3,
+            "startLine": 12
+          }
+        }
+      ],
+      "kind": "ClassDeclaration",
+      "span": {
+        "endCol": 2,
+        "endLine": 16,
+        "file": "src/ok/120_decorators.ts",
+        "startCol": 1,
+        "startLine": 7
+      }
+    },
+    {
+      "children": [
+        {
+          "children": [
+            {
+              "children": [],
+              "kind": "Identifier",
+              "span": {
+                "endCol": 20,
+                "endLine": 18,
+                "file": "src/ok/120_decorators.ts",
+                "startCol": 6,
+                "startLine": 18
+              },
+              "tokenText": "DecoratedClass"
+            }
+          ],
+          "kind": "VoidExpression",
+          "span": {
+            "endCol": 20,
+            "endLine": 18,
+            "file": "src/ok/120_decorators.ts",
+            "startCol": 1,
+            "startLine": 18
+          }
+        }
+      ],
+      "kind": "ExpressionStatement",
+      "span": {
+        "endCol": 21,
+        "endLine": 18,
+        "file": "src/ok/120_decorators.ts",
+        "startCol": 1,
+        "startLine": 18
+      }
+    },
+    {
+      "children": [],
+      "kind": "EndOfFileToken",
+      "span": {
+        "endCol": 1,
+        "endLine": 19,
+        "file": "src/ok/120_decorators.ts",
+        "startCol": 1,
+        "startLine": 19
+      },
+      "tokenText": ""
+    }
+  ],
+  "kind": "SourceFile",
+  "span": {
+    "endCol": 1,
+    "endLine": 19,
+    "file": "src/ok/120_decorators.ts",
+    "startCol": 1,
+    "startLine": 1
+  }
+}

@@ -1,12 +1,20 @@
 package dev.tsj.compiler.backend.jvm;
 
+import com.fasterxml.jackson.databind.JsonNode;
+
 import javax.tools.Diagnostic;
 import javax.tools.DiagnosticCollector;
 import javax.tools.JavaCompiler;
 import javax.tools.JavaFileObject;
 import javax.tools.StandardJavaFileManager;
 import javax.tools.ToolProvider;
+import java.io.File;
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -18,6 +26,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Stream;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -42,16 +51,25 @@ public final class JvmBytecodeCompiler {
     private static final Pattern INTEROP_MODULE_PATTERN = Pattern.compile(
             "^java:([A-Za-z_$][A-Za-z0-9_$]*(?:\\.[A-Za-z_$][A-Za-z0-9_$]*)*)$"
     );
-    private static final Pattern DECORATOR_LINE_PATTERN = Pattern.compile(
-            "^\\s*@([A-Za-z_$][A-Za-z0-9_$]*)(?:\\(.*\\))?\\s*$"
-    );
-    private static final Set<String> TSJ34_SUPPORTED_DECORATORS =
-            new TsDecoratorAnnotationMapping().supportedDecoratorNames();
     private static final Set<String> KEYWORDS = Set.of(
             "function", "const", "let", "var", "if", "else", "while", "return",
             "true", "false", "null", "for", "export", "import", "from",
             "class", "extends", "this", "super", "new", "undefined",
-            "async", "await", "throw", "delete", "break", "continue"
+            "async", "await", "throw", "delete", "break", "continue", "do"
+    );
+    private static final Set<String> IMPLICIT_GLOBAL_BUILTINS = Set.of(
+            "Error",
+            "Object",
+            "Symbol",
+            "Reflect",
+            "Array",
+            "String",
+            "Number",
+            "Boolean",
+            "BigInt",
+            "Math",
+            "Date",
+            "RegExp"
     );
     private static final Set<String> JAVA_KEYWORDS = Set.of(
             "abstract", "assert", "boolean", "break", "byte", "case", "catch", "char",
@@ -76,6 +94,7 @@ public final class JvmBytecodeCompiler {
     private static final String ASYNC_CONTINUE_SIGNAL_FIELD = "__TSJ_ASYNC_CONTINUE_SIGNAL";
     private static final String TOP_LEVEL_CLASS_MAP_FIELD = "__TSJ_TOP_LEVEL_CLASSES";
     private static final String BOOTSTRAP_GUARD_FIELD = "__TSJ_BOOTSTRAPPED";
+    private static final String UNDEFINED_BUILTIN_CELL_FIELD = "UNDEFINED_BUILTIN_CELL";
     private static final String GUIDANCE_DYNAMIC_IMPORT =
             "Use static relative imports (`import { x } from \"./m.ts\"`) in TSJ MVP.";
     private static final String GUIDANCE_EVAL =
@@ -94,6 +113,8 @@ public final class JvmBytecodeCompiler {
             "Use `java:<fully.qualified.ClassName>` (without method names in the module specifier).";
     private static final String GUIDANCE_INTEROP_BINDING =
             "Interop bindings must be valid identifiers, for example `{ max, min as minimum }`.";
+    private static final String LEGACY_TOKENIZER_PROPERTY = "tsj.backend.legacyTokenizer";
+    private static final String AST_NO_FALLBACK_PROPERTY = "tsj.backend.astNoFallback";
 
     private static final String OUTPUT_PACKAGE = "dev.tsj.generated";
 
@@ -125,12 +146,16 @@ public final class JvmBytecodeCompiler {
             );
         }
 
-        final BundleResult bundleResult = bundleModules(normalizedSource);
-        final String sourceText = preprocessTsj34Decorators(bundleResult.sourceText());
-
-        final Parser parser = new Parser(tokenize(sourceText), bundleResult);
-        final Program parsedProgram = parser.parseProgram();
-        final Map<Statement, SourceLocation> parsedStatementLocations = parser.statementLocations();
+        final ParseResult parseResult;
+        if (fileName.endsWith(".d.ts")) {
+            parseResult = new ParseResult(new Program(List.of()), Map.of());
+        } else {
+            final BundleResult bundleResult = bundleModules(normalizedSource);
+            final String sourceText = preprocessTsj34Decorators(bundleResult.sourceText());
+            parseResult = parseProgram(sourceText, normalizedSource, bundleResult);
+        }
+        final Program parsedProgram = parseResult.program();
+        final Map<Statement, SourceLocation> parsedStatementLocations = parseResult.statementLocations();
         final ProgramOptimizationResult optimizationResult = new ProgramOptimizer(
                 optimizationOptions,
                 parsedStatementLocations
@@ -190,16 +215,6 @@ public final class JvmBytecodeCompiler {
             final String line = lines[index];
             final String trimmed = line.trim();
             if (trimmed.startsWith("@")) {
-                final Matcher decoratorMatcher = DECORATOR_LINE_PATTERN.matcher(trimmed);
-                if (!decoratorMatcher.matches()
-                        || !TSJ34_SUPPORTED_DECORATORS.contains(decoratorMatcher.group(1))) {
-                    throw new JvmCompilationException(
-                            "TSJ-BACKEND-UNSUPPORTED",
-                            "Unsupported decorator syntax in TSJ-34 subset: " + trimmed,
-                            index + 1,
-                            1
-                    );
-                }
                 builder.append("// TSJ-34 decorator stripped for backend parser");
             } else {
                 builder.append(stripInlineParameterDecorators(line));
@@ -478,70 +493,123 @@ public final class JvmBytecodeCompiler {
         final String[] lines = sourceText.replace("\r\n", "\n").split("\n", -1);
         for (int index = 0; index < lines.length; index++) {
             final String line = lines[index];
-            final Matcher namedImportMatcher = NAMED_IMPORT_PATTERN.matcher(line);
-            final Matcher defaultImportMatcher = DEFAULT_IMPORT_PATTERN.matcher(line);
-            final Matcher namespaceImportMatcher = NAMESPACE_IMPORT_PATTERN.matcher(line);
-            final Matcher sideEffectImportMatcher = SIDE_EFFECT_IMPORT_PATTERN.matcher(line);
+            final String trimmedLine = line.trim();
+            if (trimmedLine.startsWith("import type ")) {
+                final ImportStatement importStatement = collectImportStatement(lines, index);
+                index = importStatement.endLineIndex();
+                continue;
+            }
+            if (trimmedLine.startsWith("export type ")) {
+                final ImportStatement exportTypeStatement = collectImportStatement(lines, index);
+                index = exportTypeStatement.endLineIndex();
+                continue;
+            }
+            final String importCandidate;
+            final int importStartLine;
+            final int importEndIndex;
+            if (trimmedLine.startsWith("import ")) {
+                importStartLine = index + 1;
+                final ImportStatement importStatement = collectImportStatement(lines, index);
+                importCandidate = importStatement.canonicalStatement();
+                importEndIndex = importStatement.endLineIndex();
+            } else {
+                importCandidate = line;
+                importStartLine = index + 1;
+                importEndIndex = index;
+            }
+
+            final Matcher namedImportMatcher = NAMED_IMPORT_PATTERN.matcher(importCandidate);
+            final Matcher defaultImportMatcher = DEFAULT_IMPORT_PATTERN.matcher(importCandidate);
+            final Matcher namespaceImportMatcher = NAMESPACE_IMPORT_PATTERN.matcher(importCandidate);
+            final Matcher sideEffectImportMatcher = SIDE_EFFECT_IMPORT_PATTERN.matcher(importCandidate);
             if (namedImportMatcher.matches()) {
                 final String importPath = namedImportMatcher.group(2);
                 if (isInteropImportPath(importPath)) {
                     imports.add(
                             ModuleImport.interop(
-                                    parseInteropClassName(importPath, normalizedModule, index + 1),
+                                    parseInteropClassName(importPath, normalizedModule, importStartLine),
                                     parseNamedImportBindings(
                                             namedImportMatcher.group(1),
                                             normalizedModule,
-                                            index + 1,
+                                            importStartLine,
                                             FEATURE_INTEROP_BINDING,
                                             GUIDANCE_INTEROP_BINDING
                                     ),
-                                    index + 1
+                                    importStartLine
                             )
                     );
+                    index = importEndIndex;
                     continue;
                 }
-                final Path dependency = resolveImport(normalizedModule, importPath, index + 1);
+                final List<ImportBinding> parsedBindings =
+                        parseNamedImportBindings(namedImportMatcher.group(1), normalizedModule, importStartLine);
+                if (parsedBindings.isEmpty()) {
+                    index = importEndIndex;
+                    continue;
+                }
+                if (!importPath.startsWith(".")) {
+                    bodyLines.add(importCandidate);
+                    bodyLineNumbers.add(importStartLine);
+                    index = importEndIndex;
+                    continue;
+                }
+                final Path dependency = resolveImport(normalizedModule, importPath, importStartLine);
                 collectModule(dependency, orderedModules, visiting);
                 imports.add(
                         ModuleImport.named(
                                 dependency,
-                                parseNamedImportBindings(namedImportMatcher.group(1), normalizedModule, index + 1),
-                                index + 1
+                                parsedBindings,
+                                importStartLine
                         )
                 );
+                index = importEndIndex;
                 continue;
             }
             if (defaultImportMatcher.matches()) {
-                if (isInteropImportPath(defaultImportMatcher.group(2))) {
+                final String importPath = defaultImportMatcher.group(2);
+                if (isInteropImportPath(importPath)) {
                     throw unsupportedModuleFeature(
                             normalizedModule,
-                            index + 1,
+                            importStartLine,
                             FEATURE_INTEROP_SYNTAX,
                             "Java interop imports do not support default bindings in TSJ-26.",
                             GUIDANCE_INTEROP_SYNTAX
                     );
                 }
+                if (!importPath.startsWith(".")) {
+                    bodyLines.add(importCandidate);
+                    bodyLineNumbers.add(importStartLine);
+                    index = importEndIndex;
+                    continue;
+                }
                 throw unsupportedModuleFeature(
                         normalizedModule,
-                        index + 1,
+                        importStartLine,
                         FEATURE_IMPORT_DEFAULT,
                         "Default imports are unsupported in current TSJ module subset.",
                         GUIDANCE_IMPORT_DEFAULT
                 );
             }
             if (namespaceImportMatcher.matches()) {
-                if (isInteropImportPath(namespaceImportMatcher.group(2))) {
+                final String importPath = namespaceImportMatcher.group(2);
+                if (isInteropImportPath(importPath)) {
                     throw unsupportedModuleFeature(
                             normalizedModule,
-                            index + 1,
+                            importStartLine,
                             FEATURE_INTEROP_SYNTAX,
                             "Java interop imports do not support namespace bindings in TSJ-26.",
                             GUIDANCE_INTEROP_SYNTAX
                     );
                 }
+                if (!importPath.startsWith(".")) {
+                    bodyLines.add(importCandidate);
+                    bodyLineNumbers.add(importStartLine);
+                    index = importEndIndex;
+                    continue;
+                }
                 throw unsupportedModuleFeature(
                         normalizedModule,
-                        index + 1,
+                        importStartLine,
                         FEATURE_IMPORT_NAMESPACE,
                         "Namespace imports are unsupported in current TSJ module subset.",
                         GUIDANCE_IMPORT_NAMESPACE
@@ -552,26 +620,33 @@ public final class JvmBytecodeCompiler {
                 if (isInteropImportPath(importPath)) {
                     throw unsupportedModuleFeature(
                             normalizedModule,
-                            index + 1,
+                            importStartLine,
                             FEATURE_INTEROP_SYNTAX,
                             "Java interop imports must declare named bindings in TSJ-26.",
                             GUIDANCE_INTEROP_SYNTAX
                     );
                 }
-                final Path dependency = resolveImport(normalizedModule, importPath, index + 1);
+                if (!importPath.startsWith(".")) {
+                    bodyLines.add(importCandidate);
+                    bodyLineNumbers.add(importStartLine);
+                    index = importEndIndex;
+                    continue;
+                }
+                final Path dependency = resolveImport(normalizedModule, importPath, importStartLine);
                 collectModule(dependency, orderedModules, visiting);
-                imports.add(ModuleImport.sideEffect(dependency, index + 1));
+                imports.add(ModuleImport.sideEffect(dependency, importStartLine));
+                index = importEndIndex;
                 continue;
             }
-            if (line.trim().startsWith("import ")) {
-                throw new JvmCompilationException(
-                        "TSJ-BACKEND-UNSUPPORTED",
-                        "Unsupported import form in TSJ-12 bootstrap: " + line.trim(),
-                        index + 1,
-                        1
-                );
+            if (trimmedLine.startsWith("import ")) {
+                bodyLines.add(importCandidate);
+                bodyLineNumbers.add(importStartLine);
+                index = importEndIndex;
+                continue;
             }
-            final ExportRewrite exportRewrite = rewriteExportLine(line, index + 1);
+            final ExportRewrite exportRewrite = isLikelyTopLevelLine(line)
+                    ? rewriteExportLine(line, index + 1)
+                    : null;
             if (exportRewrite != null) {
                 bodyLines.add(exportRewrite.rewrittenLine());
                 bodyLineNumbers.add(index + 1);
@@ -620,6 +695,9 @@ public final class JvmBytecodeCompiler {
             if (trimmed.isEmpty()) {
                 continue;
             }
+            if (trimmed.startsWith("type ")) {
+                continue;
+            }
             final String importedName;
             final String localName;
             if (trimmed.contains(" as ")) {
@@ -655,16 +733,12 @@ public final class JvmBytecodeCompiler {
         if (!trimmed.startsWith("export ")) {
             return null;
         }
-        if (trimmed.startsWith("export default")) {
-            throw new JvmCompilationException(
-                    "TSJ-BACKEND-UNSUPPORTED",
-                    "Unsupported export form in TSJ-22 subset: " + trimmed,
-                    lineNumber,
-                    1
-            );
+        final List<String> exportedNames = parseExportedNames(trimmed, lineNumber);
+        if (exportedNames.isEmpty()) {
+            return new ExportRewrite(line, List.of());
         }
         final String rewrittenLine = line.replaceFirst("^(\\s*)export\\s+", "$1");
-        return new ExportRewrite(rewrittenLine, parseExportedNames(trimmed, lineNumber));
+        return new ExportRewrite(rewrittenLine, exportedNames);
     }
 
     private static List<String> parseExportedNames(final String trimmedExportLine, final int lineNumber) {
@@ -696,33 +770,18 @@ public final class JvmBytecodeCompiler {
                     ? declarations.substring(0, equalsIndex).trim()
                     : declarations;
             if (declarationHead.contains(",")) {
-                throw new JvmCompilationException(
-                        "TSJ-BACKEND-UNSUPPORTED",
-                        "Multi-binding export declarations are unsupported in TSJ-22 subset: " + trimmedExportLine,
-                        lineNumber,
-                        1
-                );
+                return List.of();
             }
             final int typeIndex = declarationHead.indexOf(':');
             if (typeIndex >= 0) {
                 declarationHead = declarationHead.substring(0, typeIndex).trim();
             }
             if (!isValidTsIdentifier(declarationHead)) {
-                throw new JvmCompilationException(
-                        "TSJ-BACKEND-UNSUPPORTED",
-                        "Unsupported export declaration in TSJ-22 subset: " + trimmedExportLine,
-                        lineNumber,
-                        1
-                );
+                return List.of();
             }
             return List.of(declarationHead);
         }
-        throw new JvmCompilationException(
-                "TSJ-BACKEND-UNSUPPORTED",
-                "Unsupported export form in TSJ-22 subset: " + trimmedExportLine,
-                lineNumber,
-                1
-        );
+        return List.of();
     }
 
     private static String exportGlobalSymbol(final int moduleIndex, final String exportName) {
@@ -856,6 +915,30 @@ public final class JvmBytecodeCompiler {
         return Pattern.compile("(^|\\W)await(\\W|$)").matcher(line).find();
     }
 
+    private static boolean isLikelyTopLevelLine(final String line) {
+        if (line == null || line.isBlank()) {
+            return false;
+        }
+        return !Character.isWhitespace(line.charAt(0));
+    }
+
+    private static ImportStatement collectImportStatement(final String[] lines, final int startIndex) {
+        final StringBuilder builder = new StringBuilder();
+        int endIndex = startIndex;
+        while (true) {
+            if (builder.length() > 0) {
+                builder.append(' ');
+            }
+            builder.append(lines[endIndex].trim());
+            if (lines[endIndex].contains(";") || endIndex + 1 >= lines.length) {
+                break;
+            }
+            endIndex++;
+        }
+        final String canonical = builder.toString().replaceAll("\\s+", " ").trim();
+        return new ImportStatement(canonical, endIndex);
+    }
+
     private static Path resolveImport(final Path sourceFile, final String importPath, final int line) {
         if (!importPath.startsWith(".")) {
             throw new JvmCompilationException(
@@ -903,9 +986,14 @@ public final class JvmBytecodeCompiler {
 
         final DiagnosticCollector<JavaFileObject> diagnostics = new DiagnosticCollector<>();
         try (StandardJavaFileManager fileManager = compiler.getStandardFileManager(diagnostics, Locale.ROOT, UTF_8)) {
+            final List<Path> compilationSources = new ArrayList<>();
+            compilationSources.add(javaSourcePath);
+            if (!isRuntimeAvailableOnClasspath()) {
+                compilationSources.addAll(discoverRuntimeSourceFiles());
+            }
             final Iterable<? extends JavaFileObject> compilationUnits =
-                    fileManager.getJavaFileObjectsFromPaths(List.of(javaSourcePath));
-            final String classPath = System.getProperty("java.class.path", "");
+                    fileManager.getJavaFileObjectsFromPaths(compilationSources);
+            final String classPath = buildJavacClasspath();
             final List<String> options = List.of(
                     "--release",
                     "21",
@@ -935,6 +1023,122 @@ public final class JvmBytecodeCompiler {
                     ioException
             );
         }
+    }
+
+    private static boolean isRuntimeAvailableOnClasspath() {
+        final ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
+        if (contextClassLoader != null
+                && contextClassLoader.getResource("dev/tsj/runtime/TsjRuntime.class") != null) {
+            return true;
+        }
+        final ClassLoader compilerClassLoader = JvmBytecodeCompiler.class.getClassLoader();
+        return compilerClassLoader != null
+                && compilerClassLoader.getResource("dev/tsj/runtime/TsjRuntime.class") != null;
+    }
+
+    private static List<Path> discoverRuntimeSourceFiles() {
+        final Path runtimeSourceRoot = discoverRuntimeSourceRoot();
+        if (runtimeSourceRoot == null) {
+            return List.of();
+        }
+        final List<Path> sourceFiles = new ArrayList<>();
+        try (Stream<Path> stream = Files.walk(runtimeSourceRoot)) {
+            stream.filter(path -> Files.isRegularFile(path) && path.toString().endsWith(".java"))
+                    .forEach(sourceFiles::add);
+        } catch (final IOException ignored) {
+            return List.of();
+        }
+        return List.copyOf(sourceFiles);
+    }
+
+    private static Path discoverRuntimeSourceRoot() {
+        Path cursor = Path.of("").toAbsolutePath().normalize();
+        while (cursor != null) {
+            final Path candidate = cursor.resolve("runtime").resolve("src").resolve("main").resolve("java");
+            if (Files.isDirectory(candidate)) {
+                return candidate;
+            }
+            cursor = cursor.getParent();
+        }
+        final Path workspaceRuntimeClasses = discoverRuntimeClassesFromWorkspace();
+        if (workspaceRuntimeClasses != null) {
+            final Path targetDir = workspaceRuntimeClasses.getParent();
+            final Path runtimeModuleDir = targetDir != null ? targetDir.getParent() : null;
+            if (runtimeModuleDir != null) {
+                final Path candidate = runtimeModuleDir.resolve("src").resolve("main").resolve("java");
+                if (Files.isDirectory(candidate)) {
+                    return candidate;
+                }
+            }
+        }
+        return null;
+    }
+
+    private static String buildJavacClasspath() {
+        final LinkedHashSet<String> entries = new LinkedHashSet<>();
+        final String systemClassPath = System.getProperty("java.class.path", "");
+        if (!systemClassPath.isBlank()) {
+            for (String entry : systemClassPath.split(Pattern.quote(File.pathSeparator))) {
+                if (entry != null && !entry.isBlank()) {
+                    entries.add(entry);
+                }
+            }
+        }
+        addClasspathEntryIfExists(entries, discoverRuntimeClassesFromWorkspace());
+        addClasspathEntryIfExists(entries, discoverRuntimeClassesFromWorkingDirectory());
+        return String.join(File.pathSeparator, entries);
+    }
+
+    private static void addClasspathEntryIfExists(final Set<String> entries, final Path candidate) {
+        if (candidate == null) {
+            return;
+        }
+        final Path normalized = candidate.toAbsolutePath().normalize();
+        if (Files.isDirectory(normalized)) {
+            entries.add(normalized.toString());
+        }
+    }
+
+    private static Path discoverRuntimeClassesFromWorkspace() {
+        URL codeSourceUrl = null;
+        try {
+            codeSourceUrl = JvmBytecodeCompiler.class.getProtectionDomain().getCodeSource().getLocation();
+        } catch (final RuntimeException ignored) {
+            return null;
+        }
+        if (codeSourceUrl == null) {
+            return null;
+        }
+        final URI codeSourceUri;
+        try {
+            codeSourceUri = codeSourceUrl.toURI();
+        } catch (final URISyntaxException ignored) {
+            return null;
+        }
+        Path cursor = Path.of(codeSourceUri).toAbsolutePath().normalize();
+        if (!Files.isDirectory(cursor)) {
+            cursor = cursor.getParent();
+        }
+        while (cursor != null) {
+            final Path candidate = cursor.resolve("runtime").resolve("target").resolve("classes");
+            if (Files.isDirectory(candidate)) {
+                return candidate;
+            }
+            cursor = cursor.getParent();
+        }
+        return null;
+    }
+
+    private static Path discoverRuntimeClassesFromWorkingDirectory() {
+        Path cursor = Path.of("").toAbsolutePath().normalize();
+        while (cursor != null) {
+            final Path candidate = cursor.resolve("runtime").resolve("target").resolve("classes");
+            if (Files.isDirectory(candidate)) {
+                return candidate;
+            }
+            cursor = cursor.getParent();
+        }
+        return null;
     }
 
     private static JvmCompilationException toCompilationException(
@@ -1043,6 +1247,732 @@ public final class JvmBytecodeCompiler {
             }
         }
         return builder.toString();
+    }
+
+    private static ParseResult parseProgram(
+            final String sourceText,
+            final Path sourceFile,
+            final BundleResult bundleResult
+    ) {
+        if (Boolean.parseBoolean(System.getProperty(LEGACY_TOKENIZER_PROPERTY, "false"))) {
+            return parseProgramFromTokens(tokenize(sourceText), bundleResult);
+        }
+
+        final TypeScriptSyntaxBridge.BridgeResult bridgeResult =
+                new TypeScriptSyntaxBridge().tokenize(sourceText, sourceFile);
+        validateBridgeAstPayload(bridgeResult);
+        throwIfBridgeDiagnosticsPresent(bridgeResult, bundleResult);
+
+        final AstLoweringResult astLoweringResult = lowerProgramFromNormalizedAst(
+                bridgeResult.normalizedProgram(),
+                bundleResult
+        );
+        if (astLoweringResult != null) {
+            return new ParseResult(astLoweringResult.program(), astLoweringResult.statementLocations());
+        }
+
+        if (Boolean.parseBoolean(System.getProperty(AST_NO_FALLBACK_PROPERTY, "false"))) {
+            throw new JvmCompilationException(
+                    "TSJ-BACKEND-AST-LOWERING",
+                    "Normalized AST lowering is unavailable for this source and parser fallback is disabled."
+            );
+        }
+
+        return parseProgramFromTokens(bridgeTokensToBackendTokens(bridgeResult), bundleResult);
+    }
+
+    private static ParseResult parseProgramFromTokens(
+            final List<Token> tokens,
+            final BundleResult bundleResult
+    ) {
+        final Parser parser = new Parser(tokens, bundleResult);
+        return new ParseResult(parser.parseProgram(), parser.statementLocations());
+    }
+
+    private static void throwIfBridgeDiagnosticsPresent(
+            final TypeScriptSyntaxBridge.BridgeResult bridgeResult,
+            final BundleResult bundleResult
+    ) {
+        if (bridgeResult.diagnostics().isEmpty()) {
+            return;
+        }
+        final TypeScriptSyntaxBridge.BridgeDiagnostic diagnostic = bridgeResult.diagnostics().getFirst();
+        final String code = diagnostic.code() == null || diagnostic.code().isBlank()
+                ? "TSJ-BACKEND-PARSE"
+                : diagnostic.code();
+        final SourceLocation mappedLocation = diagnostic.line() != null && diagnostic.column() != null
+                ? bundleResult.sourceLocationFor(diagnostic.line(), diagnostic.column())
+                : null;
+        final Integer line = mappedLocation != null ? mappedLocation.line() : diagnostic.line();
+        final Integer column = mappedLocation != null ? mappedLocation.column() : diagnostic.column();
+        final String diagnosticSource = mappedLocation != null
+                ? mappedLocation.sourceFile().toString()
+                : null;
+        throw new JvmCompilationException(
+                code,
+                diagnostic.message(),
+                line,
+                column,
+                diagnosticSource,
+                null,
+                null
+        );
+    }
+
+    private static AstLoweringResult lowerProgramFromNormalizedAst(
+            final JsonNode normalizedProgram,
+            final BundleResult bundleResult
+    ) {
+        if (normalizedProgram == null || normalizedProgram.isNull()) {
+            return null;
+        }
+        try {
+            final String kind = requiredText(normalizedProgram, "kind");
+            if (!"Program".equals(kind)) {
+                throw new JvmCompilationException(
+                        "TSJ-BACKEND-AST-SCHEMA",
+                        "normalizedProgram root kind must be `Program`, found `" + kind + "`."
+                );
+            }
+            final JsonNode statementsNode = requiredArray(normalizedProgram, "statements");
+            final List<Statement> statements = new ArrayList<>();
+            final IdentityHashMap<Statement, SourceLocation> statementLocations = new IdentityHashMap<>();
+            for (JsonNode statementNode : statementsNode) {
+                statements.add(lowerStatementFromAst(statementNode, bundleResult, statementLocations));
+            }
+            return new AstLoweringResult(
+                    new Program(List.copyOf(statements)),
+                    new IdentityHashMap<>(statementLocations)
+            );
+        } catch (AstLoweringUnsupportedException unsupportedException) {
+            return null;
+        }
+    }
+
+    private static Statement lowerStatementFromAst(
+            final JsonNode statementNode,
+            final BundleResult bundleResult,
+            final IdentityHashMap<Statement, SourceLocation> statementLocations
+    ) {
+        final String kind = requiredText(statementNode, "kind");
+        return switch (kind) {
+            case "VariableDeclaration" -> locateStatementFromAst(
+                    new VariableDeclaration(
+                            requiredText(statementNode, "name"),
+                            lowerExpressionFromAst(requiredNode(statementNode, "expression"), bundleResult)
+                    ),
+                    statementNode,
+                    bundleResult,
+                    statementLocations
+            );
+            case "AssignmentStatement" -> locateStatementFromAst(
+                    new AssignmentStatement(
+                            lowerExpressionFromAst(requiredNode(statementNode, "target"), bundleResult),
+                            lowerExpressionFromAst(requiredNode(statementNode, "expression"), bundleResult)
+                    ),
+                    statementNode,
+                    bundleResult,
+                    statementLocations
+            );
+            case "FunctionDeclarationStatement" -> locateStatementFromAst(
+                    new FunctionDeclarationStatement(
+                            lowerFunctionDeclarationFromAst(
+                                    requiredNode(statementNode, "declaration"),
+                                    bundleResult,
+                                    statementLocations
+                            )
+                    ),
+                    statementNode,
+                    bundleResult,
+                    statementLocations
+            );
+            case "ClassDeclarationStatement" -> locateStatementFromAst(
+                    new ClassDeclarationStatement(
+                            lowerClassDeclarationFromAst(
+                                    requiredNode(statementNode, "declaration"),
+                                    bundleResult,
+                                    statementLocations
+                            )
+                    ),
+                    statementNode,
+                    bundleResult,
+                    statementLocations
+            );
+            case "IfStatement" -> locateStatementFromAst(
+                    new IfStatement(
+                            lowerExpressionFromAst(requiredNode(statementNode, "condition"), bundleResult),
+                            lowerStatementList(requiredArray(statementNode, "thenBlock"), bundleResult, statementLocations),
+                            lowerStatementList(requiredArray(statementNode, "elseBlock"), bundleResult, statementLocations)
+                    ),
+                    statementNode,
+                    bundleResult,
+                    statementLocations
+            );
+            case "WhileStatement" -> locateStatementFromAst(
+                    new WhileStatement(
+                            lowerExpressionFromAst(requiredNode(statementNode, "condition"), bundleResult),
+                            lowerStatementList(requiredArray(statementNode, "body"), bundleResult, statementLocations)
+                    ),
+                    statementNode,
+                    bundleResult,
+                    statementLocations
+            );
+            case "TryStatement" -> locateStatementFromAst(
+                    new TryStatement(
+                            lowerStatementList(requiredArray(statementNode, "tryBlock"), bundleResult, statementLocations),
+                            nullableText(statementNode, "catchBinding"),
+                            lowerStatementList(requiredArray(statementNode, "catchBlock"), bundleResult, statementLocations),
+                            lowerStatementList(requiredArray(statementNode, "finallyBlock"), bundleResult, statementLocations)
+                    ),
+                    statementNode,
+                    bundleResult,
+                    statementLocations
+            );
+            case "BreakStatement" -> locateStatementFromAst(new BreakStatement(), statementNode, bundleResult, statementLocations);
+            case "ContinueStatement" -> locateStatementFromAst(
+                    new ContinueStatement(),
+                    statementNode,
+                    bundleResult,
+                    statementLocations
+            );
+            case "SuperCallStatement" -> locateStatementFromAst(
+                    new SuperCallStatement(lowerExpressionList(requiredArray(statementNode, "arguments"), bundleResult)),
+                    statementNode,
+                    bundleResult,
+                    statementLocations
+            );
+            case "ReturnStatement" -> locateStatementFromAst(
+                    new ReturnStatement(lowerExpressionFromAst(requiredNode(statementNode, "expression"), bundleResult)),
+                    statementNode,
+                    bundleResult,
+                    statementLocations
+            );
+            case "ThrowStatement" -> locateStatementFromAst(
+                    new ThrowStatement(lowerExpressionFromAst(requiredNode(statementNode, "expression"), bundleResult)),
+                    statementNode,
+                    bundleResult,
+                    statementLocations
+            );
+            case "ConsoleLogStatement" -> locateStatementFromAst(
+                    new ConsoleLogStatement(lowerExpressionFromAst(requiredNode(statementNode, "expression"), bundleResult)),
+                    statementNode,
+                    bundleResult,
+                    statementLocations
+            );
+            case "ExpressionStatement" -> locateStatementFromAst(
+                    new ExpressionStatement(lowerExpressionFromAst(requiredNode(statementNode, "expression"), bundleResult)),
+                    statementNode,
+                    bundleResult,
+                    statementLocations
+            );
+            default -> throw new AstLoweringUnsupportedException(
+                    "Unsupported normalized statement kind: " + kind
+            );
+        };
+    }
+
+    private static FunctionDeclaration lowerFunctionDeclarationFromAst(
+            final JsonNode declarationNode,
+            final BundleResult bundleResult,
+            final IdentityHashMap<Statement, SourceLocation> statementLocations
+    ) {
+        final List<String> parameters = new ArrayList<>();
+        for (JsonNode parameterNode : requiredArray(declarationNode, "parameters")) {
+            if (!parameterNode.isTextual()) {
+                throw new JvmCompilationException(
+                        "TSJ-BACKEND-AST-SCHEMA",
+                        "Function parameter entries in normalizedProgram must be strings."
+                );
+            }
+            parameters.add(parameterNode.asText());
+        }
+        final List<Statement> body = lowerStatementList(
+                requiredArray(declarationNode, "body"),
+                bundleResult,
+                statementLocations
+        );
+        return new FunctionDeclaration(
+                requiredText(declarationNode, "name"),
+                List.copyOf(parameters),
+                List.copyOf(body),
+                declarationNode.path("async").asBoolean(false)
+        );
+    }
+
+    private static ClassDeclaration lowerClassDeclarationFromAst(
+            final JsonNode declarationNode,
+            final BundleResult bundleResult,
+            final IdentityHashMap<Statement, SourceLocation> statementLocations
+    ) {
+        final List<String> fieldNames = lowerStringList(requiredArray(declarationNode, "fieldNames"));
+        final String superClassName = nullableText(declarationNode, "superClassName");
+        final ClassMethod constructorMethod;
+        final JsonNode constructorMethodNode = declarationNode.get("constructorMethod");
+        if (constructorMethodNode == null || constructorMethodNode.isNull()) {
+            constructorMethod = null;
+        } else {
+            constructorMethod = lowerClassMethodFromAst(constructorMethodNode, bundleResult, statementLocations);
+        }
+
+        final List<ClassMethod> methods = new ArrayList<>();
+        for (JsonNode methodNode : requiredArray(declarationNode, "methods")) {
+            methods.add(lowerClassMethodFromAst(methodNode, bundleResult, statementLocations));
+        }
+        return new ClassDeclaration(
+                requiredText(declarationNode, "name"),
+                superClassName,
+                fieldNames,
+                constructorMethod,
+                List.copyOf(methods)
+        );
+    }
+
+    private static ClassMethod lowerClassMethodFromAst(
+            final JsonNode methodNode,
+            final BundleResult bundleResult,
+            final IdentityHashMap<Statement, SourceLocation> statementLocations
+    ) {
+        final List<String> parameters = lowerStringList(requiredArray(methodNode, "parameters"));
+        final List<Statement> body = lowerStatementList(
+                requiredArray(methodNode, "body"),
+                bundleResult,
+                statementLocations
+        );
+        return new ClassMethod(
+                requiredText(methodNode, "name"),
+                parameters,
+                body,
+                methodNode.path("async").asBoolean(false)
+        );
+    }
+
+    private static List<Statement> lowerStatementList(
+            final JsonNode arrayNode,
+            final BundleResult bundleResult,
+            final IdentityHashMap<Statement, SourceLocation> statementLocations
+    ) {
+        Objects.requireNonNull(bundleResult, "bundleResult");
+        Objects.requireNonNull(statementLocations, "statementLocations");
+        final List<Statement> statements = new ArrayList<>();
+        for (JsonNode statementNode : arrayNode) {
+            statements.add(lowerStatementFromAst(statementNode, bundleResult, statementLocations));
+        }
+        return List.copyOf(statements);
+    }
+
+    private static List<Statement> lowerStatementListWithoutLocations(final JsonNode arrayNode) {
+        final List<Statement> statements = new ArrayList<>();
+        final IdentityHashMap<Statement, SourceLocation> ignoredLocations = new IdentityHashMap<>();
+        final BundleResult syntheticBundle = new BundleResult("", List.of());
+        for (JsonNode statementNode : arrayNode) {
+            statements.add(lowerStatementFromAst(statementNode, syntheticBundle, ignoredLocations));
+        }
+        return List.copyOf(statements);
+    }
+
+    private static Expression lowerExpressionFromAst(
+            final JsonNode expressionNode,
+            final BundleResult bundleResult
+    ) {
+        final String kind = requiredText(expressionNode, "kind");
+        return switch (kind) {
+            case "NumberLiteral" -> new NumberLiteral(
+                    normalizeNumericLiteralText(
+                            requiredText(expressionNode, "text"),
+                            expressionNode.path("line").asInt(-1) > 0 ? expressionNode.path("line").asInt() : null,
+                            expressionNode.path("column").asInt(-1) > 0 ? expressionNode.path("column").asInt() : null,
+                            null
+                    )
+            );
+            case "StringLiteral" -> new StringLiteral(requiredText(expressionNode, "text"));
+            case "BooleanLiteral" -> new BooleanLiteral(requiredBoolean(expressionNode, "value"));
+            case "NullLiteral" -> new NullLiteral();
+            case "UndefinedLiteral" -> new UndefinedLiteral();
+            case "VariableExpression" -> new VariableExpression(requiredText(expressionNode, "name"));
+            case "ThisExpression" -> new ThisExpression();
+            case "UnaryExpression" -> new UnaryExpression(
+                    requiredText(expressionNode, "operator"),
+                    lowerExpressionFromAst(requiredNode(expressionNode, "expression"), bundleResult)
+            );
+            case "AwaitExpression" -> new AwaitExpression(
+                    lowerExpressionFromAst(requiredNode(expressionNode, "expression"), bundleResult)
+            );
+            case "BinaryExpression" -> new BinaryExpression(
+                    lowerExpressionFromAst(requiredNode(expressionNode, "left"), bundleResult),
+                    requiredText(expressionNode, "operator"),
+                    lowerExpressionFromAst(requiredNode(expressionNode, "right"), bundleResult)
+            );
+            case "AssignmentExpression" -> new AssignmentExpression(
+                    lowerExpressionFromAst(requiredNode(expressionNode, "target"), bundleResult),
+                    requiredText(expressionNode, "operator"),
+                    lowerExpressionFromAst(requiredNode(expressionNode, "expression"), bundleResult)
+            );
+            case "ConditionalExpression" -> new ConditionalExpression(
+                    lowerExpressionFromAst(requiredNode(expressionNode, "condition"), bundleResult),
+                    lowerExpressionFromAst(requiredNode(expressionNode, "whenTrue"), bundleResult),
+                    lowerExpressionFromAst(requiredNode(expressionNode, "whenFalse"), bundleResult)
+            );
+            case "CallExpression" -> {
+                final Expression callee = lowerExpressionFromAst(requiredNode(expressionNode, "callee"), bundleResult);
+                if (callee instanceof VariableExpression variableExpression && "eval".equals(variableExpression.name())) {
+                    throw unsupportedFeatureFromAst(
+                            expressionNode,
+                            bundleResult,
+                            FEATURE_EVAL,
+                            "`eval(...)` is unsupported in TSJ MVP.",
+                            GUIDANCE_EVAL
+                    );
+                }
+                if (callee instanceof VariableExpression variableExpression
+                        && "Function".equals(variableExpression.name())) {
+                    throw unsupportedFeatureFromAst(
+                            expressionNode,
+                            bundleResult,
+                            FEATURE_FUNCTION_CONSTRUCTOR,
+                            "Function constructor is unsupported in TSJ MVP.",
+                            GUIDANCE_FUNCTION_CONSTRUCTOR
+                    );
+                }
+                yield new CallExpression(callee, lowerExpressionList(requiredArray(expressionNode, "arguments"), bundleResult));
+            }
+            case "OptionalCallExpression" -> new OptionalCallExpression(
+                    lowerExpressionFromAst(requiredNode(expressionNode, "callee"), bundleResult),
+                    lowerExpressionList(requiredArray(expressionNode, "arguments"), bundleResult)
+            );
+            case "MemberAccessExpression" -> new MemberAccessExpression(
+                    lowerExpressionFromAst(requiredNode(expressionNode, "receiver"), bundleResult),
+                    requiredText(expressionNode, "member")
+            );
+            case "OptionalMemberAccessExpression" -> new OptionalMemberAccessExpression(
+                    lowerExpressionFromAst(requiredNode(expressionNode, "receiver"), bundleResult),
+                    requiredText(expressionNode, "member")
+            );
+            case "NewExpression" -> {
+                final Expression constructor = lowerExpressionFromAst(requiredNode(expressionNode, "constructor"), bundleResult);
+                final String constructorName = resolveGlobalConstructorNameFromAstExpression(constructor);
+                if ("Proxy".equals(constructorName)) {
+                    throw unsupportedFeatureFromAst(
+                            expressionNode,
+                            bundleResult,
+                            FEATURE_PROXY,
+                            "`new Proxy(...)` is unsupported in TSJ MVP.",
+                            GUIDANCE_PROXY
+                    );
+                }
+                if ("Function".equals(constructorName)) {
+                    throw unsupportedFeatureFromAst(
+                            expressionNode,
+                            bundleResult,
+                            FEATURE_FUNCTION_CONSTRUCTOR,
+                            "Function constructor is unsupported in TSJ MVP.",
+                            GUIDANCE_FUNCTION_CONSTRUCTOR
+                    );
+                }
+                yield new NewExpression(constructor, lowerExpressionList(requiredArray(expressionNode, "arguments"), bundleResult));
+            }
+            case "ArrayLiteralExpression" -> new ArrayLiteralExpression(
+                    lowerExpressionList(requiredArray(expressionNode, "elements"), bundleResult)
+            );
+            case "ObjectLiteralExpression" -> new ObjectLiteralExpression(
+                    lowerObjectLiteralEntries(requiredArray(expressionNode, "entries"), bundleResult)
+            );
+            case "FunctionExpression" -> new FunctionExpression(
+                    lowerStringList(requiredArray(expressionNode, "parameters")),
+                    lowerStatementListWithoutLocations(requiredArray(expressionNode, "body")),
+                    expressionNode.path("async").asBoolean(false),
+                    parseFunctionThisMode(requiredText(expressionNode, "thisMode"))
+            );
+            default -> throw new AstLoweringUnsupportedException(
+                    "Unsupported normalized expression kind: " + kind
+            );
+        };
+    }
+
+    private static List<Expression> lowerExpressionList(
+            final JsonNode arrayNode,
+            final BundleResult bundleResult
+    ) {
+        final List<Expression> expressions = new ArrayList<>();
+        for (JsonNode expressionNode : arrayNode) {
+            expressions.add(lowerExpressionFromAst(expressionNode, bundleResult));
+        }
+        return List.copyOf(expressions);
+    }
+
+    private static List<ObjectLiteralEntry> lowerObjectLiteralEntries(
+            final JsonNode entriesNode,
+            final BundleResult bundleResult
+    ) {
+        final List<ObjectLiteralEntry> entries = new ArrayList<>();
+        for (JsonNode entryNode : entriesNode) {
+            entries.add(new ObjectLiteralEntry(
+                    requiredText(entryNode, "key"),
+                    lowerExpressionFromAst(requiredNode(entryNode, "value"), bundleResult)
+            ));
+        }
+        return List.copyOf(entries);
+    }
+
+    private static String resolveGlobalConstructorNameFromAstExpression(final Expression expression) {
+        if (expression instanceof VariableExpression variable) {
+            return variable.name();
+        }
+        if (expression instanceof MemberAccessExpression member) {
+            if (member.receiver() instanceof VariableExpression variable && "globalThis".equals(variable.name())) {
+                return member.member();
+            }
+        }
+        return null;
+    }
+
+    private static JvmCompilationException unsupportedFeatureFromAst(
+            final JsonNode node,
+            final BundleResult bundleResult,
+            final String featureId,
+            final String summary,
+            final String guidance
+    ) {
+        final int bundledLine = node.path("line").asInt(-1);
+        final int bundledColumn = node.path("column").asInt(-1);
+        final SourceLocation sourceLocation = bundledLine > 0 && bundledColumn > 0
+                ? bundleResult.sourceLocationFor(bundledLine, bundledColumn)
+                : null;
+        final Integer line = sourceLocation != null ? sourceLocation.line() : bundledLine > 0 ? bundledLine : null;
+        final Integer column = sourceLocation != null
+                ? sourceLocation.column()
+                : bundledColumn > 0 ? bundledColumn : null;
+        final String sourceFile = sourceLocation != null ? sourceLocation.sourceFile().toString() : null;
+        return new JvmCompilationException(
+                "TSJ-BACKEND-UNSUPPORTED",
+                summary + " [featureId=" + featureId + "]. Guidance: " + guidance,
+                line,
+                column,
+                sourceFile,
+                featureId,
+                guidance
+        );
+    }
+
+    private static List<String> lowerStringList(final JsonNode arrayNode) {
+        final List<String> values = new ArrayList<>();
+        for (JsonNode valueNode : arrayNode) {
+            if (!valueNode.isTextual()) {
+                throw new JvmCompilationException(
+                        "TSJ-BACKEND-AST-SCHEMA",
+                        "normalizedProgram string arrays must contain string values."
+                );
+            }
+            values.add(valueNode.asText());
+        }
+        return List.copyOf(values);
+    }
+
+    private static FunctionThisMode parseFunctionThisMode(final String mode) {
+        try {
+            return FunctionThisMode.valueOf(mode);
+        } catch (final IllegalArgumentException illegalArgumentException) {
+            throw new JvmCompilationException(
+                    "TSJ-BACKEND-AST-SCHEMA",
+                    "Unsupported function thisMode in normalizedProgram: `" + mode + "`.",
+                    null,
+                    null,
+                    illegalArgumentException
+            );
+        }
+    }
+
+    private static Statement locateStatementFromAst(
+            final Statement statement,
+            final JsonNode statementNode,
+            final BundleResult bundleResult,
+            final IdentityHashMap<Statement, SourceLocation> statementLocations
+    ) {
+        final int line = statementNode.path("line").asInt(-1);
+        final int column = statementNode.path("column").asInt(-1);
+        if (line > 0 && column > 0 && bundleResult != null) {
+            final SourceLocation sourceLocation = bundleResult.sourceLocationFor(line, column);
+            if (sourceLocation != null) {
+                statementLocations.put(statement, sourceLocation);
+            }
+        }
+        return statement;
+    }
+
+    private static JsonNode requiredNode(final JsonNode node, final String field) {
+        final JsonNode value = node.get(field);
+        if (value == null || value.isNull()) {
+            throw new JvmCompilationException(
+                    "TSJ-BACKEND-AST-SCHEMA",
+                    "normalizedProgram payload missing required `" + field + "` field."
+            );
+        }
+        return value;
+    }
+
+    private static JsonNode requiredArray(final JsonNode node, final String field) {
+        final JsonNode value = requiredNode(node, field);
+        if (!value.isArray()) {
+            throw new JvmCompilationException(
+                    "TSJ-BACKEND-AST-SCHEMA",
+                    "normalizedProgram `" + field + "` field must be an array."
+            );
+        }
+        return value;
+    }
+
+    private static String requiredText(final JsonNode node, final String field) {
+        final JsonNode value = requiredNode(node, field);
+        if (!value.isTextual()) {
+            throw new JvmCompilationException(
+                    "TSJ-BACKEND-AST-SCHEMA",
+                    "normalizedProgram `" + field + "` field must be a string."
+            );
+        }
+        return value.asText();
+    }
+
+    private static boolean requiredBoolean(final JsonNode node, final String field) {
+        final JsonNode value = requiredNode(node, field);
+        if (!value.isBoolean()) {
+            throw new JvmCompilationException(
+                    "TSJ-BACKEND-AST-SCHEMA",
+                    "normalizedProgram `" + field + "` field must be a boolean."
+            );
+        }
+        return value.asBoolean();
+    }
+
+    private static String nullableText(final JsonNode node, final String field) {
+        final JsonNode value = node.get(field);
+        if (value == null || value.isNull()) {
+            return null;
+        }
+        if (!value.isTextual()) {
+            throw new JvmCompilationException(
+                    "TSJ-BACKEND-AST-SCHEMA",
+                    "normalizedProgram `" + field + "` field must be null or string."
+            );
+        }
+        return value.asText();
+    }
+
+    private static List<Token> bridgeTokensToBackendTokens(final TypeScriptSyntaxBridge.BridgeResult bridgeResult) {
+        final List<Token> tokens = new ArrayList<>(bridgeResult.tokens().size() + 1);
+        for (TypeScriptSyntaxBridge.BridgeToken bridgeToken : bridgeResult.tokens()) {
+            tokens.add(toBackendToken(bridgeToken));
+        }
+        if (tokens.isEmpty() || tokens.getLast().type() != TokenType.EOF) {
+            final int eofLine;
+            final int eofColumn;
+            if (tokens.isEmpty()) {
+                eofLine = 1;
+                eofColumn = 1;
+            } else {
+                final Token lastToken = tokens.getLast();
+                eofLine = lastToken.line();
+                eofColumn = Math.max(1, lastToken.column() + Math.max(1, lastToken.text().length()));
+            }
+            tokens.add(new Token(TokenType.EOF, "", eofLine, eofColumn));
+        }
+        return List.copyOf(tokens);
+    }
+
+    private static void validateBridgeAstPayload(final TypeScriptSyntaxBridge.BridgeResult bridgeResult) {
+        if (bridgeResult.astNodes().isEmpty()) {
+            throw new JvmCompilationException(
+                    "TSJ-BACKEND-AST-SCHEMA",
+                    "TypeScript syntax bridge payload must include at least one AST node."
+            );
+        }
+        final TypeScriptSyntaxBridge.BridgeAstNode firstNode = bridgeResult.astNodes().getFirst();
+        if (!"SourceFile".equals(firstNode.kind())) {
+            throw new JvmCompilationException(
+                    "TSJ-BACKEND-AST-SCHEMA",
+                    "TypeScript syntax bridge AST must start with SourceFile, found `" + firstNode.kind() + "`."
+            );
+        }
+    }
+
+    private static Token toBackendToken(final TypeScriptSyntaxBridge.BridgeToken bridgeToken) {
+        final TokenType type;
+        try {
+            type = TokenType.valueOf(bridgeToken.type());
+        } catch (final IllegalArgumentException illegalArgumentException) {
+            throw new JvmCompilationException(
+                    "TSJ-BACKEND-AST-SCHEMA",
+                    "Unsupported token type from TypeScript bridge: `" + bridgeToken.type() + "`.",
+                    bridgeToken.line(),
+                    bridgeToken.column(),
+                    illegalArgumentException
+            );
+        }
+        return new Token(
+                type,
+                bridgeToken.text(),
+                Math.max(1, bridgeToken.line()),
+                Math.max(1, bridgeToken.column())
+        );
+    }
+
+    private static String normalizeNumericLiteralText(
+            final String rawLiteral,
+            final Integer line,
+            final Integer column,
+            final String sourceFile
+    ) {
+        if (rawLiteral == null || rawLiteral.isBlank()) {
+            throw new JvmCompilationException(
+                    "TSJ-BACKEND-PARSE",
+                    "Invalid numeric literal.",
+                    line,
+                    column,
+                    sourceFile,
+                    null,
+                    null
+            );
+        }
+        String value = rawLiteral.replace("_", "");
+        if (value.endsWith("n") || value.endsWith("N")) {
+            value = value.substring(0, value.length() - 1);
+        }
+        if (value.isEmpty()) {
+            throw new JvmCompilationException(
+                    "TSJ-BACKEND-PARSE",
+                    "Invalid numeric literal `" + rawLiteral + "`.",
+                    line,
+                    column,
+                    sourceFile,
+                    null,
+                    null
+            );
+        }
+
+        try {
+            if (value.startsWith("0x") || value.startsWith("0X")) {
+                return new BigInteger(value.substring(2), 16).toString();
+            }
+            if (value.startsWith("0b") || value.startsWith("0B")) {
+                return new BigInteger(value.substring(2), 2).toString();
+            }
+            if (value.startsWith("0o") || value.startsWith("0O")) {
+                return new BigInteger(value.substring(2), 8).toString();
+            }
+            if (value.contains(".") || value.contains("e") || value.contains("E")) {
+                return Double.toString(Double.parseDouble(value));
+            }
+            return new BigInteger(value, 10).toString();
+        } catch (final NumberFormatException | ArithmeticException ex) {
+            throw new JvmCompilationException(
+                    "TSJ-BACKEND-PARSE",
+                    "Invalid numeric literal `" + rawLiteral + "`.",
+                    line,
+                    column,
+                    sourceFile,
+                    null,
+                    null,
+                    ex
+            );
+        }
     }
 
     private static List<Token> tokenize(final String source) {
@@ -1182,7 +2112,11 @@ public final class JvmBytecodeCompiler {
                 continue;
             }
             final String three = index + 3 <= source.length() ? source.substring(index, index + 3) : "";
-            if ("===".equals(three) || "!==".equals(three)) {
+            if ("===".equals(three)
+                    || "!==".equals(three)
+                    || "&&=".equals(three)
+                    || "||=".equals(three)
+                    || "??=".equals(three)) {
                 tokens.add(new Token(TokenType.SYMBOL, three, line, column));
                 index += 3;
                 column += 3;
@@ -1195,6 +2129,13 @@ public final class JvmBytecodeCompiler {
                     || ">=".equals(two)
                     || "&&".equals(two)
                     || "||".equals(two)
+                    || "??".equals(two)
+                    || "?.".equals(two)
+                    || "+=".equals(two)
+                    || "-=".equals(two)
+                    || "*=".equals(two)
+                    || "/=".equals(two)
+                    || "%=".equals(two)
                     || "=>".equals(two)) {
                 tokens.add(new Token(TokenType.SYMBOL, two, line, column));
                 index += 2;
@@ -1202,7 +2143,7 @@ public final class JvmBytecodeCompiler {
                 continue;
             }
             final String one = Character.toString(current);
-            if ("(){}[];,.+-*/<>!=:".contains(one)) {
+            if ("(){}[];,.+-*/%<>!=:?".contains(one)) {
                 tokens.add(new Token(TokenType.SYMBOL, one, line, column));
                 index++;
                 column++;
@@ -1363,8 +2304,12 @@ public final class JvmBytecodeCompiler {
             AwaitExpression,
             FunctionExpression,
             BinaryExpression,
+            AssignmentExpression,
+            ConditionalExpression,
             CallExpression,
+            OptionalCallExpression,
             MemberAccessExpression,
+            OptionalMemberAccessExpression,
             NewExpression,
             ArrayLiteralExpression,
             ObjectLiteralExpression {
@@ -1409,10 +2354,23 @@ public final class JvmBytecodeCompiler {
     private record BinaryExpression(Expression left, String operator, Expression right) implements Expression {
     }
 
+    private record AssignmentExpression(Expression target, String operator, Expression expression) implements Expression {
+    }
+
+    private record ConditionalExpression(Expression condition, Expression whenTrue, Expression whenFalse)
+            implements Expression {
+    }
+
     private record CallExpression(Expression callee, List<Expression> arguments) implements Expression {
     }
 
+    private record OptionalCallExpression(Expression callee, List<Expression> arguments) implements Expression {
+    }
+
     private record MemberAccessExpression(Expression receiver, String member) implements Expression {
+    }
+
+    private record OptionalMemberAccessExpression(Expression receiver, String member) implements Expression {
     }
 
     private record NewExpression(Expression constructor, List<Expression> arguments) implements Expression {
@@ -1479,6 +2437,9 @@ public final class JvmBytecodeCompiler {
     ) {
     }
 
+    private record ImportStatement(String canonicalStatement, int endLineIndex) {
+    }
+
     private record BundleResult(
             String sourceText,
             List<SourceLineOrigin> lineOrigins
@@ -1496,6 +2457,24 @@ public final class JvmBytecodeCompiler {
                     origin.sourceLine(),
                     Math.max(1, bundledColumn)
             );
+        }
+    }
+
+    private record ParseResult(
+            Program program,
+            Map<Statement, SourceLocation> statementLocations
+    ) {
+    }
+
+    private record AstLoweringResult(
+            Program program,
+            Map<Statement, SourceLocation> statementLocations
+    ) {
+    }
+
+    private static final class AstLoweringUnsupportedException extends RuntimeException {
+        private AstLoweringUnsupportedException(final String message) {
+            super(message);
         }
     }
 
@@ -1605,6 +2584,10 @@ public final class JvmBytecodeCompiler {
                 statement = parseWhileStatement(insideFunction);
                 return locate(statement, statementStart);
             }
+            if (matchKeyword("do")) {
+                statement = parseDoWhileStatement(insideFunction, previous());
+                return locate(statement, statementStart);
+            }
             if (matchSoftKeyword("try")) {
                 statement = parseTryStatement(insideFunction);
                 return locate(statement, statementStart);
@@ -1674,10 +2657,10 @@ public final class JvmBytecodeCompiler {
 
         private Statement parseExpressionOrAssignmentStatement() {
             final Expression expression = parseExpression();
-            if (matchSymbol("=")) {
-                final Expression right = parseExpression();
+            if (expression instanceof AssignmentExpression assignmentExpression
+                    && "=".equals(assignmentExpression.operator())) {
                 consumeSymbol(";", "Expected `;` after assignment.");
-                return new AssignmentStatement(expression, right);
+                return new AssignmentStatement(assignmentExpression.target(), assignmentExpression.expression());
             }
             consumeSymbol(";", "Expected `;` after expression statement.");
             return new ExpressionStatement(expression);
@@ -1825,6 +2808,84 @@ public final class JvmBytecodeCompiler {
             return new WhileStatement(condition, body);
         }
 
+        private WhileStatement parseDoWhileStatement(final boolean insideFunction, final Token doToken) {
+            loopDepth++;
+            final List<Statement> body;
+            try {
+                body = parseBlock(insideFunction);
+            } finally {
+                loopDepth--;
+            }
+
+            if (!matchKeyword("while")) {
+                final Token token = current();
+                throw new JvmCompilationException(
+                        "TSJ-BACKEND-PARSE",
+                        "Expected `while` after `do` block.",
+                        token.line(),
+                        token.column()
+                );
+            }
+            consumeSymbol("(", "Expected `(` after `while` in `do...while` statement.");
+            final Expression condition = parseExpression();
+            consumeSymbol(")", "Expected `)` after `do...while` condition.");
+            consumeSymbol(";", "Expected `;` after `do...while` condition.");
+
+            if (containsContinueTargetingCurrentLoop(body, 0)) {
+                throw unsupportedFeature(
+                        doToken,
+                        "TSJ59-DO-WHILE-CONTINUE",
+                        "`continue` targeting `do...while` is not yet supported in TSJ-59 subset.",
+                        "Rewrite the loop using `while` until TSJ-59 do-while continue lowering is completed."
+                );
+            }
+
+            final List<Statement> loweredBody = new ArrayList<>(body);
+            loweredBody.add(
+                    new IfStatement(
+                            new UnaryExpression("!", condition),
+                            List.of(new BreakStatement()),
+                            List.of()
+                    )
+            );
+            return new WhileStatement(new BooleanLiteral(true), List.copyOf(loweredBody));
+        }
+
+        private boolean containsContinueTargetingCurrentLoop(
+                final List<Statement> statements,
+                final int nestedLoopDepth
+        ) {
+            for (Statement statement : statements) {
+                if (statement instanceof ContinueStatement && nestedLoopDepth == 0) {
+                    return true;
+                }
+                if (statement instanceof WhileStatement whileStatement
+                        && containsContinueTargetingCurrentLoop(whileStatement.body(), nestedLoopDepth + 1)) {
+                    return true;
+                }
+                if (statement instanceof IfStatement ifStatement) {
+                    if (containsContinueTargetingCurrentLoop(ifStatement.thenBlock(), nestedLoopDepth)) {
+                        return true;
+                    }
+                    if (containsContinueTargetingCurrentLoop(ifStatement.elseBlock(), nestedLoopDepth)) {
+                        return true;
+                    }
+                }
+                if (statement instanceof TryStatement tryStatement) {
+                    if (containsContinueTargetingCurrentLoop(tryStatement.tryBlock(), nestedLoopDepth)) {
+                        return true;
+                    }
+                    if (containsContinueTargetingCurrentLoop(tryStatement.catchBlock(), nestedLoopDepth)) {
+                        return true;
+                    }
+                    if (containsContinueTargetingCurrentLoop(tryStatement.finallyBlock(), nestedLoopDepth)) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
         private TryStatement parseTryStatement(final boolean insideFunction) {
             final List<Statement> tryBlock = parseBlock(insideFunction);
             String catchBinding = null;
@@ -1941,7 +3002,66 @@ public final class JvmBytecodeCompiler {
         }
 
         private Expression parseExpression() {
-            return parseEquality();
+            return parseAssignment();
+        }
+
+        private Expression parseAssignment() {
+            final Expression left = parseConditional();
+            final Token assignmentOperator = matchAssignmentOperator();
+            if (assignmentOperator == null) {
+                return left;
+            }
+            if (!isAssignmentTarget(left)) {
+                throw new JvmCompilationException(
+                        "TSJ-BACKEND-UNSUPPORTED",
+                        "Invalid assignment target in TSJ subset.",
+                        assignmentOperator.line(),
+                        assignmentOperator.column()
+                );
+            }
+            final Expression right = parseAssignment();
+            return new AssignmentExpression(left, assignmentOperator.text(), right);
+        }
+
+        private Expression parseConditional() {
+            Expression expression = parseNullishCoalescing();
+            if (matchSymbol("?")) {
+                final Expression whenTrue = parseExpression();
+                consumeSymbol(":", "Expected `:` in conditional expression.");
+                final Expression whenFalse = parseConditional();
+                expression = new ConditionalExpression(expression, whenTrue, whenFalse);
+            }
+            return expression;
+        }
+
+        private Expression parseNullishCoalescing() {
+            Expression expression = parseLogicalOr();
+            while (matchSymbol("??")) {
+                final String operator = previous().text();
+                final Expression right = parseLogicalOr();
+                expression = new BinaryExpression(expression, operator, right);
+            }
+            return expression;
+        }
+
+        private Expression parseLogicalOr() {
+            Expression expression = parseLogicalAnd();
+            while (matchSymbol("||")) {
+                final String operator = previous().text();
+                final Expression right = parseLogicalAnd();
+                expression = new BinaryExpression(expression, operator, right);
+            }
+            return expression;
+        }
+
+        private Expression parseLogicalAnd() {
+            Expression expression = parseEquality();
+            while (matchSymbol("&&")) {
+                final String operator = previous().text();
+                final Expression right = parseEquality();
+                expression = new BinaryExpression(expression, operator, right);
+            }
+            return expression;
         }
 
         private Expression parseEquality() {
@@ -1979,7 +3099,7 @@ public final class JvmBytecodeCompiler {
 
         private Expression parseFactor() {
             Expression expression = parseUnary();
-            while (matchSymbol("*") || matchSymbol("/")) {
+            while (matchSymbol("*") || matchSymbol("/") || matchSymbol("%")) {
                 final String operator = previous().text();
                 final Expression right = parseUnary();
                 expression = new BinaryExpression(expression, operator, right);
@@ -2044,6 +3164,22 @@ public final class JvmBytecodeCompiler {
 
         private Expression parsePostfix(Expression expression) {
             while (true) {
+                if (matchSymbol("?.")) {
+                    if (matchSymbol("(")) {
+                        final List<Expression> arguments = new ArrayList<>();
+                        if (!checkSymbol(")")) {
+                            do {
+                                arguments.add(parseExpression());
+                            } while (matchSymbol(","));
+                        }
+                        consumeSymbol(")", "Expected `)` after optional call arguments.");
+                        expression = new OptionalCallExpression(expression, List.copyOf(arguments));
+                        continue;
+                    }
+                    final Token member = consumeIdentifier("Expected property name after `?.`.");
+                    expression = new OptionalMemberAccessExpression(expression, member.text());
+                    continue;
+                }
                 if (matchSymbol(".")) {
                     final Token member = consumeIdentifier("Expected property name after `.`.");
                     expression = new MemberAccessExpression(expression, member.text());
@@ -2128,7 +3264,15 @@ public final class JvmBytecodeCompiler {
                 return parseFunctionExpression(false);
             }
             if (matchType(TokenType.NUMBER)) {
-                return new NumberLiteral(previous().text());
+                final Token numberToken = previous();
+                return new NumberLiteral(
+                        normalizeNumericLiteralText(
+                                numberToken.text(),
+                                numberToken.line(),
+                                numberToken.column(),
+                                null
+                        )
+                );
             }
             if (matchType(TokenType.STRING)) {
                 return new StringLiteral(previous().text());
@@ -2521,6 +3665,25 @@ public final class JvmBytecodeCompiler {
             return current().type() == TokenType.SYMBOL && symbol.equals(current().text());
         }
 
+        private Token matchAssignmentOperator() {
+            if (matchSymbol("=")
+                    || matchSymbol("+=")
+                    || matchSymbol("-=")
+                    || matchSymbol("*=")
+                    || matchSymbol("/=")
+                    || matchSymbol("%=")
+                    || matchSymbol("&&=")
+                    || matchSymbol("||=")
+                    || matchSymbol("??=")) {
+                return previous();
+            }
+            return null;
+        }
+
+        private boolean isAssignmentTarget(final Expression expression) {
+            return expression instanceof VariableExpression || expression instanceof MemberAccessExpression;
+        }
+
         private boolean matchSymbol(final String symbol) {
             if (checkSymbol(symbol)) {
                 advance();
@@ -2813,6 +3976,11 @@ public final class JvmBytecodeCompiler {
                 final BinaryExpression rewritten = new BinaryExpression(left, binaryExpression.operator(), right);
                 return maybeFoldExpression(rewritten);
             }
+            if (expression instanceof AssignmentExpression assignmentExpression) {
+                final Expression target = optimizeExpression(assignmentExpression.target());
+                final Expression value = optimizeExpression(assignmentExpression.expression());
+                return new AssignmentExpression(target, assignmentExpression.operator(), value);
+            }
             if (expression instanceof CallExpression callExpression) {
                 final Expression callee = optimizeExpression(callExpression.callee());
                 final List<Expression> arguments = new ArrayList<>();
@@ -2821,10 +3989,24 @@ public final class JvmBytecodeCompiler {
                 }
                 return new CallExpression(callee, List.copyOf(arguments));
             }
+            if (expression instanceof OptionalCallExpression optionalCallExpression) {
+                final Expression callee = optimizeExpression(optionalCallExpression.callee());
+                final List<Expression> arguments = new ArrayList<>();
+                for (Expression argument : optionalCallExpression.arguments()) {
+                    arguments.add(optimizeExpression(argument));
+                }
+                return new OptionalCallExpression(callee, List.copyOf(arguments));
+            }
             if (expression instanceof MemberAccessExpression memberAccessExpression) {
                 return new MemberAccessExpression(
                         optimizeExpression(memberAccessExpression.receiver()),
                         memberAccessExpression.member()
+                );
+            }
+            if (expression instanceof OptionalMemberAccessExpression optionalMemberAccessExpression) {
+                return new OptionalMemberAccessExpression(
+                        optimizeExpression(optionalMemberAccessExpression.receiver()),
+                        optionalMemberAccessExpression.member()
                 );
             }
             if (expression instanceof NewExpression newExpression) {
@@ -3189,6 +4371,9 @@ public final class JvmBytecodeCompiler {
             builder.append("    }\n\n");
             builder.append("    private static final dev.tsj.runtime.TsjCell PROMISE_BUILTIN_CELL = ")
                     .append("new dev.tsj.runtime.TsjCell(dev.tsj.runtime.TsjRuntime.promiseBuiltin());\n");
+            builder.append("    private static final dev.tsj.runtime.TsjCell ")
+                    .append(UNDEFINED_BUILTIN_CELL_FIELD)
+                    .append(" = new dev.tsj.runtime.TsjCell(null);\n");
             builder.append("    private static final Object ")
                     .append(ASYNC_BREAK_SIGNAL_FIELD)
                     .append(" = new Object();\n");
@@ -3428,12 +4613,6 @@ public final class JvmBytecodeCompiler {
                     continue;
                 }
                 if (statement instanceof ThrowStatement throwStatement) {
-                    if (!insideFunction) {
-                        throw new JvmCompilationException(
-                                "TSJ-BACKEND-UNSUPPORTED",
-                                "Throw statements are only valid inside functions in TSJ-13."
-                        );
-                    }
                     builder.append(indent)
                             .append("throw dev.tsj.runtime.TsjRuntime.raise(")
                             .append(emitExpression(context, throwStatement.expression()))
@@ -3546,7 +4725,7 @@ public final class JvmBytecodeCompiler {
                     .append(") -> {\n");
 
             final EmissionContext functionContext =
-                    new EmissionContext(context, thisVar, context.resolveSuperClassExpression(), false);
+                    new EmissionContext(context, thisVar, context.resolveSuperClassExpression(), false, argsVar);
             emitParameterCells(builder, functionContext, declaration.parameters(), argsVar, indent + "    ");
 
             emitStatements(builder, functionContext, declaration.body(), indent + "    ", true);
@@ -3576,7 +4755,7 @@ public final class JvmBytecodeCompiler {
                     .append(") -> {\n");
 
             final EmissionContext functionContext =
-                    new EmissionContext(context, thisVar, context.resolveSuperClassExpression(), false);
+                    new EmissionContext(context, thisVar, context.resolveSuperClassExpression(), false, argsVar);
             final List<Statement> normalizedBody =
                     normalizeAsyncStatementsForAwaitExpressions(functionContext, declaration.body());
             emitParameterCells(builder, functionContext, declaration.parameters(), argsVar, indent + "    ");
@@ -3683,7 +4862,7 @@ public final class JvmBytecodeCompiler {
             }
 
             final EmissionContext methodContext =
-                    new EmissionContext(context, thisVar, superClassExpression, constructor);
+                    new EmissionContext(context, thisVar, superClassExpression, constructor, argsVar);
             emitParameterCells(builder, methodContext, method.parameters(), argsVar, indent + "    ");
             if (!constructor && method.async()) {
                 final List<Statement> normalizedBody =
@@ -3727,7 +4906,7 @@ public final class JvmBytecodeCompiler {
                         .append(argsVar)
                         .append("[")
                         .append(index)
-                        .append("] : null);\n");
+                        .append("] : dev.tsj.runtime.TsjRuntime.undefined());\n");
             }
         }
 
@@ -3746,12 +4925,18 @@ public final class JvmBytecodeCompiler {
                         .append(argsVar)
                         .append(") -> {\n");
                 functionContext =
-                        new EmissionContext(context, thisVar, context.resolveSuperClassExpression(), false);
+                        new EmissionContext(context, thisVar, context.resolveSuperClassExpression(), false, argsVar);
             } else {
                 functionBuilder.append("((dev.tsj.runtime.TsjCallable) (Object... ")
                         .append(argsVar)
                         .append(") -> {\n");
-                functionContext = new EmissionContext(context);
+                functionContext = new EmissionContext(
+                        context,
+                        context.thisReference,
+                        context.superClassExpression,
+                        context.constructorContext,
+                        argsVar
+                );
             }
             emitParameterCells(functionBuilder, functionContext, functionExpression.parameters(), argsVar, "    ");
 
@@ -3997,6 +5182,41 @@ public final class JvmBytecodeCompiler {
                         List.copyOf(hoisted)
                 );
             }
+            if (expression instanceof AssignmentExpression assignmentExpression) {
+                final AwaitExpressionRewrite rewrittenTarget =
+                        rewriteAsyncExpressionForAwait(context, assignmentExpression.target(), sourceLocation);
+                final AwaitExpressionRewrite rewrittenValue =
+                        rewriteAsyncExpressionForAwait(context, assignmentExpression.expression(), sourceLocation);
+                final List<Statement> hoisted = new ArrayList<>(rewrittenTarget.hoistedStatements());
+                hoisted.addAll(rewrittenValue.hoistedStatements());
+                return new AwaitExpressionRewrite(
+                        new AssignmentExpression(
+                                rewrittenTarget.expression(),
+                                assignmentExpression.operator(),
+                                rewrittenValue.expression()
+                        ),
+                        List.copyOf(hoisted)
+                );
+            }
+            if (expression instanceof ConditionalExpression conditionalExpression) {
+                final AwaitExpressionRewrite rewrittenCondition =
+                        rewriteAsyncExpressionForAwait(context, conditionalExpression.condition(), sourceLocation);
+                final AwaitExpressionRewrite rewrittenWhenTrue =
+                        rewriteAsyncExpressionForAwait(context, conditionalExpression.whenTrue(), sourceLocation);
+                final AwaitExpressionRewrite rewrittenWhenFalse =
+                        rewriteAsyncExpressionForAwait(context, conditionalExpression.whenFalse(), sourceLocation);
+                final List<Statement> hoisted = new ArrayList<>(rewrittenCondition.hoistedStatements());
+                hoisted.addAll(rewrittenWhenTrue.hoistedStatements());
+                hoisted.addAll(rewrittenWhenFalse.hoistedStatements());
+                return new AwaitExpressionRewrite(
+                        new ConditionalExpression(
+                                rewrittenCondition.expression(),
+                                rewrittenWhenTrue.expression(),
+                                rewrittenWhenFalse.expression()
+                        ),
+                        List.copyOf(hoisted)
+                );
+            }
             if (expression instanceof CallExpression callExpression) {
                 final AwaitExpressionRewrite rewrittenCallee =
                         rewriteAsyncExpressionForAwait(context, callExpression.callee(), sourceLocation);
@@ -4013,11 +5233,38 @@ public final class JvmBytecodeCompiler {
                         List.copyOf(hoisted)
                 );
             }
+            if (expression instanceof OptionalCallExpression optionalCallExpression) {
+                final AwaitExpressionRewrite rewrittenCallee =
+                        rewriteAsyncExpressionForAwait(context, optionalCallExpression.callee(), sourceLocation);
+                final List<Expression> rewrittenArguments = new ArrayList<>();
+                final List<Statement> hoisted = new ArrayList<>(rewrittenCallee.hoistedStatements());
+                for (Expression argument : optionalCallExpression.arguments()) {
+                    final AwaitExpressionRewrite rewrittenArgument =
+                            rewriteAsyncExpressionForAwait(context, argument, sourceLocation);
+                    hoisted.addAll(rewrittenArgument.hoistedStatements());
+                    rewrittenArguments.add(rewrittenArgument.expression());
+                }
+                return new AwaitExpressionRewrite(
+                        new OptionalCallExpression(rewrittenCallee.expression(), List.copyOf(rewrittenArguments)),
+                        List.copyOf(hoisted)
+                );
+            }
             if (expression instanceof MemberAccessExpression memberAccessExpression) {
                 final AwaitExpressionRewrite rewrittenReceiver =
                         rewriteAsyncExpressionForAwait(context, memberAccessExpression.receiver(), sourceLocation);
                 return new AwaitExpressionRewrite(
                         new MemberAccessExpression(rewrittenReceiver.expression(), memberAccessExpression.member()),
+                        rewrittenReceiver.hoistedStatements()
+                );
+            }
+            if (expression instanceof OptionalMemberAccessExpression optionalMemberAccessExpression) {
+                final AwaitExpressionRewrite rewrittenReceiver =
+                        rewriteAsyncExpressionForAwait(context, optionalMemberAccessExpression.receiver(), sourceLocation);
+                return new AwaitExpressionRewrite(
+                        new OptionalMemberAccessExpression(
+                                rewrittenReceiver.expression(),
+                                optionalMemberAccessExpression.member()
+                        ),
                         rewrittenReceiver.hoistedStatements()
                 );
             }
@@ -4971,6 +6218,15 @@ public final class JvmBytecodeCompiler {
                 return expressionContainsAwait(binaryExpression.left())
                         || expressionContainsAwait(binaryExpression.right());
             }
+            if (expression instanceof AssignmentExpression assignmentExpression) {
+                return expressionContainsAwait(assignmentExpression.target())
+                        || expressionContainsAwait(assignmentExpression.expression());
+            }
+            if (expression instanceof ConditionalExpression conditionalExpression) {
+                return expressionContainsAwait(conditionalExpression.condition())
+                        || expressionContainsAwait(conditionalExpression.whenTrue())
+                        || expressionContainsAwait(conditionalExpression.whenFalse());
+            }
             if (expression instanceof CallExpression callExpression) {
                 if (expressionContainsAwait(callExpression.callee())) {
                     return true;
@@ -4982,8 +6238,22 @@ public final class JvmBytecodeCompiler {
                 }
                 return false;
             }
+            if (expression instanceof OptionalCallExpression optionalCallExpression) {
+                if (expressionContainsAwait(optionalCallExpression.callee())) {
+                    return true;
+                }
+                for (Expression argument : optionalCallExpression.arguments()) {
+                    if (expressionContainsAwait(argument)) {
+                        return true;
+                    }
+                }
+                return false;
+            }
             if (expression instanceof MemberAccessExpression memberAccessExpression) {
                 return expressionContainsAwait(memberAccessExpression.receiver());
+            }
+            if (expression instanceof OptionalMemberAccessExpression optionalMemberAccessExpression) {
+                return expressionContainsAwait(optionalMemberAccessExpression.receiver());
             }
             if (expression instanceof NewExpression newExpression) {
                 if (expressionContainsAwait(newExpression.constructor())) {
@@ -5058,6 +6328,138 @@ public final class JvmBytecodeCompiler {
             );
         }
 
+        private String emitAssignmentExpression(
+                final EmissionContext context,
+                final AssignmentExpression assignmentExpression
+        ) {
+            final String operator = assignmentExpression.operator();
+            final String valueExpression = emitExpression(context, assignmentExpression.expression());
+            final Expression target = assignmentExpression.target();
+            if (target instanceof VariableExpression variableExpression) {
+                return emitVariableAssignmentExpression(
+                        context.resolveBinding(variableExpression.name()),
+                        operator,
+                        valueExpression
+                );
+            }
+            if (target instanceof MemberAccessExpression memberAccessExpression) {
+                final String receiverExpression = emitExpression(context, memberAccessExpression.receiver());
+                final String memberName = escapeJava(memberAccessExpression.member());
+                if (isPrototypeMutationMemberAccess(memberAccessExpression)) {
+                    if (!"=".equals(operator)) {
+                        throw new JvmCompilationException(
+                                "TSJ-BACKEND-UNSUPPORTED",
+                                "Compound `__proto__` assignment is unsupported in TSJ assignment subset."
+                        );
+                    }
+                    return "dev.tsj.runtime.TsjRuntime.setPrototypeValue("
+                            + receiverExpression
+                            + ", "
+                            + valueExpression
+                            + ")";
+                }
+                return emitMemberAssignmentExpression(receiverExpression, memberName, operator, valueExpression);
+            }
+            throw new JvmCompilationException(
+                    "TSJ-BACKEND-UNSUPPORTED",
+                    "Unsupported assignment target in TSJ assignment expression subset: "
+                            + target.getClass().getSimpleName()
+            );
+        }
+
+        private String emitVariableAssignmentExpression(
+                final String cellName,
+                final String operator,
+                final String valueExpression
+        ) {
+            final String currentValue = cellName + ".get()";
+            return switch (operator) {
+                case "=" -> "dev.tsj.runtime.TsjRuntime.assignCell(" + cellName + ", " + valueExpression + ")";
+                case "+=", "-=", "*=", "/=", "%=" -> "dev.tsj.runtime.TsjRuntime.assignCell("
+                        + cellName
+                        + ", "
+                        + emitBinaryOperatorExpression(operator.substring(0, 1), currentValue, valueExpression)
+                        + ")";
+                case "&&=" -> "dev.tsj.runtime.TsjRuntime.assignLogicalAnd(" + cellName + ", () -> " + valueExpression + ")";
+                case "||=" -> "dev.tsj.runtime.TsjRuntime.assignLogicalOr(" + cellName + ", () -> " + valueExpression + ")";
+                case "??=" -> "dev.tsj.runtime.TsjRuntime.assignNullish(" + cellName + ", () -> " + valueExpression + ")";
+                default -> throw new JvmCompilationException(
+                        "TSJ-BACKEND-UNSUPPORTED",
+                        "Unsupported assignment operator: " + operator
+                );
+            };
+        }
+
+        private String emitMemberAssignmentExpression(
+                final String receiverExpression,
+                final String memberName,
+                final String operator,
+                final String valueExpression
+        ) {
+            final String memberLiteral = "\"" + memberName + "\"";
+            final String currentValue =
+                    "dev.tsj.runtime.TsjRuntime.getProperty(" + receiverExpression + ", " + memberLiteral + ")";
+            return switch (operator) {
+                case "=" -> "dev.tsj.runtime.TsjRuntime.setProperty("
+                        + receiverExpression
+                        + ", "
+                        + memberLiteral
+                        + ", "
+                        + valueExpression
+                        + ")";
+                case "+=", "-=", "*=", "/=", "%=" -> "dev.tsj.runtime.TsjRuntime.setProperty("
+                        + receiverExpression
+                        + ", "
+                        + memberLiteral
+                        + ", "
+                        + emitBinaryOperatorExpression(operator.substring(0, 1), currentValue, valueExpression)
+                        + ")";
+                case "&&=" -> "dev.tsj.runtime.TsjRuntime.assignPropertyLogicalAnd("
+                        + receiverExpression
+                        + ", "
+                        + memberLiteral
+                        + ", () -> "
+                        + valueExpression
+                        + ")";
+                case "||=" -> "dev.tsj.runtime.TsjRuntime.assignPropertyLogicalOr("
+                        + receiverExpression
+                        + ", "
+                        + memberLiteral
+                        + ", () -> "
+                        + valueExpression
+                        + ")";
+                case "??=" -> "dev.tsj.runtime.TsjRuntime.assignPropertyNullish("
+                        + receiverExpression
+                        + ", "
+                        + memberLiteral
+                        + ", () -> "
+                        + valueExpression
+                        + ")";
+                default -> throw new JvmCompilationException(
+                        "TSJ-BACKEND-UNSUPPORTED",
+                        "Unsupported assignment operator: " + operator
+                );
+            };
+        }
+
+        private String emitBinaryOperatorExpression(
+                final String operator,
+                final String left,
+                final String right
+        ) {
+            return switch (operator) {
+                case "+" -> "dev.tsj.runtime.TsjRuntime.add(" + left + ", " + right + ")";
+                case "-" -> "dev.tsj.runtime.TsjRuntime.subtract(" + left + ", " + right + ")";
+                case "*" -> "dev.tsj.runtime.TsjRuntime.multiply(" + left + ", " + right + ")";
+                case "/" -> "dev.tsj.runtime.TsjRuntime.divide(" + left + ", " + right + ")";
+                case "%" -> "dev.tsj.runtime.TsjRuntime.modulo(" + left + ", " + right + ")";
+                default -> throw new JvmCompilationException(
+                        "TSJ-BACKEND-UNSUPPORTED",
+                        "Unsupported binary operator in assignment lowering: " + operator
+                );
+            };
+        }
+
         private void emitSuperConstructorCall(
                 final StringBuilder builder,
                 final EmissionContext context,
@@ -5090,10 +6492,7 @@ public final class JvmBytecodeCompiler {
 
         private String emitExpression(final EmissionContext context, final Expression expression) {
             if (expression instanceof NumberLiteral numberLiteral) {
-                if (numberLiteral.value().contains(".")) {
-                    return "Double.valueOf(" + numberLiteral.value() + "d)";
-                }
-                return "Integer.valueOf(" + numberLiteral.value() + ")";
+                return emitNumberLiteral(numberLiteral.value());
             }
             if (expression instanceof StringLiteral stringLiteral) {
                 return "\"" + escapeJava(stringLiteral.value()) + "\"";
@@ -5155,10 +6554,7 @@ public final class JvmBytecodeCompiler {
                 final String left = emitExpression(context, binaryExpression.left());
                 final String right = emitExpression(context, binaryExpression.right());
                 return switch (binaryExpression.operator()) {
-                    case "+" -> "dev.tsj.runtime.TsjRuntime.add(" + left + ", " + right + ")";
-                    case "-" -> "dev.tsj.runtime.TsjRuntime.subtract(" + left + ", " + right + ")";
-                    case "*" -> "dev.tsj.runtime.TsjRuntime.multiply(" + left + ", " + right + ")";
-                    case "/" -> "dev.tsj.runtime.TsjRuntime.divide(" + left + ", " + right + ")";
+                    case "+", "-", "*", "/", "%" -> emitBinaryOperatorExpression(binaryExpression.operator(), left, right);
                     case "<" -> "Boolean.valueOf(dev.tsj.runtime.TsjRuntime.lessThan(" + left + ", " + right + "))";
                     case "<=" -> "Boolean.valueOf(dev.tsj.runtime.TsjRuntime.lessThanOrEqual("
                             + left + ", " + right + "))";
@@ -5173,11 +6569,48 @@ public final class JvmBytecodeCompiler {
                             + left + ", " + right + "))";
                     case "!==" -> "Boolean.valueOf(!dev.tsj.runtime.TsjRuntime.strictEquals("
                             + left + ", " + right + "))";
+                    case "&&" -> "dev.tsj.runtime.TsjRuntime.logicalAnd("
+                            + left
+                            + ", () -> "
+                            + right
+                            + ")";
+                    case "||" -> "dev.tsj.runtime.TsjRuntime.logicalOr("
+                            + left
+                            + ", () -> "
+                            + right
+                            + ")";
+                    case "??" -> "dev.tsj.runtime.TsjRuntime.nullishCoalesce("
+                            + left
+                            + ", () -> "
+                            + right
+                            + ")";
                     default -> throw new JvmCompilationException(
                             "TSJ-BACKEND-UNSUPPORTED",
                             "Unsupported binary operator: " + binaryExpression.operator()
                     );
                 };
+            }
+            if (expression instanceof AssignmentExpression assignmentExpression) {
+                return emitAssignmentExpression(context, assignmentExpression);
+            }
+            if (expression instanceof ConditionalExpression conditionalExpression) {
+                final String condition = emitExpression(context, conditionalExpression.condition());
+                final String whenTrue = emitExpression(context, conditionalExpression.whenTrue());
+                final String whenFalse = emitExpression(context, conditionalExpression.whenFalse());
+                return "(dev.tsj.runtime.TsjRuntime.truthy("
+                        + condition
+                        + ") ? "
+                        + whenTrue
+                        + " : "
+                        + whenFalse
+                        + ")";
+            }
+            if (expression instanceof OptionalMemberAccessExpression optionalMemberAccessExpression) {
+                return "dev.tsj.runtime.TsjRuntime.optionalMemberAccess("
+                        + emitExpression(context, optionalMemberAccessExpression.receiver())
+                        + ", \""
+                        + escapeJava(optionalMemberAccessExpression.member())
+                        + "\")";
             }
             if (expression instanceof MemberAccessExpression memberAccessExpression) {
                 final String cacheField = allocatePropertyCacheField(memberAccessExpression.member());
@@ -5229,6 +6662,48 @@ public final class JvmBytecodeCompiler {
                 if (isJavaInteropFactoryCall(callExpression)) {
                     return emitJavaInteropFactoryCall(callExpression);
                 }
+                if (isArraySpreadFactoryCall(callExpression)) {
+                    return emitSpreadRuntimeCall(context, "arraySpread", callExpression.arguments());
+                }
+                if (isObjectSpreadFactoryCall(callExpression)) {
+                    return emitSpreadRuntimeCall(context, "objectSpread", callExpression.arguments());
+                }
+                if (isRestArgsFactoryCall(callExpression)) {
+                    return emitRestArgsRuntimeCall(context, callExpression);
+                }
+                if (isForOfValuesFactoryCall(callExpression)) {
+                    return emitSingleArgumentRuntimeCall(context, callExpression, "forOfValues", "__tsj_for_of_values");
+                }
+                if (isForInKeysFactoryCall(callExpression)) {
+                    return emitSingleArgumentRuntimeCall(context, callExpression, "forInKeys", "__tsj_for_in_keys");
+                }
+                if (isIndexReadFactoryCall(callExpression)) {
+                    return emitIndexReadRuntimeCall(context, callExpression);
+                }
+                if (isSetDynamicKeyFactoryCall(callExpression)) {
+                    return emitSetDynamicKeyRuntimeCall(context, callExpression);
+                }
+                if (isCallSpreadFactoryCall(callExpression)) {
+                    if (callExpression.arguments().isEmpty()) {
+                        throw new JvmCompilationException(
+                                "TSJ-BACKEND-UNSUPPORTED",
+                                "__tsj_call_spread requires at least one argument in TSJ spread subset."
+                        );
+                    }
+                    final String calleeExpression = emitExpression(context, callExpression.arguments().get(0));
+                    if (callExpression.arguments().size() == 1) {
+                        return "dev.tsj.runtime.TsjRuntime.call(" + calleeExpression + ")";
+                    }
+                    final List<String> segmentExpressions = new ArrayList<>();
+                    for (int index = 1; index < callExpression.arguments().size(); index++) {
+                        segmentExpressions.add(emitExpression(context, callExpression.arguments().get(index)));
+                    }
+                    return "dev.tsj.runtime.TsjRuntime.callSpread("
+                            + calleeExpression
+                            + ", "
+                            + String.join(", ", segmentExpressions)
+                            + ")";
+                }
                 if (callExpression.callee() instanceof MemberAccessExpression memberAccessExpression
                         && isObjectSetPrototypeOfCall(memberAccessExpression)) {
                     if (callExpression.arguments().size() != 2) {
@@ -5267,10 +6742,53 @@ public final class JvmBytecodeCompiler {
                 }
                 return "dev.tsj.runtime.TsjRuntime.call(" + callee + ", " + String.join(", ", renderedArgs) + ")";
             }
+            if (expression instanceof OptionalCallExpression optionalCallExpression) {
+                final String callee = emitExpression(context, optionalCallExpression.callee());
+                final List<String> renderedArgs = new ArrayList<>();
+                for (Expression argument : optionalCallExpression.arguments()) {
+                    renderedArgs.add(emitExpression(context, argument));
+                }
+                final String argsSupplier;
+                if (renderedArgs.isEmpty()) {
+                    argsSupplier = "() -> new Object[0]";
+                } else {
+                    argsSupplier = "() -> new Object[]{" + String.join(", ", renderedArgs) + "}";
+                }
+                return "dev.tsj.runtime.TsjRuntime.optionalCall(" + callee + ", " + argsSupplier + ")";
+            }
             throw new JvmCompilationException(
                     "TSJ-BACKEND-UNSUPPORTED",
                     "Unsupported expression node: " + expression.getClass().getSimpleName()
             );
+        }
+
+        private String emitNumberLiteral(final String normalizedLiteral) {
+            if (normalizedLiteral.contains(".")
+                    || normalizedLiteral.contains("e")
+                    || normalizedLiteral.contains("E")) {
+                return "Double.valueOf(" + normalizedLiteral + "d)";
+            }
+            try {
+                final BigInteger integerValue = new BigInteger(normalizedLiteral);
+                if (integerValue.compareTo(BigInteger.valueOf(Integer.MIN_VALUE)) >= 0
+                        && integerValue.compareTo(BigInteger.valueOf(Integer.MAX_VALUE)) <= 0) {
+                    return "Integer.valueOf(" + integerValue + ")";
+                }
+                if (integerValue.compareTo(BigInteger.valueOf(Long.MIN_VALUE)) >= 0
+                        && integerValue.compareTo(BigInteger.valueOf(Long.MAX_VALUE)) <= 0) {
+                    return "Long.valueOf(" + integerValue + "L)";
+                }
+                final String roundedDouble = Double.toString(new BigDecimal(integerValue).doubleValue());
+                return "Double.valueOf(" + roundedDouble + "d)";
+            } catch (final NumberFormatException exception) {
+                throw new JvmCompilationException(
+                        "TSJ-BACKEND-PARSE",
+                        "Invalid normalized numeric literal `" + normalizedLiteral + "`.",
+                        null,
+                        null,
+                        exception
+                );
+            }
         }
 
         private boolean isPrototypeMutationMemberAccess(final MemberAccessExpression memberAccessExpression) {
@@ -5310,6 +6828,169 @@ public final class JvmBytecodeCompiler {
                     + "\", \""
                     + escapeJava(methodName.value())
                     + "\")";
+        }
+
+        private String emitSpreadRuntimeCall(
+                final EmissionContext context,
+                final String methodName,
+                final List<Expression> arguments
+        ) {
+            if (arguments.isEmpty()) {
+                return "dev.tsj.runtime.TsjRuntime." + methodName + "()";
+            }
+            final List<String> renderedArgs = new ArrayList<>();
+            for (Expression argument : arguments) {
+                renderedArgs.add(emitExpression(context, argument));
+            }
+            return "dev.tsj.runtime.TsjRuntime."
+                    + methodName
+                    + "("
+                    + String.join(", ", renderedArgs)
+                    + ")";
+        }
+
+        private String emitSingleArgumentRuntimeCall(
+                final EmissionContext context,
+                final CallExpression callExpression,
+                final String runtimeMethod,
+                final String helperName
+        ) {
+            if (callExpression.arguments().size() != 1) {
+                throw new JvmCompilationException(
+                        "TSJ-BACKEND-UNSUPPORTED",
+                        helperName + " requires exactly one argument."
+                );
+            }
+            return "dev.tsj.runtime.TsjRuntime."
+                    + runtimeMethod
+                    + "("
+                    + emitExpression(context, callExpression.arguments().get(0))
+                    + ")";
+        }
+
+        private String emitIndexReadRuntimeCall(
+                final EmissionContext context,
+                final CallExpression callExpression
+        ) {
+            if (callExpression.arguments().size() != 2) {
+                throw new JvmCompilationException(
+                        "TSJ-BACKEND-UNSUPPORTED",
+                        "__tsj_index_read requires exactly two arguments."
+                );
+            }
+            return "dev.tsj.runtime.TsjRuntime.indexRead("
+                    + emitExpression(context, callExpression.arguments().get(0))
+                    + ", "
+                    + emitExpression(context, callExpression.arguments().get(1))
+                    + ")";
+        }
+
+        private String emitSetDynamicKeyRuntimeCall(
+                final EmissionContext context,
+                final CallExpression callExpression
+        ) {
+            if (callExpression.arguments().size() != 3) {
+                throw new JvmCompilationException(
+                        "TSJ-BACKEND-UNSUPPORTED",
+                        "__tsj_set_dynamic_key requires exactly three arguments."
+                );
+            }
+            return "dev.tsj.runtime.TsjRuntime.setPropertyDynamic("
+                    + emitExpression(context, callExpression.arguments().get(0))
+                    + ", "
+                    + emitExpression(context, callExpression.arguments().get(1))
+                    + ", "
+                    + emitExpression(context, callExpression.arguments().get(2))
+                    + ")";
+        }
+
+        private String emitRestArgsRuntimeCall(
+                final EmissionContext context,
+                final CallExpression callExpression
+        ) {
+            if (callExpression.arguments().size() != 1
+                    || !(callExpression.arguments().get(0) instanceof NumberLiteral numberLiteral)) {
+                throw new JvmCompilationException(
+                        "TSJ-BACKEND-UNSUPPORTED",
+                        "__tsj_rest_args requires exactly one numeric start index argument."
+                );
+            }
+            final int startIndex;
+            try {
+                startIndex = Integer.parseInt(numberLiteral.value());
+            } catch (NumberFormatException numberFormatException) {
+                throw new JvmCompilationException(
+                        "TSJ-BACKEND-UNSUPPORTED",
+                        "__tsj_rest_args start index must be an integer literal."
+                );
+            }
+            if (startIndex < 0) {
+                throw new JvmCompilationException(
+                        "TSJ-BACKEND-UNSUPPORTED",
+                        "__tsj_rest_args start index must be non-negative."
+                );
+            }
+            return "dev.tsj.runtime.TsjRuntime.restArgs("
+                    + context.resolveArgumentsReference()
+                    + ", "
+                    + startIndex
+                    + ")";
+        }
+
+        private boolean isArraySpreadFactoryCall(final CallExpression callExpression) {
+            if (!(callExpression.callee() instanceof VariableExpression variableExpression)) {
+                return false;
+            }
+            return "__tsj_array_spread".equals(variableExpression.name());
+        }
+
+        private boolean isObjectSpreadFactoryCall(final CallExpression callExpression) {
+            if (!(callExpression.callee() instanceof VariableExpression variableExpression)) {
+                return false;
+            }
+            return "__tsj_object_spread".equals(variableExpression.name());
+        }
+
+        private boolean isCallSpreadFactoryCall(final CallExpression callExpression) {
+            if (!(callExpression.callee() instanceof VariableExpression variableExpression)) {
+                return false;
+            }
+            return "__tsj_call_spread".equals(variableExpression.name());
+        }
+
+        private boolean isRestArgsFactoryCall(final CallExpression callExpression) {
+            if (!(callExpression.callee() instanceof VariableExpression variableExpression)) {
+                return false;
+            }
+            return "__tsj_rest_args".equals(variableExpression.name());
+        }
+
+        private boolean isForOfValuesFactoryCall(final CallExpression callExpression) {
+            if (!(callExpression.callee() instanceof VariableExpression variableExpression)) {
+                return false;
+            }
+            return "__tsj_for_of_values".equals(variableExpression.name());
+        }
+
+        private boolean isForInKeysFactoryCall(final CallExpression callExpression) {
+            if (!(callExpression.callee() instanceof VariableExpression variableExpression)) {
+                return false;
+            }
+            return "__tsj_for_in_keys".equals(variableExpression.name());
+        }
+
+        private boolean isIndexReadFactoryCall(final CallExpression callExpression) {
+            if (!(callExpression.callee() instanceof VariableExpression variableExpression)) {
+                return false;
+            }
+            return "__tsj_index_read".equals(variableExpression.name());
+        }
+
+        private boolean isSetDynamicKeyFactoryCall(final CallExpression callExpression) {
+            if (!(callExpression.callee() instanceof VariableExpression variableExpression)) {
+                return false;
+            }
+            return "__tsj_set_dynamic_key".equals(variableExpression.name());
         }
 
         private String sanitizeIdentifier(final String identifier) {
@@ -5381,13 +7062,15 @@ public final class JvmBytecodeCompiler {
             private final String thisReference;
             private final String superClassExpression;
             private final boolean constructorContext;
+            private final String argumentsReference;
 
             private EmissionContext(final EmissionContext parent) {
                 this(
                         parent,
                         parent != null ? parent.thisReference : null,
                         parent != null ? parent.superClassExpression : null,
-                        parent != null && parent.constructorContext
+                        parent != null && parent.constructorContext,
+                        parent != null ? parent.argumentsReference : null
                 );
             }
 
@@ -5397,12 +7080,29 @@ public final class JvmBytecodeCompiler {
                     final String superClassExpression,
                     final boolean constructorContext
             ) {
+                this(
+                        parent,
+                        thisReference,
+                        superClassExpression,
+                        constructorContext,
+                        parent != null ? parent.argumentsReference : null
+                );
+            }
+
+            private EmissionContext(
+                    final EmissionContext parent,
+                    final String thisReference,
+                    final String superClassExpression,
+                    final boolean constructorContext,
+                    final String argumentsReference
+            ) {
                 this.parent = parent;
                 this.bindings = new LinkedHashMap<>();
                 this.generatedNames = new LinkedHashSet<>();
                 this.thisReference = thisReference;
                 this.superClassExpression = superClassExpression;
                 this.constructorContext = constructorContext;
+                this.argumentsReference = argumentsReference;
             }
 
             private String predeclareBinding(final String sourceName) {
@@ -5438,6 +7138,9 @@ public final class JvmBytecodeCompiler {
                 }
                 if ("Promise".equals(sourceName)) {
                     return "PROMISE_BUILTIN_CELL";
+                }
+                if (IMPLICIT_GLOBAL_BUILTINS.contains(sourceName)) {
+                    return UNDEFINED_BUILTIN_CELL_FIELD;
                 }
                 throw new JvmCompilationException(
                         "TSJ-BACKEND-UNSUPPORTED",
@@ -5501,6 +7204,19 @@ public final class JvmBytecodeCompiler {
                     return parent.resolveSuperClassExpression();
                 }
                 return null;
+            }
+
+            private String resolveArgumentsReference() {
+                if (argumentsReference != null) {
+                    return argumentsReference;
+                }
+                if (parent != null) {
+                    return parent.resolveArgumentsReference();
+                }
+                throw new JvmCompilationException(
+                        "TSJ-BACKEND-UNSUPPORTED",
+                        "__tsj_rest_args is only valid inside function-like bodies."
+                );
             }
         }
     }

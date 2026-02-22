@@ -1,0 +1,2186 @@
+{
+  "children": [
+    {
+      "children": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 17,
+                    "endLine": 1,
+                    "file": "src/ok/001_lexical.ts",
+                    "startCol": 7,
+                    "startLine": 1
+                  },
+                  "tokenText": "café"
+                },
+                {
+                  "children": [],
+                  "kind": "FirstLiteralToken",
+                  "span": {
+                    "endCol": 21,
+                    "endLine": 1,
+                    "file": "src/ok/001_lexical.ts",
+                    "startCol": 20,
+                    "startLine": 1
+                  },
+                  "tokenText": "1"
+                }
+              ],
+              "kind": "VariableDeclaration",
+              "span": {
+                "endCol": 21,
+                "endLine": 1,
+                "file": "src/ok/001_lexical.ts",
+                "startCol": 7,
+                "startLine": 1
+              }
+            }
+          ],
+          "kind": "VariableDeclarationList",
+          "span": {
+            "endCol": 21,
+            "endLine": 1,
+            "file": "src/ok/001_lexical.ts",
+            "startCol": 1,
+            "startLine": 1
+          }
+        }
+      ],
+      "kind": "FirstStatement",
+      "span": {
+        "endCol": 22,
+        "endLine": 1,
+        "file": "src/ok/001_lexical.ts",
+        "startCol": 1,
+        "startLine": 1
+      }
+    },
+    {
+      "children": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 19,
+                    "endLine": 2,
+                    "file": "src/ok/001_lexical.ts",
+                    "startCol": 7,
+                    "startLine": 2
+                  },
+                  "tokenText": "greek_Ω"
+                },
+                {
+                  "children": [],
+                  "kind": "FirstLiteralToken",
+                  "span": {
+                    "endCol": 23,
+                    "endLine": 2,
+                    "file": "src/ok/001_lexical.ts",
+                    "startCol": 22,
+                    "startLine": 2
+                  },
+                  "tokenText": "2"
+                }
+              ],
+              "kind": "VariableDeclaration",
+              "span": {
+                "endCol": 23,
+                "endLine": 2,
+                "file": "src/ok/001_lexical.ts",
+                "startCol": 7,
+                "startLine": 2
+              }
+            }
+          ],
+          "kind": "VariableDeclarationList",
+          "span": {
+            "endCol": 23,
+            "endLine": 2,
+            "file": "src/ok/001_lexical.ts",
+            "startCol": 1,
+            "startLine": 2
+          }
+        }
+      ],
+      "kind": "FirstStatement",
+      "span": {
+        "endCol": 24,
+        "endLine": 2,
+        "file": "src/ok/001_lexical.ts",
+        "startCol": 1,
+        "startLine": 2
+      }
+    },
+    {
+      "children": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 14,
+                    "endLine": 4,
+                    "file": "src/ok/001_lexical.ts",
+                    "startCol": 7,
+                    "startLine": 4
+                  },
+                  "tokenText": "million"
+                },
+                {
+                  "children": [],
+                  "kind": "FirstLiteralToken",
+                  "span": {
+                    "endCol": 26,
+                    "endLine": 4,
+                    "file": "src/ok/001_lexical.ts",
+                    "startCol": 17,
+                    "startLine": 4
+                  },
+                  "tokenText": "1_000_000"
+                }
+              ],
+              "kind": "VariableDeclaration",
+              "span": {
+                "endCol": 26,
+                "endLine": 4,
+                "file": "src/ok/001_lexical.ts",
+                "startCol": 7,
+                "startLine": 4
+              }
+            }
+          ],
+          "kind": "VariableDeclarationList",
+          "span": {
+            "endCol": 26,
+            "endLine": 4,
+            "file": "src/ok/001_lexical.ts",
+            "startCol": 1,
+            "startLine": 4
+          }
+        }
+      ],
+      "kind": "FirstStatement",
+      "span": {
+        "endCol": 27,
+        "endLine": 4,
+        "file": "src/ok/001_lexical.ts",
+        "startCol": 1,
+        "startLine": 4
+      }
+    },
+    {
+      "children": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 11,
+                    "endLine": 5,
+                    "file": "src/ok/001_lexical.ts",
+                    "startCol": 7,
+                    "startLine": 5
+                  },
+                  "tokenText": "mask"
+                },
+                {
+                  "children": [],
+                  "kind": "FirstLiteralToken",
+                  "span": {
+                    "endCol": 25,
+                    "endLine": 5,
+                    "file": "src/ok/001_lexical.ts",
+                    "startCol": 14,
+                    "startLine": 5
+                  },
+                  "tokenText": "0b1010_1010"
+                }
+              ],
+              "kind": "VariableDeclaration",
+              "span": {
+                "endCol": 25,
+                "endLine": 5,
+                "file": "src/ok/001_lexical.ts",
+                "startCol": 7,
+                "startLine": 5
+              }
+            }
+          ],
+          "kind": "VariableDeclarationList",
+          "span": {
+            "endCol": 25,
+            "endLine": 5,
+            "file": "src/ok/001_lexical.ts",
+            "startCol": 1,
+            "startLine": 5
+          }
+        }
+      ],
+      "kind": "FirstStatement",
+      "span": {
+        "endCol": 26,
+        "endLine": 5,
+        "file": "src/ok/001_lexical.ts",
+        "startCol": 1,
+        "startLine": 5
+      }
+    },
+    {
+      "children": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 10,
+                    "endLine": 6,
+                    "file": "src/ok/001_lexical.ts",
+                    "startCol": 7,
+                    "startLine": 6
+                  },
+                  "tokenText": "hex"
+                },
+                {
+                  "children": [],
+                  "kind": "FirstLiteralToken",
+                  "span": {
+                    "endCol": 24,
+                    "endLine": 6,
+                    "file": "src/ok/001_lexical.ts",
+                    "startCol": 13,
+                    "startLine": 6
+                  },
+                  "tokenText": "0xCAFE_F00D"
+                }
+              ],
+              "kind": "VariableDeclaration",
+              "span": {
+                "endCol": 24,
+                "endLine": 6,
+                "file": "src/ok/001_lexical.ts",
+                "startCol": 7,
+                "startLine": 6
+              }
+            }
+          ],
+          "kind": "VariableDeclarationList",
+          "span": {
+            "endCol": 24,
+            "endLine": 6,
+            "file": "src/ok/001_lexical.ts",
+            "startCol": 1,
+            "startLine": 6
+          }
+        }
+      ],
+      "kind": "FirstStatement",
+      "span": {
+        "endCol": 25,
+        "endLine": 6,
+        "file": "src/ok/001_lexical.ts",
+        "startCol": 1,
+        "startLine": 6
+      }
+    },
+    {
+      "children": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 10,
+                    "endLine": 7,
+                    "file": "src/ok/001_lexical.ts",
+                    "startCol": 7,
+                    "startLine": 7
+                  },
+                  "tokenText": "big"
+                },
+                {
+                  "children": [],
+                  "kind": "BigIntLiteral",
+                  "span": {
+                    "endCol": 17,
+                    "endLine": 7,
+                    "file": "src/ok/001_lexical.ts",
+                    "startCol": 13,
+                    "startLine": 7
+                  },
+                  "tokenText": "123n"
+                }
+              ],
+              "kind": "VariableDeclaration",
+              "span": {
+                "endCol": 17,
+                "endLine": 7,
+                "file": "src/ok/001_lexical.ts",
+                "startCol": 7,
+                "startLine": 7
+              }
+            }
+          ],
+          "kind": "VariableDeclarationList",
+          "span": {
+            "endCol": 17,
+            "endLine": 7,
+            "file": "src/ok/001_lexical.ts",
+            "startCol": 1,
+            "startLine": 7
+          }
+        }
+      ],
+      "kind": "FirstStatement",
+      "span": {
+        "endCol": 18,
+        "endLine": 7,
+        "file": "src/ok/001_lexical.ts",
+        "startCol": 1,
+        "startLine": 7
+      }
+    },
+    {
+      "children": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 13,
+                    "endLine": 9,
+                    "file": "src/ok/001_lexical.ts",
+                    "startCol": 7,
+                    "startLine": 9
+                  },
+                  "tokenText": "single"
+                },
+                {
+                  "children": [],
+                  "kind": "StringLiteral",
+                  "span": {
+                    "endCol": 24,
+                    "endLine": 9,
+                    "file": "src/ok/001_lexical.ts",
+                    "startCol": 16,
+                    "startLine": 9
+                  },
+                  "tokenText": "'single'"
+                }
+              ],
+              "kind": "VariableDeclaration",
+              "span": {
+                "endCol": 24,
+                "endLine": 9,
+                "file": "src/ok/001_lexical.ts",
+                "startCol": 7,
+                "startLine": 9
+              }
+            }
+          ],
+          "kind": "VariableDeclarationList",
+          "span": {
+            "endCol": 24,
+            "endLine": 9,
+            "file": "src/ok/001_lexical.ts",
+            "startCol": 1,
+            "startLine": 9
+          }
+        }
+      ],
+      "kind": "FirstStatement",
+      "span": {
+        "endCol": 25,
+        "endLine": 9,
+        "file": "src/ok/001_lexical.ts",
+        "startCol": 1,
+        "startLine": 9
+      }
+    },
+    {
+      "children": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 10,
+                    "endLine": 10,
+                    "file": "src/ok/001_lexical.ts",
+                    "startCol": 7,
+                    "startLine": 10
+                  },
+                  "tokenText": "dbl"
+                },
+                {
+                  "children": [],
+                  "kind": "StringLiteral",
+                  "span": {
+                    "endCol": 21,
+                    "endLine": 10,
+                    "file": "src/ok/001_lexical.ts",
+                    "startCol": 13,
+                    "startLine": 10
+                  },
+                  "tokenText": "\"double\""
+                }
+              ],
+              "kind": "VariableDeclaration",
+              "span": {
+                "endCol": 21,
+                "endLine": 10,
+                "file": "src/ok/001_lexical.ts",
+                "startCol": 7,
+                "startLine": 10
+              }
+            }
+          ],
+          "kind": "VariableDeclarationList",
+          "span": {
+            "endCol": 21,
+            "endLine": 10,
+            "file": "src/ok/001_lexical.ts",
+            "startCol": 1,
+            "startLine": 10
+          }
+        }
+      ],
+      "kind": "FirstStatement",
+      "span": {
+        "endCol": 22,
+        "endLine": 10,
+        "file": "src/ok/001_lexical.ts",
+        "startCol": 1,
+        "startLine": 10
+      }
+    },
+    {
+      "children": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 10,
+                    "endLine": 11,
+                    "file": "src/ok/001_lexical.ts",
+                    "startCol": 7,
+                    "startLine": 11
+                  },
+                  "tokenText": "tpl"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "kind": "TemplateHead",
+                      "span": {
+                        "endCol": 22,
+                        "endLine": 11,
+                        "file": "src/ok/001_lexical.ts",
+                        "startCol": 13,
+                        "startLine": 11
+                      },
+                      "tokenText": "`value=${"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "kind": "Identifier",
+                          "span": {
+                            "endCol": 29,
+                            "endLine": 11,
+                            "file": "src/ok/001_lexical.ts",
+                            "startCol": 22,
+                            "startLine": 11
+                          },
+                          "tokenText": "million"
+                        },
+                        {
+                          "children": [],
+                          "kind": "LastTemplateToken",
+                          "span": {
+                            "endCol": 31,
+                            "endLine": 11,
+                            "file": "src/ok/001_lexical.ts",
+                            "startCol": 29,
+                            "startLine": 11
+                          },
+                          "tokenText": "}`"
+                        }
+                      ],
+                      "kind": "TemplateSpan",
+                      "span": {
+                        "endCol": 31,
+                        "endLine": 11,
+                        "file": "src/ok/001_lexical.ts",
+                        "startCol": 22,
+                        "startLine": 11
+                      }
+                    }
+                  ],
+                  "kind": "TemplateExpression",
+                  "span": {
+                    "endCol": 31,
+                    "endLine": 11,
+                    "file": "src/ok/001_lexical.ts",
+                    "startCol": 13,
+                    "startLine": 11
+                  }
+                }
+              ],
+              "kind": "VariableDeclaration",
+              "span": {
+                "endCol": 31,
+                "endLine": 11,
+                "file": "src/ok/001_lexical.ts",
+                "startCol": 7,
+                "startLine": 11
+              }
+            }
+          ],
+          "kind": "VariableDeclarationList",
+          "span": {
+            "endCol": 31,
+            "endLine": 11,
+            "file": "src/ok/001_lexical.ts",
+            "startCol": 1,
+            "startLine": 11
+          }
+        }
+      ],
+      "kind": "FirstStatement",
+      "span": {
+        "endCol": 32,
+        "endLine": 11,
+        "file": "src/ok/001_lexical.ts",
+        "startCol": 1,
+        "startLine": 11
+      }
+    },
+    {
+      "children": [
+        {
+          "children": [],
+          "kind": "Identifier",
+          "span": {
+            "endCol": 13,
+            "endLine": 13,
+            "file": "src/ok/001_lexical.ts",
+            "startCol": 10,
+            "startLine": 13
+          },
+          "tokenText": "tag"
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "kind": "Identifier",
+              "span": {
+                "endCol": 19,
+                "endLine": 13,
+                "file": "src/ok/001_lexical.ts",
+                "startCol": 14,
+                "startLine": 13
+              },
+              "tokenText": "parts"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 41,
+                    "endLine": 13,
+                    "file": "src/ok/001_lexical.ts",
+                    "startCol": 21,
+                    "startLine": 13
+                  },
+                  "tokenText": "TemplateStringsArray"
+                }
+              ],
+              "kind": "TypeReference",
+              "span": {
+                "endCol": 41,
+                "endLine": 13,
+                "file": "src/ok/001_lexical.ts",
+                "startCol": 21,
+                "startLine": 13
+              }
+            }
+          ],
+          "kind": "Parameter",
+          "span": {
+            "endCol": 41,
+            "endLine": 13,
+            "file": "src/ok/001_lexical.ts",
+            "startCol": 14,
+            "startLine": 13
+          }
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "kind": "DotDotDotToken",
+              "span": {
+                "endCol": 46,
+                "endLine": 13,
+                "file": "src/ok/001_lexical.ts",
+                "startCol": 43,
+                "startLine": 13
+              },
+              "tokenText": "..."
+            },
+            {
+              "children": [],
+              "kind": "Identifier",
+              "span": {
+                "endCol": 52,
+                "endLine": 13,
+                "file": "src/ok/001_lexical.ts",
+                "startCol": 46,
+                "startLine": 13
+              },
+              "tokenText": "values"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "kind": "UnknownKeyword",
+                  "span": {
+                    "endCol": 61,
+                    "endLine": 13,
+                    "file": "src/ok/001_lexical.ts",
+                    "startCol": 54,
+                    "startLine": 13
+                  },
+                  "tokenText": "unknown"
+                }
+              ],
+              "kind": "ArrayType",
+              "span": {
+                "endCol": 63,
+                "endLine": 13,
+                "file": "src/ok/001_lexical.ts",
+                "startCol": 54,
+                "startLine": 13
+              }
+            }
+          ],
+          "kind": "Parameter",
+          "span": {
+            "endCol": 63,
+            "endLine": 13,
+            "file": "src/ok/001_lexical.ts",
+            "startCol": 43,
+            "startLine": 13
+          }
+        },
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "kind": "Identifier",
+                          "span": {
+                            "endCol": 17,
+                            "endLine": 14,
+                            "file": "src/ok/001_lexical.ts",
+                            "startCol": 12,
+                            "startLine": 14
+                          },
+                          "tokenText": "parts"
+                        }
+                      ],
+                      "kind": "ShorthandPropertyAssignment",
+                      "span": {
+                        "endCol": 17,
+                        "endLine": 14,
+                        "file": "src/ok/001_lexical.ts",
+                        "startCol": 12,
+                        "startLine": 14
+                      }
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "kind": "Identifier",
+                          "span": {
+                            "endCol": 25,
+                            "endLine": 14,
+                            "file": "src/ok/001_lexical.ts",
+                            "startCol": 19,
+                            "startLine": 14
+                          },
+                          "tokenText": "values"
+                        }
+                      ],
+                      "kind": "ShorthandPropertyAssignment",
+                      "span": {
+                        "endCol": 25,
+                        "endLine": 14,
+                        "file": "src/ok/001_lexical.ts",
+                        "startCol": 19,
+                        "startLine": 14
+                      }
+                    }
+                  ],
+                  "kind": "ObjectLiteralExpression",
+                  "span": {
+                    "endCol": 27,
+                    "endLine": 14,
+                    "file": "src/ok/001_lexical.ts",
+                    "startCol": 10,
+                    "startLine": 14
+                  }
+                }
+              ],
+              "kind": "ReturnStatement",
+              "span": {
+                "endCol": 28,
+                "endLine": 14,
+                "file": "src/ok/001_lexical.ts",
+                "startCol": 3,
+                "startLine": 14
+              }
+            }
+          ],
+          "kind": "Block",
+          "span": {
+            "endCol": 2,
+            "endLine": 15,
+            "file": "src/ok/001_lexical.ts",
+            "startCol": 65,
+            "startLine": 13
+          }
+        }
+      ],
+      "kind": "FunctionDeclaration",
+      "span": {
+        "endCol": 2,
+        "endLine": 15,
+        "file": "src/ok/001_lexical.ts",
+        "startCol": 1,
+        "startLine": 13
+      }
+    },
+    {
+      "children": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 13,
+                    "endLine": 17,
+                    "file": "src/ok/001_lexical.ts",
+                    "startCol": 7,
+                    "startLine": 17
+                  },
+                  "tokenText": "tagged"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "kind": "Identifier",
+                      "span": {
+                        "endCol": 19,
+                        "endLine": 17,
+                        "file": "src/ok/001_lexical.ts",
+                        "startCol": 16,
+                        "startLine": 17
+                      },
+                      "tokenText": "tag"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "kind": "TemplateHead",
+                          "span": {
+                            "endCol": 23,
+                            "endLine": 17,
+                            "file": "src/ok/001_lexical.ts",
+                            "startCol": 19,
+                            "startLine": 17
+                          },
+                          "tokenText": "`a${"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "kind": "Identifier",
+                              "span": {
+                                "endCol": 29,
+                                "endLine": 17,
+                                "file": "src/ok/001_lexical.ts",
+                                "startCol": 23,
+                                "startLine": 17
+                              },
+                              "tokenText": "single"
+                            },
+                            {
+                              "children": [],
+                              "kind": "TemplateMiddle",
+                              "span": {
+                                "endCol": 33,
+                                "endLine": 17,
+                                "file": "src/ok/001_lexical.ts",
+                                "startCol": 29,
+                                "startLine": 17
+                              },
+                              "tokenText": "}b${"
+                            }
+                          ],
+                          "kind": "TemplateSpan",
+                          "span": {
+                            "endCol": 33,
+                            "endLine": 17,
+                            "file": "src/ok/001_lexical.ts",
+                            "startCol": 23,
+                            "startLine": 17
+                          }
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "kind": "Identifier",
+                              "span": {
+                                "endCol": 36,
+                                "endLine": 17,
+                                "file": "src/ok/001_lexical.ts",
+                                "startCol": 33,
+                                "startLine": 17
+                              },
+                              "tokenText": "dbl"
+                            },
+                            {
+                              "children": [],
+                              "kind": "LastTemplateToken",
+                              "span": {
+                                "endCol": 38,
+                                "endLine": 17,
+                                "file": "src/ok/001_lexical.ts",
+                                "startCol": 36,
+                                "startLine": 17
+                              },
+                              "tokenText": "}`"
+                            }
+                          ],
+                          "kind": "TemplateSpan",
+                          "span": {
+                            "endCol": 38,
+                            "endLine": 17,
+                            "file": "src/ok/001_lexical.ts",
+                            "startCol": 33,
+                            "startLine": 17
+                          }
+                        }
+                      ],
+                      "kind": "TemplateExpression",
+                      "span": {
+                        "endCol": 38,
+                        "endLine": 17,
+                        "file": "src/ok/001_lexical.ts",
+                        "startCol": 19,
+                        "startLine": 17
+                      }
+                    }
+                  ],
+                  "kind": "TaggedTemplateExpression",
+                  "span": {
+                    "endCol": 38,
+                    "endLine": 17,
+                    "file": "src/ok/001_lexical.ts",
+                    "startCol": 16,
+                    "startLine": 17
+                  }
+                }
+              ],
+              "kind": "VariableDeclaration",
+              "span": {
+                "endCol": 38,
+                "endLine": 17,
+                "file": "src/ok/001_lexical.ts",
+                "startCol": 7,
+                "startLine": 17
+              }
+            }
+          ],
+          "kind": "VariableDeclarationList",
+          "span": {
+            "endCol": 38,
+            "endLine": 17,
+            "file": "src/ok/001_lexical.ts",
+            "startCol": 1,
+            "startLine": 17
+          }
+        }
+      ],
+      "kind": "FirstStatement",
+      "span": {
+        "endCol": 39,
+        "endLine": 17,
+        "file": "src/ok/001_lexical.ts",
+        "startCol": 1,
+        "startLine": 17
+      }
+    },
+    {
+      "children": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 22,
+                    "endLine": 22,
+                    "file": "src/ok/001_lexical.ts",
+                    "startCol": 7,
+                    "startLine": 22
+                  },
+                  "tokenText": "regexVsDivision"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "kind": "RegularExpressionLiteral",
+                              "span": {
+                                "endCol": 32,
+                                "endLine": 22,
+                                "file": "src/ok/001_lexical.ts",
+                                "startCol": 25,
+                                "startLine": 22
+                              },
+                              "tokenText": "/ab+c/i"
+                            },
+                            {
+                              "children": [],
+                              "kind": "Identifier",
+                              "span": {
+                                "endCol": 37,
+                                "endLine": 22,
+                                "file": "src/ok/001_lexical.ts",
+                                "startCol": 33,
+                                "startLine": 22
+                              },
+                              "tokenText": "test"
+                            }
+                          ],
+                          "kind": "PropertyAccessExpression",
+                          "span": {
+                            "endCol": 37,
+                            "endLine": 22,
+                            "file": "src/ok/001_lexical.ts",
+                            "startCol": 25,
+                            "startLine": 22
+                          }
+                        },
+                        {
+                          "children": [],
+                          "kind": "StringLiteral",
+                          "span": {
+                            "endCol": 45,
+                            "endLine": 22,
+                            "file": "src/ok/001_lexical.ts",
+                            "startCol": 38,
+                            "startLine": 22
+                          },
+                          "tokenText": "\"abbbc\""
+                        }
+                      ],
+                      "kind": "CallExpression",
+                      "span": {
+                        "endCol": 46,
+                        "endLine": 22,
+                        "file": "src/ok/001_lexical.ts",
+                        "startCol": 25,
+                        "startLine": 22
+                      }
+                    },
+                    {
+                      "children": [],
+                      "kind": "QuestionToken",
+                      "span": {
+                        "endCol": 48,
+                        "endLine": 22,
+                        "file": "src/ok/001_lexical.ts",
+                        "startCol": 47,
+                        "startLine": 22
+                      },
+                      "tokenText": "?"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "kind": "FirstLiteralToken",
+                          "span": {
+                            "endCol": 51,
+                            "endLine": 22,
+                            "file": "src/ok/001_lexical.ts",
+                            "startCol": 49,
+                            "startLine": 22
+                          },
+                          "tokenText": "10"
+                        },
+                        {
+                          "children": [],
+                          "kind": "SlashToken",
+                          "span": {
+                            "endCol": 53,
+                            "endLine": 22,
+                            "file": "src/ok/001_lexical.ts",
+                            "startCol": 52,
+                            "startLine": 22
+                          },
+                          "tokenText": "/"
+                        },
+                        {
+                          "children": [],
+                          "kind": "FirstLiteralToken",
+                          "span": {
+                            "endCol": 55,
+                            "endLine": 22,
+                            "file": "src/ok/001_lexical.ts",
+                            "startCol": 54,
+                            "startLine": 22
+                          },
+                          "tokenText": "2"
+                        }
+                      ],
+                      "kind": "BinaryExpression",
+                      "operator": "/",
+                      "span": {
+                        "endCol": 55,
+                        "endLine": 22,
+                        "file": "src/ok/001_lexical.ts",
+                        "startCol": 49,
+                        "startLine": 22
+                      }
+                    },
+                    {
+                      "children": [],
+                      "kind": "ColonToken",
+                      "span": {
+                        "endCol": 57,
+                        "endLine": 22,
+                        "file": "src/ok/001_lexical.ts",
+                        "startCol": 56,
+                        "startLine": 22
+                      },
+                      "tokenText": ":"
+                    },
+                    {
+                      "children": [],
+                      "kind": "FirstLiteralToken",
+                      "span": {
+                        "endCol": 59,
+                        "endLine": 22,
+                        "file": "src/ok/001_lexical.ts",
+                        "startCol": 58,
+                        "startLine": 22
+                      },
+                      "tokenText": "0"
+                    }
+                  ],
+                  "kind": "ConditionalExpression",
+                  "span": {
+                    "endCol": 59,
+                    "endLine": 22,
+                    "file": "src/ok/001_lexical.ts",
+                    "startCol": 25,
+                    "startLine": 22
+                  }
+                }
+              ],
+              "kind": "VariableDeclaration",
+              "span": {
+                "endCol": 59,
+                "endLine": 22,
+                "file": "src/ok/001_lexical.ts",
+                "startCol": 7,
+                "startLine": 22
+              }
+            }
+          ],
+          "kind": "VariableDeclarationList",
+          "span": {
+            "endCol": 59,
+            "endLine": 22,
+            "file": "src/ok/001_lexical.ts",
+            "startCol": 1,
+            "startLine": 22
+          }
+        }
+      ],
+      "kind": "FirstStatement",
+      "span": {
+        "endCol": 60,
+        "endLine": 22,
+        "file": "src/ok/001_lexical.ts",
+        "startCol": 1,
+        "startLine": 22
+      }
+    },
+    {
+      "children": [
+        {
+          "children": [],
+          "kind": "Identifier",
+          "span": {
+            "endCol": 23,
+            "endLine": 24,
+            "file": "src/ok/001_lexical.ts",
+            "startCol": 10,
+            "startLine": 24
+          },
+          "tokenText": "asiReturnTrap"
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "kind": "NumberKeyword",
+              "span": {
+                "endCol": 33,
+                "endLine": 24,
+                "file": "src/ok/001_lexical.ts",
+                "startCol": 27,
+                "startLine": 24
+              },
+              "tokenText": "number"
+            },
+            {
+              "children": [],
+              "kind": "UndefinedKeyword",
+              "span": {
+                "endCol": 45,
+                "endLine": 24,
+                "file": "src/ok/001_lexical.ts",
+                "startCol": 36,
+                "startLine": 24
+              },
+              "tokenText": "undefined"
+            }
+          ],
+          "kind": "UnionType",
+          "span": {
+            "endCol": 45,
+            "endLine": 24,
+            "file": "src/ok/001_lexical.ts",
+            "startCol": 27,
+            "startLine": 24
+          }
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "kind": "ReturnStatement",
+              "span": {
+                "endCol": 9,
+                "endLine": 25,
+                "file": "src/ok/001_lexical.ts",
+                "startCol": 3,
+                "startLine": 25
+              }
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "kind": "FirstLiteralToken",
+                  "span": {
+                    "endCol": 5,
+                    "endLine": 26,
+                    "file": "src/ok/001_lexical.ts",
+                    "startCol": 3,
+                    "startLine": 26
+                  },
+                  "tokenText": "42"
+                }
+              ],
+              "kind": "ExpressionStatement",
+              "span": {
+                "endCol": 6,
+                "endLine": 26,
+                "file": "src/ok/001_lexical.ts",
+                "startCol": 3,
+                "startLine": 26
+              }
+            }
+          ],
+          "kind": "Block",
+          "span": {
+            "endCol": 2,
+            "endLine": 27,
+            "file": "src/ok/001_lexical.ts",
+            "startCol": 46,
+            "startLine": 24
+          }
+        }
+      ],
+      "kind": "FunctionDeclaration",
+      "span": {
+        "endCol": 2,
+        "endLine": 27,
+        "file": "src/ok/001_lexical.ts",
+        "startCol": 1,
+        "startLine": 24
+      }
+    },
+    {
+      "children": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 12,
+                    "endLine": 29,
+                    "file": "src/ok/001_lexical.ts",
+                    "startCol": 5,
+                    "startLine": 29
+                  },
+                  "tokenText": "counter"
+                },
+                {
+                  "children": [],
+                  "kind": "FirstLiteralToken",
+                  "span": {
+                    "endCol": 16,
+                    "endLine": 29,
+                    "file": "src/ok/001_lexical.ts",
+                    "startCol": 15,
+                    "startLine": 29
+                  },
+                  "tokenText": "0"
+                }
+              ],
+              "kind": "VariableDeclaration",
+              "span": {
+                "endCol": 16,
+                "endLine": 29,
+                "file": "src/ok/001_lexical.ts",
+                "startCol": 5,
+                "startLine": 29
+              }
+            }
+          ],
+          "kind": "VariableDeclarationList",
+          "span": {
+            "endCol": 16,
+            "endLine": 29,
+            "file": "src/ok/001_lexical.ts",
+            "startCol": 1,
+            "startLine": 29
+          }
+        }
+      ],
+      "kind": "FirstStatement",
+      "span": {
+        "endCol": 17,
+        "endLine": 29,
+        "file": "src/ok/001_lexical.ts",
+        "startCol": 1,
+        "startLine": 29
+      }
+    },
+    {
+      "children": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 10,
+                    "endLine": 30,
+                    "file": "src/ok/001_lexical.ts",
+                    "startCol": 5,
+                    "startLine": 30
+                  },
+                  "tokenText": "other"
+                },
+                {
+                  "children": [],
+                  "kind": "FirstLiteralToken",
+                  "span": {
+                    "endCol": 14,
+                    "endLine": 30,
+                    "file": "src/ok/001_lexical.ts",
+                    "startCol": 13,
+                    "startLine": 30
+                  },
+                  "tokenText": "1"
+                }
+              ],
+              "kind": "VariableDeclaration",
+              "span": {
+                "endCol": 14,
+                "endLine": 30,
+                "file": "src/ok/001_lexical.ts",
+                "startCol": 5,
+                "startLine": 30
+              }
+            }
+          ],
+          "kind": "VariableDeclarationList",
+          "span": {
+            "endCol": 14,
+            "endLine": 30,
+            "file": "src/ok/001_lexical.ts",
+            "startCol": 1,
+            "startLine": 30
+          }
+        }
+      ],
+      "kind": "FirstStatement",
+      "span": {
+        "endCol": 15,
+        "endLine": 30,
+        "file": "src/ok/001_lexical.ts",
+        "startCol": 1,
+        "startLine": 30
+      }
+    },
+    {
+      "children": [
+        {
+          "children": [],
+          "kind": "Identifier",
+          "span": {
+            "endCol": 8,
+            "endLine": 31,
+            "file": "src/ok/001_lexical.ts",
+            "startCol": 1,
+            "startLine": 31
+          },
+          "tokenText": "counter"
+        }
+      ],
+      "kind": "ExpressionStatement",
+      "span": {
+        "endCol": 8,
+        "endLine": 31,
+        "file": "src/ok/001_lexical.ts",
+        "startCol": 1,
+        "startLine": 31
+      }
+    },
+    {
+      "children": [
+        {
+          "children": [
+            {
+              "children": [],
+              "kind": "Identifier",
+              "span": {
+                "endCol": 8,
+                "endLine": 32,
+                "file": "src/ok/001_lexical.ts",
+                "startCol": 3,
+                "startLine": 32
+              },
+              "tokenText": "other"
+            }
+          ],
+          "kind": "PrefixUnaryExpression",
+          "operator": "++",
+          "span": {
+            "endCol": 8,
+            "endLine": 32,
+            "file": "src/ok/001_lexical.ts",
+            "startCol": 1,
+            "startLine": 32
+          }
+        }
+      ],
+      "kind": "ExpressionStatement",
+      "span": {
+        "endCol": 9,
+        "endLine": 32,
+        "file": "src/ok/001_lexical.ts",
+        "startCol": 1,
+        "startLine": 32
+      }
+    },
+    {
+      "children": [
+        {
+          "children": [
+            {
+              "children": [],
+              "kind": "Identifier",
+              "span": {
+                "endCol": 8,
+                "endLine": 33,
+                "file": "src/ok/001_lexical.ts",
+                "startCol": 1,
+                "startLine": 33
+              },
+              "tokenText": "counter"
+            }
+          ],
+          "kind": "PostfixUnaryExpression",
+          "operator": "--",
+          "span": {
+            "endCol": 10,
+            "endLine": 33,
+            "file": "src/ok/001_lexical.ts",
+            "startCol": 1,
+            "startLine": 33
+          }
+        }
+      ],
+      "kind": "ExpressionStatement",
+      "span": {
+        "endCol": 11,
+        "endLine": 33,
+        "file": "src/ok/001_lexical.ts",
+        "startCol": 1,
+        "startLine": 33
+      }
+    },
+    {
+      "children": [
+        {
+          "children": [],
+          "kind": "AsteriskToken",
+          "span": {
+            "endCol": 10,
+            "endLine": 35,
+            "file": "src/ok/001_lexical.ts",
+            "startCol": 9,
+            "startLine": 35
+          },
+          "tokenText": "*"
+        },
+        {
+          "children": [],
+          "kind": "Identifier",
+          "span": {
+            "endCol": 27,
+            "endLine": 35,
+            "file": "src/ok/001_lexical.ts",
+            "startCol": 11,
+            "startLine": 35
+          },
+          "tokenText": "lexicalGenerator"
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "kind": "Identifier",
+              "span": {
+                "endCol": 40,
+                "endLine": 35,
+                "file": "src/ok/001_lexical.ts",
+                "startCol": 31,
+                "startLine": 35
+              },
+              "tokenText": "Generator"
+            },
+            {
+              "children": [],
+              "kind": "NumberKeyword",
+              "span": {
+                "endCol": 47,
+                "endLine": 35,
+                "file": "src/ok/001_lexical.ts",
+                "startCol": 41,
+                "startLine": 35
+              },
+              "tokenText": "number"
+            },
+            {
+              "children": [],
+              "kind": "VoidKeyword",
+              "span": {
+                "endCol": 53,
+                "endLine": 35,
+                "file": "src/ok/001_lexical.ts",
+                "startCol": 49,
+                "startLine": 35
+              },
+              "tokenText": "void"
+            },
+            {
+              "children": [],
+              "kind": "UnknownKeyword",
+              "span": {
+                "endCol": 62,
+                "endLine": 35,
+                "file": "src/ok/001_lexical.ts",
+                "startCol": 55,
+                "startLine": 35
+              },
+              "tokenText": "unknown"
+            }
+          ],
+          "kind": "TypeReference",
+          "span": {
+            "endCol": 63,
+            "endLine": 35,
+            "file": "src/ok/001_lexical.ts",
+            "startCol": 31,
+            "startLine": 35
+          }
+        },
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "kind": "YieldExpression",
+                  "span": {
+                    "endCol": 8,
+                    "endLine": 36,
+                    "file": "src/ok/001_lexical.ts",
+                    "startCol": 3,
+                    "startLine": 36
+                  }
+                }
+              ],
+              "kind": "ExpressionStatement",
+              "span": {
+                "endCol": 8,
+                "endLine": 36,
+                "file": "src/ok/001_lexical.ts",
+                "startCol": 3,
+                "startLine": 36
+              }
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "kind": "FirstLiteralToken",
+                  "span": {
+                    "endCol": 4,
+                    "endLine": 37,
+                    "file": "src/ok/001_lexical.ts",
+                    "startCol": 3,
+                    "startLine": 37
+                  },
+                  "tokenText": "1"
+                }
+              ],
+              "kind": "ExpressionStatement",
+              "span": {
+                "endCol": 5,
+                "endLine": 37,
+                "file": "src/ok/001_lexical.ts",
+                "startCol": 3,
+                "startLine": 37
+              }
+            }
+          ],
+          "kind": "Block",
+          "span": {
+            "endCol": 2,
+            "endLine": 38,
+            "file": "src/ok/001_lexical.ts",
+            "startCol": 64,
+            "startLine": 35
+          }
+        }
+      ],
+      "kind": "FunctionDeclaration",
+      "span": {
+        "endCol": 2,
+        "endLine": 38,
+        "file": "src/ok/001_lexical.ts",
+        "startCol": 1,
+        "startLine": 35
+      }
+    },
+    {
+      "children": [
+        {
+          "children": [],
+          "kind": "AsyncKeyword",
+          "span": {
+            "endCol": 6,
+            "endLine": 40,
+            "file": "src/ok/001_lexical.ts",
+            "startCol": 1,
+            "startLine": 40
+          },
+          "tokenText": "async"
+        },
+        {
+          "children": [],
+          "kind": "Identifier",
+          "span": {
+            "endCol": 28,
+            "endLine": 40,
+            "file": "src/ok/001_lexical.ts",
+            "startCol": 16,
+            "startLine": 40
+          },
+          "tokenText": "lexicalAsync"
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "kind": "Identifier",
+              "span": {
+                "endCol": 39,
+                "endLine": 40,
+                "file": "src/ok/001_lexical.ts",
+                "startCol": 32,
+                "startLine": 40
+              },
+              "tokenText": "Promise"
+            },
+            {
+              "children": [],
+              "kind": "NumberKeyword",
+              "span": {
+                "endCol": 46,
+                "endLine": 40,
+                "file": "src/ok/001_lexical.ts",
+                "startCol": 40,
+                "startLine": 40
+              },
+              "tokenText": "number"
+            }
+          ],
+          "kind": "TypeReference",
+          "span": {
+            "endCol": 47,
+            "endLine": 40,
+            "file": "src/ok/001_lexical.ts",
+            "startCol": 32,
+            "startLine": 40
+          }
+        },
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "kind": "Identifier",
+                              "span": {
+                                "endCol": 12,
+                                "endLine": 42,
+                                "file": "src/ok/001_lexical.ts",
+                                "startCol": 5,
+                                "startLine": 42
+                              },
+                              "tokenText": "Promise"
+                            },
+                            {
+                              "children": [],
+                              "kind": "Identifier",
+                              "span": {
+                                "endCol": 20,
+                                "endLine": 42,
+                                "file": "src/ok/001_lexical.ts",
+                                "startCol": 13,
+                                "startLine": 42
+                              },
+                              "tokenText": "resolve"
+                            }
+                          ],
+                          "kind": "PropertyAccessExpression",
+                          "span": {
+                            "endCol": 20,
+                            "endLine": 42,
+                            "file": "src/ok/001_lexical.ts",
+                            "startCol": 5,
+                            "startLine": 42
+                          }
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "kind": "Identifier",
+                              "span": {
+                                "endCol": 28,
+                                "endLine": 42,
+                                "file": "src/ok/001_lexical.ts",
+                                "startCol": 21,
+                                "startLine": 42
+                              },
+                              "tokenText": "counter"
+                            },
+                            {
+                              "children": [],
+                              "kind": "PlusToken",
+                              "span": {
+                                "endCol": 30,
+                                "endLine": 42,
+                                "file": "src/ok/001_lexical.ts",
+                                "startCol": 29,
+                                "startLine": 42
+                              },
+                              "tokenText": "+"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "kind": "Identifier",
+                                          "span": {
+                                            "endCol": 35,
+                                            "endLine": 42,
+                                            "file": "src/ok/001_lexical.ts",
+                                            "startCol": 32,
+                                            "startLine": 42
+                                          },
+                                          "tokenText": "big"
+                                        },
+                                        {
+                                          "children": [],
+                                          "kind": "UnknownKeyword",
+                                          "span": {
+                                            "endCol": 46,
+                                            "endLine": 42,
+                                            "file": "src/ok/001_lexical.ts",
+                                            "startCol": 39,
+                                            "startLine": 42
+                                          },
+                                          "tokenText": "unknown"
+                                        }
+                                      ],
+                                      "kind": "AsExpression",
+                                      "span": {
+                                        "endCol": 46,
+                                        "endLine": 42,
+                                        "file": "src/ok/001_lexical.ts",
+                                        "startCol": 32,
+                                        "startLine": 42
+                                      }
+                                    },
+                                    {
+                                      "children": [],
+                                      "kind": "NumberKeyword",
+                                      "span": {
+                                        "endCol": 56,
+                                        "endLine": 42,
+                                        "file": "src/ok/001_lexical.ts",
+                                        "startCol": 50,
+                                        "startLine": 42
+                                      },
+                                      "tokenText": "number"
+                                    }
+                                  ],
+                                  "kind": "AsExpression",
+                                  "span": {
+                                    "endCol": 56,
+                                    "endLine": 42,
+                                    "file": "src/ok/001_lexical.ts",
+                                    "startCol": 32,
+                                    "startLine": 42
+                                  }
+                                }
+                              ],
+                              "kind": "ParenthesizedExpression",
+                              "span": {
+                                "endCol": 57,
+                                "endLine": 42,
+                                "file": "src/ok/001_lexical.ts",
+                                "startCol": 31,
+                                "startLine": 42
+                              }
+                            }
+                          ],
+                          "kind": "BinaryExpression",
+                          "operator": "+",
+                          "span": {
+                            "endCol": 57,
+                            "endLine": 42,
+                            "file": "src/ok/001_lexical.ts",
+                            "startCol": 21,
+                            "startLine": 42
+                          }
+                        }
+                      ],
+                      "kind": "CallExpression",
+                      "span": {
+                        "endCol": 58,
+                        "endLine": 42,
+                        "file": "src/ok/001_lexical.ts",
+                        "startCol": 5,
+                        "startLine": 42
+                      }
+                    }
+                  ],
+                  "kind": "AwaitExpression",
+                  "span": {
+                    "endCol": 58,
+                    "endLine": 42,
+                    "file": "src/ok/001_lexical.ts",
+                    "startCol": 10,
+                    "startLine": 41
+                  }
+                }
+              ],
+              "kind": "ReturnStatement",
+              "span": {
+                "endCol": 59,
+                "endLine": 42,
+                "file": "src/ok/001_lexical.ts",
+                "startCol": 3,
+                "startLine": 41
+              }
+            }
+          ],
+          "kind": "Block",
+          "span": {
+            "endCol": 2,
+            "endLine": 43,
+            "file": "src/ok/001_lexical.ts",
+            "startCol": 48,
+            "startLine": 40
+          }
+        }
+      ],
+      "kind": "FunctionDeclaration",
+      "span": {
+        "endCol": 2,
+        "endLine": 43,
+        "file": "src/ok/001_lexical.ts",
+        "startCol": 1,
+        "startLine": 40
+      }
+    },
+    {
+      "children": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 17,
+                    "endLine": 45,
+                    "file": "src/ok/001_lexical.ts",
+                    "startCol": 7,
+                    "startLine": 45
+                  },
+                  "tokenText": "café"
+                },
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 31,
+                    "endLine": 45,
+                    "file": "src/ok/001_lexical.ts",
+                    "startCol": 19,
+                    "startLine": 45
+                  },
+                  "tokenText": "greek_Ω"
+                },
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 40,
+                    "endLine": 45,
+                    "file": "src/ok/001_lexical.ts",
+                    "startCol": 33,
+                    "startLine": 45
+                  },
+                  "tokenText": "million"
+                },
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 46,
+                    "endLine": 45,
+                    "file": "src/ok/001_lexical.ts",
+                    "startCol": 42,
+                    "startLine": 45
+                  },
+                  "tokenText": "mask"
+                },
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 51,
+                    "endLine": 45,
+                    "file": "src/ok/001_lexical.ts",
+                    "startCol": 48,
+                    "startLine": 45
+                  },
+                  "tokenText": "hex"
+                },
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 56,
+                    "endLine": 45,
+                    "file": "src/ok/001_lexical.ts",
+                    "startCol": 53,
+                    "startLine": 45
+                  },
+                  "tokenText": "big"
+                },
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 61,
+                    "endLine": 45,
+                    "file": "src/ok/001_lexical.ts",
+                    "startCol": 58,
+                    "startLine": 45
+                  },
+                  "tokenText": "tpl"
+                },
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 69,
+                    "endLine": 45,
+                    "file": "src/ok/001_lexical.ts",
+                    "startCol": 63,
+                    "startLine": 45
+                  },
+                  "tokenText": "tagged"
+                },
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 86,
+                    "endLine": 45,
+                    "file": "src/ok/001_lexical.ts",
+                    "startCol": 71,
+                    "startLine": 45
+                  },
+                  "tokenText": "regexVsDivision"
+                },
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 101,
+                    "endLine": 45,
+                    "file": "src/ok/001_lexical.ts",
+                    "startCol": 88,
+                    "startLine": 45
+                  },
+                  "tokenText": "asiReturnTrap"
+                },
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 108,
+                    "endLine": 45,
+                    "file": "src/ok/001_lexical.ts",
+                    "startCol": 103,
+                    "startLine": 45
+                  },
+                  "tokenText": "other"
+                }
+              ],
+              "kind": "ArrayLiteralExpression",
+              "span": {
+                "endCol": 109,
+                "endLine": 45,
+                "file": "src/ok/001_lexical.ts",
+                "startCol": 6,
+                "startLine": 45
+              }
+            }
+          ],
+          "kind": "VoidExpression",
+          "span": {
+            "endCol": 109,
+            "endLine": 45,
+            "file": "src/ok/001_lexical.ts",
+            "startCol": 1,
+            "startLine": 45
+          }
+        }
+      ],
+      "kind": "ExpressionStatement",
+      "span": {
+        "endCol": 110,
+        "endLine": 45,
+        "file": "src/ok/001_lexical.ts",
+        "startCol": 1,
+        "startLine": 45
+      }
+    },
+    {
+      "children": [
+        {
+          "children": [
+            {
+              "children": [],
+              "kind": "Identifier",
+              "span": {
+                "endCol": 22,
+                "endLine": 46,
+                "file": "src/ok/001_lexical.ts",
+                "startCol": 6,
+                "startLine": 46
+              },
+              "tokenText": "lexicalGenerator"
+            }
+          ],
+          "kind": "VoidExpression",
+          "span": {
+            "endCol": 22,
+            "endLine": 46,
+            "file": "src/ok/001_lexical.ts",
+            "startCol": 1,
+            "startLine": 46
+          }
+        }
+      ],
+      "kind": "ExpressionStatement",
+      "span": {
+        "endCol": 23,
+        "endLine": 46,
+        "file": "src/ok/001_lexical.ts",
+        "startCol": 1,
+        "startLine": 46
+      }
+    },
+    {
+      "children": [
+        {
+          "children": [
+            {
+              "children": [],
+              "kind": "Identifier",
+              "span": {
+                "endCol": 18,
+                "endLine": 47,
+                "file": "src/ok/001_lexical.ts",
+                "startCol": 6,
+                "startLine": 47
+              },
+              "tokenText": "lexicalAsync"
+            }
+          ],
+          "kind": "VoidExpression",
+          "span": {
+            "endCol": 18,
+            "endLine": 47,
+            "file": "src/ok/001_lexical.ts",
+            "startCol": 1,
+            "startLine": 47
+          }
+        }
+      ],
+      "kind": "ExpressionStatement",
+      "span": {
+        "endCol": 19,
+        "endLine": 47,
+        "file": "src/ok/001_lexical.ts",
+        "startCol": 1,
+        "startLine": 47
+      }
+    },
+    {
+      "children": [],
+      "kind": "EndOfFileToken",
+      "span": {
+        "endCol": 1,
+        "endLine": 48,
+        "file": "src/ok/001_lexical.ts",
+        "startCol": 1,
+        "startLine": 48
+      },
+      "tokenText": ""
+    }
+  ],
+  "kind": "SourceFile",
+  "span": {
+    "endCol": 1,
+    "endLine": 48,
+    "file": "src/ok/001_lexical.ts",
+    "startCol": 1,
+    "startLine": 1
+  }
+}

@@ -1,0 +1,551 @@
+{
+  "children": [
+    {
+      "children": [
+        {
+          "children": [],
+          "kind": "Identifier",
+          "span": {
+            "endCol": 12,
+            "endLine": 1,
+            "file": "src/ok/090_namespaces.ts",
+            "startCol": 11,
+            "startLine": 1
+          },
+          "tokenText": "N"
+        },
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "kind": "ExportKeyword",
+                  "span": {
+                    "endCol": 9,
+                    "endLine": 2,
+                    "file": "src/ok/090_namespaces.ts",
+                    "startCol": 3,
+                    "startLine": 2
+                  },
+                  "tokenText": "export"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "kind": "Identifier",
+                          "span": {
+                            "endCol": 21,
+                            "endLine": 2,
+                            "file": "src/ok/090_namespaces.ts",
+                            "startCol": 16,
+                            "startLine": 2
+                          },
+                          "tokenText": "value"
+                        },
+                        {
+                          "children": [],
+                          "kind": "FirstLiteralToken",
+                          "span": {
+                            "endCol": 25,
+                            "endLine": 2,
+                            "file": "src/ok/090_namespaces.ts",
+                            "startCol": 24,
+                            "startLine": 2
+                          },
+                          "tokenText": "1"
+                        }
+                      ],
+                      "kind": "VariableDeclaration",
+                      "span": {
+                        "endCol": 25,
+                        "endLine": 2,
+                        "file": "src/ok/090_namespaces.ts",
+                        "startCol": 16,
+                        "startLine": 2
+                      }
+                    }
+                  ],
+                  "kind": "VariableDeclarationList",
+                  "span": {
+                    "endCol": 25,
+                    "endLine": 2,
+                    "file": "src/ok/090_namespaces.ts",
+                    "startCol": 10,
+                    "startLine": 2
+                  }
+                }
+              ],
+              "kind": "FirstStatement",
+              "span": {
+                "endCol": 26,
+                "endLine": 2,
+                "file": "src/ok/090_namespaces.ts",
+                "startCol": 3,
+                "startLine": 2
+              }
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "kind": "ExportKeyword",
+                  "span": {
+                    "endCol": 9,
+                    "endLine": 4,
+                    "file": "src/ok/090_namespaces.ts",
+                    "startCol": 3,
+                    "startLine": 4
+                  },
+                  "tokenText": "export"
+                },
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 26,
+                    "endLine": 4,
+                    "file": "src/ok/090_namespaces.ts",
+                    "startCol": 20,
+                    "startLine": 4
+                  },
+                  "tokenText": "Nested"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "kind": "ExportKeyword",
+                          "span": {
+                            "endCol": 11,
+                            "endLine": 5,
+                            "file": "src/ok/090_namespaces.ts",
+                            "startCol": 5,
+                            "startLine": 5
+                          },
+                          "tokenText": "export"
+                        },
+                        {
+                          "children": [],
+                          "kind": "Identifier",
+                          "span": {
+                            "endCol": 25,
+                            "endLine": 5,
+                            "file": "src/ok/090_namespaces.ts",
+                            "startCol": 21,
+                            "startLine": 5
+                          },
+                          "tokenText": "pick"
+                        },
+                        {
+                          "children": [],
+                          "kind": "NumberKeyword",
+                          "span": {
+                            "endCol": 35,
+                            "endLine": 5,
+                            "file": "src/ok/090_namespaces.ts",
+                            "startCol": 29,
+                            "startLine": 5
+                          },
+                          "tokenText": "number"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "kind": "Identifier",
+                                  "span": {
+                                    "endCol": 19,
+                                    "endLine": 6,
+                                    "file": "src/ok/090_namespaces.ts",
+                                    "startCol": 14,
+                                    "startLine": 6
+                                  },
+                                  "tokenText": "value"
+                                }
+                              ],
+                              "kind": "ReturnStatement",
+                              "span": {
+                                "endCol": 20,
+                                "endLine": 6,
+                                "file": "src/ok/090_namespaces.ts",
+                                "startCol": 7,
+                                "startLine": 6
+                              }
+                            }
+                          ],
+                          "kind": "Block",
+                          "span": {
+                            "endCol": 6,
+                            "endLine": 7,
+                            "file": "src/ok/090_namespaces.ts",
+                            "startCol": 36,
+                            "startLine": 5
+                          }
+                        }
+                      ],
+                      "kind": "FunctionDeclaration",
+                      "span": {
+                        "endCol": 6,
+                        "endLine": 7,
+                        "file": "src/ok/090_namespaces.ts",
+                        "startCol": 5,
+                        "startLine": 5
+                      }
+                    }
+                  ],
+                  "kind": "ModuleBlock",
+                  "span": {
+                    "endCol": 4,
+                    "endLine": 8,
+                    "file": "src/ok/090_namespaces.ts",
+                    "startCol": 27,
+                    "startLine": 4
+                  }
+                }
+              ],
+              "kind": "ModuleDeclaration",
+              "span": {
+                "endCol": 4,
+                "endLine": 8,
+                "file": "src/ok/090_namespaces.ts",
+                "startCol": 3,
+                "startLine": 4
+              }
+            }
+          ],
+          "kind": "ModuleBlock",
+          "span": {
+            "endCol": 2,
+            "endLine": 9,
+            "file": "src/ok/090_namespaces.ts",
+            "startCol": 13,
+            "startLine": 1
+          }
+        }
+      ],
+      "kind": "ModuleDeclaration",
+      "span": {
+        "endCol": 2,
+        "endLine": 9,
+        "file": "src/ok/090_namespaces.ts",
+        "startCol": 1,
+        "startLine": 1
+      }
+    },
+    {
+      "children": [
+        {
+          "children": [],
+          "kind": "DeclareKeyword",
+          "span": {
+            "endCol": 8,
+            "endLine": 11,
+            "file": "src/ok/090_namespaces.ts",
+            "startCol": 1,
+            "startLine": 11
+          },
+          "tokenText": "declare"
+        },
+        {
+          "children": [],
+          "kind": "Identifier",
+          "span": {
+            "endCol": 15,
+            "endLine": 11,
+            "file": "src/ok/090_namespaces.ts",
+            "startCol": 9,
+            "startLine": 11
+          },
+          "tokenText": "global"
+        },
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 23,
+                    "endLine": 12,
+                    "file": "src/ok/090_namespaces.ts",
+                    "startCol": 13,
+                    "startLine": 12
+                  },
+                  "tokenText": "TGTAWindow"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "kind": "Identifier",
+                      "span": {
+                        "endCol": 14,
+                        "endLine": 13,
+                        "file": "src/ok/090_namespaces.ts",
+                        "startCol": 5,
+                        "startLine": 13
+                      },
+                      "tokenText": "tgtaReady"
+                    },
+                    {
+                      "children": [],
+                      "kind": "BooleanKeyword",
+                      "span": {
+                        "endCol": 23,
+                        "endLine": 13,
+                        "file": "src/ok/090_namespaces.ts",
+                        "startCol": 16,
+                        "startLine": 13
+                      },
+                      "tokenText": "boolean"
+                    }
+                  ],
+                  "kind": "PropertySignature",
+                  "span": {
+                    "endCol": 24,
+                    "endLine": 13,
+                    "file": "src/ok/090_namespaces.ts",
+                    "startCol": 5,
+                    "startLine": 13
+                  }
+                }
+              ],
+              "kind": "InterfaceDeclaration",
+              "span": {
+                "endCol": 4,
+                "endLine": 14,
+                "file": "src/ok/090_namespaces.ts",
+                "startCol": 3,
+                "startLine": 12
+              }
+            }
+          ],
+          "kind": "ModuleBlock",
+          "span": {
+            "endCol": 2,
+            "endLine": 15,
+            "file": "src/ok/090_namespaces.ts",
+            "startCol": 16,
+            "startLine": 11
+          }
+        }
+      ],
+      "kind": "ModuleDeclaration",
+      "span": {
+        "endCol": 2,
+        "endLine": 15,
+        "file": "src/ok/090_namespaces.ts",
+        "startCol": 1,
+        "startLine": 11
+      }
+    },
+    {
+      "children": [
+        {
+          "children": [],
+          "kind": "DeclareKeyword",
+          "span": {
+            "endCol": 8,
+            "endLine": 17,
+            "file": "src/ok/090_namespaces.ts",
+            "startCol": 1,
+            "startLine": 17
+          },
+          "tokenText": "declare"
+        },
+        {
+          "children": [],
+          "kind": "StringLiteral",
+          "span": {
+            "endCol": 29,
+            "endLine": 17,
+            "file": "src/ok/090_namespaces.ts",
+            "startCol": 16,
+            "startLine": 17
+          },
+          "tokenText": "\"pkg-augment\""
+        },
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "kind": "ExportKeyword",
+                  "span": {
+                    "endCol": 9,
+                    "endLine": 18,
+                    "file": "src/ok/090_namespaces.ts",
+                    "startCol": 3,
+                    "startLine": 18
+                  },
+                  "tokenText": "export"
+                },
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 32,
+                    "endLine": 18,
+                    "file": "src/ok/090_namespaces.ts",
+                    "startCol": 20,
+                    "startLine": 18
+                  },
+                  "tokenText": "PluginConfig"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "kind": "Identifier",
+                      "span": {
+                        "endCol": 12,
+                        "endLine": 19,
+                        "file": "src/ok/090_namespaces.ts",
+                        "startCol": 5,
+                        "startLine": 19
+                      },
+                      "tokenText": "enabled"
+                    },
+                    {
+                      "children": [],
+                      "kind": "BooleanKeyword",
+                      "span": {
+                        "endCol": 21,
+                        "endLine": 19,
+                        "file": "src/ok/090_namespaces.ts",
+                        "startCol": 14,
+                        "startLine": 19
+                      },
+                      "tokenText": "boolean"
+                    }
+                  ],
+                  "kind": "PropertySignature",
+                  "span": {
+                    "endCol": 22,
+                    "endLine": 19,
+                    "file": "src/ok/090_namespaces.ts",
+                    "startCol": 5,
+                    "startLine": 19
+                  }
+                }
+              ],
+              "kind": "InterfaceDeclaration",
+              "span": {
+                "endCol": 4,
+                "endLine": 20,
+                "file": "src/ok/090_namespaces.ts",
+                "startCol": 3,
+                "startLine": 18
+              }
+            }
+          ],
+          "kind": "ModuleBlock",
+          "span": {
+            "endCol": 2,
+            "endLine": 21,
+            "file": "src/ok/090_namespaces.ts",
+            "startCol": 30,
+            "startLine": 17
+          }
+        }
+      ],
+      "kind": "ModuleDeclaration",
+      "span": {
+        "endCol": 2,
+        "endLine": 21,
+        "file": "src/ok/090_namespaces.ts",
+        "startCol": 1,
+        "startLine": 17
+      }
+    },
+    {
+      "children": [
+        {
+          "children": [
+            {
+              "children": [],
+              "kind": "Identifier",
+              "span": {
+                "endCol": 7,
+                "endLine": 23,
+                "file": "src/ok/090_namespaces.ts",
+                "startCol": 6,
+                "startLine": 23
+              },
+              "tokenText": "N"
+            }
+          ],
+          "kind": "VoidExpression",
+          "span": {
+            "endCol": 7,
+            "endLine": 23,
+            "file": "src/ok/090_namespaces.ts",
+            "startCol": 1,
+            "startLine": 23
+          }
+        }
+      ],
+      "kind": "ExpressionStatement",
+      "span": {
+        "endCol": 8,
+        "endLine": 23,
+        "file": "src/ok/090_namespaces.ts",
+        "startCol": 1,
+        "startLine": 23
+      }
+    },
+    {
+      "children": [
+        {
+          "children": [],
+          "kind": "NamedExports",
+          "span": {
+            "endCol": 10,
+            "endLine": 24,
+            "file": "src/ok/090_namespaces.ts",
+            "startCol": 8,
+            "startLine": 24
+          }
+        }
+      ],
+      "kind": "ExportDeclaration",
+      "span": {
+        "endCol": 11,
+        "endLine": 24,
+        "file": "src/ok/090_namespaces.ts",
+        "startCol": 1,
+        "startLine": 24
+      }
+    },
+    {
+      "children": [],
+      "kind": "EndOfFileToken",
+      "span": {
+        "endCol": 1,
+        "endLine": 25,
+        "file": "src/ok/090_namespaces.ts",
+        "startCol": 1,
+        "startLine": 25
+      },
+      "tokenText": ""
+    }
+  ],
+  "kind": "SourceFile",
+  "span": {
+    "endCol": 1,
+    "endLine": 25,
+    "file": "src/ok/090_namespaces.ts",
+    "startCol": 1,
+    "startLine": 1
+  }
+}

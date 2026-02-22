@@ -1,0 +1,1523 @@
+{
+  "children": [
+    {
+      "children": [
+        {
+          "children": [
+            {
+              "children": [],
+              "kind": "Identifier",
+              "span": {
+                "endCol": 16,
+                "endLine": 1,
+                "file": "src/ok/140_ts_5x_features.ts",
+                "startCol": 8,
+                "startLine": 1
+              },
+              "tokenText": "jsonData"
+            }
+          ],
+          "kind": "ImportClause",
+          "span": {
+            "endCol": 16,
+            "endLine": 1,
+            "file": "src/ok/140_ts_5x_features.ts",
+            "startCol": 8,
+            "startLine": 1
+          }
+        },
+        {
+          "children": [],
+          "kind": "StringLiteral",
+          "span": {
+            "endCol": 37,
+            "endLine": 1,
+            "file": "src/ok/140_ts_5x_features.ts",
+            "startCol": 22,
+            "startLine": 1
+          },
+          "tokenText": "\"./config.json\""
+        },
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 49,
+                    "endLine": 1,
+                    "file": "src/ok/140_ts_5x_features.ts",
+                    "startCol": 45,
+                    "startLine": 1
+                  },
+                  "tokenText": "type"
+                },
+                {
+                  "children": [],
+                  "kind": "StringLiteral",
+                  "span": {
+                    "endCol": 57,
+                    "endLine": 1,
+                    "file": "src/ok/140_ts_5x_features.ts",
+                    "startCol": 51,
+                    "startLine": 1
+                  },
+                  "tokenText": "\"json\""
+                }
+              ],
+              "kind": "AssertEntry",
+              "span": {
+                "endCol": 57,
+                "endLine": 1,
+                "file": "src/ok/140_ts_5x_features.ts",
+                "startCol": 45,
+                "startLine": 1
+              }
+            }
+          ],
+          "kind": "AssertClause",
+          "span": {
+            "endCol": 59,
+            "endLine": 1,
+            "file": "src/ok/140_ts_5x_features.ts",
+            "startCol": 38,
+            "startLine": 1
+          }
+        }
+      ],
+      "kind": "ImportDeclaration",
+      "span": {
+        "endCol": 60,
+        "endLine": 1,
+        "file": "src/ok/140_ts_5x_features.ts",
+        "startCol": 1,
+        "startLine": 1
+      }
+    },
+    {
+      "children": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 15,
+                    "endLine": 3,
+                    "file": "src/ok/140_ts_5x_features.ts",
+                    "startCol": 7,
+                    "startLine": 3
+                  },
+                  "tokenText": "settings"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "kind": "Identifier",
+                              "span": {
+                                "endCol": 24,
+                                "endLine": 3,
+                                "file": "src/ok/140_ts_5x_features.ts",
+                                "startCol": 20,
+                                "startLine": 3
+                              },
+                              "tokenText": "mode"
+                            },
+                            {
+                              "children": [],
+                              "kind": "StringLiteral",
+                              "span": {
+                                "endCol": 30,
+                                "endLine": 3,
+                                "file": "src/ok/140_ts_5x_features.ts",
+                                "startCol": 26,
+                                "startLine": 3
+                              },
+                              "tokenText": "\"on\""
+                            }
+                          ],
+                          "kind": "PropertyAssignment",
+                          "span": {
+                            "endCol": 30,
+                            "endLine": 3,
+                            "file": "src/ok/140_ts_5x_features.ts",
+                            "startCol": 20,
+                            "startLine": 3
+                          }
+                        }
+                      ],
+                      "kind": "ObjectLiteralExpression",
+                      "span": {
+                        "endCol": 32,
+                        "endLine": 3,
+                        "file": "src/ok/140_ts_5x_features.ts",
+                        "startCol": 18,
+                        "startLine": 3
+                      }
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "kind": "Identifier",
+                              "span": {
+                                "endCol": 49,
+                                "endLine": 3,
+                                "file": "src/ok/140_ts_5x_features.ts",
+                                "startCol": 45,
+                                "startLine": 3
+                              },
+                              "tokenText": "mode"
+                            },
+                            {
+                              "children": [],
+                              "kind": "StringKeyword",
+                              "span": {
+                                "endCol": 57,
+                                "endLine": 3,
+                                "file": "src/ok/140_ts_5x_features.ts",
+                                "startCol": 51,
+                                "startLine": 3
+                              },
+                              "tokenText": "string"
+                            }
+                          ],
+                          "kind": "PropertySignature",
+                          "span": {
+                            "endCol": 57,
+                            "endLine": 3,
+                            "file": "src/ok/140_ts_5x_features.ts",
+                            "startCol": 45,
+                            "startLine": 3
+                          }
+                        }
+                      ],
+                      "kind": "TypeLiteral",
+                      "span": {
+                        "endCol": 59,
+                        "endLine": 3,
+                        "file": "src/ok/140_ts_5x_features.ts",
+                        "startCol": 43,
+                        "startLine": 3
+                      }
+                    }
+                  ],
+                  "kind": "SatisfiesExpression",
+                  "span": {
+                    "endCol": 59,
+                    "endLine": 3,
+                    "file": "src/ok/140_ts_5x_features.ts",
+                    "startCol": 18,
+                    "startLine": 3
+                  }
+                }
+              ],
+              "kind": "VariableDeclaration",
+              "span": {
+                "endCol": 59,
+                "endLine": 3,
+                "file": "src/ok/140_ts_5x_features.ts",
+                "startCol": 7,
+                "startLine": 3
+              }
+            }
+          ],
+          "kind": "VariableDeclarationList",
+          "span": {
+            "endCol": 59,
+            "endLine": 3,
+            "file": "src/ok/140_ts_5x_features.ts",
+            "startCol": 1,
+            "startLine": 3
+          }
+        }
+      ],
+      "kind": "FirstStatement",
+      "span": {
+        "endCol": 60,
+        "endLine": 3,
+        "file": "src/ok/140_ts_5x_features.ts",
+        "startCol": 1,
+        "startLine": 3
+      }
+    },
+    {
+      "children": [
+        {
+          "children": [],
+          "kind": "Identifier",
+          "span": {
+            "endCol": 18,
+            "endLine": 5,
+            "file": "src/ok/140_ts_5x_features.ts",
+            "startCol": 10,
+            "startLine": 5
+          },
+          "tokenText": "identity"
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "kind": "ConstKeyword",
+              "span": {
+                "endCol": 24,
+                "endLine": 5,
+                "file": "src/ok/140_ts_5x_features.ts",
+                "startCol": 19,
+                "startLine": 5
+              },
+              "tokenText": "const"
+            },
+            {
+              "children": [],
+              "kind": "Identifier",
+              "span": {
+                "endCol": 26,
+                "endLine": 5,
+                "file": "src/ok/140_ts_5x_features.ts",
+                "startCol": 25,
+                "startLine": 5
+              },
+              "tokenText": "T"
+            }
+          ],
+          "kind": "TypeParameter",
+          "span": {
+            "endCol": 26,
+            "endLine": 5,
+            "file": "src/ok/140_ts_5x_features.ts",
+            "startCol": 19,
+            "startLine": 5
+          }
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "kind": "Identifier",
+              "span": {
+                "endCol": 33,
+                "endLine": 5,
+                "file": "src/ok/140_ts_5x_features.ts",
+                "startCol": 28,
+                "startLine": 5
+              },
+              "tokenText": "value"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 36,
+                    "endLine": 5,
+                    "file": "src/ok/140_ts_5x_features.ts",
+                    "startCol": 35,
+                    "startLine": 5
+                  },
+                  "tokenText": "T"
+                }
+              ],
+              "kind": "TypeReference",
+              "span": {
+                "endCol": 36,
+                "endLine": 5,
+                "file": "src/ok/140_ts_5x_features.ts",
+                "startCol": 35,
+                "startLine": 5
+              }
+            }
+          ],
+          "kind": "Parameter",
+          "span": {
+            "endCol": 36,
+            "endLine": 5,
+            "file": "src/ok/140_ts_5x_features.ts",
+            "startCol": 28,
+            "startLine": 5
+          }
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "kind": "Identifier",
+              "span": {
+                "endCol": 40,
+                "endLine": 5,
+                "file": "src/ok/140_ts_5x_features.ts",
+                "startCol": 39,
+                "startLine": 5
+              },
+              "tokenText": "T"
+            }
+          ],
+          "kind": "TypeReference",
+          "span": {
+            "endCol": 40,
+            "endLine": 5,
+            "file": "src/ok/140_ts_5x_features.ts",
+            "startCol": 39,
+            "startLine": 5
+          }
+        },
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 15,
+                    "endLine": 6,
+                    "file": "src/ok/140_ts_5x_features.ts",
+                    "startCol": 10,
+                    "startLine": 6
+                  },
+                  "tokenText": "value"
+                }
+              ],
+              "kind": "ReturnStatement",
+              "span": {
+                "endCol": 16,
+                "endLine": 6,
+                "file": "src/ok/140_ts_5x_features.ts",
+                "startCol": 3,
+                "startLine": 6
+              }
+            }
+          ],
+          "kind": "Block",
+          "span": {
+            "endCol": 2,
+            "endLine": 7,
+            "file": "src/ok/140_ts_5x_features.ts",
+            "startCol": 41,
+            "startLine": 5
+          }
+        }
+      ],
+      "kind": "FunctionDeclaration",
+      "span": {
+        "endCol": 2,
+        "endLine": 7,
+        "file": "src/ok/140_ts_5x_features.ts",
+        "startCol": 1,
+        "startLine": 5
+      }
+    },
+    {
+      "children": [
+        {
+          "children": [],
+          "kind": "Identifier",
+          "span": {
+            "endCol": 18,
+            "endLine": 9,
+            "file": "src/ok/140_ts_5x_features.ts",
+            "startCol": 6,
+            "startLine": 9
+          },
+          "tokenText": "SegmentParts"
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "kind": "Identifier",
+              "span": {
+                "endCol": 20,
+                "endLine": 9,
+                "file": "src/ok/140_ts_5x_features.ts",
+                "startCol": 19,
+                "startLine": 9
+              },
+              "tokenText": "T"
+            },
+            {
+              "children": [],
+              "kind": "StringKeyword",
+              "span": {
+                "endCol": 35,
+                "endLine": 9,
+                "file": "src/ok/140_ts_5x_features.ts",
+                "startCol": 29,
+                "startLine": 9
+              },
+              "tokenText": "string"
+            }
+          ],
+          "kind": "TypeParameter",
+          "span": {
+            "endCol": 35,
+            "endLine": 9,
+            "file": "src/ok/140_ts_5x_features.ts",
+            "startCol": 19,
+            "startLine": 9
+          }
+        },
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 40,
+                    "endLine": 9,
+                    "file": "src/ok/140_ts_5x_features.ts",
+                    "startCol": 39,
+                    "startLine": 9
+                  },
+                  "tokenText": "T"
+                }
+              ],
+              "kind": "TypeReference",
+              "span": {
+                "endCol": 40,
+                "endLine": 9,
+                "file": "src/ok/140_ts_5x_features.ts",
+                "startCol": 39,
+                "startLine": 9
+              }
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "kind": "TemplateHead",
+                  "span": {
+                    "endCol": 52,
+                    "endLine": 9,
+                    "file": "src/ok/140_ts_5x_features.ts",
+                    "startCol": 49,
+                    "startLine": 9
+                  },
+                  "tokenText": "`${"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "kind": "Identifier",
+                              "span": {
+                                "endCol": 62,
+                                "endLine": 9,
+                                "file": "src/ok/140_ts_5x_features.ts",
+                                "startCol": 58,
+                                "startLine": 9
+                              },
+                              "tokenText": "Head"
+                            },
+                            {
+                              "children": [],
+                              "kind": "StringKeyword",
+                              "span": {
+                                "endCol": 77,
+                                "endLine": 9,
+                                "file": "src/ok/140_ts_5x_features.ts",
+                                "startCol": 71,
+                                "startLine": 9
+                              },
+                              "tokenText": "string"
+                            }
+                          ],
+                          "kind": "TypeParameter",
+                          "span": {
+                            "endCol": 77,
+                            "endLine": 9,
+                            "file": "src/ok/140_ts_5x_features.ts",
+                            "startCol": 58,
+                            "startLine": 9
+                          }
+                        }
+                      ],
+                      "kind": "InferType",
+                      "span": {
+                        "endCol": 77,
+                        "endLine": 9,
+                        "file": "src/ok/140_ts_5x_features.ts",
+                        "startCol": 52,
+                        "startLine": 9
+                      }
+                    },
+                    {
+                      "children": [],
+                      "kind": "TemplateMiddle",
+                      "span": {
+                        "endCol": 81,
+                        "endLine": 9,
+                        "file": "src/ok/140_ts_5x_features.ts",
+                        "startCol": 77,
+                        "startLine": 9
+                      },
+                      "tokenText": "}-${"
+                    }
+                  ],
+                  "kind": "TemplateLiteralTypeSpan",
+                  "span": {
+                    "endCol": 81,
+                    "endLine": 9,
+                    "file": "src/ok/140_ts_5x_features.ts",
+                    "startCol": 52,
+                    "startLine": 9
+                  }
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "kind": "Identifier",
+                              "span": {
+                                "endCol": 91,
+                                "endLine": 9,
+                                "file": "src/ok/140_ts_5x_features.ts",
+                                "startCol": 87,
+                                "startLine": 9
+                              },
+                              "tokenText": "Tail"
+                            }
+                          ],
+                          "kind": "TypeParameter",
+                          "span": {
+                            "endCol": 91,
+                            "endLine": 9,
+                            "file": "src/ok/140_ts_5x_features.ts",
+                            "startCol": 87,
+                            "startLine": 9
+                          }
+                        }
+                      ],
+                      "kind": "InferType",
+                      "span": {
+                        "endCol": 91,
+                        "endLine": 9,
+                        "file": "src/ok/140_ts_5x_features.ts",
+                        "startCol": 81,
+                        "startLine": 9
+                      }
+                    },
+                    {
+                      "children": [],
+                      "kind": "LastTemplateToken",
+                      "span": {
+                        "endCol": 93,
+                        "endLine": 9,
+                        "file": "src/ok/140_ts_5x_features.ts",
+                        "startCol": 91,
+                        "startLine": 9
+                      },
+                      "tokenText": "}`"
+                    }
+                  ],
+                  "kind": "TemplateLiteralTypeSpan",
+                  "span": {
+                    "endCol": 93,
+                    "endLine": 9,
+                    "file": "src/ok/140_ts_5x_features.ts",
+                    "startCol": 81,
+                    "startLine": 9
+                  }
+                }
+              ],
+              "kind": "TemplateLiteralType",
+              "span": {
+                "endCol": 93,
+                "endLine": 9,
+                "file": "src/ok/140_ts_5x_features.ts",
+                "startCol": 49,
+                "startLine": 9
+              }
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "kind": "Identifier",
+                      "span": {
+                        "endCol": 10,
+                        "endLine": 10,
+                        "file": "src/ok/140_ts_5x_features.ts",
+                        "startCol": 6,
+                        "startLine": 10
+                      },
+                      "tokenText": "Head"
+                    }
+                  ],
+                  "kind": "TypeReference",
+                  "span": {
+                    "endCol": 10,
+                    "endLine": 10,
+                    "file": "src/ok/140_ts_5x_features.ts",
+                    "startCol": 6,
+                    "startLine": 10
+                  }
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "kind": "Identifier",
+                      "span": {
+                        "endCol": 16,
+                        "endLine": 10,
+                        "file": "src/ok/140_ts_5x_features.ts",
+                        "startCol": 12,
+                        "startLine": 10
+                      },
+                      "tokenText": "Tail"
+                    }
+                  ],
+                  "kind": "TypeReference",
+                  "span": {
+                    "endCol": 16,
+                    "endLine": 10,
+                    "file": "src/ok/140_ts_5x_features.ts",
+                    "startCol": 12,
+                    "startLine": 10
+                  }
+                }
+              ],
+              "kind": "TupleType",
+              "span": {
+                "endCol": 17,
+                "endLine": 10,
+                "file": "src/ok/140_ts_5x_features.ts",
+                "startCol": 5,
+                "startLine": 10
+              }
+            },
+            {
+              "children": [],
+              "kind": "NeverKeyword",
+              "span": {
+                "endCol": 10,
+                "endLine": 11,
+                "file": "src/ok/140_ts_5x_features.ts",
+                "startCol": 5,
+                "startLine": 11
+              },
+              "tokenText": "never"
+            }
+          ],
+          "kind": "ConditionalType",
+          "span": {
+            "endCol": 10,
+            "endLine": 11,
+            "file": "src/ok/140_ts_5x_features.ts",
+            "startCol": 39,
+            "startLine": 9
+          }
+        }
+      ],
+      "kind": "TypeAliasDeclaration",
+      "span": {
+        "endCol": 11,
+        "endLine": 11,
+        "file": "src/ok/140_ts_5x_features.ts",
+        "startCol": 1,
+        "startLine": 9
+      }
+    },
+    {
+      "children": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 19,
+                    "endLine": 13,
+                    "file": "src/ok/140_ts_5x_features.ts",
+                    "startCol": 7,
+                    "startLine": 13
+                  },
+                  "tokenText": "syncResource"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "kind": "Identifier",
+                                  "span": {
+                                    "endCol": 10,
+                                    "endLine": 14,
+                                    "file": "src/ok/140_ts_5x_features.ts",
+                                    "startCol": 4,
+                                    "startLine": 14
+                                  },
+                                  "tokenText": "Symbol"
+                                },
+                                {
+                                  "children": [],
+                                  "kind": "Identifier",
+                                  "span": {
+                                    "endCol": 18,
+                                    "endLine": 14,
+                                    "file": "src/ok/140_ts_5x_features.ts",
+                                    "startCol": 11,
+                                    "startLine": 14
+                                  },
+                                  "tokenText": "dispose"
+                                }
+                              ],
+                              "kind": "PropertyAccessExpression",
+                              "span": {
+                                "endCol": 18,
+                                "endLine": 14,
+                                "file": "src/ok/140_ts_5x_features.ts",
+                                "startCol": 4,
+                                "startLine": 14
+                              }
+                            }
+                          ],
+                          "kind": "ComputedPropertyName",
+                          "span": {
+                            "endCol": 19,
+                            "endLine": 14,
+                            "file": "src/ok/140_ts_5x_features.ts",
+                            "startCol": 3,
+                            "startLine": 14
+                          }
+                        },
+                        {
+                          "children": [],
+                          "kind": "VoidKeyword",
+                          "span": {
+                            "endCol": 27,
+                            "endLine": 14,
+                            "file": "src/ok/140_ts_5x_features.ts",
+                            "startCol": 23,
+                            "startLine": 14
+                          },
+                          "tokenText": "void"
+                        },
+                        {
+                          "children": [],
+                          "kind": "Block",
+                          "span": {
+                            "endCol": 4,
+                            "endLine": 16,
+                            "file": "src/ok/140_ts_5x_features.ts",
+                            "startCol": 28,
+                            "startLine": 14
+                          }
+                        }
+                      ],
+                      "kind": "MethodDeclaration",
+                      "span": {
+                        "endCol": 4,
+                        "endLine": 16,
+                        "file": "src/ok/140_ts_5x_features.ts",
+                        "startCol": 3,
+                        "startLine": 14
+                      }
+                    }
+                  ],
+                  "kind": "ObjectLiteralExpression",
+                  "span": {
+                    "endCol": 2,
+                    "endLine": 17,
+                    "file": "src/ok/140_ts_5x_features.ts",
+                    "startCol": 22,
+                    "startLine": 13
+                  }
+                }
+              ],
+              "kind": "VariableDeclaration",
+              "span": {
+                "endCol": 2,
+                "endLine": 17,
+                "file": "src/ok/140_ts_5x_features.ts",
+                "startCol": 7,
+                "startLine": 13
+              }
+            }
+          ],
+          "kind": "VariableDeclarationList",
+          "span": {
+            "endCol": 2,
+            "endLine": 17,
+            "file": "src/ok/140_ts_5x_features.ts",
+            "startCol": 1,
+            "startLine": 13
+          }
+        }
+      ],
+      "kind": "FirstStatement",
+      "span": {
+        "endCol": 3,
+        "endLine": 17,
+        "file": "src/ok/140_ts_5x_features.ts",
+        "startCol": 1,
+        "startLine": 13
+      }
+    },
+    {
+      "children": [
+        {
+          "children": [],
+          "kind": "AsyncKeyword",
+          "span": {
+            "endCol": 6,
+            "endLine": 19,
+            "file": "src/ok/140_ts_5x_features.ts",
+            "startCol": 1,
+            "startLine": 19
+          },
+          "tokenText": "async"
+        },
+        {
+          "children": [],
+          "kind": "Identifier",
+          "span": {
+            "endCol": 23,
+            "endLine": 19,
+            "file": "src/ok/140_ts_5x_features.ts",
+            "startCol": 16,
+            "startLine": 19
+          },
+          "tokenText": "consume"
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "kind": "Identifier",
+              "span": {
+                "endCol": 31,
+                "endLine": 19,
+                "file": "src/ok/140_ts_5x_features.ts",
+                "startCol": 24,
+                "startLine": 19
+              },
+              "tokenText": "factory"
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "kind": "Identifier",
+                      "span": {
+                        "endCol": 46,
+                        "endLine": 19,
+                        "file": "src/ok/140_ts_5x_features.ts",
+                        "startCol": 39,
+                        "startLine": 19
+                      },
+                      "tokenText": "Promise"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "kind": "Identifier",
+                                      "span": {
+                                        "endCol": 56,
+                                        "endLine": 19,
+                                        "file": "src/ok/140_ts_5x_features.ts",
+                                        "startCol": 50,
+                                        "startLine": 19
+                                      },
+                                      "tokenText": "Symbol"
+                                    },
+                                    {
+                                      "children": [],
+                                      "kind": "Identifier",
+                                      "span": {
+                                        "endCol": 69,
+                                        "endLine": 19,
+                                        "file": "src/ok/140_ts_5x_features.ts",
+                                        "startCol": 57,
+                                        "startLine": 19
+                                      },
+                                      "tokenText": "asyncDispose"
+                                    }
+                                  ],
+                                  "kind": "PropertyAccessExpression",
+                                  "span": {
+                                    "endCol": 69,
+                                    "endLine": 19,
+                                    "file": "src/ok/140_ts_5x_features.ts",
+                                    "startCol": 50,
+                                    "startLine": 19
+                                  }
+                                }
+                              ],
+                              "kind": "ComputedPropertyName",
+                              "span": {
+                                "endCol": 70,
+                                "endLine": 19,
+                                "file": "src/ok/140_ts_5x_features.ts",
+                                "startCol": 49,
+                                "startLine": 19
+                              }
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "kind": "Identifier",
+                                  "span": {
+                                    "endCol": 81,
+                                    "endLine": 19,
+                                    "file": "src/ok/140_ts_5x_features.ts",
+                                    "startCol": 74,
+                                    "startLine": 19
+                                  },
+                                  "tokenText": "Promise"
+                                },
+                                {
+                                  "children": [],
+                                  "kind": "VoidKeyword",
+                                  "span": {
+                                    "endCol": 86,
+                                    "endLine": 19,
+                                    "file": "src/ok/140_ts_5x_features.ts",
+                                    "startCol": 82,
+                                    "startLine": 19
+                                  },
+                                  "tokenText": "void"
+                                }
+                              ],
+                              "kind": "TypeReference",
+                              "span": {
+                                "endCol": 87,
+                                "endLine": 19,
+                                "file": "src/ok/140_ts_5x_features.ts",
+                                "startCol": 74,
+                                "startLine": 19
+                              }
+                            }
+                          ],
+                          "kind": "MethodSignature",
+                          "span": {
+                            "endCol": 87,
+                            "endLine": 19,
+                            "file": "src/ok/140_ts_5x_features.ts",
+                            "startCol": 49,
+                            "startLine": 19
+                          }
+                        }
+                      ],
+                      "kind": "TypeLiteral",
+                      "span": {
+                        "endCol": 89,
+                        "endLine": 19,
+                        "file": "src/ok/140_ts_5x_features.ts",
+                        "startCol": 47,
+                        "startLine": 19
+                      }
+                    }
+                  ],
+                  "kind": "TypeReference",
+                  "span": {
+                    "endCol": 90,
+                    "endLine": 19,
+                    "file": "src/ok/140_ts_5x_features.ts",
+                    "startCol": 39,
+                    "startLine": 19
+                  }
+                }
+              ],
+              "kind": "FunctionType",
+              "span": {
+                "endCol": 90,
+                "endLine": 19,
+                "file": "src/ok/140_ts_5x_features.ts",
+                "startCol": 33,
+                "startLine": 19
+              }
+            }
+          ],
+          "kind": "Parameter",
+          "span": {
+            "endCol": 90,
+            "endLine": 19,
+            "file": "src/ok/140_ts_5x_features.ts",
+            "startCol": 24,
+            "startLine": 19
+          }
+        },
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "kind": "Identifier",
+                          "span": {
+                            "endCol": 28,
+                            "endLine": 20,
+                            "file": "src/ok/140_ts_5x_features.ts",
+                            "startCol": 15,
+                            "startLine": 20
+                          },
+                          "tokenText": "asyncResource"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "kind": "Identifier",
+                                  "span": {
+                                    "endCol": 44,
+                                    "endLine": 20,
+                                    "file": "src/ok/140_ts_5x_features.ts",
+                                    "startCol": 37,
+                                    "startLine": 20
+                                  },
+                                  "tokenText": "factory"
+                                }
+                              ],
+                              "kind": "CallExpression",
+                              "span": {
+                                "endCol": 46,
+                                "endLine": 20,
+                                "file": "src/ok/140_ts_5x_features.ts",
+                                "startCol": 37,
+                                "startLine": 20
+                              }
+                            }
+                          ],
+                          "kind": "AwaitExpression",
+                          "span": {
+                            "endCol": 46,
+                            "endLine": 20,
+                            "file": "src/ok/140_ts_5x_features.ts",
+                            "startCol": 31,
+                            "startLine": 20
+                          }
+                        }
+                      ],
+                      "kind": "VariableDeclaration",
+                      "span": {
+                        "endCol": 46,
+                        "endLine": 20,
+                        "file": "src/ok/140_ts_5x_features.ts",
+                        "startCol": 15,
+                        "startLine": 20
+                      }
+                    }
+                  ],
+                  "kind": "VariableDeclarationList",
+                  "span": {
+                    "endCol": 46,
+                    "endLine": 20,
+                    "file": "src/ok/140_ts_5x_features.ts",
+                    "startCol": 3,
+                    "startLine": 20
+                  }
+                }
+              ],
+              "kind": "FirstStatement",
+              "span": {
+                "endCol": 47,
+                "endLine": 20,
+                "file": "src/ok/140_ts_5x_features.ts",
+                "startCol": 3,
+                "startLine": 20
+              }
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "kind": "Identifier",
+                      "span": {
+                        "endCol": 18,
+                        "endLine": 21,
+                        "file": "src/ok/140_ts_5x_features.ts",
+                        "startCol": 10,
+                        "startLine": 21
+                      },
+                      "tokenText": "identity"
+                    },
+                    {
+                      "children": [],
+                      "kind": "Identifier",
+                      "span": {
+                        "endCol": 32,
+                        "endLine": 21,
+                        "file": "src/ok/140_ts_5x_features.ts",
+                        "startCol": 19,
+                        "startLine": 21
+                      },
+                      "tokenText": "asyncResource"
+                    }
+                  ],
+                  "kind": "CallExpression",
+                  "span": {
+                    "endCol": 33,
+                    "endLine": 21,
+                    "file": "src/ok/140_ts_5x_features.ts",
+                    "startCol": 10,
+                    "startLine": 21
+                  }
+                }
+              ],
+              "kind": "ReturnStatement",
+              "span": {
+                "endCol": 34,
+                "endLine": 21,
+                "file": "src/ok/140_ts_5x_features.ts",
+                "startCol": 3,
+                "startLine": 21
+              }
+            }
+          ],
+          "kind": "Block",
+          "span": {
+            "endCol": 2,
+            "endLine": 22,
+            "file": "src/ok/140_ts_5x_features.ts",
+            "startCol": 92,
+            "startLine": 19
+          }
+        }
+      ],
+      "kind": "FunctionDeclaration",
+      "span": {
+        "endCol": 2,
+        "endLine": 22,
+        "file": "src/ok/140_ts_5x_features.ts",
+        "startCol": 1,
+        "startLine": 19
+      }
+    },
+    {
+      "children": [
+        {
+          "children": [],
+          "kind": "Identifier",
+          "span": {
+            "endCol": 19,
+            "endLine": 24,
+            "file": "src/ok/140_ts_5x_features.ts",
+            "startCol": 6,
+            "startLine": 24
+          },
+          "tokenText": "SegmentResult"
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "kind": "Identifier",
+              "span": {
+                "endCol": 34,
+                "endLine": 24,
+                "file": "src/ok/140_ts_5x_features.ts",
+                "startCol": 22,
+                "startLine": 24
+              },
+              "tokenText": "SegmentParts"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "kind": "StringLiteral",
+                  "span": {
+                    "endCol": 47,
+                    "endLine": 24,
+                    "file": "src/ok/140_ts_5x_features.ts",
+                    "startCol": 35,
+                    "startLine": 24
+                  },
+                  "tokenText": "\"left-right\""
+                }
+              ],
+              "kind": "LiteralType",
+              "span": {
+                "endCol": 47,
+                "endLine": 24,
+                "file": "src/ok/140_ts_5x_features.ts",
+                "startCol": 35,
+                "startLine": 24
+              }
+            }
+          ],
+          "kind": "TypeReference",
+          "span": {
+            "endCol": 48,
+            "endLine": 24,
+            "file": "src/ok/140_ts_5x_features.ts",
+            "startCol": 22,
+            "startLine": 24
+          }
+        }
+      ],
+      "kind": "TypeAliasDeclaration",
+      "span": {
+        "endCol": 49,
+        "endLine": 24,
+        "file": "src/ok/140_ts_5x_features.ts",
+        "startCol": 1,
+        "startLine": 24
+      }
+    },
+    {
+      "children": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 15,
+                    "endLine": 26,
+                    "file": "src/ok/140_ts_5x_features.ts",
+                    "startCol": 7,
+                    "startLine": 26
+                  },
+                  "tokenText": "settings"
+                },
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 29,
+                    "endLine": 26,
+                    "file": "src/ok/140_ts_5x_features.ts",
+                    "startCol": 17,
+                    "startLine": 26
+                  },
+                  "tokenText": "syncResource"
+                },
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 38,
+                    "endLine": 26,
+                    "file": "src/ok/140_ts_5x_features.ts",
+                    "startCol": 31,
+                    "startLine": 26
+                  },
+                  "tokenText": "consume"
+                },
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 48,
+                    "endLine": 26,
+                    "file": "src/ok/140_ts_5x_features.ts",
+                    "startCol": 40,
+                    "startLine": 26
+                  },
+                  "tokenText": "jsonData"
+                }
+              ],
+              "kind": "ArrayLiteralExpression",
+              "span": {
+                "endCol": 49,
+                "endLine": 26,
+                "file": "src/ok/140_ts_5x_features.ts",
+                "startCol": 6,
+                "startLine": 26
+              }
+            }
+          ],
+          "kind": "VoidExpression",
+          "span": {
+            "endCol": 49,
+            "endLine": 26,
+            "file": "src/ok/140_ts_5x_features.ts",
+            "startCol": 1,
+            "startLine": 26
+          }
+        }
+      ],
+      "kind": "ExpressionStatement",
+      "span": {
+        "endCol": 50,
+        "endLine": 26,
+        "file": "src/ok/140_ts_5x_features.ts",
+        "startCol": 1,
+        "startLine": 26
+      }
+    },
+    {
+      "children": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "kind": "FirstLiteralToken",
+                          "span": {
+                            "endCol": 8,
+                            "endLine": 27,
+                            "file": "src/ok/140_ts_5x_features.ts",
+                            "startCol": 7,
+                            "startLine": 27
+                          },
+                          "tokenText": "0"
+                        },
+                        {
+                          "children": [],
+                          "kind": "UnknownKeyword",
+                          "span": {
+                            "endCol": 19,
+                            "endLine": 27,
+                            "file": "src/ok/140_ts_5x_features.ts",
+                            "startCol": 12,
+                            "startLine": 27
+                          },
+                          "tokenText": "unknown"
+                        }
+                      ],
+                      "kind": "AsExpression",
+                      "span": {
+                        "endCol": 19,
+                        "endLine": 27,
+                        "file": "src/ok/140_ts_5x_features.ts",
+                        "startCol": 7,
+                        "startLine": 27
+                      }
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "kind": "Identifier",
+                          "span": {
+                            "endCol": 36,
+                            "endLine": 27,
+                            "file": "src/ok/140_ts_5x_features.ts",
+                            "startCol": 23,
+                            "startLine": 27
+                          },
+                          "tokenText": "SegmentResult"
+                        }
+                      ],
+                      "kind": "TypeReference",
+                      "span": {
+                        "endCol": 36,
+                        "endLine": 27,
+                        "file": "src/ok/140_ts_5x_features.ts",
+                        "startCol": 23,
+                        "startLine": 27
+                      }
+                    }
+                  ],
+                  "kind": "AsExpression",
+                  "span": {
+                    "endCol": 36,
+                    "endLine": 27,
+                    "file": "src/ok/140_ts_5x_features.ts",
+                    "startCol": 7,
+                    "startLine": 27
+                  }
+                }
+              ],
+              "kind": "ParenthesizedExpression",
+              "span": {
+                "endCol": 37,
+                "endLine": 27,
+                "file": "src/ok/140_ts_5x_features.ts",
+                "startCol": 6,
+                "startLine": 27
+              }
+            }
+          ],
+          "kind": "VoidExpression",
+          "span": {
+            "endCol": 37,
+            "endLine": 27,
+            "file": "src/ok/140_ts_5x_features.ts",
+            "startCol": 1,
+            "startLine": 27
+          }
+        }
+      ],
+      "kind": "ExpressionStatement",
+      "span": {
+        "endCol": 38,
+        "endLine": 27,
+        "file": "src/ok/140_ts_5x_features.ts",
+        "startCol": 1,
+        "startLine": 27
+      }
+    },
+    {
+      "children": [],
+      "kind": "EndOfFileToken",
+      "span": {
+        "endCol": 1,
+        "endLine": 28,
+        "file": "src/ok/140_ts_5x_features.ts",
+        "startCol": 1,
+        "startLine": 28
+      },
+      "tokenText": ""
+    }
+  ],
+  "kind": "SourceFile",
+  "span": {
+    "endCol": 1,
+    "endLine": 28,
+    "file": "src/ok/140_ts_5x_features.ts",
+    "startCol": 1,
+    "startLine": 1
+  }
+}

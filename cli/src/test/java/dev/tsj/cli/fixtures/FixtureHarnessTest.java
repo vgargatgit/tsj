@@ -309,6 +309,58 @@ class FixtureHarnessTest {
     }
 
     @Test
+    void harnessSupportsLogicalChainsDifferentialFixture() throws Exception {
+        final Path fixtureDir = writeLogicalChainsFixture("logical-chains");
+        final FixtureSpec fixture = FixtureLoader.loadFixture(fixtureDir);
+
+        final FixtureRunResult result = new FixtureHarness().runFixture(fixture);
+
+        assertTrue(result.passed());
+        assertTrue(result.nodeToTsjMatched());
+        assertEquals("", result.nodeResult().diff());
+        assertEquals("", result.tsjResult().diff());
+    }
+
+    @Test
+    void harnessSupportsOptionalChainingDifferentialFixture() throws Exception {
+        final Path fixtureDir = writeOptionalChainingFixture("optional-chaining");
+        final FixtureSpec fixture = FixtureLoader.loadFixture(fixtureDir);
+
+        final FixtureRunResult result = new FixtureHarness().runFixture(fixture);
+
+        assertTrue(result.passed());
+        assertTrue(result.nodeToTsjMatched());
+        assertEquals("", result.nodeResult().diff());
+        assertEquals("", result.tsjResult().diff());
+    }
+
+    @Test
+    void harnessSupportsDestructuringDifferentialFixture() throws Exception {
+        final Path fixtureDir = writeDestructuringFixture("destructuring");
+        final FixtureSpec fixture = FixtureLoader.loadFixture(fixtureDir);
+
+        final FixtureRunResult result = new FixtureHarness().runFixture(fixture);
+
+        assertTrue(result.passed());
+        assertTrue(result.nodeToTsjMatched());
+        assertEquals("", result.nodeResult().diff());
+        assertEquals("", result.tsjResult().diff());
+    }
+
+    @Test
+    void harnessSupportsTemplateLiteralDifferentialFixture() throws Exception {
+        final Path fixtureDir = writeTemplateLiteralFixture("template-literals");
+        final FixtureSpec fixture = FixtureLoader.loadFixture(fixtureDir);
+
+        final FixtureRunResult result = new FixtureHarness().runFixture(fixture);
+
+        assertTrue(result.passed());
+        assertTrue(result.nodeToTsjMatched());
+        assertEquals("", result.nodeResult().diff());
+        assertEquals("", result.tsjResult().diff());
+    }
+
+    @Test
     void harnessSupportsTopLevelAwaitFixture() throws Exception {
         final Path fixtureDir = writeTopLevelAwaitFixture("top-level-await");
         final FixtureSpec fixture = FixtureLoader.loadFixture(fixtureDir);
@@ -789,6 +841,104 @@ class FixtureHarnessTest {
         );
         Files.writeString(fixtureDir.resolve("fixture.properties"), properties, UTF_8);
         return fixtureDir;
+    }
+
+    private Path writeStrictParityFixture(
+            final String name,
+            final String source,
+            final String expectedStdout
+    ) throws IOException {
+        final Path fixtureDir = tempDir.resolve(name);
+        final Path inputDir = fixtureDir.resolve("input");
+        final Path expectedDir = fixtureDir.resolve("expected");
+        Files.createDirectories(inputDir);
+        Files.createDirectories(expectedDir);
+
+        Files.writeString(inputDir.resolve("main.ts"), source, UTF_8);
+        Files.writeString(expectedDir.resolve("node.stdout"), expectedStdout, UTF_8);
+        Files.writeString(expectedDir.resolve("node.stderr"), "", UTF_8);
+        Files.writeString(expectedDir.resolve("tsj.stdout"), expectedStdout, UTF_8);
+        Files.writeString(expectedDir.resolve("tsj.stderr"), "", UTF_8);
+
+        final String properties = String.join(
+                "\n",
+                "name=" + name,
+                "entry=input/main.ts",
+                "expected.node.exitCode=0",
+                "expected.node.stdout=expected/node.stdout",
+                "expected.node.stderr=expected/node.stderr",
+                "expected.node.stdoutMode=exact",
+                "expected.node.stderrMode=exact",
+                "expected.tsj.exitCode=0",
+                "expected.tsj.stdout=expected/tsj.stdout",
+                "expected.tsj.stderr=expected/tsj.stderr",
+                "expected.tsj.stdoutMode=contains",
+                "expected.tsj.stderrMode=exact",
+                "assert.nodeMatchesTsj=true",
+                ""
+        );
+        Files.writeString(fixtureDir.resolve("fixture.properties"), properties, UTF_8);
+        return fixtureDir;
+    }
+
+    private Path writeLogicalChainsFixture(final String name) throws IOException {
+        return writeStrictParityFixture(
+                name,
+                """
+                const fallback = "fallback";
+                const value = (true && "ok") + ":" + (false || "alt") + ":" + (null ?? fallback);
+                console.log("logical=" + value);
+                """,
+                "logical=ok:alt:fallback\n"
+        );
+    }
+
+    private Path writeOptionalChainingFixture(final String name) throws IOException {
+        return writeStrictParityFixture(
+                name,
+                """
+                const holder: { value?: { label: string } } | null = { value: { label: "opt" } };
+                const missing: { value?: { label: string } } | null = null;
+                const callMaybe: ((value: number) => number) | undefined = (value: number) => value + 2;
+                const out = (holder?.value?.label ?? "none")
+                  + ":"
+                  + (missing?.value?.label ?? "none")
+                  + ":"
+                  + (callMaybe?.(5) ?? -1);
+                console.log("optional=" + out);
+                """,
+                "optional=opt:none:7\n"
+        );
+    }
+
+    private Path writeDestructuringFixture(final String name) throws IOException {
+        return writeStrictParityFixture(
+                name,
+                """
+                const pair = [3, 4];
+                const [a, b] = pair;
+                const point = { x: 5, y: 6 };
+                const { x, y: yy } = point;
+                let left = 0;
+                let right = 0;
+                [left, right] = [b, a];
+                console.log("destructure=" + (a + b + x + yy + left + right));
+                """,
+                "destructure=25\n"
+        );
+    }
+
+    private Path writeTemplateLiteralFixture(final String name) throws IOException {
+        return writeStrictParityFixture(
+                name,
+                """
+                const nameValue = "tsj";
+                const count = 3;
+                const message = `hello ${nameValue.toUpperCase()} #${count + 1}`;
+                console.log("template=" + message);
+                """,
+                "template=hello TSJ #4\n"
+        );
     }
 
     private Path writeClosureFixture(final String name) throws IOException {

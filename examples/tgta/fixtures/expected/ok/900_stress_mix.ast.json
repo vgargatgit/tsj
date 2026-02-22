@@ -1,0 +1,3673 @@
+{
+  "children": [
+    {
+      "children": [
+        {
+          "children": [],
+          "kind": "Identifier",
+          "span": {
+            "endCol": 9,
+            "endLine": 1,
+            "file": "src/ok/900_stress_mix.ts",
+            "startCol": 6,
+            "startLine": 1
+          },
+          "tokenText": "Key"
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "kind": "TemplateHead",
+              "span": {
+                "endCol": 17,
+                "endLine": 1,
+                "file": "src/ok/900_stress_mix.ts",
+                "startCol": 12,
+                "startLine": 1
+              },
+              "tokenText": "`k_${"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "kind": "NumberKeyword",
+                  "span": {
+                    "endCol": 23,
+                    "endLine": 1,
+                    "file": "src/ok/900_stress_mix.ts",
+                    "startCol": 17,
+                    "startLine": 1
+                  },
+                  "tokenText": "number"
+                },
+                {
+                  "children": [],
+                  "kind": "LastTemplateToken",
+                  "span": {
+                    "endCol": 25,
+                    "endLine": 1,
+                    "file": "src/ok/900_stress_mix.ts",
+                    "startCol": 23,
+                    "startLine": 1
+                  },
+                  "tokenText": "}`"
+                }
+              ],
+              "kind": "TemplateLiteralTypeSpan",
+              "span": {
+                "endCol": 25,
+                "endLine": 1,
+                "file": "src/ok/900_stress_mix.ts",
+                "startCol": 17,
+                "startLine": 1
+              }
+            }
+          ],
+          "kind": "TemplateLiteralType",
+          "span": {
+            "endCol": 25,
+            "endLine": 1,
+            "file": "src/ok/900_stress_mix.ts",
+            "startCol": 12,
+            "startLine": 1
+          }
+        }
+      ],
+      "kind": "TypeAliasDeclaration",
+      "span": {
+        "endCol": 26,
+        "endLine": 1,
+        "file": "src/ok/900_stress_mix.ts",
+        "startCol": 1,
+        "startLine": 1
+      }
+    },
+    {
+      "children": [
+        {
+          "children": [],
+          "kind": "Identifier",
+          "span": {
+            "endCol": 11,
+            "endLine": 2,
+            "file": "src/ok/900_stress_mix.ts",
+            "startCol": 6,
+            "startLine": 2
+          },
+          "tokenText": "Value"
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "kind": "Identifier",
+              "span": {
+                "endCol": 13,
+                "endLine": 2,
+                "file": "src/ok/900_stress_mix.ts",
+                "startCol": 12,
+                "startLine": 2
+              },
+              "tokenText": "T"
+            }
+          ],
+          "kind": "TypeParameter",
+          "span": {
+            "endCol": 13,
+            "endLine": 2,
+            "file": "src/ok/900_stress_mix.ts",
+            "startCol": 12,
+            "startLine": 2
+          }
+        },
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 18,
+                    "endLine": 2,
+                    "file": "src/ok/900_stress_mix.ts",
+                    "startCol": 17,
+                    "startLine": 2
+                  },
+                  "tokenText": "T"
+                }
+              ],
+              "kind": "TypeReference",
+              "span": {
+                "endCol": 18,
+                "endLine": 2,
+                "file": "src/ok/900_stress_mix.ts",
+                "startCol": 17,
+                "startLine": 2
+              }
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "kind": "Identifier",
+                      "span": {
+                        "endCol": 34,
+                        "endLine": 2,
+                        "file": "src/ok/900_stress_mix.ts",
+                        "startCol": 29,
+                        "startLine": 2
+                      },
+                      "tokenText": "value"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "kind": "Identifier",
+                              "span": {
+                                "endCol": 43,
+                                "endLine": 2,
+                                "file": "src/ok/900_stress_mix.ts",
+                                "startCol": 42,
+                                "startLine": 2
+                              },
+                              "tokenText": "V"
+                            },
+                            {
+                              "children": [],
+                              "kind": "StringKeyword",
+                              "span": {
+                                "endCol": 58,
+                                "endLine": 2,
+                                "file": "src/ok/900_stress_mix.ts",
+                                "startCol": 52,
+                                "startLine": 2
+                              },
+                              "tokenText": "string"
+                            }
+                          ],
+                          "kind": "TypeParameter",
+                          "span": {
+                            "endCol": 58,
+                            "endLine": 2,
+                            "file": "src/ok/900_stress_mix.ts",
+                            "startCol": 42,
+                            "startLine": 2
+                          }
+                        }
+                      ],
+                      "kind": "InferType",
+                      "span": {
+                        "endCol": 58,
+                        "endLine": 2,
+                        "file": "src/ok/900_stress_mix.ts",
+                        "startCol": 36,
+                        "startLine": 2
+                      }
+                    }
+                  ],
+                  "kind": "PropertySignature",
+                  "span": {
+                    "endCol": 58,
+                    "endLine": 2,
+                    "file": "src/ok/900_stress_mix.ts",
+                    "startCol": 29,
+                    "startLine": 2
+                  }
+                }
+              ],
+              "kind": "TypeLiteral",
+              "span": {
+                "endCol": 60,
+                "endLine": 2,
+                "file": "src/ok/900_stress_mix.ts",
+                "startCol": 27,
+                "startLine": 2
+              }
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 64,
+                    "endLine": 2,
+                    "file": "src/ok/900_stress_mix.ts",
+                    "startCol": 63,
+                    "startLine": 2
+                  },
+                  "tokenText": "V"
+                }
+              ],
+              "kind": "TypeReference",
+              "span": {
+                "endCol": 64,
+                "endLine": 2,
+                "file": "src/ok/900_stress_mix.ts",
+                "startCol": 63,
+                "startLine": 2
+              }
+            },
+            {
+              "children": [],
+              "kind": "NeverKeyword",
+              "span": {
+                "endCol": 72,
+                "endLine": 2,
+                "file": "src/ok/900_stress_mix.ts",
+                "startCol": 67,
+                "startLine": 2
+              },
+              "tokenText": "never"
+            }
+          ],
+          "kind": "ConditionalType",
+          "span": {
+            "endCol": 72,
+            "endLine": 2,
+            "file": "src/ok/900_stress_mix.ts",
+            "startCol": 17,
+            "startLine": 2
+          }
+        }
+      ],
+      "kind": "TypeAliasDeclaration",
+      "span": {
+        "endCol": 73,
+        "endLine": 2,
+        "file": "src/ok/900_stress_mix.ts",
+        "startCol": 1,
+        "startLine": 2
+      }
+    },
+    {
+      "children": [
+        {
+          "children": [],
+          "kind": "Identifier",
+          "span": {
+            "endCol": 13,
+            "endLine": 3,
+            "file": "src/ok/900_stress_mix.ts",
+            "startCol": 6,
+            "startLine": 3
+          },
+          "tokenText": "Project"
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "kind": "Identifier",
+              "span": {
+                "endCol": 15,
+                "endLine": 3,
+                "file": "src/ok/900_stress_mix.ts",
+                "startCol": 14,
+                "startLine": 3
+              },
+              "tokenText": "T"
+            }
+          ],
+          "kind": "TypeParameter",
+          "span": {
+            "endCol": 15,
+            "endLine": 3,
+            "file": "src/ok/900_stress_mix.ts",
+            "startCol": 14,
+            "startLine": 3
+          }
+        },
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "kind": "Identifier",
+                      "span": {
+                        "endCol": 23,
+                        "endLine": 3,
+                        "file": "src/ok/900_stress_mix.ts",
+                        "startCol": 22,
+                        "startLine": 3
+                      },
+                      "tokenText": "K"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "kind": "Identifier",
+                              "span": {
+                                "endCol": 34,
+                                "endLine": 3,
+                                "file": "src/ok/900_stress_mix.ts",
+                                "startCol": 33,
+                                "startLine": 3
+                              },
+                              "tokenText": "T"
+                            }
+                          ],
+                          "kind": "TypeReference",
+                          "span": {
+                            "endCol": 34,
+                            "endLine": 3,
+                            "file": "src/ok/900_stress_mix.ts",
+                            "startCol": 33,
+                            "startLine": 3
+                          }
+                        }
+                      ],
+                      "kind": "TypeOperator",
+                      "operator": "keyof",
+                      "span": {
+                        "endCol": 34,
+                        "endLine": 3,
+                        "file": "src/ok/900_stress_mix.ts",
+                        "startCol": 27,
+                        "startLine": 3
+                      }
+                    }
+                  ],
+                  "kind": "TypeParameter",
+                  "span": {
+                    "endCol": 34,
+                    "endLine": 3,
+                    "file": "src/ok/900_stress_mix.ts",
+                    "startCol": 22,
+                    "startLine": 3
+                  }
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "kind": "TemplateHead",
+                      "span": {
+                        "endCol": 43,
+                        "endLine": 3,
+                        "file": "src/ok/900_stress_mix.ts",
+                        "startCol": 38,
+                        "startLine": 3
+                      },
+                      "tokenText": "`p_${"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "kind": "StringKeyword",
+                              "span": {
+                                "endCol": 49,
+                                "endLine": 3,
+                                "file": "src/ok/900_stress_mix.ts",
+                                "startCol": 43,
+                                "startLine": 3
+                              },
+                              "tokenText": "string"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "kind": "Identifier",
+                                  "span": {
+                                    "endCol": 53,
+                                    "endLine": 3,
+                                    "file": "src/ok/900_stress_mix.ts",
+                                    "startCol": 52,
+                                    "startLine": 3
+                                  },
+                                  "tokenText": "K"
+                                }
+                              ],
+                              "kind": "TypeReference",
+                              "span": {
+                                "endCol": 53,
+                                "endLine": 3,
+                                "file": "src/ok/900_stress_mix.ts",
+                                "startCol": 52,
+                                "startLine": 3
+                              }
+                            }
+                          ],
+                          "kind": "IntersectionType",
+                          "span": {
+                            "endCol": 53,
+                            "endLine": 3,
+                            "file": "src/ok/900_stress_mix.ts",
+                            "startCol": 43,
+                            "startLine": 3
+                          }
+                        },
+                        {
+                          "children": [],
+                          "kind": "LastTemplateToken",
+                          "span": {
+                            "endCol": 55,
+                            "endLine": 3,
+                            "file": "src/ok/900_stress_mix.ts",
+                            "startCol": 53,
+                            "startLine": 3
+                          },
+                          "tokenText": "}`"
+                        }
+                      ],
+                      "kind": "TemplateLiteralTypeSpan",
+                      "span": {
+                        "endCol": 55,
+                        "endLine": 3,
+                        "file": "src/ok/900_stress_mix.ts",
+                        "startCol": 43,
+                        "startLine": 3
+                      }
+                    }
+                  ],
+                  "kind": "TemplateLiteralType",
+                  "span": {
+                    "endCol": 55,
+                    "endLine": 3,
+                    "file": "src/ok/900_stress_mix.ts",
+                    "startCol": 38,
+                    "startLine": 3
+                  }
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "kind": "Identifier",
+                          "span": {
+                            "endCol": 59,
+                            "endLine": 3,
+                            "file": "src/ok/900_stress_mix.ts",
+                            "startCol": 58,
+                            "startLine": 3
+                          },
+                          "tokenText": "T"
+                        }
+                      ],
+                      "kind": "TypeReference",
+                      "span": {
+                        "endCol": 59,
+                        "endLine": 3,
+                        "file": "src/ok/900_stress_mix.ts",
+                        "startCol": 58,
+                        "startLine": 3
+                      }
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "kind": "Identifier",
+                          "span": {
+                            "endCol": 61,
+                            "endLine": 3,
+                            "file": "src/ok/900_stress_mix.ts",
+                            "startCol": 60,
+                            "startLine": 3
+                          },
+                          "tokenText": "K"
+                        }
+                      ],
+                      "kind": "TypeReference",
+                      "span": {
+                        "endCol": 61,
+                        "endLine": 3,
+                        "file": "src/ok/900_stress_mix.ts",
+                        "startCol": 60,
+                        "startLine": 3
+                      }
+                    }
+                  ],
+                  "kind": "IndexedAccessType",
+                  "span": {
+                    "endCol": 62,
+                    "endLine": 3,
+                    "file": "src/ok/900_stress_mix.ts",
+                    "startCol": 58,
+                    "startLine": 3
+                  }
+                }
+              ],
+              "kind": "MappedType",
+              "span": {
+                "endCol": 64,
+                "endLine": 3,
+                "file": "src/ok/900_stress_mix.ts",
+                "startCol": 19,
+                "startLine": 3
+              }
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "kind": "Identifier",
+                      "span": {
+                        "endCol": 73,
+                        "endLine": 3,
+                        "file": "src/ok/900_stress_mix.ts",
+                        "startCol": 69,
+                        "startLine": 3
+                      },
+                      "tokenText": "kind"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "kind": "StringLiteral",
+                          "span": {
+                            "endCol": 86,
+                            "endLine": 3,
+                            "file": "src/ok/900_stress_mix.ts",
+                            "startCol": 75,
+                            "startLine": 3
+                          },
+                          "tokenText": "\"projected\""
+                        }
+                      ],
+                      "kind": "LiteralType",
+                      "span": {
+                        "endCol": 86,
+                        "endLine": 3,
+                        "file": "src/ok/900_stress_mix.ts",
+                        "startCol": 75,
+                        "startLine": 3
+                      }
+                    }
+                  ],
+                  "kind": "PropertySignature",
+                  "span": {
+                    "endCol": 86,
+                    "endLine": 3,
+                    "file": "src/ok/900_stress_mix.ts",
+                    "startCol": 69,
+                    "startLine": 3
+                  }
+                }
+              ],
+              "kind": "TypeLiteral",
+              "span": {
+                "endCol": 88,
+                "endLine": 3,
+                "file": "src/ok/900_stress_mix.ts",
+                "startCol": 67,
+                "startLine": 3
+              }
+            }
+          ],
+          "kind": "IntersectionType",
+          "span": {
+            "endCol": 88,
+            "endLine": 3,
+            "file": "src/ok/900_stress_mix.ts",
+            "startCol": 19,
+            "startLine": 3
+          }
+        }
+      ],
+      "kind": "TypeAliasDeclaration",
+      "span": {
+        "endCol": 89,
+        "endLine": 3,
+        "file": "src/ok/900_stress_mix.ts",
+        "startCol": 1,
+        "startLine": 3
+      }
+    },
+    {
+      "children": [
+        {
+          "children": [],
+          "kind": "Identifier",
+          "span": {
+            "endCol": 16,
+            "endLine": 5,
+            "file": "src/ok/900_stress_mix.ts",
+            "startCol": 10,
+            "startLine": 5
+          },
+          "tokenText": "mixDec"
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "kind": "Identifier",
+              "span": {
+                "endCol": 34,
+                "endLine": 5,
+                "file": "src/ok/900_stress_mix.ts",
+                "startCol": 20,
+                "startLine": 5
+              },
+              "tokenText": "ClassDecorator"
+            }
+          ],
+          "kind": "TypeReference",
+          "span": {
+            "endCol": 34,
+            "endLine": 5,
+            "file": "src/ok/900_stress_mix.ts",
+            "startCol": 20,
+            "startLine": 5
+          }
+        },
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "kind": "EqualsGreaterThanToken",
+                      "span": {
+                        "endCol": 15,
+                        "endLine": 6,
+                        "file": "src/ok/900_stress_mix.ts",
+                        "startCol": 13,
+                        "startLine": 6
+                      },
+                      "tokenText": "=>"
+                    },
+                    {
+                      "children": [],
+                      "kind": "Block",
+                      "span": {
+                        "endCol": 4,
+                        "endLine": 8,
+                        "file": "src/ok/900_stress_mix.ts",
+                        "startCol": 16,
+                        "startLine": 6
+                      }
+                    }
+                  ],
+                  "kind": "ArrowFunction",
+                  "span": {
+                    "endCol": 4,
+                    "endLine": 8,
+                    "file": "src/ok/900_stress_mix.ts",
+                    "startCol": 10,
+                    "startLine": 6
+                  }
+                }
+              ],
+              "kind": "ReturnStatement",
+              "span": {
+                "endCol": 5,
+                "endLine": 8,
+                "file": "src/ok/900_stress_mix.ts",
+                "startCol": 3,
+                "startLine": 6
+              }
+            }
+          ],
+          "kind": "Block",
+          "span": {
+            "endCol": 2,
+            "endLine": 9,
+            "file": "src/ok/900_stress_mix.ts",
+            "startCol": 35,
+            "startLine": 5
+          }
+        }
+      ],
+      "kind": "FunctionDeclaration",
+      "span": {
+        "endCol": 2,
+        "endLine": 9,
+        "file": "src/ok/900_stress_mix.ts",
+        "startCol": 1,
+        "startLine": 5
+      }
+    },
+    {
+      "children": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 8,
+                    "endLine": 11,
+                    "file": "src/ok/900_stress_mix.ts",
+                    "startCol": 2,
+                    "startLine": 11
+                  },
+                  "tokenText": "mixDec"
+                }
+              ],
+              "kind": "CallExpression",
+              "span": {
+                "endCol": 10,
+                "endLine": 11,
+                "file": "src/ok/900_stress_mix.ts",
+                "startCol": 2,
+                "startLine": 11
+              }
+            }
+          ],
+          "kind": "Decorator",
+          "span": {
+            "endCol": 10,
+            "endLine": 11,
+            "file": "src/ok/900_stress_mix.ts",
+            "startCol": 1,
+            "startLine": 11
+          }
+        },
+        {
+          "children": [],
+          "kind": "Identifier",
+          "span": {
+            "endCol": 16,
+            "endLine": 12,
+            "file": "src/ok/900_stress_mix.ts",
+            "startCol": 7,
+            "startLine": 12
+          },
+          "tokenText": "StressBox"
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "kind": "Identifier",
+              "span": {
+                "endCol": 18,
+                "endLine": 12,
+                "file": "src/ok/900_stress_mix.ts",
+                "startCol": 17,
+                "startLine": 12
+              },
+              "tokenText": "T"
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "kind": "Identifier",
+                      "span": {
+                        "endCol": 31,
+                        "endLine": 12,
+                        "file": "src/ok/900_stress_mix.ts",
+                        "startCol": 29,
+                        "startLine": 12
+                      },
+                      "tokenText": "id"
+                    },
+                    {
+                      "children": [],
+                      "kind": "StringKeyword",
+                      "span": {
+                        "endCol": 39,
+                        "endLine": 12,
+                        "file": "src/ok/900_stress_mix.ts",
+                        "startCol": 33,
+                        "startLine": 12
+                      },
+                      "tokenText": "string"
+                    }
+                  ],
+                  "kind": "PropertySignature",
+                  "span": {
+                    "endCol": 40,
+                    "endLine": 12,
+                    "file": "src/ok/900_stress_mix.ts",
+                    "startCol": 29,
+                    "startLine": 12
+                  }
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "kind": "Identifier",
+                      "span": {
+                        "endCol": 46,
+                        "endLine": 12,
+                        "file": "src/ok/900_stress_mix.ts",
+                        "startCol": 41,
+                        "startLine": 12
+                      },
+                      "tokenText": "value"
+                    },
+                    {
+                      "children": [],
+                      "kind": "StringKeyword",
+                      "span": {
+                        "endCol": 54,
+                        "endLine": 12,
+                        "file": "src/ok/900_stress_mix.ts",
+                        "startCol": 48,
+                        "startLine": 12
+                      },
+                      "tokenText": "string"
+                    }
+                  ],
+                  "kind": "PropertySignature",
+                  "span": {
+                    "endCol": 54,
+                    "endLine": 12,
+                    "file": "src/ok/900_stress_mix.ts",
+                    "startCol": 41,
+                    "startLine": 12
+                  }
+                }
+              ],
+              "kind": "TypeLiteral",
+              "span": {
+                "endCol": 56,
+                "endLine": 12,
+                "file": "src/ok/900_stress_mix.ts",
+                "startCol": 27,
+                "startLine": 12
+              }
+            }
+          ],
+          "kind": "TypeParameter",
+          "span": {
+            "endCol": 56,
+            "endLine": 12,
+            "file": "src/ok/900_stress_mix.ts",
+            "startCol": 17,
+            "startLine": 12
+          }
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "kind": "StaticKeyword",
+              "span": {
+                "endCol": 9,
+                "endLine": 13,
+                "file": "src/ok/900_stress_mix.ts",
+                "startCol": 3,
+                "startLine": 13
+              },
+              "tokenText": "static"
+            },
+            {
+              "children": [],
+              "kind": "Identifier",
+              "span": {
+                "endCol": 18,
+                "endLine": 13,
+                "file": "src/ok/900_stress_mix.ts",
+                "startCol": 10,
+                "startLine": 13
+              },
+              "tokenText": "registry"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 26,
+                    "endLine": 13,
+                    "file": "src/ok/900_stress_mix.ts",
+                    "startCol": 20,
+                    "startLine": 13
+                  },
+                  "tokenText": "Record"
+                },
+                {
+                  "children": [],
+                  "kind": "StringKeyword",
+                  "span": {
+                    "endCol": 33,
+                    "endLine": 13,
+                    "file": "src/ok/900_stress_mix.ts",
+                    "startCol": 27,
+                    "startLine": 13
+                  },
+                  "tokenText": "string"
+                },
+                {
+                  "children": [],
+                  "kind": "NumberKeyword",
+                  "span": {
+                    "endCol": 41,
+                    "endLine": 13,
+                    "file": "src/ok/900_stress_mix.ts",
+                    "startCol": 35,
+                    "startLine": 13
+                  },
+                  "tokenText": "number"
+                }
+              ],
+              "kind": "TypeReference",
+              "span": {
+                "endCol": 42,
+                "endLine": 13,
+                "file": "src/ok/900_stress_mix.ts",
+                "startCol": 20,
+                "startLine": 13
+              }
+            },
+            {
+              "children": [],
+              "kind": "ObjectLiteralExpression",
+              "span": {
+                "endCol": 47,
+                "endLine": 13,
+                "file": "src/ok/900_stress_mix.ts",
+                "startCol": 45,
+                "startLine": 13
+              }
+            }
+          ],
+          "kind": "PropertyDeclaration",
+          "span": {
+            "endCol": 48,
+            "endLine": 13,
+            "file": "src/ok/900_stress_mix.ts",
+            "startCol": 3,
+            "startLine": 13
+          }
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "kind": "PrivateIdentifier",
+              "span": {
+                "endCol": 9,
+                "endLine": 14,
+                "file": "src/ok/900_stress_mix.ts",
+                "startCol": 3,
+                "startLine": 14
+              },
+              "tokenText": "#token"
+            },
+            {
+              "children": [],
+              "kind": "FirstLiteralToken",
+              "span": {
+                "endCol": 13,
+                "endLine": 14,
+                "file": "src/ok/900_stress_mix.ts",
+                "startCol": 12,
+                "startLine": 14
+              },
+              "tokenText": "0"
+            }
+          ],
+          "kind": "PropertyDeclaration",
+          "span": {
+            "endCol": 14,
+            "endLine": 14,
+            "file": "src/ok/900_stress_mix.ts",
+            "startCol": 3,
+            "startLine": 14
+          }
+        },
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "kind": "PublicKeyword",
+                  "span": {
+                    "endCol": 21,
+                    "endLine": 16,
+                    "file": "src/ok/900_stress_mix.ts",
+                    "startCol": 15,
+                    "startLine": 16
+                  },
+                  "tokenText": "public"
+                },
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 26,
+                    "endLine": 16,
+                    "file": "src/ok/900_stress_mix.ts",
+                    "startCol": 22,
+                    "startLine": 16
+                  },
+                  "tokenText": "item"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "kind": "Identifier",
+                      "span": {
+                        "endCol": 29,
+                        "endLine": 16,
+                        "file": "src/ok/900_stress_mix.ts",
+                        "startCol": 28,
+                        "startLine": 16
+                      },
+                      "tokenText": "T"
+                    }
+                  ],
+                  "kind": "TypeReference",
+                  "span": {
+                    "endCol": 29,
+                    "endLine": 16,
+                    "file": "src/ok/900_stress_mix.ts",
+                    "startCol": 28,
+                    "startLine": 16
+                  }
+                }
+              ],
+              "kind": "Parameter",
+              "span": {
+                "endCol": 29,
+                "endLine": 16,
+                "file": "src/ok/900_stress_mix.ts",
+                "startCol": 15,
+                "startLine": 16
+              }
+            },
+            {
+              "children": [],
+              "kind": "Block",
+              "span": {
+                "endCol": 33,
+                "endLine": 16,
+                "file": "src/ok/900_stress_mix.ts",
+                "startCol": 31,
+                "startLine": 16
+              }
+            }
+          ],
+          "kind": "Constructor",
+          "span": {
+            "endCol": 33,
+            "endLine": 16,
+            "file": "src/ok/900_stress_mix.ts",
+            "startCol": 3,
+            "startLine": 16
+          }
+        },
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "kind": "ThisKeyword",
+                                  "span": {
+                                    "endCol": 9,
+                                    "endLine": 19,
+                                    "file": "src/ok/900_stress_mix.ts",
+                                    "startCol": 5,
+                                    "startLine": 19
+                                  },
+                                  "tokenText": "this"
+                                },
+                                {
+                                  "children": [],
+                                  "kind": "Identifier",
+                                  "span": {
+                                    "endCol": 18,
+                                    "endLine": 19,
+                                    "file": "src/ok/900_stress_mix.ts",
+                                    "startCol": 10,
+                                    "startLine": 19
+                                  },
+                                  "tokenText": "registry"
+                                }
+                              ],
+                              "kind": "PropertyAccessExpression",
+                              "span": {
+                                "endCol": 18,
+                                "endLine": 19,
+                                "file": "src/ok/900_stress_mix.ts",
+                                "startCol": 5,
+                                "startLine": 19
+                              }
+                            },
+                            {
+                              "children": [],
+                              "kind": "StringLiteral",
+                              "span": {
+                                "endCol": 25,
+                                "endLine": 19,
+                                "file": "src/ok/900_stress_mix.ts",
+                                "startCol": 19,
+                                "startLine": 19
+                              },
+                              "tokenText": "\"boot\""
+                            }
+                          ],
+                          "kind": "ElementAccessExpression",
+                          "span": {
+                            "endCol": 26,
+                            "endLine": 19,
+                            "file": "src/ok/900_stress_mix.ts",
+                            "startCol": 5,
+                            "startLine": 19
+                          }
+                        },
+                        {
+                          "children": [],
+                          "kind": "FirstAssignment",
+                          "span": {
+                            "endCol": 28,
+                            "endLine": 19,
+                            "file": "src/ok/900_stress_mix.ts",
+                            "startCol": 27,
+                            "startLine": 19
+                          },
+                          "tokenText": "="
+                        },
+                        {
+                          "children": [],
+                          "kind": "FirstLiteralToken",
+                          "span": {
+                            "endCol": 30,
+                            "endLine": 19,
+                            "file": "src/ok/900_stress_mix.ts",
+                            "startCol": 29,
+                            "startLine": 19
+                          },
+                          "tokenText": "1"
+                        }
+                      ],
+                      "kind": "BinaryExpression",
+                      "operator": "=",
+                      "span": {
+                        "endCol": 30,
+                        "endLine": 19,
+                        "file": "src/ok/900_stress_mix.ts",
+                        "startCol": 5,
+                        "startLine": 19
+                      }
+                    }
+                  ],
+                  "kind": "ExpressionStatement",
+                  "span": {
+                    "endCol": 31,
+                    "endLine": 19,
+                    "file": "src/ok/900_stress_mix.ts",
+                    "startCol": 5,
+                    "startLine": 19
+                  }
+                }
+              ],
+              "kind": "Block",
+              "span": {
+                "endCol": 4,
+                "endLine": 20,
+                "file": "src/ok/900_stress_mix.ts",
+                "startCol": 10,
+                "startLine": 18
+              }
+            }
+          ],
+          "kind": "ClassStaticBlockDeclaration",
+          "span": {
+            "endCol": 4,
+            "endLine": 20,
+            "file": "src/ok/900_stress_mix.ts",
+            "startCol": 3,
+            "startLine": 18
+          }
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "kind": "Identifier",
+              "span": {
+                "endCol": 9,
+                "endLine": 22,
+                "file": "src/ok/900_stress_mix.ts",
+                "startCol": 7,
+                "startLine": 22
+              },
+              "tokenText": "id"
+            },
+            {
+              "children": [],
+              "kind": "StringKeyword",
+              "span": {
+                "endCol": 19,
+                "endLine": 22,
+                "file": "src/ok/900_stress_mix.ts",
+                "startCol": 13,
+                "startLine": 22
+              },
+              "tokenText": "string"
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "kind": "ThisKeyword",
+                              "span": {
+                                "endCol": 16,
+                                "endLine": 23,
+                                "file": "src/ok/900_stress_mix.ts",
+                                "startCol": 12,
+                                "startLine": 23
+                              },
+                              "tokenText": "this"
+                            },
+                            {
+                              "children": [],
+                              "kind": "Identifier",
+                              "span": {
+                                "endCol": 21,
+                                "endLine": 23,
+                                "file": "src/ok/900_stress_mix.ts",
+                                "startCol": 17,
+                                "startLine": 23
+                              },
+                              "tokenText": "item"
+                            }
+                          ],
+                          "kind": "PropertyAccessExpression",
+                          "span": {
+                            "endCol": 21,
+                            "endLine": 23,
+                            "file": "src/ok/900_stress_mix.ts",
+                            "startCol": 12,
+                            "startLine": 23
+                          }
+                        },
+                        {
+                          "children": [],
+                          "kind": "Identifier",
+                          "span": {
+                            "endCol": 24,
+                            "endLine": 23,
+                            "file": "src/ok/900_stress_mix.ts",
+                            "startCol": 22,
+                            "startLine": 23
+                          },
+                          "tokenText": "id"
+                        }
+                      ],
+                      "kind": "PropertyAccessExpression",
+                      "span": {
+                        "endCol": 24,
+                        "endLine": 23,
+                        "file": "src/ok/900_stress_mix.ts",
+                        "startCol": 12,
+                        "startLine": 23
+                      }
+                    }
+                  ],
+                  "kind": "ReturnStatement",
+                  "span": {
+                    "endCol": 25,
+                    "endLine": 23,
+                    "file": "src/ok/900_stress_mix.ts",
+                    "startCol": 5,
+                    "startLine": 23
+                  }
+                }
+              ],
+              "kind": "Block",
+              "span": {
+                "endCol": 4,
+                "endLine": 24,
+                "file": "src/ok/900_stress_mix.ts",
+                "startCol": 20,
+                "startLine": 22
+              }
+            }
+          ],
+          "kind": "GetAccessor",
+          "span": {
+            "endCol": 4,
+            "endLine": 24,
+            "file": "src/ok/900_stress_mix.ts",
+            "startCol": 3,
+            "startLine": 22
+          }
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "kind": "Identifier",
+              "span": {
+                "endCol": 9,
+                "endLine": 26,
+                "file": "src/ok/900_stress_mix.ts",
+                "startCol": 7,
+                "startLine": 26
+              },
+              "tokenText": "id"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 14,
+                    "endLine": 26,
+                    "file": "src/ok/900_stress_mix.ts",
+                    "startCol": 10,
+                    "startLine": 26
+                  },
+                  "tokenText": "next"
+                },
+                {
+                  "children": [],
+                  "kind": "StringKeyword",
+                  "span": {
+                    "endCol": 22,
+                    "endLine": 26,
+                    "file": "src/ok/900_stress_mix.ts",
+                    "startCol": 16,
+                    "startLine": 26
+                  },
+                  "tokenText": "string"
+                }
+              ],
+              "kind": "Parameter",
+              "span": {
+                "endCol": 22,
+                "endLine": 26,
+                "file": "src/ok/900_stress_mix.ts",
+                "startCol": 10,
+                "startLine": 26
+              }
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "kind": "ThisKeyword",
+                              "span": {
+                                "endCol": 9,
+                                "endLine": 27,
+                                "file": "src/ok/900_stress_mix.ts",
+                                "startCol": 5,
+                                "startLine": 27
+                              },
+                              "tokenText": "this"
+                            },
+                            {
+                              "children": [],
+                              "kind": "Identifier",
+                              "span": {
+                                "endCol": 14,
+                                "endLine": 27,
+                                "file": "src/ok/900_stress_mix.ts",
+                                "startCol": 10,
+                                "startLine": 27
+                              },
+                              "tokenText": "item"
+                            }
+                          ],
+                          "kind": "PropertyAccessExpression",
+                          "span": {
+                            "endCol": 14,
+                            "endLine": 27,
+                            "file": "src/ok/900_stress_mix.ts",
+                            "startCol": 5,
+                            "startLine": 27
+                          }
+                        },
+                        {
+                          "children": [],
+                          "kind": "FirstAssignment",
+                          "span": {
+                            "endCol": 16,
+                            "endLine": 27,
+                            "file": "src/ok/900_stress_mix.ts",
+                            "startCol": 15,
+                            "startLine": 27
+                          },
+                          "tokenText": "="
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "kind": "ThisKeyword",
+                                      "span": {
+                                        "endCol": 26,
+                                        "endLine": 27,
+                                        "file": "src/ok/900_stress_mix.ts",
+                                        "startCol": 22,
+                                        "startLine": 27
+                                      },
+                                      "tokenText": "this"
+                                    },
+                                    {
+                                      "children": [],
+                                      "kind": "Identifier",
+                                      "span": {
+                                        "endCol": 31,
+                                        "endLine": 27,
+                                        "file": "src/ok/900_stress_mix.ts",
+                                        "startCol": 27,
+                                        "startLine": 27
+                                      },
+                                      "tokenText": "item"
+                                    }
+                                  ],
+                                  "kind": "PropertyAccessExpression",
+                                  "span": {
+                                    "endCol": 31,
+                                    "endLine": 27,
+                                    "file": "src/ok/900_stress_mix.ts",
+                                    "startCol": 22,
+                                    "startLine": 27
+                                  }
+                                }
+                              ],
+                              "kind": "SpreadAssignment",
+                              "span": {
+                                "endCol": 31,
+                                "endLine": 27,
+                                "file": "src/ok/900_stress_mix.ts",
+                                "startCol": 19,
+                                "startLine": 27
+                              }
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "kind": "Identifier",
+                                  "span": {
+                                    "endCol": 35,
+                                    "endLine": 27,
+                                    "file": "src/ok/900_stress_mix.ts",
+                                    "startCol": 33,
+                                    "startLine": 27
+                                  },
+                                  "tokenText": "id"
+                                },
+                                {
+                                  "children": [],
+                                  "kind": "Identifier",
+                                  "span": {
+                                    "endCol": 41,
+                                    "endLine": 27,
+                                    "file": "src/ok/900_stress_mix.ts",
+                                    "startCol": 37,
+                                    "startLine": 27
+                                  },
+                                  "tokenText": "next"
+                                }
+                              ],
+                              "kind": "PropertyAssignment",
+                              "span": {
+                                "endCol": 41,
+                                "endLine": 27,
+                                "file": "src/ok/900_stress_mix.ts",
+                                "startCol": 33,
+                                "startLine": 27
+                              }
+                            }
+                          ],
+                          "kind": "ObjectLiteralExpression",
+                          "span": {
+                            "endCol": 43,
+                            "endLine": 27,
+                            "file": "src/ok/900_stress_mix.ts",
+                            "startCol": 17,
+                            "startLine": 27
+                          }
+                        }
+                      ],
+                      "kind": "BinaryExpression",
+                      "operator": "=",
+                      "span": {
+                        "endCol": 43,
+                        "endLine": 27,
+                        "file": "src/ok/900_stress_mix.ts",
+                        "startCol": 5,
+                        "startLine": 27
+                      }
+                    }
+                  ],
+                  "kind": "ExpressionStatement",
+                  "span": {
+                    "endCol": 44,
+                    "endLine": 27,
+                    "file": "src/ok/900_stress_mix.ts",
+                    "startCol": 5,
+                    "startLine": 27
+                  }
+                }
+              ],
+              "kind": "Block",
+              "span": {
+                "endCol": 4,
+                "endLine": 28,
+                "file": "src/ok/900_stress_mix.ts",
+                "startCol": 24,
+                "startLine": 26
+              }
+            }
+          ],
+          "kind": "SetAccessor",
+          "span": {
+            "endCol": 4,
+            "endLine": 28,
+            "file": "src/ok/900_stress_mix.ts",
+            "startCol": 3,
+            "startLine": 26
+          }
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "kind": "Identifier",
+              "span": {
+                "endCol": 6,
+                "endLine": 30,
+                "file": "src/ok/900_stress_mix.ts",
+                "startCol": 3,
+                "startLine": 30
+              },
+              "tokenText": "map"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 8,
+                    "endLine": 30,
+                    "file": "src/ok/900_stress_mix.ts",
+                    "startCol": 7,
+                    "startLine": 30
+                  },
+                  "tokenText": "U"
+                }
+              ],
+              "kind": "TypeParameter",
+              "span": {
+                "endCol": 8,
+                "endLine": 30,
+                "file": "src/ok/900_stress_mix.ts",
+                "startCol": 7,
+                "startLine": 30
+              }
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 12,
+                    "endLine": 30,
+                    "file": "src/ok/900_stress_mix.ts",
+                    "startCol": 10,
+                    "startLine": 30
+                  },
+                  "tokenText": "fn"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "kind": "Identifier",
+                          "span": {
+                            "endCol": 20,
+                            "endLine": 30,
+                            "file": "src/ok/900_stress_mix.ts",
+                            "startCol": 15,
+                            "startLine": 30
+                          },
+                          "tokenText": "value"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "kind": "Identifier",
+                              "span": {
+                                "endCol": 23,
+                                "endLine": 30,
+                                "file": "src/ok/900_stress_mix.ts",
+                                "startCol": 22,
+                                "startLine": 30
+                              },
+                              "tokenText": "T"
+                            }
+                          ],
+                          "kind": "TypeReference",
+                          "span": {
+                            "endCol": 23,
+                            "endLine": 30,
+                            "file": "src/ok/900_stress_mix.ts",
+                            "startCol": 22,
+                            "startLine": 30
+                          }
+                        }
+                      ],
+                      "kind": "Parameter",
+                      "span": {
+                        "endCol": 23,
+                        "endLine": 30,
+                        "file": "src/ok/900_stress_mix.ts",
+                        "startCol": 15,
+                        "startLine": 30
+                      }
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "kind": "Identifier",
+                          "span": {
+                            "endCol": 29,
+                            "endLine": 30,
+                            "file": "src/ok/900_stress_mix.ts",
+                            "startCol": 28,
+                            "startLine": 30
+                          },
+                          "tokenText": "U"
+                        }
+                      ],
+                      "kind": "TypeReference",
+                      "span": {
+                        "endCol": 29,
+                        "endLine": 30,
+                        "file": "src/ok/900_stress_mix.ts",
+                        "startCol": 28,
+                        "startLine": 30
+                      }
+                    }
+                  ],
+                  "kind": "FunctionType",
+                  "span": {
+                    "endCol": 29,
+                    "endLine": 30,
+                    "file": "src/ok/900_stress_mix.ts",
+                    "startCol": 14,
+                    "startLine": 30
+                  }
+                }
+              ],
+              "kind": "Parameter",
+              "span": {
+                "endCol": 29,
+                "endLine": 30,
+                "file": "src/ok/900_stress_mix.ts",
+                "startCol": 10,
+                "startLine": 30
+              }
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 33,
+                    "endLine": 30,
+                    "file": "src/ok/900_stress_mix.ts",
+                    "startCol": 32,
+                    "startLine": 30
+                  },
+                  "tokenText": "U"
+                }
+              ],
+              "kind": "TypeReference",
+              "span": {
+                "endCol": 33,
+                "endLine": 30,
+                "file": "src/ok/900_stress_mix.ts",
+                "startCol": 32,
+                "startLine": 30
+              }
+            }
+          ],
+          "kind": "MethodDeclaration",
+          "span": {
+            "endCol": 34,
+            "endLine": 30,
+            "file": "src/ok/900_stress_mix.ts",
+            "startCol": 3,
+            "startLine": 30
+          }
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "kind": "Identifier",
+              "span": {
+                "endCol": 6,
+                "endLine": 31,
+                "file": "src/ok/900_stress_mix.ts",
+                "startCol": 3,
+                "startLine": 31
+              },
+              "tokenText": "map"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 9,
+                    "endLine": 31,
+                    "file": "src/ok/900_stress_mix.ts",
+                    "startCol": 7,
+                    "startLine": 31
+                  },
+                  "tokenText": "fn"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "kind": "Identifier",
+                          "span": {
+                            "endCol": 17,
+                            "endLine": 31,
+                            "file": "src/ok/900_stress_mix.ts",
+                            "startCol": 12,
+                            "startLine": 31
+                          },
+                          "tokenText": "value"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "kind": "Identifier",
+                              "span": {
+                                "endCol": 20,
+                                "endLine": 31,
+                                "file": "src/ok/900_stress_mix.ts",
+                                "startCol": 19,
+                                "startLine": 31
+                              },
+                              "tokenText": "T"
+                            }
+                          ],
+                          "kind": "TypeReference",
+                          "span": {
+                            "endCol": 20,
+                            "endLine": 31,
+                            "file": "src/ok/900_stress_mix.ts",
+                            "startCol": 19,
+                            "startLine": 31
+                          }
+                        }
+                      ],
+                      "kind": "Parameter",
+                      "span": {
+                        "endCol": 20,
+                        "endLine": 31,
+                        "file": "src/ok/900_stress_mix.ts",
+                        "startCol": 12,
+                        "startLine": 31
+                      }
+                    },
+                    {
+                      "children": [],
+                      "kind": "UnknownKeyword",
+                      "span": {
+                        "endCol": 32,
+                        "endLine": 31,
+                        "file": "src/ok/900_stress_mix.ts",
+                        "startCol": 25,
+                        "startLine": 31
+                      },
+                      "tokenText": "unknown"
+                    }
+                  ],
+                  "kind": "FunctionType",
+                  "span": {
+                    "endCol": 32,
+                    "endLine": 31,
+                    "file": "src/ok/900_stress_mix.ts",
+                    "startCol": 11,
+                    "startLine": 31
+                  }
+                }
+              ],
+              "kind": "Parameter",
+              "span": {
+                "endCol": 32,
+                "endLine": 31,
+                "file": "src/ok/900_stress_mix.ts",
+                "startCol": 7,
+                "startLine": 31
+              }
+            },
+            {
+              "children": [],
+              "kind": "UnknownKeyword",
+              "span": {
+                "endCol": 42,
+                "endLine": 31,
+                "file": "src/ok/900_stress_mix.ts",
+                "startCol": 35,
+                "startLine": 31
+              },
+              "tokenText": "unknown"
+            }
+          ],
+          "kind": "MethodDeclaration",
+          "span": {
+            "endCol": 43,
+            "endLine": 31,
+            "file": "src/ok/900_stress_mix.ts",
+            "startCol": 3,
+            "startLine": 31
+          }
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "kind": "Identifier",
+              "span": {
+                "endCol": 6,
+                "endLine": 32,
+                "file": "src/ok/900_stress_mix.ts",
+                "startCol": 3,
+                "startLine": 32
+              },
+              "tokenText": "map"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 9,
+                    "endLine": 32,
+                    "file": "src/ok/900_stress_mix.ts",
+                    "startCol": 7,
+                    "startLine": 32
+                  },
+                  "tokenText": "fn"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "kind": "Identifier",
+                          "span": {
+                            "endCol": 17,
+                            "endLine": 32,
+                            "file": "src/ok/900_stress_mix.ts",
+                            "startCol": 12,
+                            "startLine": 32
+                          },
+                          "tokenText": "value"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "kind": "Identifier",
+                              "span": {
+                                "endCol": 20,
+                                "endLine": 32,
+                                "file": "src/ok/900_stress_mix.ts",
+                                "startCol": 19,
+                                "startLine": 32
+                              },
+                              "tokenText": "T"
+                            }
+                          ],
+                          "kind": "TypeReference",
+                          "span": {
+                            "endCol": 20,
+                            "endLine": 32,
+                            "file": "src/ok/900_stress_mix.ts",
+                            "startCol": 19,
+                            "startLine": 32
+                          }
+                        }
+                      ],
+                      "kind": "Parameter",
+                      "span": {
+                        "endCol": 20,
+                        "endLine": 32,
+                        "file": "src/ok/900_stress_mix.ts",
+                        "startCol": 12,
+                        "startLine": 32
+                      }
+                    },
+                    {
+                      "children": [],
+                      "kind": "UnknownKeyword",
+                      "span": {
+                        "endCol": 32,
+                        "endLine": 32,
+                        "file": "src/ok/900_stress_mix.ts",
+                        "startCol": 25,
+                        "startLine": 32
+                      },
+                      "tokenText": "unknown"
+                    }
+                  ],
+                  "kind": "FunctionType",
+                  "span": {
+                    "endCol": 32,
+                    "endLine": 32,
+                    "file": "src/ok/900_stress_mix.ts",
+                    "startCol": 11,
+                    "startLine": 32
+                  }
+                }
+              ],
+              "kind": "Parameter",
+              "span": {
+                "endCol": 32,
+                "endLine": 32,
+                "file": "src/ok/900_stress_mix.ts",
+                "startCol": 7,
+                "startLine": 32
+              }
+            },
+            {
+              "children": [],
+              "kind": "UnknownKeyword",
+              "span": {
+                "endCol": 42,
+                "endLine": 32,
+                "file": "src/ok/900_stress_mix.ts",
+                "startCol": 35,
+                "startLine": 32
+              },
+              "tokenText": "unknown"
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "kind": "ThisKeyword",
+                              "span": {
+                                "endCol": 9,
+                                "endLine": 33,
+                                "file": "src/ok/900_stress_mix.ts",
+                                "startCol": 5,
+                                "startLine": 33
+                              },
+                              "tokenText": "this"
+                            },
+                            {
+                              "children": [],
+                              "kind": "PrivateIdentifier",
+                              "span": {
+                                "endCol": 16,
+                                "endLine": 33,
+                                "file": "src/ok/900_stress_mix.ts",
+                                "startCol": 10,
+                                "startLine": 33
+                              },
+                              "tokenText": "#token"
+                            }
+                          ],
+                          "kind": "PropertyAccessExpression",
+                          "span": {
+                            "endCol": 16,
+                            "endLine": 33,
+                            "file": "src/ok/900_stress_mix.ts",
+                            "startCol": 5,
+                            "startLine": 33
+                          }
+                        },
+                        {
+                          "children": [],
+                          "kind": "FirstCompoundAssignment",
+                          "span": {
+                            "endCol": 19,
+                            "endLine": 33,
+                            "file": "src/ok/900_stress_mix.ts",
+                            "startCol": 17,
+                            "startLine": 33
+                          },
+                          "tokenText": "+="
+                        },
+                        {
+                          "children": [],
+                          "kind": "FirstLiteralToken",
+                          "span": {
+                            "endCol": 21,
+                            "endLine": 33,
+                            "file": "src/ok/900_stress_mix.ts",
+                            "startCol": 20,
+                            "startLine": 33
+                          },
+                          "tokenText": "1"
+                        }
+                      ],
+                      "kind": "BinaryExpression",
+                      "operator": "+=",
+                      "span": {
+                        "endCol": 21,
+                        "endLine": 33,
+                        "file": "src/ok/900_stress_mix.ts",
+                        "startCol": 5,
+                        "startLine": 33
+                      }
+                    }
+                  ],
+                  "kind": "ExpressionStatement",
+                  "span": {
+                    "endCol": 22,
+                    "endLine": 33,
+                    "file": "src/ok/900_stress_mix.ts",
+                    "startCol": 5,
+                    "startLine": 33
+                  }
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "kind": "Identifier",
+                          "span": {
+                            "endCol": 14,
+                            "endLine": 34,
+                            "file": "src/ok/900_stress_mix.ts",
+                            "startCol": 12,
+                            "startLine": 34
+                          },
+                          "tokenText": "fn"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "kind": "ThisKeyword",
+                              "span": {
+                                "endCol": 19,
+                                "endLine": 34,
+                                "file": "src/ok/900_stress_mix.ts",
+                                "startCol": 15,
+                                "startLine": 34
+                              },
+                              "tokenText": "this"
+                            },
+                            {
+                              "children": [],
+                              "kind": "Identifier",
+                              "span": {
+                                "endCol": 24,
+                                "endLine": 34,
+                                "file": "src/ok/900_stress_mix.ts",
+                                "startCol": 20,
+                                "startLine": 34
+                              },
+                              "tokenText": "item"
+                            }
+                          ],
+                          "kind": "PropertyAccessExpression",
+                          "span": {
+                            "endCol": 24,
+                            "endLine": 34,
+                            "file": "src/ok/900_stress_mix.ts",
+                            "startCol": 15,
+                            "startLine": 34
+                          }
+                        }
+                      ],
+                      "kind": "CallExpression",
+                      "span": {
+                        "endCol": 25,
+                        "endLine": 34,
+                        "file": "src/ok/900_stress_mix.ts",
+                        "startCol": 12,
+                        "startLine": 34
+                      }
+                    }
+                  ],
+                  "kind": "ReturnStatement",
+                  "span": {
+                    "endCol": 26,
+                    "endLine": 34,
+                    "file": "src/ok/900_stress_mix.ts",
+                    "startCol": 5,
+                    "startLine": 34
+                  }
+                }
+              ],
+              "kind": "Block",
+              "span": {
+                "endCol": 4,
+                "endLine": 35,
+                "file": "src/ok/900_stress_mix.ts",
+                "startCol": 43,
+                "startLine": 32
+              }
+            }
+          ],
+          "kind": "MethodDeclaration",
+          "span": {
+            "endCol": 4,
+            "endLine": 35,
+            "file": "src/ok/900_stress_mix.ts",
+            "startCol": 3,
+            "startLine": 32
+          }
+        }
+      ],
+      "kind": "ClassDeclaration",
+      "span": {
+        "endCol": 2,
+        "endLine": 36,
+        "file": "src/ok/900_stress_mix.ts",
+        "startCol": 1,
+        "startLine": 11
+      }
+    },
+    {
+      "children": [
+        {
+          "children": [],
+          "kind": "Identifier",
+          "span": {
+            "endCol": 22,
+            "endLine": 38,
+            "file": "src/ok/900_stress_mix.ts",
+            "startCol": 11,
+            "startLine": 38
+          },
+          "tokenText": "StressSpace"
+        },
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "kind": "ExportKeyword",
+                  "span": {
+                    "endCol": 9,
+                    "endLine": 39,
+                    "file": "src/ok/900_stress_mix.ts",
+                    "startCol": 3,
+                    "startLine": 39
+                  },
+                  "tokenText": "export"
+                },
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 27,
+                    "endLine": 39,
+                    "file": "src/ok/900_stress_mix.ts",
+                    "startCol": 20,
+                    "startLine": 39
+                  },
+                  "tokenText": "Payload"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "kind": "Identifier",
+                      "span": {
+                        "endCol": 7,
+                        "endLine": 40,
+                        "file": "src/ok/900_stress_mix.ts",
+                        "startCol": 5,
+                        "startLine": 40
+                      },
+                      "tokenText": "id"
+                    },
+                    {
+                      "children": [],
+                      "kind": "StringKeyword",
+                      "span": {
+                        "endCol": 15,
+                        "endLine": 40,
+                        "file": "src/ok/900_stress_mix.ts",
+                        "startCol": 9,
+                        "startLine": 40
+                      },
+                      "tokenText": "string"
+                    }
+                  ],
+                  "kind": "PropertySignature",
+                  "span": {
+                    "endCol": 16,
+                    "endLine": 40,
+                    "file": "src/ok/900_stress_mix.ts",
+                    "startCol": 5,
+                    "startLine": 40
+                  }
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "kind": "Identifier",
+                      "span": {
+                        "endCol": 10,
+                        "endLine": 41,
+                        "file": "src/ok/900_stress_mix.ts",
+                        "startCol": 5,
+                        "startLine": 41
+                      },
+                      "tokenText": "value"
+                    },
+                    {
+                      "children": [],
+                      "kind": "StringKeyword",
+                      "span": {
+                        "endCol": 18,
+                        "endLine": 41,
+                        "file": "src/ok/900_stress_mix.ts",
+                        "startCol": 12,
+                        "startLine": 41
+                      },
+                      "tokenText": "string"
+                    }
+                  ],
+                  "kind": "PropertySignature",
+                  "span": {
+                    "endCol": 19,
+                    "endLine": 41,
+                    "file": "src/ok/900_stress_mix.ts",
+                    "startCol": 5,
+                    "startLine": 41
+                  }
+                }
+              ],
+              "kind": "InterfaceDeclaration",
+              "span": {
+                "endCol": 4,
+                "endLine": 42,
+                "file": "src/ok/900_stress_mix.ts",
+                "startCol": 3,
+                "startLine": 39
+              }
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "kind": "ExportKeyword",
+                  "span": {
+                    "endCol": 9,
+                    "endLine": 44,
+                    "file": "src/ok/900_stress_mix.ts",
+                    "startCol": 3,
+                    "startLine": 44
+                  },
+                  "tokenText": "export"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "kind": "Identifier",
+                          "span": {
+                            "endCol": 30,
+                            "endLine": 44,
+                            "file": "src/ok/900_stress_mix.ts",
+                            "startCol": 16,
+                            "startLine": 44
+                          },
+                          "tokenText": "defaultPayload"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "kind": "Identifier",
+                              "span": {
+                                "endCol": 39,
+                                "endLine": 44,
+                                "file": "src/ok/900_stress_mix.ts",
+                                "startCol": 32,
+                                "startLine": 44
+                              },
+                              "tokenText": "Payload"
+                            }
+                          ],
+                          "kind": "TypeReference",
+                          "span": {
+                            "endCol": 39,
+                            "endLine": 44,
+                            "file": "src/ok/900_stress_mix.ts",
+                            "startCol": 32,
+                            "startLine": 44
+                          }
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "kind": "Identifier",
+                                  "span": {
+                                    "endCol": 46,
+                                    "endLine": 44,
+                                    "file": "src/ok/900_stress_mix.ts",
+                                    "startCol": 44,
+                                    "startLine": 44
+                                  },
+                                  "tokenText": "id"
+                                },
+                                {
+                                  "children": [],
+                                  "kind": "StringLiteral",
+                                  "span": {
+                                    "endCol": 51,
+                                    "endLine": 44,
+                                    "file": "src/ok/900_stress_mix.ts",
+                                    "startCol": 48,
+                                    "startLine": 44
+                                  },
+                                  "tokenText": "\"a\""
+                                }
+                              ],
+                              "kind": "PropertyAssignment",
+                              "span": {
+                                "endCol": 51,
+                                "endLine": 44,
+                                "file": "src/ok/900_stress_mix.ts",
+                                "startCol": 44,
+                                "startLine": 44
+                              }
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "kind": "Identifier",
+                                  "span": {
+                                    "endCol": 58,
+                                    "endLine": 44,
+                                    "file": "src/ok/900_stress_mix.ts",
+                                    "startCol": 53,
+                                    "startLine": 44
+                                  },
+                                  "tokenText": "value"
+                                },
+                                {
+                                  "children": [],
+                                  "kind": "StringLiteral",
+                                  "span": {
+                                    "endCol": 63,
+                                    "endLine": 44,
+                                    "file": "src/ok/900_stress_mix.ts",
+                                    "startCol": 60,
+                                    "startLine": 44
+                                  },
+                                  "tokenText": "\"b\""
+                                }
+                              ],
+                              "kind": "PropertyAssignment",
+                              "span": {
+                                "endCol": 63,
+                                "endLine": 44,
+                                "file": "src/ok/900_stress_mix.ts",
+                                "startCol": 53,
+                                "startLine": 44
+                              }
+                            }
+                          ],
+                          "kind": "ObjectLiteralExpression",
+                          "span": {
+                            "endCol": 65,
+                            "endLine": 44,
+                            "file": "src/ok/900_stress_mix.ts",
+                            "startCol": 42,
+                            "startLine": 44
+                          }
+                        }
+                      ],
+                      "kind": "VariableDeclaration",
+                      "span": {
+                        "endCol": 65,
+                        "endLine": 44,
+                        "file": "src/ok/900_stress_mix.ts",
+                        "startCol": 16,
+                        "startLine": 44
+                      }
+                    }
+                  ],
+                  "kind": "VariableDeclarationList",
+                  "span": {
+                    "endCol": 65,
+                    "endLine": 44,
+                    "file": "src/ok/900_stress_mix.ts",
+                    "startCol": 10,
+                    "startLine": 44
+                  }
+                }
+              ],
+              "kind": "FirstStatement",
+              "span": {
+                "endCol": 66,
+                "endLine": 44,
+                "file": "src/ok/900_stress_mix.ts",
+                "startCol": 3,
+                "startLine": 44
+              }
+            }
+          ],
+          "kind": "ModuleBlock",
+          "span": {
+            "endCol": 2,
+            "endLine": 45,
+            "file": "src/ok/900_stress_mix.ts",
+            "startCol": 23,
+            "startLine": 38
+          }
+        }
+      ],
+      "kind": "ModuleDeclaration",
+      "span": {
+        "endCol": 2,
+        "endLine": 45,
+        "file": "src/ok/900_stress_mix.ts",
+        "startCol": 1,
+        "startLine": 38
+      }
+    },
+    {
+      "children": [
+        {
+          "children": [],
+          "kind": "DeclareKeyword",
+          "span": {
+            "endCol": 8,
+            "endLine": 47,
+            "file": "src/ok/900_stress_mix.ts",
+            "startCol": 1,
+            "startLine": 47
+          },
+          "tokenText": "declare"
+        },
+        {
+          "children": [],
+          "kind": "StringLiteral",
+          "span": {
+            "endCol": 28,
+            "endLine": 47,
+            "file": "src/ok/900_stress_mix.ts",
+            "startCol": 16,
+            "startLine": 47
+          },
+          "tokenText": "\"stress-pkg\""
+        },
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "kind": "ExportKeyword",
+                  "span": {
+                    "endCol": 9,
+                    "endLine": 48,
+                    "file": "src/ok/900_stress_mix.ts",
+                    "startCol": 3,
+                    "startLine": 48
+                  },
+                  "tokenText": "export"
+                },
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 27,
+                    "endLine": 48,
+                    "file": "src/ok/900_stress_mix.ts",
+                    "startCol": 20,
+                    "startLine": 48
+                  },
+                  "tokenText": "Plugged"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "kind": "Identifier",
+                      "span": {
+                        "endCol": 11,
+                        "endLine": 49,
+                        "file": "src/ok/900_stress_mix.ts",
+                        "startCol": 5,
+                        "startLine": 49
+                      },
+                      "tokenText": "active"
+                    },
+                    {
+                      "children": [],
+                      "kind": "BooleanKeyword",
+                      "span": {
+                        "endCol": 20,
+                        "endLine": 49,
+                        "file": "src/ok/900_stress_mix.ts",
+                        "startCol": 13,
+                        "startLine": 49
+                      },
+                      "tokenText": "boolean"
+                    }
+                  ],
+                  "kind": "PropertySignature",
+                  "span": {
+                    "endCol": 21,
+                    "endLine": 49,
+                    "file": "src/ok/900_stress_mix.ts",
+                    "startCol": 5,
+                    "startLine": 49
+                  }
+                }
+              ],
+              "kind": "InterfaceDeclaration",
+              "span": {
+                "endCol": 4,
+                "endLine": 50,
+                "file": "src/ok/900_stress_mix.ts",
+                "startCol": 3,
+                "startLine": 48
+              }
+            }
+          ],
+          "kind": "ModuleBlock",
+          "span": {
+            "endCol": 2,
+            "endLine": 51,
+            "file": "src/ok/900_stress_mix.ts",
+            "startCol": 29,
+            "startLine": 47
+          }
+        }
+      ],
+      "kind": "ModuleDeclaration",
+      "span": {
+        "endCol": 2,
+        "endLine": 51,
+        "file": "src/ok/900_stress_mix.ts",
+        "startCol": 1,
+        "startLine": 47
+      }
+    },
+    {
+      "children": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 15,
+                    "endLine": 53,
+                    "file": "src/ok/900_stress_mix.ts",
+                    "startCol": 7,
+                    "startLine": 53
+                  },
+                  "tokenText": "instance"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "kind": "Identifier",
+                      "span": {
+                        "endCol": 31,
+                        "endLine": 53,
+                        "file": "src/ok/900_stress_mix.ts",
+                        "startCol": 22,
+                        "startLine": 53
+                      },
+                      "tokenText": "StressBox"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "kind": "Identifier",
+                          "span": {
+                            "endCol": 43,
+                            "endLine": 53,
+                            "file": "src/ok/900_stress_mix.ts",
+                            "startCol": 32,
+                            "startLine": 53
+                          },
+                          "tokenText": "StressSpace"
+                        },
+                        {
+                          "children": [],
+                          "kind": "Identifier",
+                          "span": {
+                            "endCol": 58,
+                            "endLine": 53,
+                            "file": "src/ok/900_stress_mix.ts",
+                            "startCol": 44,
+                            "startLine": 53
+                          },
+                          "tokenText": "defaultPayload"
+                        }
+                      ],
+                      "kind": "PropertyAccessExpression",
+                      "span": {
+                        "endCol": 58,
+                        "endLine": 53,
+                        "file": "src/ok/900_stress_mix.ts",
+                        "startCol": 32,
+                        "startLine": 53
+                      }
+                    }
+                  ],
+                  "kind": "NewExpression",
+                  "span": {
+                    "endCol": 59,
+                    "endLine": 53,
+                    "file": "src/ok/900_stress_mix.ts",
+                    "startCol": 18,
+                    "startLine": 53
+                  }
+                }
+              ],
+              "kind": "VariableDeclaration",
+              "span": {
+                "endCol": 59,
+                "endLine": 53,
+                "file": "src/ok/900_stress_mix.ts",
+                "startCol": 7,
+                "startLine": 53
+              }
+            }
+          ],
+          "kind": "VariableDeclarationList",
+          "span": {
+            "endCol": 59,
+            "endLine": 53,
+            "file": "src/ok/900_stress_mix.ts",
+            "startCol": 1,
+            "startLine": 53
+          }
+        }
+      ],
+      "kind": "FirstStatement",
+      "span": {
+        "endCol": 60,
+        "endLine": 53,
+        "file": "src/ok/900_stress_mix.ts",
+        "startCol": 1,
+        "startLine": 53
+      }
+    },
+    {
+      "children": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 13,
+                    "endLine": 54,
+                    "file": "src/ok/900_stress_mix.ts",
+                    "startCol": 7,
+                    "startLine": 54
+                  },
+                  "tokenText": "output"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "kind": "Identifier",
+                          "span": {
+                            "endCol": 24,
+                            "endLine": 54,
+                            "file": "src/ok/900_stress_mix.ts",
+                            "startCol": 16,
+                            "startLine": 54
+                          },
+                          "tokenText": "instance"
+                        },
+                        {
+                          "children": [],
+                          "kind": "Identifier",
+                          "span": {
+                            "endCol": 28,
+                            "endLine": 54,
+                            "file": "src/ok/900_stress_mix.ts",
+                            "startCol": 25,
+                            "startLine": 54
+                          },
+                          "tokenText": "map"
+                        }
+                      ],
+                      "kind": "PropertyAccessExpression",
+                      "span": {
+                        "endCol": 28,
+                        "endLine": 54,
+                        "file": "src/ok/900_stress_mix.ts",
+                        "startCol": 16,
+                        "startLine": 54
+                      }
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "kind": "Identifier",
+                              "span": {
+                                "endCol": 35,
+                                "endLine": 54,
+                                "file": "src/ok/900_stress_mix.ts",
+                                "startCol": 30,
+                                "startLine": 54
+                              },
+                              "tokenText": "value"
+                            }
+                          ],
+                          "kind": "Parameter",
+                          "span": {
+                            "endCol": 35,
+                            "endLine": 54,
+                            "file": "src/ok/900_stress_mix.ts",
+                            "startCol": 30,
+                            "startLine": 54
+                          }
+                        },
+                        {
+                          "children": [],
+                          "kind": "EqualsGreaterThanToken",
+                          "span": {
+                            "endCol": 39,
+                            "endLine": 54,
+                            "file": "src/ok/900_stress_mix.ts",
+                            "startCol": 37,
+                            "startLine": 54
+                          },
+                          "tokenText": "=>"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "kind": "Identifier",
+                                  "span": {
+                                    "endCol": 45,
+                                    "endLine": 54,
+                                    "file": "src/ok/900_stress_mix.ts",
+                                    "startCol": 40,
+                                    "startLine": 54
+                                  },
+                                  "tokenText": "value"
+                                },
+                                {
+                                  "children": [],
+                                  "kind": "Identifier",
+                                  "span": {
+                                    "endCol": 51,
+                                    "endLine": 54,
+                                    "file": "src/ok/900_stress_mix.ts",
+                                    "startCol": 46,
+                                    "startLine": 54
+                                  },
+                                  "tokenText": "value"
+                                }
+                              ],
+                              "kind": "PropertyAccessExpression",
+                              "span": {
+                                "endCol": 51,
+                                "endLine": 54,
+                                "file": "src/ok/900_stress_mix.ts",
+                                "startCol": 40,
+                                "startLine": 54
+                              }
+                            },
+                            {
+                              "children": [],
+                              "kind": "StringKeyword",
+                              "span": {
+                                "endCol": 68,
+                                "endLine": 54,
+                                "file": "src/ok/900_stress_mix.ts",
+                                "startCol": 62,
+                                "startLine": 54
+                              },
+                              "tokenText": "string"
+                            }
+                          ],
+                          "kind": "SatisfiesExpression",
+                          "span": {
+                            "endCol": 68,
+                            "endLine": 54,
+                            "file": "src/ok/900_stress_mix.ts",
+                            "startCol": 40,
+                            "startLine": 54
+                          }
+                        }
+                      ],
+                      "kind": "ArrowFunction",
+                      "span": {
+                        "endCol": 68,
+                        "endLine": 54,
+                        "file": "src/ok/900_stress_mix.ts",
+                        "startCol": 29,
+                        "startLine": 54
+                      }
+                    }
+                  ],
+                  "kind": "CallExpression",
+                  "span": {
+                    "endCol": 69,
+                    "endLine": 54,
+                    "file": "src/ok/900_stress_mix.ts",
+                    "startCol": 16,
+                    "startLine": 54
+                  }
+                }
+              ],
+              "kind": "VariableDeclaration",
+              "span": {
+                "endCol": 69,
+                "endLine": 54,
+                "file": "src/ok/900_stress_mix.ts",
+                "startCol": 7,
+                "startLine": 54
+              }
+            }
+          ],
+          "kind": "VariableDeclarationList",
+          "span": {
+            "endCol": 69,
+            "endLine": 54,
+            "file": "src/ok/900_stress_mix.ts",
+            "startCol": 1,
+            "startLine": 54
+          }
+        }
+      ],
+      "kind": "FirstStatement",
+      "span": {
+        "endCol": 70,
+        "endLine": 54,
+        "file": "src/ok/900_stress_mix.ts",
+        "startCol": 1,
+        "startLine": 54
+      }
+    },
+    {
+      "children": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 11,
+                    "endLine": 55,
+                    "file": "src/ok/900_stress_mix.ts",
+                    "startCol": 7,
+                    "startLine": 55
+                  },
+                  "tokenText": "view"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "kind": "Identifier",
+                      "span": {
+                        "endCol": 20,
+                        "endLine": 55,
+                        "file": "src/ok/900_stress_mix.ts",
+                        "startCol": 13,
+                        "startLine": 55
+                      },
+                      "tokenText": "Project"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "kind": "Identifier",
+                              "span": {
+                                "endCol": 25,
+                                "endLine": 55,
+                                "file": "src/ok/900_stress_mix.ts",
+                                "startCol": 23,
+                                "startLine": 55
+                              },
+                              "tokenText": "id"
+                            },
+                            {
+                              "children": [],
+                              "kind": "StringKeyword",
+                              "span": {
+                                "endCol": 33,
+                                "endLine": 55,
+                                "file": "src/ok/900_stress_mix.ts",
+                                "startCol": 27,
+                                "startLine": 55
+                              },
+                              "tokenText": "string"
+                            }
+                          ],
+                          "kind": "PropertySignature",
+                          "span": {
+                            "endCol": 34,
+                            "endLine": 55,
+                            "file": "src/ok/900_stress_mix.ts",
+                            "startCol": 23,
+                            "startLine": 55
+                          }
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "kind": "Identifier",
+                              "span": {
+                                "endCol": 40,
+                                "endLine": 55,
+                                "file": "src/ok/900_stress_mix.ts",
+                                "startCol": 35,
+                                "startLine": 55
+                              },
+                              "tokenText": "value"
+                            },
+                            {
+                              "children": [],
+                              "kind": "StringKeyword",
+                              "span": {
+                                "endCol": 48,
+                                "endLine": 55,
+                                "file": "src/ok/900_stress_mix.ts",
+                                "startCol": 42,
+                                "startLine": 55
+                              },
+                              "tokenText": "string"
+                            }
+                          ],
+                          "kind": "PropertySignature",
+                          "span": {
+                            "endCol": 48,
+                            "endLine": 55,
+                            "file": "src/ok/900_stress_mix.ts",
+                            "startCol": 35,
+                            "startLine": 55
+                          }
+                        }
+                      ],
+                      "kind": "TypeLiteral",
+                      "span": {
+                        "endCol": 50,
+                        "endLine": 55,
+                        "file": "src/ok/900_stress_mix.ts",
+                        "startCol": 21,
+                        "startLine": 55
+                      }
+                    }
+                  ],
+                  "kind": "TypeReference",
+                  "span": {
+                    "endCol": 51,
+                    "endLine": 55,
+                    "file": "src/ok/900_stress_mix.ts",
+                    "startCol": 13,
+                    "startLine": 55
+                  }
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "kind": "Identifier",
+                          "span": {
+                            "endCol": 7,
+                            "endLine": 56,
+                            "file": "src/ok/900_stress_mix.ts",
+                            "startCol": 3,
+                            "startLine": 56
+                          },
+                          "tokenText": "p_id"
+                        },
+                        {
+                          "children": [],
+                          "kind": "StringLiteral",
+                          "span": {
+                            "endCol": 12,
+                            "endLine": 56,
+                            "file": "src/ok/900_stress_mix.ts",
+                            "startCol": 9,
+                            "startLine": 56
+                          },
+                          "tokenText": "\"x\""
+                        }
+                      ],
+                      "kind": "PropertyAssignment",
+                      "span": {
+                        "endCol": 12,
+                        "endLine": 56,
+                        "file": "src/ok/900_stress_mix.ts",
+                        "startCol": 3,
+                        "startLine": 56
+                      }
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "kind": "Identifier",
+                          "span": {
+                            "endCol": 10,
+                            "endLine": 57,
+                            "file": "src/ok/900_stress_mix.ts",
+                            "startCol": 3,
+                            "startLine": 57
+                          },
+                          "tokenText": "p_value"
+                        },
+                        {
+                          "children": [],
+                          "kind": "StringLiteral",
+                          "span": {
+                            "endCol": 15,
+                            "endLine": 57,
+                            "file": "src/ok/900_stress_mix.ts",
+                            "startCol": 12,
+                            "startLine": 57
+                          },
+                          "tokenText": "\"y\""
+                        }
+                      ],
+                      "kind": "PropertyAssignment",
+                      "span": {
+                        "endCol": 15,
+                        "endLine": 57,
+                        "file": "src/ok/900_stress_mix.ts",
+                        "startCol": 3,
+                        "startLine": 57
+                      }
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "kind": "Identifier",
+                          "span": {
+                            "endCol": 7,
+                            "endLine": 58,
+                            "file": "src/ok/900_stress_mix.ts",
+                            "startCol": 3,
+                            "startLine": 58
+                          },
+                          "tokenText": "kind"
+                        },
+                        {
+                          "children": [],
+                          "kind": "StringLiteral",
+                          "span": {
+                            "endCol": 20,
+                            "endLine": 58,
+                            "file": "src/ok/900_stress_mix.ts",
+                            "startCol": 9,
+                            "startLine": 58
+                          },
+                          "tokenText": "\"projected\""
+                        }
+                      ],
+                      "kind": "PropertyAssignment",
+                      "span": {
+                        "endCol": 20,
+                        "endLine": 58,
+                        "file": "src/ok/900_stress_mix.ts",
+                        "startCol": 3,
+                        "startLine": 58
+                      }
+                    }
+                  ],
+                  "kind": "ObjectLiteralExpression",
+                  "span": {
+                    "endCol": 2,
+                    "endLine": 59,
+                    "file": "src/ok/900_stress_mix.ts",
+                    "startCol": 54,
+                    "startLine": 55
+                  }
+                }
+              ],
+              "kind": "VariableDeclaration",
+              "span": {
+                "endCol": 2,
+                "endLine": 59,
+                "file": "src/ok/900_stress_mix.ts",
+                "startCol": 7,
+                "startLine": 55
+              }
+            }
+          ],
+          "kind": "VariableDeclarationList",
+          "span": {
+            "endCol": 2,
+            "endLine": 59,
+            "file": "src/ok/900_stress_mix.ts",
+            "startCol": 1,
+            "startLine": 55
+          }
+        }
+      ],
+      "kind": "FirstStatement",
+      "span": {
+        "endCol": 3,
+        "endLine": 59,
+        "file": "src/ok/900_stress_mix.ts",
+        "startCol": 1,
+        "startLine": 55
+      }
+    },
+    {
+      "children": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 10,
+                    "endLine": 60,
+                    "file": "src/ok/900_stress_mix.ts",
+                    "startCol": 7,
+                    "startLine": 60
+                  },
+                  "tokenText": "key"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "kind": "Identifier",
+                      "span": {
+                        "endCol": 15,
+                        "endLine": 60,
+                        "file": "src/ok/900_stress_mix.ts",
+                        "startCol": 12,
+                        "startLine": 60
+                      },
+                      "tokenText": "Key"
+                    }
+                  ],
+                  "kind": "TypeReference",
+                  "span": {
+                    "endCol": 15,
+                    "endLine": 60,
+                    "file": "src/ok/900_stress_mix.ts",
+                    "startCol": 12,
+                    "startLine": 60
+                  }
+                },
+                {
+                  "children": [],
+                  "kind": "StringLiteral",
+                  "span": {
+                    "endCol": 23,
+                    "endLine": 60,
+                    "file": "src/ok/900_stress_mix.ts",
+                    "startCol": 18,
+                    "startLine": 60
+                  },
+                  "tokenText": "\"k_1\""
+                }
+              ],
+              "kind": "VariableDeclaration",
+              "span": {
+                "endCol": 23,
+                "endLine": 60,
+                "file": "src/ok/900_stress_mix.ts",
+                "startCol": 7,
+                "startLine": 60
+              }
+            }
+          ],
+          "kind": "VariableDeclarationList",
+          "span": {
+            "endCol": 23,
+            "endLine": 60,
+            "file": "src/ok/900_stress_mix.ts",
+            "startCol": 1,
+            "startLine": 60
+          }
+        }
+      ],
+      "kind": "FirstStatement",
+      "span": {
+        "endCol": 24,
+        "endLine": 60,
+        "file": "src/ok/900_stress_mix.ts",
+        "startCol": 1,
+        "startLine": 60
+      }
+    },
+    {
+      "children": [
+        {
+          "children": [],
+          "kind": "Identifier",
+          "span": {
+            "endCol": 15,
+            "endLine": 62,
+            "file": "src/ok/900_stress_mix.ts",
+            "startCol": 6,
+            "startLine": 62
+          },
+          "tokenText": "Extracted"
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "kind": "Identifier",
+              "span": {
+                "endCol": 23,
+                "endLine": 62,
+                "file": "src/ok/900_stress_mix.ts",
+                "startCol": 18,
+                "startLine": 62
+              },
+              "tokenText": "Value"
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "kind": "Identifier",
+                      "span": {
+                        "endCol": 42,
+                        "endLine": 62,
+                        "file": "src/ok/900_stress_mix.ts",
+                        "startCol": 31,
+                        "startLine": 62
+                      },
+                      "tokenText": "StressSpace"
+                    },
+                    {
+                      "children": [],
+                      "kind": "Identifier",
+                      "span": {
+                        "endCol": 57,
+                        "endLine": 62,
+                        "file": "src/ok/900_stress_mix.ts",
+                        "startCol": 43,
+                        "startLine": 62
+                      },
+                      "tokenText": "defaultPayload"
+                    }
+                  ],
+                  "kind": "FirstNode",
+                  "span": {
+                    "endCol": 57,
+                    "endLine": 62,
+                    "file": "src/ok/900_stress_mix.ts",
+                    "startCol": 31,
+                    "startLine": 62
+                  }
+                }
+              ],
+              "kind": "TypeQuery",
+              "span": {
+                "endCol": 57,
+                "endLine": 62,
+                "file": "src/ok/900_stress_mix.ts",
+                "startCol": 24,
+                "startLine": 62
+              }
+            }
+          ],
+          "kind": "TypeReference",
+          "span": {
+            "endCol": 58,
+            "endLine": 62,
+            "file": "src/ok/900_stress_mix.ts",
+            "startCol": 18,
+            "startLine": 62
+          }
+        }
+      ],
+      "kind": "TypeAliasDeclaration",
+      "span": {
+        "endCol": 59,
+        "endLine": 62,
+        "file": "src/ok/900_stress_mix.ts",
+        "startCol": 1,
+        "startLine": 62
+      }
+    },
+    {
+      "children": [
+        {
+          "children": [],
+          "kind": "Identifier",
+          "span": {
+            "endCol": 19,
+            "endLine": 64,
+            "file": "src/ok/900_stress_mix.ts",
+            "startCol": 6,
+            "startLine": 64
+          },
+          "tokenText": "_ExtractedUse"
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "kind": "Identifier",
+              "span": {
+                "endCol": 31,
+                "endLine": 64,
+                "file": "src/ok/900_stress_mix.ts",
+                "startCol": 22,
+                "startLine": 64
+              },
+              "tokenText": "Extracted"
+            }
+          ],
+          "kind": "TypeReference",
+          "span": {
+            "endCol": 31,
+            "endLine": 64,
+            "file": "src/ok/900_stress_mix.ts",
+            "startCol": 22,
+            "startLine": 64
+          }
+        }
+      ],
+      "kind": "TypeAliasDeclaration",
+      "span": {
+        "endCol": 32,
+        "endLine": 64,
+        "file": "src/ok/900_stress_mix.ts",
+        "startCol": 1,
+        "startLine": 64
+      }
+    },
+    {
+      "children": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 15,
+                    "endLine": 66,
+                    "file": "src/ok/900_stress_mix.ts",
+                    "startCol": 7,
+                    "startLine": 66
+                  },
+                  "tokenText": "instance"
+                },
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 23,
+                    "endLine": 66,
+                    "file": "src/ok/900_stress_mix.ts",
+                    "startCol": 17,
+                    "startLine": 66
+                  },
+                  "tokenText": "output"
+                },
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 29,
+                    "endLine": 66,
+                    "file": "src/ok/900_stress_mix.ts",
+                    "startCol": 25,
+                    "startLine": 66
+                  },
+                  "tokenText": "view"
+                },
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 34,
+                    "endLine": 66,
+                    "file": "src/ok/900_stress_mix.ts",
+                    "startCol": 31,
+                    "startLine": 66
+                  },
+                  "tokenText": "key"
+                }
+              ],
+              "kind": "ArrayLiteralExpression",
+              "span": {
+                "endCol": 35,
+                "endLine": 66,
+                "file": "src/ok/900_stress_mix.ts",
+                "startCol": 6,
+                "startLine": 66
+              }
+            }
+          ],
+          "kind": "VoidExpression",
+          "span": {
+            "endCol": 35,
+            "endLine": 66,
+            "file": "src/ok/900_stress_mix.ts",
+            "startCol": 1,
+            "startLine": 66
+          }
+        }
+      ],
+      "kind": "ExpressionStatement",
+      "span": {
+        "endCol": 36,
+        "endLine": 66,
+        "file": "src/ok/900_stress_mix.ts",
+        "startCol": 1,
+        "startLine": 66
+      }
+    },
+    {
+      "children": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "kind": "StringLiteral",
+                      "span": {
+                        "endCol": 10,
+                        "endLine": 67,
+                        "file": "src/ok/900_stress_mix.ts",
+                        "startCol": 7,
+                        "startLine": 67
+                      },
+                      "tokenText": "\"x\""
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "kind": "Identifier",
+                          "span": {
+                            "endCol": 27,
+                            "endLine": 67,
+                            "file": "src/ok/900_stress_mix.ts",
+                            "startCol": 14,
+                            "startLine": 67
+                          },
+                          "tokenText": "_ExtractedUse"
+                        }
+                      ],
+                      "kind": "TypeReference",
+                      "span": {
+                        "endCol": 27,
+                        "endLine": 67,
+                        "file": "src/ok/900_stress_mix.ts",
+                        "startCol": 14,
+                        "startLine": 67
+                      }
+                    }
+                  ],
+                  "kind": "AsExpression",
+                  "span": {
+                    "endCol": 27,
+                    "endLine": 67,
+                    "file": "src/ok/900_stress_mix.ts",
+                    "startCol": 7,
+                    "startLine": 67
+                  }
+                }
+              ],
+              "kind": "ParenthesizedExpression",
+              "span": {
+                "endCol": 28,
+                "endLine": 67,
+                "file": "src/ok/900_stress_mix.ts",
+                "startCol": 6,
+                "startLine": 67
+              }
+            }
+          ],
+          "kind": "VoidExpression",
+          "span": {
+            "endCol": 28,
+            "endLine": 67,
+            "file": "src/ok/900_stress_mix.ts",
+            "startCol": 1,
+            "startLine": 67
+          }
+        }
+      ],
+      "kind": "ExpressionStatement",
+      "span": {
+        "endCol": 29,
+        "endLine": 67,
+        "file": "src/ok/900_stress_mix.ts",
+        "startCol": 1,
+        "startLine": 67
+      }
+    },
+    {
+      "children": [],
+      "kind": "EndOfFileToken",
+      "span": {
+        "endCol": 1,
+        "endLine": 68,
+        "file": "src/ok/900_stress_mix.ts",
+        "startCol": 1,
+        "startLine": 68
+      },
+      "tokenText": ""
+    }
+  ],
+  "kind": "SourceFile",
+  "span": {
+    "endCol": 1,
+    "endLine": 68,
+    "file": "src/ok/900_stress_mix.ts",
+    "startCol": 1,
+    "startLine": 1
+  }
+}

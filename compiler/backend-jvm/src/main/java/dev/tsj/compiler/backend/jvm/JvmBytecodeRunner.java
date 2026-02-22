@@ -188,6 +188,10 @@ public final class JvmBytecodeRunner {
         final List<URL> urls = new ArrayList<>();
         urls.add(toUrl(artifact.outputDirectory()));
         for (Path classpathEntry : interopClasspathEntries) {
+            if (isJrtClasspathEntry(classpathEntry)) {
+                // JDK classes are already provided by the parent loader.
+                continue;
+            }
             final Path normalized = classpathEntry.toAbsolutePath().normalize();
             if (!Files.exists(normalized)) {
                 throw new JvmCompilationException(
@@ -215,6 +219,9 @@ public final class JvmBytecodeRunner {
         );
         final List<URL> dependencyUrls = new ArrayList<>();
         for (Path classpathEntry : interopClasspathEntries) {
+            if (isJrtClasspathEntry(classpathEntry)) {
+                continue;
+            }
             final Path normalized = classpathEntry.toAbsolutePath().normalize();
             if (!Files.exists(normalized)) {
                 throw new JvmCompilationException(
@@ -245,6 +252,9 @@ public final class JvmBytecodeRunner {
             return;
         }
         for (Path classpathEntry : interopClasspathEntries) {
+            if (isJrtClasspathEntry(classpathEntry)) {
+                continue;
+            }
             final Path normalized = classpathEntry.toAbsolutePath().normalize();
             for (String dependencyClass : collectClassNames(normalized)) {
                 if (!appClasses.contains(dependencyClass)) {
@@ -266,6 +276,9 @@ public final class JvmBytecodeRunner {
 
     private static Set<String> collectClassNames(final Path classpathEntry) {
         final Set<String> classNames = new HashSet<>();
+        if (isJrtClasspathEntry(classpathEntry)) {
+            return classNames;
+        }
         final Path normalized = classpathEntry.toAbsolutePath().normalize();
         if (Files.isDirectory(normalized)) {
             try (java.util.stream.Stream<Path> paths = Files.walk(normalized)) {
@@ -296,6 +309,10 @@ public final class JvmBytecodeRunner {
             return classNames;
         }
         return classNames;
+    }
+
+    private static boolean isJrtClasspathEntry(final Path classpathEntry) {
+        return "jrt".equalsIgnoreCase(classpathEntry.getFileSystem().provider().getScheme());
     }
 
     private static String toClassName(final Path relativeClassFile) {

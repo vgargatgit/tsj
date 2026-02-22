@@ -117,6 +117,24 @@ It maps backlog stories to the architecture decisions in `docs/architecture-deci
 | TSJ-57 | S | S | P | S | P | S | P | S | Module-access + multi-release JAR correctness for descriptor lookup and diagnostics |
 | TSJ-57a | S | S | P | S | P | S | P | S | Automatic module graph extraction for named modules and `jrt:/` integration |
 | TSJ-57b | S | S | P | S | P | S | P | P | Mixed classpath/module-path conformance fixtures for MR-JAR and module diagnostics |
+| TSJ-58 | S | S | P | S | S | P | P | S | Cut over backend from handwritten parser to frontend AST ingestion contract |
+| TSJ-58a | S | S | P | S | S | P | P | S | Complete AST ingestion by removing backend handwritten parser in default pipeline |
+| TSJ-58b | S | S | P | S | S | P | P | S | Finish lowering cutover so typed AST is backend source-of-truth |
+| TSJ-58c | S | S | P | S | S | P | P | S | Disable default handwritten-parser fallback once typed AST lowering coverage is sufficient |
+| TSJ-59 | P | S | S | S | S | P | S | S | Statement syntax completeness (`for`/`switch`/labeled control flow) |
+| TSJ-59a | P | S | S | S | S | P | S | S | Complete remaining statement lowering (`for*`, `switch`, labeled control-flow) |
+| TSJ-59b | P | S | S | S | S | P | S | S | Complete `for...of`/`for...in`, labeled control-flow target resolution, and switch fallthrough semantics |
+| TSJ-60 | P | S | S | S | S | P | S | S | Expression/operator grammar completeness with precedence parity |
+| TSJ-61 | P | S | S | S | S | P | S | S | Binding patterns/destructuring/default/rest lowering completeness |
+| TSJ-62 | P | S | S | S | S | P | S | S | Class/object syntax completeness (fields/accessors/computed members) |
+| TSJ-63 | S | S | S | P | S | P | S | S | Function-form completeness (defaults/rest/generators/async-generators) |
+| TSJ-64 | S | S | P | S | S | P | P | S | Type-syntax erasure completeness and type-only import/export handling |
+| TSJ-65 | S | S | P | P | S | S | P | S | Module/import-export syntax parity including dynamic import semantics |
+| TSJ-66 | S | S | P | S | P | S | P | S | Decorator syntax parity across legacy and stage-3 forms |
+| TSJ-67 | S | S | P | S | S | S | S | S | TSX/JSX syntax support with configured lowering modes |
+| TSJ-68 | S | S | S | S | S | S | P | P | Large-scale conformance gate for full syntax claim and regression tracking |
+| TSJ-69 | S | S | S | S | S | S | S | P | Incremental performance closure for full-syntax pipeline |
+| TSJ-70 | S | S | P | S | S | S | P | P | Full TypeScript syntax GA readiness gate and release signoff artifact |
 
 ## Change Control
 1. Any new story must be added to this matrix before implementation starts.

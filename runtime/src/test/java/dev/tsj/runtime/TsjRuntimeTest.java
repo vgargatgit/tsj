@@ -23,6 +23,7 @@ class TsjRuntimeTest {
         assertEquals(5, TsjRuntime.subtract(8, 3));
         assertEquals(12, TsjRuntime.multiply(3, 4));
         assertEquals(2.5d, TsjRuntime.divide(5, 2));
+        assertEquals(1.0d, TsjRuntime.modulo(7, 3));
     }
 
     @Test
@@ -110,6 +111,180 @@ class TsjRuntimeTest {
         assertFalse(TsjRuntime.truthy(TsjRuntime.undefined()));
         assertTrue(TsjRuntime.truthy(1));
         assertTrue(TsjRuntime.truthy("x"));
+    }
+
+    @Test
+    void logicalOperatorsPreserveOperandValuesAndShortCircuit() {
+        final int[] hits = new int[]{0};
+
+        final Object andResult = TsjRuntime.logicalAnd(false, () -> {
+            hits[0] = hits[0] + 1;
+            return "rhs-and";
+        });
+        final Object orResult = TsjRuntime.logicalOr(true, () -> {
+            hits[0] = hits[0] + 1;
+            return "rhs-or";
+        });
+        final Object nullishNull = TsjRuntime.nullishCoalesce(null, () -> {
+            hits[0] = hits[0] + 1;
+            return "rhs-null";
+        });
+        final Object nullishUndefined = TsjRuntime.nullishCoalesce(TsjRuntime.undefined(), () -> {
+            hits[0] = hits[0] + 1;
+            return "rhs-undefined";
+        });
+        final Object nullishKept = TsjRuntime.nullishCoalesce("kept", () -> {
+            hits[0] = hits[0] + 1;
+            return "rhs-kept";
+        });
+
+        assertEquals(false, andResult);
+        assertEquals(true, orResult);
+        assertEquals("rhs-null", nullishNull);
+        assertEquals("rhs-undefined", nullishUndefined);
+        assertEquals("kept", nullishKept);
+        assertEquals(2, hits[0]);
+    }
+
+    @Test
+    void logicalAssignmentHelpersShortCircuitAndAssignWhenNeeded() {
+        final int[] hits = new int[]{0};
+        final TsjCell andCell = new TsjCell(false);
+        final TsjCell orCell = new TsjCell(false);
+        final TsjCell nullishCell = new TsjCell(null);
+
+        assertEquals(false, TsjRuntime.assignLogicalAnd(andCell, () -> {
+            hits[0] = hits[0] + 1;
+            return "x";
+        }));
+        assertEquals("alt", TsjRuntime.assignLogicalOr(orCell, () -> {
+            hits[0] = hits[0] + 1;
+            return "alt";
+        }));
+        assertEquals("fallback", TsjRuntime.assignNullish(nullishCell, () -> {
+            hits[0] = hits[0] + 1;
+            return "fallback";
+        }));
+
+        final Object object = TsjRuntime.objectLiteral("value", 0);
+        assertEquals(0, TsjRuntime.assignPropertyLogicalAnd(object, "value", () -> {
+            hits[0] = hits[0] + 1;
+            return 9;
+        }));
+        assertEquals(9, TsjRuntime.assignPropertyLogicalOr(object, "value", () -> {
+            hits[0] = hits[0] + 1;
+            return 9;
+        }));
+        TsjRuntime.setProperty(object, "value", null);
+        assertEquals(11, TsjRuntime.assignPropertyNullish(object, "value", () -> {
+            hits[0] = hits[0] + 1;
+            return 11;
+        }));
+
+        assertEquals(4, hits[0]);
+    }
+
+    @Test
+    void optionalAccessAndCallReturnUndefinedForNullishValues() {
+        final Object object = TsjRuntime.objectLiteral(
+                "value",
+                9,
+                "read",
+                (TsjCallable) args -> "ok"
+        );
+        final Object maybeNull = null;
+        final TsjCell hits = new TsjCell(0);
+
+        assertEquals(9, TsjRuntime.optionalMemberAccess(object, "value"));
+        assertEquals(TsjRuntime.undefined(), TsjRuntime.optionalMemberAccess(maybeNull, "value"));
+        assertEquals("ok", TsjRuntime.optionalCall(TsjRuntime.getProperty(object, "read"), () -> new Object[0]));
+        assertEquals(TsjRuntime.undefined(), TsjRuntime.optionalCall(TsjRuntime.undefined(), () -> {
+            hits.set(TsjRuntime.add(hits.get(), 1));
+            return new Object[0];
+        }));
+        assertEquals(0, hits.get());
+    }
+
+    @Test
+    void spreadHelpersFlattenSegmentsAndMergeObjects() {
+        final Object spreadArray = TsjRuntime.arraySpread(
+                TsjRuntime.arrayLiteral(1, 2),
+                new Object[]{3},
+                java.util.List.of(4, 5)
+        );
+        assertEquals(5, TsjRuntime.getProperty(spreadArray, "length"));
+        assertEquals(1, TsjRuntime.getProperty(spreadArray, "0"));
+        assertEquals(5, TsjRuntime.getProperty(spreadArray, "4"));
+
+        final Object merged = TsjRuntime.objectSpread(
+                TsjRuntime.objectLiteral("a", 1),
+                TsjRuntime.objectLiteral("b", 2),
+                null,
+                TsjRuntime.undefined()
+        );
+        assertEquals(1, TsjRuntime.getProperty(merged, "a"));
+        assertEquals(2, TsjRuntime.getProperty(merged, "b"));
+
+        final TsjCallable sum = args -> TsjRuntime.add(TsjRuntime.add(args[0], args[1]), args[2]);
+        assertEquals(6, TsjRuntime.callSpread(sum, TsjRuntime.arrayLiteral(1, 2), TsjRuntime.arrayLiteral(3)));
+    }
+
+    @Test
+    void restArgsBuildsArrayFromTrailingCallArguments() {
+        final Object rest = TsjRuntime.restArgs(new Object[]{1, 2, 3, 4}, 2);
+        assertEquals(2, TsjRuntime.getProperty(rest, "length"));
+        assertEquals(3, TsjRuntime.getProperty(rest, "0"));
+        assertEquals(4, TsjRuntime.getProperty(rest, "1"));
+
+        final Object empty = TsjRuntime.restArgs(new Object[]{1}, 5);
+        assertEquals(0, TsjRuntime.getProperty(empty, "length"));
+    }
+
+    @Test
+    void forLoopHelpersCollectValuesKeysAndIndexReads() {
+        final Object ofValues = TsjRuntime.forOfValues(TsjRuntime.arrayLiteral(4, 5, 6));
+        assertEquals(3, TsjRuntime.getProperty(ofValues, "length"));
+        assertEquals(5, TsjRuntime.getProperty(ofValues, "1"));
+
+        final Object inKeys = TsjRuntime.forInKeys(TsjRuntime.objectLiteral("a", 1, "b", 2));
+        assertEquals(2, TsjRuntime.getProperty(inKeys, "length"));
+        assertEquals("a", TsjRuntime.getProperty(inKeys, "0"));
+        assertEquals("b", TsjRuntime.getProperty(inKeys, "1"));
+
+        assertEquals(6, TsjRuntime.indexRead(ofValues, 2));
+    }
+
+    @Test
+    void propertyAccessCacheDoesNotReuseValueAcrossDifferentObjectsWithSameShape() {
+        final TsjPropertyAccessCache cache = new TsjPropertyAccessCache("value");
+        final Object first = TsjRuntime.objectLiteral("value", 1);
+        final Object second = TsjRuntime.objectLiteral("value", 2);
+
+        assertEquals(1, TsjRuntime.getPropertyCached(cache, first, "value"));
+        assertEquals(2, TsjRuntime.getPropertyCached(cache, second, "value"));
+    }
+
+    @Test
+    void classObjectsSupportStaticPropertyReadsWritesAndMethodInvocation() {
+        final TsjClass klass = new TsjClass("Counter", null);
+        TsjRuntime.setProperty(klass, "count", 1);
+        assertEquals(1, TsjRuntime.getProperty(klass, "count"));
+
+        TsjRuntime.setProperty(
+                klass,
+                "inc",
+                (TsjCallableWithThis) (thisValue, args) -> {
+                    final Object current = TsjRuntime.getProperty(thisValue, "count");
+                    final Object delta = args.length > 0 ? args[0] : 1;
+                    final Object next = TsjRuntime.add(current, delta);
+                    TsjRuntime.setProperty(thisValue, "count", next);
+                    return next;
+                }
+        );
+
+        assertEquals(2, TsjRuntime.invokeMember(klass, "inc"));
+        assertEquals(7, TsjRuntime.invokeMember(klass, "inc", 5));
+        assertEquals(7, TsjRuntime.getProperty(klass, "count"));
     }
 
     @Test
@@ -245,6 +420,20 @@ class TsjRuntimeTest {
 
         assertTrue(TsjRuntime.setPrototype(object, null) == object);
         assertEquals(TsjRuntime.undefined(), TsjRuntime.getProperty(object, "name"));
+    }
+
+    @Test
+    void assignmentHelpersReturnAssignedValues() {
+        final TsjCell cell = new TsjCell(1);
+        assertEquals(7, TsjRuntime.assignCell(cell, 7));
+        assertEquals(7, cell.get());
+
+        final Object prototype = TsjRuntime.objectLiteral("ready", true);
+        final Object object = TsjRuntime.objectLiteral();
+        assertTrue(TsjRuntime.setPrototypeValue(object, prototype) == prototype);
+        assertTrue(TsjRuntime.isNullishValue(null));
+        assertTrue(TsjRuntime.isNullishValue(TsjRuntime.undefined()));
+        assertFalse(TsjRuntime.isNullishValue(0));
     }
 
     @Test

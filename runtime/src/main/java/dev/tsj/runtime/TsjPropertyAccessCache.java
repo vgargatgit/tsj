@@ -8,14 +8,12 @@ public final class TsjPropertyAccessCache {
     private boolean initialized;
     private Class<?> cachedClass;
     private long cachedShapeToken;
-    private Object cachedValue;
 
     public TsjPropertyAccessCache(final String expectedKey) {
         this.expectedKey = expectedKey;
         this.initialized = false;
         this.cachedClass = null;
         this.cachedShapeToken = 0L;
-        this.cachedValue = null;
     }
 
     public Object read(final TsjObject target, final String key) {
@@ -26,7 +24,7 @@ public final class TsjPropertyAccessCache {
                 && cachedClass == target.getClass()
                 && cachedShapeToken == target.shapeToken()
                 && target.hasOwn(key)) {
-            return cachedValue;
+            return target.getOwn(key);
         }
 
         final Object value = target.get(key);
@@ -34,12 +32,10 @@ public final class TsjPropertyAccessCache {
             initialized = true;
             cachedClass = target.getClass();
             cachedShapeToken = target.shapeToken();
-            cachedValue = value;
         } else {
             initialized = false;
             cachedClass = null;
             cachedShapeToken = 0L;
-            cachedValue = null;
         }
         return value;
     }

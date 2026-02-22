@@ -6,9 +6,12 @@ import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 final class JavaPropertySynthesizer {
     SynthesisResult synthesize(final Class<?> targetClass, final boolean enabled) {
@@ -20,6 +23,7 @@ final class JavaPropertySynthesizer {
         final Map<String, List<Method>> getCandidates = new LinkedHashMap<>();
         final Map<String, List<Method>> isCandidates = new LinkedHashMap<>();
         final Map<String, List<Method>> setCandidates = new LinkedHashMap<>();
+        final Map<String, LinkedHashSet<String>> propertyAliases = new LinkedHashMap<>();
 
         for (Method method : targetClass.getMethods()) {
             if (Modifier.isStatic(method.getModifiers()) || method.isBridge() || method.isSynthetic()) {
@@ -34,7 +38,9 @@ final class JavaPropertySynthesizer {
                     && method.getParameterCount() == 0
                     && method.getReturnType() != void.class) {
                 final String property = normalizePropertyName(methodName.substring(3));
-                getCandidates.computeIfAbsent(property, ignored -> new ArrayList<>()).add(method);
+                final String canonicalProperty = canonicalPropertyKey(property);
+                propertyAliases.computeIfAbsent(canonicalProperty, ignored -> new LinkedHashSet<>()).add(property);
+                getCandidates.computeIfAbsent(canonicalProperty, ignored -> new ArrayList<>()).add(method);
                 continue;
             }
             if (methodName.startsWith("is")
@@ -42,12 +48,16 @@ final class JavaPropertySynthesizer {
                     && method.getParameterCount() == 0
                     && (method.getReturnType() == boolean.class || method.getReturnType() == Boolean.class)) {
                 final String property = normalizePropertyName(methodName.substring(2));
-                isCandidates.computeIfAbsent(property, ignored -> new ArrayList<>()).add(method);
+                final String canonicalProperty = canonicalPropertyKey(property);
+                propertyAliases.computeIfAbsent(canonicalProperty, ignored -> new LinkedHashSet<>()).add(property);
+                isCandidates.computeIfAbsent(canonicalProperty, ignored -> new ArrayList<>()).add(method);
                 continue;
             }
             if (methodName.startsWith("set") && methodName.length() > 3 && method.getParameterCount() == 1) {
                 final String property = normalizePropertyName(methodName.substring(3));
-                setCandidates.computeIfAbsent(property, ignored -> new ArrayList<>()).add(method);
+                final String canonicalProperty = canonicalPropertyKey(property);
+                propertyAliases.computeIfAbsent(canonicalProperty, ignored -> new LinkedHashSet<>()).add(property);
+                setCandidates.computeIfAbsent(canonicalProperty, ignored -> new ArrayList<>()).add(method);
             }
         }
 
@@ -60,9 +70,26 @@ final class JavaPropertySynthesizer {
         propertyNames.addAll(setCandidates.keySet());
         final List<String> sortedPropertyNames = propertyNames.stream().distinct().sorted().toList();
 
-        for (String propertyName : sortedPropertyNames) {
-            final Method getter = selectGetter(propertyName, getCandidates.get(propertyName), isCandidates.get(propertyName), diagnostics);
-            final Method setter = selectSetter(propertyName, setCandidates.get(propertyName), getter, diagnostics);
+        for (String propertyKey : sortedPropertyNames) {
+            final List<String> aliases = sortedAliases(propertyAliases.get(propertyKey));
+            if (aliases.size() > 1) {
+                diagnostics.add(
+                        "Skipped property `"
+                                + propertyKey
+                                + "`: conflicting accessor casing aliases "
+                                + formatList(aliases)
+                                + "."
+                );
+                continue;
+            }
+            final String propertyName = aliases.isEmpty() ? propertyKey : aliases.getFirst();
+            final Method getter = selectGetter(
+                    propertyName,
+                    getCandidates.get(propertyKey),
+                    isCandidates.get(propertyKey),
+                    diagnostics
+            );
+            final Method setter = selectSetter(propertyName, setCandidates.get(propertyKey), getter, diagnostics);
             if (getter == null && setter == null) {
                 continue;
             }
@@ -88,11 +115,23 @@ final class JavaPropertySynthesizer {
         final List<Method> gets = getMethods == null ? List.of() : getMethods;
         final List<Method> ises = isMethods == null ? List.of() : isMethods;
         if (gets.size() > 1) {
-            diagnostics.add("Skipped property `" + propertyName + "`: ambiguous get-method overloads.");
+            diagnostics.add(
+                    "Skipped property `"
+                            + propertyName
+                            + "`: ambiguous get-method overloads "
+                            + formatMethodSignatures(gets)
+                            + "."
+            );
             return null;
         }
         if (ises.size() > 1) {
-            diagnostics.add("Skipped property `" + propertyName + "`: ambiguous is-method overloads.");
+            diagnostics.add(
+                    "Skipped property `"
+                            + propertyName
+                            + "`: ambiguous is-method overloads "
+                            + formatMethodSignatures(ises)
+                            + "."
+            );
             return null;
         }
         final Method get = gets.isEmpty() ? null : gets.getFirst();
@@ -104,7 +143,9 @@ final class JavaPropertySynthesizer {
             diagnostics.add(
                     "Skipped property `"
                             + propertyName
-                            + "`: conflicting get/is methods with non-boolean get return type."
+                            + "`: conflicting get/is methods with non-boolean get return type "
+                            + formatList(List.of(methodSignature(get), methodSignature(is)))
+                            + "."
             );
             return null;
         }
@@ -124,14 +165,64 @@ final class JavaPropertySynthesizer {
             return setters.getFirst();
         }
         if (getter != null) {
+            final List<Method> exactMatches = new ArrayList<>();
             for (Method setter : setters) {
                 if (setter.getParameterTypes()[0] == getter.getReturnType()) {
-                    return setter;
+                    exactMatches.add(setter);
                 }
             }
+            if (exactMatches.size() == 1) {
+                return exactMatches.getFirst();
+            }
+            if (exactMatches.size() > 1) {
+                diagnostics.add(
+                        "Skipped property `"
+                                + propertyName
+                                + "`: ambiguous setter overloads "
+                                + formatMethodSignatures(exactMatches)
+                                + "."
+                );
+                return null;
+            }
         }
-        diagnostics.add("Skipped property `" + propertyName + "`: ambiguous setter overloads.");
+        diagnostics.add(
+                "Skipped property `"
+                        + propertyName
+                        + "`: ambiguous setter overloads "
+                        + formatMethodSignatures(setters)
+                        + "."
+        );
         return null;
+    }
+
+    private static String canonicalPropertyKey(final String propertyName) {
+        return propertyName.toLowerCase(Locale.ROOT);
+    }
+
+    private static List<String> sortedAliases(final Set<String> aliases) {
+        if (aliases == null || aliases.isEmpty()) {
+            return List.of();
+        }
+        final List<String> sorted = new ArrayList<>(aliases);
+        sorted.sort(String::compareTo);
+        return List.copyOf(sorted);
+    }
+
+    private static String formatMethodSignatures(final List<Method> methods) {
+        final List<String> signatures = new ArrayList<>(methods.size());
+        for (Method method : methods) {
+            signatures.add(methodSignature(method));
+        }
+        signatures.sort(String::compareTo);
+        return formatList(signatures);
+    }
+
+    private static String methodSignature(final Method method) {
+        return method.getName() + JavaOverloadResolver.methodDescriptor(method);
+    }
+
+    private static String formatList(final List<String> values) {
+        return "[" + String.join(", ", values) + "]";
     }
 
     private static String normalizePropertyName(final String raw) {

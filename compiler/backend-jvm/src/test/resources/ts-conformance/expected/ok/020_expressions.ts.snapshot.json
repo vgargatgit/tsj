@@ -1,0 +1,2446 @@
+{
+  "astNodes" : [ {
+    "column" : 1,
+    "endColumn" : 1,
+    "endLine" : 68,
+    "kind" : "SourceFile",
+    "line" : 1
+  }, {
+    "column" : 1,
+    "endColumn" : 22,
+    "endLine" : 1,
+    "kind" : "FirstStatement",
+    "line" : 1
+  }, {
+    "column" : 1,
+    "endColumn" : 8,
+    "endLine" : 1,
+    "kind" : "DeclareKeyword",
+    "line" : 1
+  }, {
+    "column" : 9,
+    "endColumn" : 21,
+    "endLine" : 1,
+    "kind" : "VariableDeclarationList",
+    "line" : 1
+  }, {
+    "column" : 15,
+    "endColumn" : 21,
+    "endLine" : 1,
+    "kind" : "VariableDeclaration",
+    "line" : 1
+  }, {
+    "column" : 15,
+    "endColumn" : 16,
+    "endLine" : 1,
+    "kind" : "Identifier",
+    "line" : 1
+  }, {
+    "column" : 18,
+    "endColumn" : 21,
+    "endLine" : 1,
+    "kind" : "AnyKeyword",
+    "line" : 1
+  }, {
+    "column" : 1,
+    "endColumn" : 22,
+    "endLine" : 2,
+    "kind" : "FirstStatement",
+    "line" : 2
+  }, {
+    "column" : 1,
+    "endColumn" : 8,
+    "endLine" : 2,
+    "kind" : "DeclareKeyword",
+    "line" : 2
+  }, {
+    "column" : 9,
+    "endColumn" : 21,
+    "endLine" : 2,
+    "kind" : "VariableDeclarationList",
+    "line" : 2
+  }, {
+    "column" : 15,
+    "endColumn" : 21,
+    "endLine" : 2,
+    "kind" : "VariableDeclaration",
+    "line" : 2
+  }, {
+    "column" : 15,
+    "endColumn" : 16,
+    "endLine" : 2,
+    "kind" : "Identifier",
+    "line" : 2
+  }, {
+    "column" : 18,
+    "endColumn" : 21,
+    "endLine" : 2,
+    "kind" : "AnyKeyword",
+    "line" : 2
+  }, {
+    "column" : 1,
+    "endColumn" : 22,
+    "endLine" : 3,
+    "kind" : "FirstStatement",
+    "line" : 3
+  }, {
+    "column" : 1,
+    "endColumn" : 8,
+    "endLine" : 3,
+    "kind" : "DeclareKeyword",
+    "line" : 3
+  }, {
+    "column" : 9,
+    "endColumn" : 21,
+    "endLine" : 3,
+    "kind" : "VariableDeclarationList",
+    "line" : 3
+  }, {
+    "column" : 15,
+    "endColumn" : 21,
+    "endLine" : 3,
+    "kind" : "VariableDeclaration",
+    "line" : 3
+  }, {
+    "column" : 15,
+    "endColumn" : 16,
+    "endLine" : 3,
+    "kind" : "Identifier",
+    "line" : 3
+  }, {
+    "column" : 18,
+    "endColumn" : 21,
+    "endLine" : 3,
+    "kind" : "AnyKeyword",
+    "line" : 3
+  }, {
+    "column" : 1,
+    "endColumn" : 22,
+    "endLine" : 4,
+    "kind" : "FirstStatement",
+    "line" : 4
+  }, {
+    "column" : 1,
+    "endColumn" : 8,
+    "endLine" : 4,
+    "kind" : "DeclareKeyword",
+    "line" : 4
+  }, {
+    "column" : 9,
+    "endColumn" : 21,
+    "endLine" : 4,
+    "kind" : "VariableDeclarationList",
+    "line" : 4
+  }, {
+    "column" : 15,
+    "endColumn" : 21,
+    "endLine" : 4,
+    "kind" : "VariableDeclaration",
+    "line" : 4
+  }, {
+    "column" : 15,
+    "endColumn" : 16,
+    "endLine" : 4,
+    "kind" : "Identifier",
+    "line" : 4
+  }, {
+    "column" : 18,
+    "endColumn" : 21,
+    "endLine" : 4,
+    "kind" : "AnyKeyword",
+    "line" : 4
+  }, {
+    "column" : 1,
+    "endColumn" : 22,
+    "endLine" : 5,
+    "kind" : "FirstStatement",
+    "line" : 5
+  }, {
+    "column" : 1,
+    "endColumn" : 8,
+    "endLine" : 5,
+    "kind" : "DeclareKeyword",
+    "line" : 5
+  }, {
+    "column" : 9,
+    "endColumn" : 21,
+    "endLine" : 5,
+    "kind" : "VariableDeclarationList",
+    "line" : 5
+  }, {
+    "column" : 15,
+    "endColumn" : 21,
+    "endLine" : 5,
+    "kind" : "VariableDeclaration",
+    "line" : 5
+  }, {
+    "column" : 15,
+    "endColumn" : 16,
+    "endLine" : 5,
+    "kind" : "Identifier",
+    "line" : 5
+  }, {
+    "column" : 18,
+    "endColumn" : 21,
+    "endLine" : 5,
+    "kind" : "AnyKeyword",
+    "line" : 5
+  }, {
+    "column" : 1,
+    "endColumn" : 22,
+    "endLine" : 6,
+    "kind" : "FirstStatement",
+    "line" : 6
+  }, {
+    "column" : 1,
+    "endColumn" : 8,
+    "endLine" : 6,
+    "kind" : "DeclareKeyword",
+    "line" : 6
+  }, {
+    "column" : 9,
+    "endColumn" : 21,
+    "endLine" : 6,
+    "kind" : "VariableDeclarationList",
+    "line" : 6
+  }, {
+    "column" : 15,
+    "endColumn" : 21,
+    "endLine" : 6,
+    "kind" : "VariableDeclaration",
+    "line" : 6
+  }, {
+    "column" : 15,
+    "endColumn" : 16,
+    "endLine" : 6,
+    "kind" : "Identifier",
+    "line" : 6
+  }, {
+    "column" : 18,
+    "endColumn" : 21,
+    "endLine" : 6,
+    "kind" : "AnyKeyword",
+    "line" : 6
+  }, {
+    "column" : 1,
+    "endColumn" : 22,
+    "endLine" : 7,
+    "kind" : "FirstStatement",
+    "line" : 7
+  }, {
+    "column" : 1,
+    "endColumn" : 8,
+    "endLine" : 7,
+    "kind" : "DeclareKeyword",
+    "line" : 7
+  }, {
+    "column" : 9,
+    "endColumn" : 21,
+    "endLine" : 7,
+    "kind" : "VariableDeclarationList",
+    "line" : 7
+  }, {
+    "column" : 15,
+    "endColumn" : 21,
+    "endLine" : 7,
+    "kind" : "VariableDeclaration",
+    "line" : 7
+  }, {
+    "column" : 15,
+    "endColumn" : 16,
+    "endLine" : 7,
+    "kind" : "Identifier",
+    "line" : 7
+  }, {
+    "column" : 18,
+    "endColumn" : 21,
+    "endLine" : 7,
+    "kind" : "AnyKeyword",
+    "line" : 7
+  }, {
+    "column" : 1,
+    "endColumn" : 39,
+    "endLine" : 8,
+    "kind" : "FirstStatement",
+    "line" : 8
+  }, {
+    "column" : 1,
+    "endColumn" : 8,
+    "endLine" : 8,
+    "kind" : "DeclareKeyword",
+    "line" : 8
+  }, {
+    "column" : 9,
+    "endColumn" : 38,
+    "endLine" : 8,
+    "kind" : "VariableDeclarationList",
+    "line" : 8
+  }, {
+    "column" : 15,
+    "endColumn" : 38,
+    "endLine" : 8,
+    "kind" : "VariableDeclaration",
+    "line" : 8
+  }, {
+    "column" : 15,
+    "endColumn" : 16,
+    "endLine" : 8,
+    "kind" : "Identifier",
+    "line" : 8
+  }, {
+    "column" : 18,
+    "endColumn" : 38,
+    "endLine" : 8,
+    "kind" : "UnionType",
+    "line" : 8
+  }, {
+    "column" : 18,
+    "endColumn" : 31,
+    "endLine" : 8,
+    "kind" : "TypeLiteral",
+    "line" : 8
+  }, {
+    "column" : 20,
+    "endColumn" : 29,
+    "endLine" : 8,
+    "kind" : "PropertySignature",
+    "line" : 8
+  }, {
+    "column" : 20,
+    "endColumn" : 21,
+    "endLine" : 8,
+    "kind" : "Identifier",
+    "line" : 8
+  }, {
+    "column" : 23,
+    "endColumn" : 29,
+    "endLine" : 8,
+    "kind" : "NumberKeyword",
+    "line" : 8
+  }, {
+    "column" : 34,
+    "endColumn" : 38,
+    "endLine" : 8,
+    "kind" : "LiteralType",
+    "line" : 8
+  }, {
+    "column" : 34,
+    "endColumn" : 38,
+    "endLine" : 8,
+    "kind" : "NullKeyword",
+    "line" : 8
+  }, {
+    "column" : 1,
+    "endColumn" : 56,
+    "endLine" : 10,
+    "kind" : "FirstStatement",
+    "line" : 10
+  }, {
+    "column" : 1,
+    "endColumn" : 55,
+    "endLine" : 10,
+    "kind" : "VariableDeclarationList",
+    "line" : 10
+  }, {
+    "column" : 7,
+    "endColumn" : 55,
+    "endLine" : 10,
+    "kind" : "VariableDeclaration",
+    "line" : 10
+  }, {
+    "column" : 7,
+    "endColumn" : 17,
+    "endLine" : 10,
+    "kind" : "Identifier",
+    "line" : 10
+  }, {
+    "column" : 20,
+    "endColumn" : 55,
+    "endLine" : 10,
+    "kind" : "BinaryExpression",
+    "line" : 10
+  }, {
+    "column" : 20,
+    "endColumn" : 36,
+    "endLine" : 10,
+    "kind" : "ParenthesizedExpression",
+    "line" : 10
+  }, {
+    "column" : 21,
+    "endColumn" : 35,
+    "endLine" : 10,
+    "kind" : "BinaryExpression",
+    "line" : 10
+  }, {
+    "column" : 21,
+    "endColumn" : 22,
+    "endLine" : 10,
+    "kind" : "Identifier",
+    "line" : 10
+  }, {
+    "column" : 23,
+    "endColumn" : 24,
+    "endLine" : 10,
+    "kind" : "PlusToken",
+    "line" : 10
+  }, {
+    "column" : 25,
+    "endColumn" : 35,
+    "endLine" : 10,
+    "kind" : "BinaryExpression",
+    "line" : 10
+  }, {
+    "column" : 25,
+    "endColumn" : 26,
+    "endLine" : 10,
+    "kind" : "Identifier",
+    "line" : 10
+  }, {
+    "column" : 27,
+    "endColumn" : 28,
+    "endLine" : 10,
+    "kind" : "AsteriskToken",
+    "line" : 10
+  }, {
+    "column" : 29,
+    "endColumn" : 35,
+    "endLine" : 10,
+    "kind" : "BinaryExpression",
+    "line" : 10
+  }, {
+    "column" : 29,
+    "endColumn" : 30,
+    "endLine" : 10,
+    "kind" : "Identifier",
+    "line" : 10
+  }, {
+    "column" : 31,
+    "endColumn" : 33,
+    "endLine" : 10,
+    "kind" : "AsteriskAsteriskToken",
+    "line" : 10
+  }, {
+    "column" : 34,
+    "endColumn" : 35,
+    "endLine" : 10,
+    "kind" : "Identifier",
+    "line" : 10
+  }, {
+    "column" : 37,
+    "endColumn" : 39,
+    "endLine" : 10,
+    "kind" : "QuestionQuestionToken",
+    "line" : 10
+  }, {
+    "column" : 40,
+    "endColumn" : 55,
+    "endLine" : 10,
+    "kind" : "ParenthesizedExpression",
+    "line" : 10
+  }, {
+    "column" : 41,
+    "endColumn" : 54,
+    "endLine" : 10,
+    "kind" : "BinaryExpression",
+    "line" : 10
+  }, {
+    "column" : 41,
+    "endColumn" : 42,
+    "endLine" : 10,
+    "kind" : "Identifier",
+    "line" : 10
+  }, {
+    "column" : 43,
+    "endColumn" : 45,
+    "endLine" : 10,
+    "kind" : "BarBarToken",
+    "line" : 10
+  }, {
+    "column" : 46,
+    "endColumn" : 54,
+    "endLine" : 10,
+    "kind" : "ParenthesizedExpression",
+    "line" : 10
+  }, {
+    "column" : 47,
+    "endColumn" : 53,
+    "endLine" : 10,
+    "kind" : "BinaryExpression",
+    "line" : 10
+  }, {
+    "column" : 47,
+    "endColumn" : 48,
+    "endLine" : 10,
+    "kind" : "Identifier",
+    "line" : 10
+  }, {
+    "column" : 49,
+    "endColumn" : 51,
+    "endLine" : 10,
+    "kind" : "AmpersandAmpersandToken",
+    "line" : 10
+  }, {
+    "column" : 52,
+    "endColumn" : 53,
+    "endLine" : 10,
+    "kind" : "Identifier",
+    "line" : 10
+  }, {
+    "column" : 1,
+    "endColumn" : 30,
+    "endLine" : 11,
+    "kind" : "FirstStatement",
+    "line" : 11
+  }, {
+    "column" : 1,
+    "endColumn" : 29,
+    "endLine" : 11,
+    "kind" : "VariableDeclarationList",
+    "line" : 11
+  }, {
+    "column" : 7,
+    "endColumn" : 29,
+    "endLine" : 11,
+    "kind" : "VariableDeclaration",
+    "line" : 11
+  }, {
+    "column" : 7,
+    "endColumn" : 12,
+    "endLine" : 11,
+    "kind" : "Identifier",
+    "line" : 11
+  }, {
+    "column" : 15,
+    "endColumn" : 29,
+    "endLine" : 11,
+    "kind" : "BinaryExpression",
+    "line" : 11
+  }, {
+    "column" : 15,
+    "endColumn" : 24,
+    "endLine" : 11,
+    "kind" : "CallExpression",
+    "line" : 11
+  }, {
+    "column" : 15,
+    "endColumn" : 19,
+    "endLine" : 11,
+    "kind" : "PropertyAccessExpression",
+    "line" : 11
+  }, {
+    "column" : 15,
+    "endColumn" : 16,
+    "endLine" : 11,
+    "kind" : "Identifier",
+    "line" : 11
+  }, {
+    "column" : 16,
+    "endColumn" : 18,
+    "endLine" : 11,
+    "kind" : "QuestionDotToken",
+    "line" : 11
+  }, {
+    "column" : 18,
+    "endColumn" : 19,
+    "endLine" : 11,
+    "kind" : "Identifier",
+    "line" : 11
+  }, {
+    "column" : 19,
+    "endColumn" : 21,
+    "endLine" : 11,
+    "kind" : "QuestionDotToken",
+    "line" : 11
+  }, {
+    "column" : 22,
+    "endColumn" : 23,
+    "endLine" : 11,
+    "kind" : "Identifier",
+    "line" : 11
+  }, {
+    "column" : 25,
+    "endColumn" : 27,
+    "endLine" : 11,
+    "kind" : "QuestionQuestionToken",
+    "line" : 11
+  }, {
+    "column" : 28,
+    "endColumn" : 29,
+    "endLine" : 11,
+    "kind" : "Identifier",
+    "line" : 11
+  }, {
+    "column" : 1,
+    "endColumn" : 22,
+    "endLine" : 12,
+    "kind" : "FirstStatement",
+    "line" : 12
+  }, {
+    "column" : 1,
+    "endColumn" : 21,
+    "endLine" : 12,
+    "kind" : "VariableDeclarationList",
+    "line" : 12
+  }, {
+    "column" : 7,
+    "endColumn" : 21,
+    "endLine" : 12,
+    "kind" : "VariableDeclaration",
+    "line" : 12
+  }, {
+    "column" : 7,
+    "endColumn" : 14,
+    "endLine" : 12,
+    "kind" : "Identifier",
+    "line" : 12
+  }, {
+    "column" : 17,
+    "endColumn" : 21,
+    "endLine" : 12,
+    "kind" : "PropertyAccessExpression",
+    "line" : 12
+  }, {
+    "column" : 17,
+    "endColumn" : 19,
+    "endLine" : 12,
+    "kind" : "NonNullExpression",
+    "line" : 12
+  }, {
+    "column" : 17,
+    "endColumn" : 18,
+    "endLine" : 12,
+    "kind" : "Identifier",
+    "line" : 12
+  }, {
+    "column" : 20,
+    "endColumn" : 21,
+    "endLine" : 12,
+    "kind" : "Identifier",
+    "line" : 12
+  }, {
+    "column" : 1,
+    "endColumn" : 39,
+    "endLine" : 13,
+    "kind" : "FirstStatement",
+    "line" : 13
+  }, {
+    "column" : 1,
+    "endColumn" : 38,
+    "endLine" : 13,
+    "kind" : "VariableDeclarationList",
+    "line" : 13
+  }, {
+    "column" : 7,
+    "endColumn" : 38,
+    "endLine" : 13,
+    "kind" : "VariableDeclaration",
+    "line" : 13
+  }, {
+    "column" : 7,
+    "endColumn" : 13,
+    "endLine" : 13,
+    "kind" : "Identifier",
+    "line" : 13
+  }, {
+    "column" : 16,
+    "endColumn" : 38,
+    "endLine" : 13,
+    "kind" : "PropertyAccessExpression",
+    "line" : 13
+  }, {
+    "column" : 16,
+    "endColumn" : 36,
+    "endLine" : 13,
+    "kind" : "ParenthesizedExpression",
+    "line" : 13
+  }, {
+    "column" : 17,
+    "endColumn" : 35,
+    "endLine" : 13,
+    "kind" : "AsExpression",
+    "line" : 13
+  }, {
+    "column" : 17,
+    "endColumn" : 18,
+    "endLine" : 13,
+    "kind" : "Identifier",
+    "line" : 13
+  }, {
+    "column" : 22,
+    "endColumn" : 35,
+    "endLine" : 13,
+    "kind" : "TypeLiteral",
+    "line" : 13
+  }, {
+    "column" : 24,
+    "endColumn" : 33,
+    "endLine" : 13,
+    "kind" : "PropertySignature",
+    "line" : 13
+  }, {
+    "column" : 24,
+    "endColumn" : 25,
+    "endLine" : 13,
+    "kind" : "Identifier",
+    "line" : 13
+  }, {
+    "column" : 27,
+    "endColumn" : 33,
+    "endLine" : 13,
+    "kind" : "NumberKeyword",
+    "line" : 13
+  }, {
+    "column" : 37,
+    "endColumn" : 38,
+    "endLine" : 13,
+    "kind" : "Identifier",
+    "line" : 13
+  }, {
+    "column" : 1,
+    "endColumn" : 40,
+    "endLine" : 14,
+    "kind" : "FirstStatement",
+    "line" : 14
+  }, {
+    "column" : 1,
+    "endColumn" : 39,
+    "endLine" : 14,
+    "kind" : "VariableDeclarationList",
+    "line" : 14
+  }, {
+    "column" : 7,
+    "endColumn" : 39,
+    "endLine" : 14,
+    "kind" : "VariableDeclaration",
+    "line" : 14
+  }, {
+    "column" : 7,
+    "endColumn" : 16,
+    "endLine" : 14,
+    "kind" : "Identifier",
+    "line" : 14
+  }, {
+    "column" : 19,
+    "endColumn" : 39,
+    "endLine" : 14,
+    "kind" : "PropertyAccessExpression",
+    "line" : 14
+  }, {
+    "column" : 19,
+    "endColumn" : 37,
+    "endLine" : 14,
+    "kind" : "ParenthesizedExpression",
+    "line" : 14
+  }, {
+    "column" : 20,
+    "endColumn" : 36,
+    "endLine" : 14,
+    "kind" : "TypeAssertionExpression",
+    "line" : 14
+  }, {
+    "column" : 21,
+    "endColumn" : 34,
+    "endLine" : 14,
+    "kind" : "TypeLiteral",
+    "line" : 14
+  }, {
+    "column" : 23,
+    "endColumn" : 32,
+    "endLine" : 14,
+    "kind" : "PropertySignature",
+    "line" : 14
+  }, {
+    "column" : 23,
+    "endColumn" : 24,
+    "endLine" : 14,
+    "kind" : "Identifier",
+    "line" : 14
+  }, {
+    "column" : 26,
+    "endColumn" : 32,
+    "endLine" : 14,
+    "kind" : "NumberKeyword",
+    "line" : 14
+  }, {
+    "column" : 35,
+    "endColumn" : 36,
+    "endLine" : 14,
+    "kind" : "Identifier",
+    "line" : 14
+  }, {
+    "column" : 38,
+    "endColumn" : 39,
+    "endLine" : 14,
+    "kind" : "Identifier",
+    "line" : 14
+  }, {
+    "column" : 1,
+    "endColumn" : 2,
+    "endLine" : 19,
+    "kind" : "FunctionDeclaration",
+    "line" : 16
+  }, {
+    "column" : 9,
+    "endColumn" : 10,
+    "endLine" : 16,
+    "kind" : "AsteriskToken",
+    "line" : 16
+  }, {
+    "column" : 11,
+    "endColumn" : 30,
+    "endLine" : 16,
+    "kind" : "Identifier",
+    "line" : 16
+  }, {
+    "column" : 31,
+    "endColumn" : 55,
+    "endLine" : 16,
+    "kind" : "Parameter",
+    "line" : 16
+  }, {
+    "column" : 31,
+    "endColumn" : 37,
+    "endLine" : 16,
+    "kind" : "Identifier",
+    "line" : 16
+  }, {
+    "column" : 39,
+    "endColumn" : 55,
+    "endLine" : 16,
+    "kind" : "TypeReference",
+    "line" : 16
+  }, {
+    "column" : 39,
+    "endColumn" : 47,
+    "endLine" : 16,
+    "kind" : "Identifier",
+    "line" : 16
+  }, {
+    "column" : 48,
+    "endColumn" : 54,
+    "endLine" : 16,
+    "kind" : "NumberKeyword",
+    "line" : 16
+  }, {
+    "column" : 57,
+    "endColumn" : 2,
+    "endLine" : 19,
+    "kind" : "Block",
+    "line" : 16
+  }, {
+    "column" : 3,
+    "endColumn" : 11,
+    "endLine" : 17,
+    "kind" : "ExpressionStatement",
+    "line" : 17
+  }, {
+    "column" : 3,
+    "endColumn" : 10,
+    "endLine" : 17,
+    "kind" : "YieldExpression",
+    "line" : 17
+  }, {
+    "column" : 9,
+    "endColumn" : 10,
+    "endLine" : 17,
+    "kind" : "FirstLiteralToken",
+    "line" : 17
+  }, {
+    "column" : 3,
+    "endColumn" : 17,
+    "endLine" : 18,
+    "kind" : "ExpressionStatement",
+    "line" : 18
+  }, {
+    "column" : 3,
+    "endColumn" : 16,
+    "endLine" : 18,
+    "kind" : "YieldExpression",
+    "line" : 18
+  }, {
+    "column" : 8,
+    "endColumn" : 9,
+    "endLine" : 18,
+    "kind" : "AsteriskToken",
+    "line" : 18
+  }, {
+    "column" : 10,
+    "endColumn" : 16,
+    "endLine" : 18,
+    "kind" : "Identifier",
+    "line" : 18
+  }, {
+    "column" : 1,
+    "endColumn" : 2,
+    "endLine" : 24,
+    "kind" : "FunctionDeclaration",
+    "line" : 21
+  }, {
+    "column" : 1,
+    "endColumn" : 6,
+    "endLine" : 21,
+    "kind" : "AsyncKeyword",
+    "line" : 21
+  }, {
+    "column" : 16,
+    "endColumn" : 31,
+    "endLine" : 21,
+    "kind" : "Identifier",
+    "line" : 21
+  }, {
+    "column" : 34,
+    "endColumn" : 2,
+    "endLine" : 24,
+    "kind" : "Block",
+    "line" : 21
+  }, {
+    "column" : 3,
+    "endColumn" : 44,
+    "endLine" : 22,
+    "kind" : "FirstStatement",
+    "line" : 22
+  }, {
+    "column" : 3,
+    "endColumn" : 43,
+    "endLine" : 22,
+    "kind" : "VariableDeclarationList",
+    "line" : 22
+  }, {
+    "column" : 9,
+    "endColumn" : 43,
+    "endLine" : 22,
+    "kind" : "VariableDeclaration",
+    "line" : 22
+  }, {
+    "column" : 9,
+    "endColumn" : 16,
+    "endLine" : 22,
+    "kind" : "Identifier",
+    "line" : 22
+  }, {
+    "column" : 19,
+    "endColumn" : 43,
+    "endLine" : 22,
+    "kind" : "AwaitExpression",
+    "line" : 22
+  }, {
+    "column" : 25,
+    "endColumn" : 43,
+    "endLine" : 22,
+    "kind" : "CallExpression",
+    "line" : 22
+  }, {
+    "column" : 25,
+    "endColumn" : 40,
+    "endLine" : 22,
+    "kind" : "PropertyAccessExpression",
+    "line" : 22
+  }, {
+    "column" : 25,
+    "endColumn" : 32,
+    "endLine" : 22,
+    "kind" : "Identifier",
+    "line" : 22
+  }, {
+    "column" : 33,
+    "endColumn" : 40,
+    "endLine" : 22,
+    "kind" : "Identifier",
+    "line" : 22
+  }, {
+    "column" : 41,
+    "endColumn" : 42,
+    "endLine" : 22,
+    "kind" : "FirstLiteralToken",
+    "line" : 22
+  }, {
+    "column" : 3,
+    "endColumn" : 18,
+    "endLine" : 23,
+    "kind" : "ReturnStatement",
+    "line" : 23
+  }, {
+    "column" : 10,
+    "endColumn" : 17,
+    "endLine" : 23,
+    "kind" : "Identifier",
+    "line" : 23
+  }, {
+    "column" : 1,
+    "endColumn" : 2,
+    "endLine" : 28,
+    "kind" : "FunctionDeclaration",
+    "line" : 26
+  }, {
+    "column" : 10,
+    "endColumn" : 26,
+    "endLine" : 26,
+    "kind" : "Identifier",
+    "line" : 26
+  }, {
+    "column" : 29,
+    "endColumn" : 2,
+    "endLine" : 28,
+    "kind" : "Block",
+    "line" : 26
+  }, {
+    "column" : 3,
+    "endColumn" : 21,
+    "endLine" : 27,
+    "kind" : "ReturnStatement",
+    "line" : 27
+  }, {
+    "column" : 10,
+    "endColumn" : 20,
+    "endLine" : 27,
+    "kind" : "MetaProperty",
+    "line" : 27
+  }, {
+    "column" : 14,
+    "endColumn" : 20,
+    "endLine" : 27,
+    "kind" : "Identifier",
+    "line" : 27
+  }, {
+    "column" : 1,
+    "endColumn" : 39,
+    "endLine" : 30,
+    "kind" : "FirstStatement",
+    "line" : 30
+  }, {
+    "column" : 1,
+    "endColumn" : 38,
+    "endLine" : 30,
+    "kind" : "VariableDeclarationList",
+    "line" : 30
+  }, {
+    "column" : 7,
+    "endColumn" : 38,
+    "endLine" : 30,
+    "kind" : "VariableDeclaration",
+    "line" : 30
+  }, {
+    "column" : 7,
+    "endColumn" : 20,
+    "endLine" : 30,
+    "kind" : "Identifier",
+    "line" : 30
+  }, {
+    "column" : 23,
+    "endColumn" : 38,
+    "endLine" : 30,
+    "kind" : "PropertyAccessExpression",
+    "line" : 30
+  }, {
+    "column" : 23,
+    "endColumn" : 34,
+    "endLine" : 30,
+    "kind" : "MetaProperty",
+    "line" : 30
+  }, {
+    "column" : 30,
+    "endColumn" : 34,
+    "endLine" : 30,
+    "kind" : "Identifier",
+    "line" : 30
+  }, {
+    "column" : 35,
+    "endColumn" : 38,
+    "endLine" : 30,
+    "kind" : "Identifier",
+    "line" : 30
+  }, {
+    "column" : 1,
+    "endColumn" : 49,
+    "endLine" : 31,
+    "kind" : "FirstStatement",
+    "line" : 31
+  }, {
+    "column" : 1,
+    "endColumn" : 48,
+    "endLine" : 31,
+    "kind" : "VariableDeclarationList",
+    "line" : 31
+  }, {
+    "column" : 7,
+    "endColumn" : 48,
+    "endLine" : 31,
+    "kind" : "VariableDeclaration",
+    "line" : 31
+  }, {
+    "column" : 7,
+    "endColumn" : 24,
+    "endLine" : 31,
+    "kind" : "Identifier",
+    "line" : 31
+  }, {
+    "column" : 27,
+    "endColumn" : 48,
+    "endLine" : 31,
+    "kind" : "CallExpression",
+    "line" : 31
+  }, {
+    "column" : 27,
+    "endColumn" : 33,
+    "endLine" : 31,
+    "kind" : "ImportKeyword",
+    "line" : 31
+  }, {
+    "column" : 34,
+    "endColumn" : 47,
+    "endLine" : 31,
+    "kind" : "StringLiteral",
+    "line" : 31
+  }, {
+    "column" : 1,
+    "endColumn" : 59,
+    "endLine" : 32,
+    "kind" : "FirstStatement",
+    "line" : 32
+  }, {
+    "column" : 1,
+    "endColumn" : 58,
+    "endLine" : 32,
+    "kind" : "VariableDeclarationList",
+    "line" : 32
+  }, {
+    "column" : 7,
+    "endColumn" : 58,
+    "endLine" : 32,
+    "kind" : "VariableDeclaration",
+    "line" : 32
+  }, {
+    "column" : 7,
+    "endColumn" : 20,
+    "endLine" : 32,
+    "kind" : "Identifier",
+    "line" : 32
+  }, {
+    "column" : 23,
+    "endColumn" : 58,
+    "endLine" : 32,
+    "kind" : "BinaryExpression",
+    "line" : 32
+  }, {
+    "column" : 23,
+    "endColumn" : 33,
+    "endLine" : 32,
+    "kind" : "ParenthesizedExpression",
+    "line" : 32
+  }, {
+    "column" : 24,
+    "endColumn" : 32,
+    "endLine" : 32,
+    "kind" : "BinaryExpression",
+    "line" : 32
+  }, {
+    "column" : 24,
+    "endColumn" : 27,
+    "endLine" : 32,
+    "kind" : "StringLiteral",
+    "line" : 32
+  }, {
+    "column" : 28,
+    "endColumn" : 30,
+    "endLine" : 32,
+    "kind" : "InKeyword",
+    "line" : 32
+  }, {
+    "column" : 31,
+    "endColumn" : 32,
+    "endLine" : 32,
+    "kind" : "Identifier",
+    "line" : 32
+  }, {
+    "column" : 34,
+    "endColumn" : 36,
+    "endLine" : 32,
+    "kind" : "AmpersandAmpersandToken",
+    "line" : 32
+  }, {
+    "column" : 37,
+    "endColumn" : 58,
+    "endLine" : 32,
+    "kind" : "ParenthesizedExpression",
+    "line" : 32
+  }, {
+    "column" : 38,
+    "endColumn" : 57,
+    "endLine" : 32,
+    "kind" : "BinaryExpression",
+    "line" : 32
+  }, {
+    "column" : 38,
+    "endColumn" : 39,
+    "endLine" : 32,
+    "kind" : "Identifier",
+    "line" : 32
+  }, {
+    "column" : 40,
+    "endColumn" : 50,
+    "endLine" : 32,
+    "kind" : "InstanceOfKeyword",
+    "line" : 32
+  }, {
+    "column" : 51,
+    "endColumn" : 57,
+    "endLine" : 32,
+    "kind" : "Identifier",
+    "line" : 32
+  }, {
+    "column" : 1,
+    "endColumn" : 14,
+    "endLine" : 34,
+    "kind" : "FirstStatement",
+    "line" : 34
+  }, {
+    "column" : 1,
+    "endColumn" : 13,
+    "endLine" : 34,
+    "kind" : "VariableDeclarationList",
+    "line" : 34
+  }, {
+    "column" : 5,
+    "endColumn" : 13,
+    "endLine" : 34,
+    "kind" : "VariableDeclaration",
+    "line" : 34
+  }, {
+    "column" : 5,
+    "endColumn" : 9,
+    "endLine" : 34,
+    "kind" : "Identifier",
+    "line" : 34
+  }, {
+    "column" : 12,
+    "endColumn" : 13,
+    "endLine" : 34,
+    "kind" : "FirstLiteralToken",
+    "line" : 34
+  }, {
+    "column" : 1,
+    "endColumn" : 26,
+    "endLine" : 35,
+    "kind" : "ExpressionStatement",
+    "line" : 35
+  }, {
+    "column" : 1,
+    "endColumn" : 25,
+    "endLine" : 35,
+    "kind" : "ParenthesizedExpression",
+    "line" : 35
+  }, {
+    "column" : 2,
+    "endColumn" : 24,
+    "endLine" : 35,
+    "kind" : "BinaryExpression",
+    "line" : 35
+  }, {
+    "column" : 2,
+    "endColumn" : 10,
+    "endLine" : 35,
+    "kind" : "ObjectLiteralExpression",
+    "line" : 35
+  }, {
+    "column" : 4,
+    "endColumn" : 8,
+    "endLine" : 35,
+    "kind" : "ShorthandPropertyAssignment",
+    "line" : 35
+  }, {
+    "column" : 4,
+    "endColumn" : 8,
+    "endLine" : 35,
+    "kind" : "Identifier",
+    "line" : 35
+  }, {
+    "column" : 11,
+    "endColumn" : 12,
+    "endLine" : 35,
+    "kind" : "FirstAssignment",
+    "line" : 35
+  }, {
+    "column" : 13,
+    "endColumn" : 24,
+    "endLine" : 35,
+    "kind" : "ObjectLiteralExpression",
+    "line" : 35
+  }, {
+    "column" : 15,
+    "endColumn" : 22,
+    "endLine" : 35,
+    "kind" : "PropertyAssignment",
+    "line" : 35
+  }, {
+    "column" : 15,
+    "endColumn" : 19,
+    "endLine" : 35,
+    "kind" : "Identifier",
+    "line" : 35
+  }, {
+    "column" : 21,
+    "endColumn" : 22,
+    "endLine" : 35,
+    "kind" : "FirstLiteralToken",
+    "line" : 35
+  }, {
+    "column" : 1,
+    "endColumn" : 14,
+    "endLine" : 36,
+    "kind" : "ExpressionStatement",
+    "line" : 36
+  }, {
+    "column" : 1,
+    "endColumn" : 13,
+    "endLine" : 36,
+    "kind" : "BinaryExpression",
+    "line" : 36
+  }, {
+    "column" : 1,
+    "endColumn" : 7,
+    "endLine" : 36,
+    "kind" : "ArrayLiteralExpression",
+    "line" : 36
+  }, {
+    "column" : 2,
+    "endColumn" : 6,
+    "endLine" : 36,
+    "kind" : "Identifier",
+    "line" : 36
+  }, {
+    "column" : 8,
+    "endColumn" : 9,
+    "endLine" : 36,
+    "kind" : "FirstAssignment",
+    "line" : 36
+  }, {
+    "column" : 10,
+    "endColumn" : 13,
+    "endLine" : 36,
+    "kind" : "ArrayLiteralExpression",
+    "line" : 36
+  }, {
+    "column" : 11,
+    "endColumn" : 12,
+    "endLine" : 36,
+    "kind" : "FirstLiteralToken",
+    "line" : 36
+  }, {
+    "column" : 1,
+    "endColumn" : 52,
+    "endLine" : 38,
+    "kind" : "FirstStatement",
+    "line" : 38
+  }, {
+    "column" : 1,
+    "endColumn" : 51,
+    "endLine" : 38,
+    "kind" : "VariableDeclarationList",
+    "line" : 38
+  }, {
+    "column" : 7,
+    "endColumn" : 51,
+    "endLine" : 38,
+    "kind" : "VariableDeclaration",
+    "line" : 38
+  }, {
+    "column" : 7,
+    "endColumn" : 14,
+    "endLine" : 38,
+    "kind" : "Identifier",
+    "line" : 38
+  }, {
+    "column" : 17,
+    "endColumn" : 51,
+    "endLine" : 38,
+    "kind" : "SatisfiesExpression",
+    "line" : 38
+  }, {
+    "column" : 17,
+    "endColumn" : 26,
+    "endLine" : 38,
+    "kind" : "ObjectLiteralExpression",
+    "line" : 38
+  }, {
+    "column" : 19,
+    "endColumn" : 24,
+    "endLine" : 38,
+    "kind" : "PropertyAssignment",
+    "line" : 38
+  }, {
+    "column" : 19,
+    "endColumn" : 21,
+    "endLine" : 38,
+    "kind" : "Identifier",
+    "line" : 38
+  }, {
+    "column" : 23,
+    "endColumn" : 24,
+    "endLine" : 38,
+    "kind" : "FirstLiteralToken",
+    "line" : 38
+  }, {
+    "column" : 37,
+    "endColumn" : 51,
+    "endLine" : 38,
+    "kind" : "TypeLiteral",
+    "line" : 38
+  }, {
+    "column" : 39,
+    "endColumn" : 49,
+    "endLine" : 38,
+    "kind" : "PropertySignature",
+    "line" : 38
+  }, {
+    "column" : 39,
+    "endColumn" : 41,
+    "endLine" : 38,
+    "kind" : "Identifier",
+    "line" : 38
+  }, {
+    "column" : 43,
+    "endColumn" : 49,
+    "endLine" : 38,
+    "kind" : "NumberKeyword",
+    "line" : 38
+  }, {
+    "column" : 1,
+    "endColumn" : 3,
+    "endLine" : 44,
+    "kind" : "FirstStatement",
+    "line" : 40
+  }, {
+    "column" : 1,
+    "endColumn" : 2,
+    "endLine" : 44,
+    "kind" : "VariableDeclarationList",
+    "line" : 40
+  }, {
+    "column" : 7,
+    "endColumn" : 2,
+    "endLine" : 44,
+    "kind" : "VariableDeclaration",
+    "line" : 40
+  }, {
+    "column" : 7,
+    "endColumn" : 17,
+    "endLine" : 40,
+    "kind" : "Identifier",
+    "line" : 40
+  }, {
+    "column" : 20,
+    "endColumn" : 2,
+    "endLine" : 44,
+    "kind" : "ObjectLiteralExpression",
+    "line" : 40
+  }, {
+    "column" : 3,
+    "endColumn" : 4,
+    "endLine" : 43,
+    "kind" : "MethodDeclaration",
+    "line" : 41
+  }, {
+    "column" : 3,
+    "endColumn" : 19,
+    "endLine" : 41,
+    "kind" : "ComputedPropertyName",
+    "line" : 41
+  }, {
+    "column" : 4,
+    "endColumn" : 18,
+    "endLine" : 41,
+    "kind" : "PropertyAccessExpression",
+    "line" : 41
+  }, {
+    "column" : 4,
+    "endColumn" : 10,
+    "endLine" : 41,
+    "kind" : "Identifier",
+    "line" : 41
+  }, {
+    "column" : 11,
+    "endColumn" : 18,
+    "endLine" : 41,
+    "kind" : "Identifier",
+    "line" : 41
+  }, {
+    "column" : 23,
+    "endColumn" : 27,
+    "endLine" : 41,
+    "kind" : "VoidKeyword",
+    "line" : 41
+  }, {
+    "column" : 28,
+    "endColumn" : 4,
+    "endLine" : 43,
+    "kind" : "Block",
+    "line" : 41
+  }, {
+    "column" : 1,
+    "endColumn" : 2,
+    "endLine" : 49,
+    "kind" : "FunctionDeclaration",
+    "line" : 46
+  }, {
+    "column" : 1,
+    "endColumn" : 6,
+    "endLine" : 46,
+    "kind" : "AsyncKeyword",
+    "line" : 46
+  }, {
+    "column" : 16,
+    "endColumn" : 26,
+    "endLine" : 46,
+    "kind" : "Identifier",
+    "line" : 46
+  }, {
+    "column" : 27,
+    "endColumn" : 93,
+    "endLine" : 46,
+    "kind" : "Parameter",
+    "line" : 46
+  }, {
+    "column" : 27,
+    "endColumn" : 34,
+    "endLine" : 46,
+    "kind" : "Identifier",
+    "line" : 46
+  }, {
+    "column" : 36,
+    "endColumn" : 93,
+    "endLine" : 46,
+    "kind" : "FunctionType",
+    "line" : 46
+  }, {
+    "column" : 42,
+    "endColumn" : 93,
+    "endLine" : 46,
+    "kind" : "TypeReference",
+    "line" : 46
+  }, {
+    "column" : 42,
+    "endColumn" : 49,
+    "endLine" : 46,
+    "kind" : "Identifier",
+    "line" : 46
+  }, {
+    "column" : 50,
+    "endColumn" : 92,
+    "endLine" : 46,
+    "kind" : "TypeLiteral",
+    "line" : 46
+  }, {
+    "column" : 52,
+    "endColumn" : 90,
+    "endLine" : 46,
+    "kind" : "MethodSignature",
+    "line" : 46
+  }, {
+    "column" : 52,
+    "endColumn" : 73,
+    "endLine" : 46,
+    "kind" : "ComputedPropertyName",
+    "line" : 46
+  }, {
+    "column" : 53,
+    "endColumn" : 72,
+    "endLine" : 46,
+    "kind" : "PropertyAccessExpression",
+    "line" : 46
+  }, {
+    "column" : 53,
+    "endColumn" : 59,
+    "endLine" : 46,
+    "kind" : "Identifier",
+    "line" : 46
+  }, {
+    "column" : 60,
+    "endColumn" : 72,
+    "endLine" : 46,
+    "kind" : "Identifier",
+    "line" : 46
+  }, {
+    "column" : 77,
+    "endColumn" : 90,
+    "endLine" : 46,
+    "kind" : "TypeReference",
+    "line" : 46
+  }, {
+    "column" : 77,
+    "endColumn" : 84,
+    "endLine" : 46,
+    "kind" : "Identifier",
+    "line" : 46
+  }, {
+    "column" : 85,
+    "endColumn" : 89,
+    "endLine" : 46,
+    "kind" : "VoidKeyword",
+    "line" : 46
+  }, {
+    "column" : 95,
+    "endColumn" : 2,
+    "endLine" : 49,
+    "kind" : "Block",
+    "line" : 46
+  }, {
+    "column" : 3,
+    "endColumn" : 49,
+    "endLine" : 47,
+    "kind" : "FirstStatement",
+    "line" : 47
+  }, {
+    "column" : 3,
+    "endColumn" : 48,
+    "endLine" : 47,
+    "kind" : "VariableDeclarationList",
+    "line" : 47
+  }, {
+    "column" : 15,
+    "endColumn" : 48,
+    "endLine" : 47,
+    "kind" : "VariableDeclaration",
+    "line" : 47
+  }, {
+    "column" : 15,
+    "endColumn" : 30,
+    "endLine" : 47,
+    "kind" : "Identifier",
+    "line" : 47
+  }, {
+    "column" : 33,
+    "endColumn" : 48,
+    "endLine" : 47,
+    "kind" : "AwaitExpression",
+    "line" : 47
+  }, {
+    "column" : 39,
+    "endColumn" : 48,
+    "endLine" : 47,
+    "kind" : "CallExpression",
+    "line" : 47
+  }, {
+    "column" : 39,
+    "endColumn" : 46,
+    "endLine" : 47,
+    "kind" : "Identifier",
+    "line" : 47
+  }, {
+    "column" : 3,
+    "endColumn" : 26,
+    "endLine" : 48,
+    "kind" : "ReturnStatement",
+    "line" : 48
+  }, {
+    "column" : 10,
+    "endColumn" : 25,
+    "endLine" : 48,
+    "kind" : "Identifier",
+    "line" : 48
+  }, {
+    "column" : 1,
+    "endColumn" : 3,
+    "endLine" : 63,
+    "kind" : "ExpressionStatement",
+    "line" : 51
+  }, {
+    "column" : 1,
+    "endColumn" : 2,
+    "endLine" : 63,
+    "kind" : "VoidExpression",
+    "line" : 51
+  }, {
+    "column" : 6,
+    "endColumn" : 2,
+    "endLine" : 63,
+    "kind" : "ArrayLiteralExpression",
+    "line" : 51
+  }, {
+    "column" : 3,
+    "endColumn" : 13,
+    "endLine" : 52,
+    "kind" : "Identifier",
+    "line" : 52
+  }, {
+    "column" : 3,
+    "endColumn" : 8,
+    "endLine" : 53,
+    "kind" : "Identifier",
+    "line" : 53
+  }, {
+    "column" : 3,
+    "endColumn" : 10,
+    "endLine" : 54,
+    "kind" : "Identifier",
+    "line" : 54
+  }, {
+    "column" : 3,
+    "endColumn" : 9,
+    "endLine" : 55,
+    "kind" : "Identifier",
+    "line" : 55
+  }, {
+    "column" : 3,
+    "endColumn" : 12,
+    "endLine" : 56,
+    "kind" : "Identifier",
+    "line" : 56
+  }, {
+    "column" : 3,
+    "endColumn" : 16,
+    "endLine" : 57,
+    "kind" : "Identifier",
+    "line" : 57
+  }, {
+    "column" : 3,
+    "endColumn" : 20,
+    "endLine" : 58,
+    "kind" : "Identifier",
+    "line" : 58
+  }, {
+    "column" : 3,
+    "endColumn" : 16,
+    "endLine" : 59,
+    "kind" : "Identifier",
+    "line" : 59
+  }, {
+    "column" : 3,
+    "endColumn" : 7,
+    "endLine" : 60,
+    "kind" : "Identifier",
+    "line" : 60
+  }, {
+    "column" : 3,
+    "endColumn" : 10,
+    "endLine" : 61,
+    "kind" : "Identifier",
+    "line" : 61
+  }, {
+    "column" : 3,
+    "endColumn" : 13,
+    "endLine" : 62,
+    "kind" : "Identifier",
+    "line" : 62
+  }, {
+    "column" : 1,
+    "endColumn" : 26,
+    "endLine" : 64,
+    "kind" : "ExpressionStatement",
+    "line" : 64
+  }, {
+    "column" : 1,
+    "endColumn" : 25,
+    "endLine" : 64,
+    "kind" : "VoidExpression",
+    "line" : 64
+  }, {
+    "column" : 6,
+    "endColumn" : 25,
+    "endLine" : 64,
+    "kind" : "Identifier",
+    "line" : 64
+  }, {
+    "column" : 1,
+    "endColumn" : 22,
+    "endLine" : 65,
+    "kind" : "ExpressionStatement",
+    "line" : 65
+  }, {
+    "column" : 1,
+    "endColumn" : 21,
+    "endLine" : 65,
+    "kind" : "VoidExpression",
+    "line" : 65
+  }, {
+    "column" : 6,
+    "endColumn" : 21,
+    "endLine" : 65,
+    "kind" : "Identifier",
+    "line" : 65
+  }, {
+    "column" : 1,
+    "endColumn" : 23,
+    "endLine" : 66,
+    "kind" : "ExpressionStatement",
+    "line" : 66
+  }, {
+    "column" : 1,
+    "endColumn" : 22,
+    "endLine" : 66,
+    "kind" : "VoidExpression",
+    "line" : 66
+  }, {
+    "column" : 6,
+    "endColumn" : 22,
+    "endLine" : 66,
+    "kind" : "Identifier",
+    "line" : 66
+  }, {
+    "column" : 1,
+    "endColumn" : 17,
+    "endLine" : 67,
+    "kind" : "ExpressionStatement",
+    "line" : 67
+  }, {
+    "column" : 1,
+    "endColumn" : 16,
+    "endLine" : 67,
+    "kind" : "VoidExpression",
+    "line" : 67
+  }, {
+    "column" : 6,
+    "endColumn" : 16,
+    "endLine" : 67,
+    "kind" : "Identifier",
+    "line" : 67
+  }, {
+    "column" : 1,
+    "endColumn" : 1,
+    "endLine" : 68,
+    "kind" : "EndOfFileToken",
+    "line" : 68
+  } ],
+  "diagnostics" : [ ],
+  "fixture" : "ok/020_expressions.ts",
+  "normalizedProgram" : {
+    "kind" : "Program",
+    "statements" : [ {
+      "column" : 1,
+      "expression" : {
+        "column" : 15,
+        "kind" : "UndefinedLiteral",
+        "line" : 1
+      },
+      "kind" : "VariableDeclaration",
+      "line" : 1,
+      "name" : "a"
+    }, {
+      "column" : 1,
+      "expression" : {
+        "column" : 15,
+        "kind" : "UndefinedLiteral",
+        "line" : 2
+      },
+      "kind" : "VariableDeclaration",
+      "line" : 2,
+      "name" : "b"
+    }, {
+      "column" : 1,
+      "expression" : {
+        "column" : 15,
+        "kind" : "UndefinedLiteral",
+        "line" : 3
+      },
+      "kind" : "VariableDeclaration",
+      "line" : 3,
+      "name" : "c"
+    }, {
+      "column" : 1,
+      "expression" : {
+        "column" : 15,
+        "kind" : "UndefinedLiteral",
+        "line" : 4
+      },
+      "kind" : "VariableDeclaration",
+      "line" : 4,
+      "name" : "d"
+    }, {
+      "column" : 1,
+      "expression" : {
+        "column" : 15,
+        "kind" : "UndefinedLiteral",
+        "line" : 5
+      },
+      "kind" : "VariableDeclaration",
+      "line" : 5,
+      "name" : "e"
+    }, {
+      "column" : 1,
+      "expression" : {
+        "column" : 15,
+        "kind" : "UndefinedLiteral",
+        "line" : 6
+      },
+      "kind" : "VariableDeclaration",
+      "line" : 6,
+      "name" : "f"
+    }, {
+      "column" : 1,
+      "expression" : {
+        "column" : 15,
+        "kind" : "UndefinedLiteral",
+        "line" : 7
+      },
+      "kind" : "VariableDeclaration",
+      "line" : 7,
+      "name" : "g"
+    }, {
+      "column" : 1,
+      "expression" : {
+        "column" : 15,
+        "kind" : "UndefinedLiteral",
+        "line" : 8
+      },
+      "kind" : "VariableDeclaration",
+      "line" : 8,
+      "name" : "x"
+    }, {
+      "column" : 1,
+      "expression" : {
+        "column" : 20,
+        "kind" : "BinaryExpression",
+        "left" : {
+          "column" : 21,
+          "kind" : "BinaryExpression",
+          "left" : {
+            "column" : 21,
+            "kind" : "VariableExpression",
+            "line" : 10,
+            "name" : "a"
+          },
+          "line" : 10,
+          "operator" : "+",
+          "right" : {
+            "column" : 25,
+            "kind" : "BinaryExpression",
+            "left" : {
+              "column" : 25,
+              "kind" : "VariableExpression",
+              "line" : 10,
+              "name" : "b"
+            },
+            "line" : 10,
+            "operator" : "*",
+            "right" : {
+              "column" : 29,
+              "kind" : "BinaryExpression",
+              "left" : {
+                "column" : 29,
+                "kind" : "VariableExpression",
+                "line" : 10,
+                "name" : "c"
+              },
+              "line" : 10,
+              "operator" : "*",
+              "right" : {
+                "column" : 34,
+                "kind" : "VariableExpression",
+                "line" : 10,
+                "name" : "d"
+              }
+            }
+          }
+        },
+        "line" : 10,
+        "operator" : "??",
+        "right" : {
+          "column" : 41,
+          "kind" : "BinaryExpression",
+          "left" : {
+            "column" : 41,
+            "kind" : "VariableExpression",
+            "line" : 10,
+            "name" : "e"
+          },
+          "line" : 10,
+          "operator" : "||",
+          "right" : {
+            "column" : 47,
+            "kind" : "BinaryExpression",
+            "left" : {
+              "column" : 47,
+              "kind" : "VariableExpression",
+              "line" : 10,
+              "name" : "f"
+            },
+            "line" : 10,
+            "operator" : "&&",
+            "right" : {
+              "column" : 52,
+              "kind" : "VariableExpression",
+              "line" : 10,
+              "name" : "g"
+            }
+          }
+        }
+      },
+      "kind" : "VariableDeclaration",
+      "line" : 10,
+      "name" : "precedence"
+    }, {
+      "column" : 1,
+      "expression" : {
+        "column" : 15,
+        "kind" : "BinaryExpression",
+        "left" : {
+          "arguments" : [ {
+            "column" : 22,
+            "kind" : "VariableExpression",
+            "line" : 11,
+            "name" : "c"
+          } ],
+          "callee" : {
+            "column" : 15,
+            "kind" : "OptionalMemberAccessExpression",
+            "line" : 11,
+            "member" : "b",
+            "receiver" : {
+              "column" : 15,
+              "kind" : "VariableExpression",
+              "line" : 11,
+              "name" : "a"
+            }
+          },
+          "column" : 15,
+          "kind" : "OptionalCallExpression",
+          "line" : 11
+        },
+        "line" : 11,
+        "operator" : "??",
+        "right" : {
+          "column" : 28,
+          "kind" : "VariableExpression",
+          "line" : 11,
+          "name" : "d"
+        }
+      },
+      "kind" : "VariableDeclaration",
+      "line" : 11,
+      "name" : "chain"
+    }, {
+      "column" : 1,
+      "expression" : {
+        "column" : 17,
+        "kind" : "MemberAccessExpression",
+        "line" : 12,
+        "member" : "y",
+        "receiver" : {
+          "column" : 17,
+          "kind" : "VariableExpression",
+          "line" : 12,
+          "name" : "x"
+        }
+      },
+      "kind" : "VariableDeclaration",
+      "line" : 12,
+      "name" : "nonNull"
+    }, {
+      "column" : 1,
+      "expression" : {
+        "column" : 16,
+        "kind" : "MemberAccessExpression",
+        "line" : 13,
+        "member" : "y",
+        "receiver" : {
+          "column" : 17,
+          "kind" : "VariableExpression",
+          "line" : 13,
+          "name" : "x"
+        }
+      },
+      "kind" : "VariableDeclaration",
+      "line" : 13,
+      "name" : "asCast"
+    }, {
+      "column" : 1,
+      "expression" : {
+        "column" : 19,
+        "kind" : "MemberAccessExpression",
+        "line" : 14,
+        "member" : "y",
+        "receiver" : {
+          "column" : 35,
+          "kind" : "VariableExpression",
+          "line" : 14,
+          "name" : "x"
+        }
+      },
+      "kind" : "VariableDeclaration",
+      "line" : 14,
+      "name" : "angleCast"
+    }, {
+      "column" : 1,
+      "declaration" : {
+        "async" : false,
+        "body" : [ {
+          "column" : 3,
+          "expression" : {
+            "column" : 9,
+            "kind" : "NumberLiteral",
+            "line" : 17,
+            "text" : "1"
+          },
+          "kind" : "ExpressionStatement",
+          "line" : 17
+        }, {
+          "column" : 3,
+          "expression" : {
+            "column" : 10,
+            "kind" : "VariableExpression",
+            "line" : 18,
+            "name" : "source"
+          },
+          "kind" : "ExpressionStatement",
+          "line" : 18
+        } ],
+        "name" : "expressionGenerator",
+        "parameters" : [ "source" ]
+      },
+      "kind" : "FunctionDeclarationStatement",
+      "line" : 16
+    }, {
+      "column" : 1,
+      "declaration" : {
+        "async" : true,
+        "body" : [ {
+          "column" : 3,
+          "expression" : {
+            "column" : 19,
+            "expression" : {
+              "arguments" : [ {
+                "column" : 41,
+                "kind" : "NumberLiteral",
+                "line" : 22,
+                "text" : "1"
+              } ],
+              "callee" : {
+                "column" : 25,
+                "kind" : "MemberAccessExpression",
+                "line" : 22,
+                "member" : "resolve",
+                "receiver" : {
+                  "column" : 25,
+                  "kind" : "VariableExpression",
+                  "line" : 22,
+                  "name" : "Promise"
+                }
+              },
+              "column" : 25,
+              "kind" : "CallExpression",
+              "line" : 22
+            },
+            "kind" : "AwaitExpression",
+            "line" : 22
+          },
+          "kind" : "VariableDeclaration",
+          "line" : 22,
+          "name" : "awaited"
+        }, {
+          "column" : 3,
+          "expression" : {
+            "column" : 10,
+            "kind" : "VariableExpression",
+            "line" : 23,
+            "name" : "awaited"
+          },
+          "kind" : "ReturnStatement",
+          "line" : 23
+        } ],
+        "name" : "expressionAsync",
+        "parameters" : [ ]
+      },
+      "kind" : "FunctionDeclarationStatement",
+      "line" : 21
+    }, {
+      "column" : 1,
+      "declaration" : {
+        "async" : false,
+        "body" : [ {
+          "column" : 3,
+          "expression" : {
+            "column" : 10,
+            "kind" : "UndefinedLiteral",
+            "line" : 27
+          },
+          "kind" : "ReturnStatement",
+          "line" : 27
+        } ],
+        "name" : "captureNewTarget",
+        "parameters" : [ ]
+      },
+      "kind" : "FunctionDeclarationStatement",
+      "line" : 26
+    }, {
+      "column" : 1,
+      "expression" : {
+        "column" : 23,
+        "kind" : "MemberAccessExpression",
+        "line" : 30,
+        "member" : "url",
+        "receiver" : {
+          "column" : 23,
+          "kind" : "UndefinedLiteral",
+          "line" : 30
+        }
+      },
+      "kind" : "VariableDeclaration",
+      "line" : 30,
+      "name" : "importMetaUrl"
+    }, {
+      "column" : 1,
+      "expression" : {
+        "column" : 27,
+        "kind" : "UndefinedLiteral",
+        "line" : 31
+      },
+      "kind" : "VariableDeclaration",
+      "line" : 31,
+      "name" : "dynamicImportExpr"
+    }, {
+      "column" : 1,
+      "expression" : {
+        "column" : 23,
+        "kind" : "BinaryExpression",
+        "left" : {
+          "column" : 24,
+          "kind" : "BinaryExpression",
+          "left" : {
+            "column" : 24,
+            "kind" : "StringLiteral",
+            "line" : 32,
+            "text" : "k"
+          },
+          "line" : 32,
+          "operator" : "===",
+          "right" : {
+            "column" : 31,
+            "kind" : "VariableExpression",
+            "line" : 32,
+            "name" : "a"
+          }
+        },
+        "line" : 32,
+        "operator" : "&&",
+        "right" : {
+          "column" : 38,
+          "kind" : "BinaryExpression",
+          "left" : {
+            "column" : 38,
+            "kind" : "VariableExpression",
+            "line" : 32,
+            "name" : "a"
+          },
+          "line" : 32,
+          "operator" : "===",
+          "right" : {
+            "column" : 51,
+            "kind" : "VariableExpression",
+            "line" : 32,
+            "name" : "Object"
+          }
+        }
+      },
+      "kind" : "VariableDeclaration",
+      "line" : 32,
+      "name" : "inAndInstance"
+    }, {
+      "column" : 1,
+      "expression" : {
+        "column" : 12,
+        "kind" : "NumberLiteral",
+        "line" : 34,
+        "text" : "0"
+      },
+      "kind" : "VariableDeclaration",
+      "line" : 34,
+      "name" : "left"
+    }, {
+      "column" : 1,
+      "expression" : {
+        "column" : 13,
+        "entries" : [ {
+          "key" : "left",
+          "value" : {
+            "column" : 21,
+            "kind" : "NumberLiteral",
+            "line" : 35,
+            "text" : "3"
+          }
+        } ],
+        "kind" : "ObjectLiteralExpression",
+        "line" : 35
+      },
+      "kind" : "VariableDeclaration",
+      "line" : 35,
+      "name" : "destructAssign_1"
+    }, {
+      "column" : 1,
+      "expression" : {
+        "column" : 1,
+        "kind" : "MemberAccessExpression",
+        "line" : 35,
+        "member" : "left",
+        "receiver" : {
+          "column" : 1,
+          "kind" : "VariableExpression",
+          "line" : 35,
+          "name" : "destructAssign_1"
+        }
+      },
+      "kind" : "AssignmentStatement",
+      "line" : 35,
+      "target" : {
+        "column" : 4,
+        "kind" : "VariableExpression",
+        "line" : 35,
+        "name" : "left"
+      }
+    }, {
+      "column" : 1,
+      "expression" : {
+        "column" : 10,
+        "elements" : [ {
+          "column" : 11,
+          "kind" : "NumberLiteral",
+          "line" : 36,
+          "text" : "4"
+        } ],
+        "kind" : "ArrayLiteralExpression",
+        "line" : 36
+      },
+      "kind" : "VariableDeclaration",
+      "line" : 36,
+      "name" : "destructAssign_2"
+    }, {
+      "column" : 1,
+      "expression" : {
+        "column" : 1,
+        "kind" : "MemberAccessExpression",
+        "line" : 36,
+        "member" : "0",
+        "receiver" : {
+          "column" : 1,
+          "kind" : "VariableExpression",
+          "line" : 36,
+          "name" : "destructAssign_2"
+        }
+      },
+      "kind" : "AssignmentStatement",
+      "line" : 36,
+      "target" : {
+        "column" : 2,
+        "kind" : "VariableExpression",
+        "line" : 36,
+        "name" : "left"
+      }
+    }, {
+      "column" : 1,
+      "expression" : {
+        "column" : 17,
+        "entries" : [ {
+          "key" : "id",
+          "value" : {
+            "column" : 23,
+            "kind" : "NumberLiteral",
+            "line" : 38,
+            "text" : "1"
+          }
+        } ],
+        "kind" : "ObjectLiteralExpression",
+        "line" : 38
+      },
+      "kind" : "VariableDeclaration",
+      "line" : 38,
+      "name" : "satExpr"
+    }, {
+      "column" : 1,
+      "expression" : {
+        "column" : 20,
+        "entries" : [ ],
+        "kind" : "ObjectLiteralExpression",
+        "line" : 40
+      },
+      "kind" : "VariableDeclaration",
+      "line" : 40,
+      "name" : "disposable"
+    }, {
+      "column" : 1,
+      "declaration" : {
+        "async" : true,
+        "body" : [ {
+          "column" : 3,
+          "expression" : {
+            "column" : 33,
+            "expression" : {
+              "arguments" : [ ],
+              "callee" : {
+                "column" : 39,
+                "kind" : "VariableExpression",
+                "line" : 47,
+                "name" : "factory"
+              },
+              "column" : 39,
+              "kind" : "CallExpression",
+              "line" : 47
+            },
+            "kind" : "AwaitExpression",
+            "line" : 47
+          },
+          "kind" : "VariableDeclaration",
+          "line" : 47,
+          "name" : "asyncDisposable"
+        }, {
+          "column" : 3,
+          "expression" : {
+            "column" : 10,
+            "kind" : "VariableExpression",
+            "line" : 48,
+            "name" : "asyncDisposable"
+          },
+          "kind" : "ReturnStatement",
+          "line" : 48
+        } ],
+        "name" : "usingAsync",
+        "parameters" : [ "factory" ]
+      },
+      "kind" : "FunctionDeclarationStatement",
+      "line" : 46
+    }, {
+      "column" : 1,
+      "expression" : {
+        "column" : 1,
+        "kind" : "UndefinedLiteral",
+        "line" : 51
+      },
+      "kind" : "ExpressionStatement",
+      "line" : 51
+    }, {
+      "column" : 1,
+      "expression" : {
+        "column" : 1,
+        "kind" : "UndefinedLiteral",
+        "line" : 64
+      },
+      "kind" : "ExpressionStatement",
+      "line" : 64
+    }, {
+      "column" : 1,
+      "expression" : {
+        "column" : 1,
+        "kind" : "UndefinedLiteral",
+        "line" : 65
+      },
+      "kind" : "ExpressionStatement",
+      "line" : 65
+    }, {
+      "column" : 1,
+      "expression" : {
+        "column" : 1,
+        "kind" : "UndefinedLiteral",
+        "line" : 66
+      },
+      "kind" : "ExpressionStatement",
+      "line" : 66
+    }, {
+      "column" : 1,
+      "expression" : {
+        "column" : 1,
+        "kind" : "UndefinedLiteral",
+        "line" : 67
+      },
+      "kind" : "ExpressionStatement",
+      "line" : 67
+    } ]
+  },
+  "schemaVersion" : "tsj-backend-token-v1"
+}

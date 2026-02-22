@@ -38,6 +38,7 @@ public final class TsjJavaInterop {
     private static final String INVOKE_KIND_INSTANCE_FIELD_GET = "INSTANCE_FIELD_GET";
     private static final String INVOKE_KIND_INSTANCE_FIELD_SET = "INSTANCE_FIELD_SET";
     private static final int CONVERSION_IMPOSSIBLE = Integer.MAX_VALUE / 4;
+    private static final Object[] EMPTY_TS_ARGS = new Object[0];
     private static volatile boolean TRACE_ENABLED = Boolean.getBoolean("tsj.interop.trace");
 
     private TsjJavaInterop() {
@@ -52,33 +53,34 @@ public final class TsjJavaInterop {
     }
 
     public static Object invokeBinding(final String className, final String bindingName, final Object... tsArgs) {
-        traceInvocation(className, bindingName, tsArgs);
+        final Object[] normalizedArgs = normalizeTsArgs(tsArgs);
+        traceInvocation(className, bindingName, normalizedArgs);
         try {
             final Class<?> targetClass = resolveClass(className);
             final Object result;
             if (BINDING_CONSTRUCTOR.equals(bindingName)) {
-                result = invokeConstructor(targetClass, tsArgs);
+                result = invokeConstructor(targetClass, normalizedArgs);
             } else if (bindingName.startsWith(BINDING_INSTANCE_GET_PREFIX)) {
                 final String fieldName = requireBindingSuffix(bindingName, BINDING_INSTANCE_GET_PREFIX);
-                result = readInstanceField(targetClass, fieldName, tsArgs);
+                result = readInstanceField(targetClass, fieldName, normalizedArgs);
             } else if (bindingName.startsWith(BINDING_INSTANCE_SET_PREFIX)) {
                 final String fieldName = requireBindingSuffix(bindingName, BINDING_INSTANCE_SET_PREFIX);
-                result = writeInstanceField(targetClass, fieldName, tsArgs);
+                result = writeInstanceField(targetClass, fieldName, normalizedArgs);
             } else if (bindingName.startsWith(BINDING_STATIC_GET_PREFIX)) {
                 final String fieldName = requireBindingSuffix(bindingName, BINDING_STATIC_GET_PREFIX);
-                result = readStaticField(targetClass, fieldName, tsArgs);
+                result = readStaticField(targetClass, fieldName, normalizedArgs);
             } else if (bindingName.startsWith(BINDING_STATIC_SET_PREFIX)) {
                 final String fieldName = requireBindingSuffix(bindingName, BINDING_STATIC_SET_PREFIX);
-                result = writeStaticField(targetClass, fieldName, tsArgs);
+                result = writeStaticField(targetClass, fieldName, normalizedArgs);
             } else if (bindingName.startsWith(BINDING_INSTANCE_PREFIX)) {
                 final String methodName = requireBindingSuffix(bindingName, BINDING_INSTANCE_PREFIX);
-                result = invokeInstance(targetClass, methodName, tsArgs);
+                result = invokeInstance(targetClass, methodName, normalizedArgs);
             } else if (bindingName.startsWith("$")) {
                 throw new IllegalArgumentException(
                         "Unsupported interop binding `" + bindingName + "` on " + className + "."
                 );
             } else {
-                result = invokeStatic(targetClass, className, bindingName, tsArgs);
+                result = invokeStatic(targetClass, className, bindingName, normalizedArgs);
             }
             traceSuccess(className, bindingName, result);
             return result;
@@ -90,7 +92,7 @@ public final class TsjJavaInterop {
 
     public static Object invokeStatic(final String className, final String methodName, final Object... tsArgs) {
         final Class<?> targetClass = resolveClass(className);
-        return invokeStatic(targetClass, className, methodName, tsArgs);
+        return invokeStatic(targetClass, className, methodName, normalizeTsArgs(tsArgs));
     }
 
     public static Object invokeBindingPreselected(
@@ -110,52 +112,53 @@ public final class TsjJavaInterop {
         Objects.requireNonNull(invokeKind, "invokeKind");
 
         final String traceBinding = bindingName + "#preselected";
-        traceInvocation(className, traceBinding, tsArgs);
+        final Object[] normalizedArgs = normalizeTsArgs(tsArgs);
+        traceInvocation(className, traceBinding, normalizedArgs);
         try {
             final Class<?> ownerClass = resolveClass(normalizeOwnerName(owner));
             final Object result = switch (invokeKind) {
-                case INVOKE_KIND_CONSTRUCTOR -> invokePreselectedConstructor(ownerClass, descriptor, tsArgs);
+                case INVOKE_KIND_CONSTRUCTOR -> invokePreselectedConstructor(ownerClass, descriptor, normalizedArgs);
                 case INVOKE_KIND_STATIC_METHOD -> invokePreselectedMethod(
                         ownerClass,
                         memberName,
                         descriptor,
                         true,
-                        tsArgs
+                        normalizedArgs
                 );
                 case INVOKE_KIND_INSTANCE_METHOD -> invokePreselectedMethod(
                         ownerClass,
                         memberName,
                         descriptor,
                         false,
-                        tsArgs
+                        normalizedArgs
                 );
                 case INVOKE_KIND_STATIC_FIELD_GET -> invokePreselectedFieldGet(
                         ownerClass,
                         memberName,
                         descriptor,
                         true,
-                        tsArgs
+                        normalizedArgs
                 );
                 case INVOKE_KIND_STATIC_FIELD_SET -> invokePreselectedFieldSet(
                         ownerClass,
                         memberName,
                         descriptor,
                         true,
-                        tsArgs
+                        normalizedArgs
                 );
                 case INVOKE_KIND_INSTANCE_FIELD_GET -> invokePreselectedFieldGet(
                         ownerClass,
                         memberName,
                         descriptor,
                         false,
-                        tsArgs
+                        normalizedArgs
                 );
                 case INVOKE_KIND_INSTANCE_FIELD_SET -> invokePreselectedFieldSet(
                         ownerClass,
                         memberName,
                         descriptor,
                         false,
-                        tsArgs
+                        normalizedArgs
                 );
                 default -> throw new IllegalArgumentException(
                         "Unsupported preselected invokeKind `" + invokeKind + "` for " + className + "#" + bindingName
@@ -175,10 +178,11 @@ public final class TsjJavaInterop {
 
         final Class<?> receiverClass = receiver.getClass();
         final String bindingName = BINDING_INSTANCE_PREFIX + methodName;
-        traceInvocation(receiverClass.getName(), bindingName, tsArgs);
-        final Object[] invocationArgs = new Object[tsArgs.length + 1];
+        final Object[] normalizedArgs = normalizeTsArgs(tsArgs);
+        traceInvocation(receiverClass.getName(), bindingName, normalizedArgs);
+        final Object[] invocationArgs = new Object[normalizedArgs.length + 1];
         invocationArgs[0] = receiver;
-        System.arraycopy(tsArgs, 0, invocationArgs, 1, tsArgs.length);
+        System.arraycopy(normalizedArgs, 0, invocationArgs, 1, normalizedArgs.length);
         try {
             final Object result = invokeInstance(receiverClass, methodName, invocationArgs);
             traceSuccess(receiverClass.getName(), bindingName, result);
@@ -479,7 +483,11 @@ public final class TsjJavaInterop {
             throw new IllegalArgumentException("No public constructor available on " + targetClass.getName() + ".");
         }
         final ResolvedExecutable<Constructor<?>> resolved = resolveExecutable(
-                Arrays.asList(constructors),
+                Arrays.stream(constructors)
+                        .sorted(Comparator
+                                .comparing(TsjJavaInterop::constructorDescriptor)
+                                .thenComparing(constructor -> constructor.getDeclaringClass().getName()))
+                        .toList(),
                 targetClass.getSimpleName(),
                 tsArgs
         );
@@ -732,6 +740,13 @@ public final class TsjJavaInterop {
         return owner.replace('/', '.');
     }
 
+    private static Object[] normalizeTsArgs(final Object[] tsArgs) {
+        if (tsArgs == null) {
+            return EMPTY_TS_ARGS;
+        }
+        return tsArgs;
+    }
+
     private static ClassLoader resolveInteropClassLoader() {
         final ClassLoader contextLoader = Thread.currentThread().getContextClassLoader();
         if (contextLoader != null) {
@@ -759,10 +774,25 @@ public final class TsjJavaInterop {
                 nonBridgeCandidates.add(method);
             }
         }
-        if (!nonBridgeCandidates.isEmpty()) {
-            return nonBridgeCandidates;
+        final List<Method> selected = nonBridgeCandidates.isEmpty() ? visibleCandidates : nonBridgeCandidates;
+        selected.sort(Comparator
+                .comparing(TsjJavaInterop::methodDescriptor)
+                .thenComparing(method -> method.getDeclaringClass().getName()));
+        return List.copyOf(selected);
+    }
+
+    private static String executableOrderKey(final Member member) {
+        return member.getDeclaringClass().getName()
+                + "#"
+                + member.getName()
+                + executableDescriptor(member);
+    }
+
+    private static String executableDescriptor(final Member member) {
+        if (member instanceof Method method) {
+            return methodDescriptor(method);
         }
-        return visibleCandidates;
+        return constructorDescriptor((Constructor<?>) member);
     }
 
     private static List<String> declaredRestrictedMethodSignatures(
@@ -870,7 +900,9 @@ public final class TsjJavaInterop {
                         conversion.arguments(),
                         conversion.score(),
                         varArgs,
-                        executableSignature(candidate)
+                        executableSignature(candidate),
+                        executableDescriptor(candidate),
+                        executableOrderKey(candidate)
                 ));
             } else {
                 mismatchReasons.add(executableSignature(candidate) + ": " + conversion.failureReason());
@@ -879,6 +911,7 @@ public final class TsjJavaInterop {
         if (resolved.isEmpty()) {
             final String argTypes = describeTsArgTypes(tsArgs);
             final String candidatesSummary = summarizeCandidates(candidates);
+            mismatchReasons.sort(String::compareTo);
             final String mismatchSummary = mismatchReasons.isEmpty()
                     ? ""
                     : " Conversion failures: " + String.join("; ", mismatchReasons);
@@ -891,8 +924,22 @@ public final class TsjJavaInterop {
         resolved.sort(Comparator
                 .comparingInt(ResolvedExecutable<M>::score)
                 .thenComparing(ResolvedExecutable<M>::varArgs)
-                .thenComparing(ResolvedExecutable<M>::signature));
-        return resolved.getFirst();
+                .thenComparing(ResolvedExecutable<M>::descriptor)
+                .thenComparing(ResolvedExecutable<M>::orderKey));
+        final ResolvedExecutable<M> best = resolved.getFirst();
+        final List<ResolvedExecutable<M>> bestCandidates = resolved.stream()
+                .filter(candidate -> candidate.score() == best.score() && candidate.varArgs() == best.varArgs())
+                .toList();
+        if (bestCandidates.size() == 1) {
+            return best;
+        }
+
+        final ResolvedExecutable<M> specificityWinner = selectSpecificityWinner(bestCandidates, tsArgs.length);
+        if (specificityWinner != null) {
+            return specificityWinner;
+        }
+
+        throw new IllegalArgumentException(ambiguousCandidatesDiagnostic(memberName, tsArgs, bestCandidates));
     }
 
     private static ConversionAttempt convertArguments(
@@ -1171,6 +1218,9 @@ public final class TsjJavaInterop {
         if (tsValue == null || tsValue == TsjUndefined.INSTANCE) {
             return targetType.isPrimitive() ? CONVERSION_IMPOSSIBLE : 1;
         }
+        if (boxedTarget != Object.class && boxedTarget.isInstance(tsValue)) {
+            return 0;
+        }
         if (targetType.isArray()) {
             return looksArrayLike(tsValue) ? 2 : CONVERSION_IMPOSSIBLE;
         }
@@ -1181,7 +1231,13 @@ public final class TsjJavaInterop {
             return looksArrayLike(tsValue) ? 2 : CONVERSION_IMPOSSIBLE;
         }
         if (Map.class.isAssignableFrom(boxedTarget)) {
-            return tsValue instanceof TsjObject || tsValue instanceof Map<?, ?> ? 2 : CONVERSION_IMPOSSIBLE;
+            if (tsValue instanceof Map<?, ?>) {
+                return 0;
+            }
+            if (tsValue instanceof TsjObject) {
+                return looksArrayLike(tsValue) ? 4 : 2;
+            }
+            return CONVERSION_IMPOSSIBLE;
         }
         if (boxedTarget.isEnum()) {
             if (boxedTarget.isInstance(tsValue)) {
@@ -1203,9 +1259,6 @@ public final class TsjJavaInterop {
         }
         if (boxedTarget == Object.class) {
             return 10;
-        }
-        if (boxedTarget.isInstance(tsValue)) {
-            return 0;
         }
         if (boxedTarget == String.class) {
             return tsValue instanceof String ? 0 : 7;
@@ -1238,7 +1291,7 @@ public final class TsjJavaInterop {
         }
         Method candidate = null;
         for (Method method : type.getMethods()) {
-            if (method.getDeclaringClass() == Object.class) {
+            if (method.getDeclaringClass() == Object.class || isObjectContractMethod(method)) {
                 continue;
             }
             if (Modifier.isStatic(method.getModifiers()) || !Modifier.isAbstract(method.getModifiers())) {
@@ -1255,9 +1308,176 @@ public final class TsjJavaInterop {
         return candidate != null;
     }
 
+    private static boolean isObjectContractMethod(final Method method) {
+        final String name = method.getName();
+        final Class<?>[] parameterTypes = method.getParameterTypes();
+        if ("toString".equals(name)) {
+            return parameterTypes.length == 0 && method.getReturnType() == String.class;
+        }
+        if ("hashCode".equals(name)) {
+            return parameterTypes.length == 0 && method.getReturnType() == int.class;
+        }
+        if ("equals".equals(name)) {
+            return parameterTypes.length == 1
+                    && parameterTypes[0] == Object.class
+                    && method.getReturnType() == boolean.class;
+        }
+        return false;
+    }
+
     private static boolean sameSignature(final Method left, final Method right) {
         return left.getName().equals(right.getName())
                 && Arrays.equals(left.getParameterTypes(), right.getParameterTypes());
+    }
+
+    private static <M extends Member> ResolvedExecutable<M> selectSpecificityWinner(
+            final List<ResolvedExecutable<M>> candidates,
+            final int argumentCount
+    ) {
+        ResolvedExecutable<M> winner = null;
+        for (ResolvedExecutable<M> candidate : candidates) {
+            boolean dominates = true;
+            for (ResolvedExecutable<M> other : candidates) {
+                if (candidate == other) {
+                    continue;
+                }
+                if (!moreSpecific(candidate, other, argumentCount)) {
+                    dominates = false;
+                    break;
+                }
+            }
+            if (!dominates) {
+                continue;
+            }
+            if (winner != null) {
+                return null;
+            }
+            winner = candidate;
+        }
+        return winner;
+    }
+
+    private static boolean moreSpecific(
+            final ResolvedExecutable<?> left,
+            final ResolvedExecutable<?> right,
+            final int argumentCount
+    ) {
+        final List<Class<?>> leftParameters = expandedParameterTypes(left, argumentCount);
+        final List<Class<?>> rightParameters = expandedParameterTypes(right, argumentCount);
+        if (leftParameters.size() != rightParameters.size()) {
+            return false;
+        }
+
+        boolean strict = false;
+        for (int index = 0; index < leftParameters.size(); index++) {
+            final Class<?> leftType = leftParameters.get(index);
+            final Class<?> rightType = rightParameters.get(index);
+            if (leftType.equals(rightType)) {
+                continue;
+            }
+            if (typeMoreSpecific(leftType, rightType)) {
+                strict = true;
+                continue;
+            }
+            return false;
+        }
+        return strict;
+    }
+
+    private static List<Class<?>> expandedParameterTypes(
+            final ResolvedExecutable<?> candidate,
+            final int argumentCount
+    ) {
+        final Class<?>[] parameterTypes = memberParameterTypes(candidate.member());
+        final List<Class<?>> parameters = new ArrayList<>(Arrays.asList(parameterTypes));
+        if (!candidate.varArgs()) {
+            return parameters;
+        }
+        final int fixedCount = parameterTypes.length - 1;
+        final Class<?> componentType = parameterTypes[parameterTypes.length - 1].getComponentType();
+        if (componentType == null) {
+            return parameters;
+        }
+        parameters.removeLast();
+        for (int index = fixedCount; index < argumentCount; index++) {
+            parameters.add(componentType);
+        }
+        return parameters;
+    }
+
+    private static Class<?>[] memberParameterTypes(final Member member) {
+        if (member instanceof Method method) {
+            return method.getParameterTypes();
+        }
+        return ((Constructor<?>) member).getParameterTypes();
+    }
+
+    private static boolean typeMoreSpecific(final Class<?> leftType, final Class<?> rightType) {
+        if (leftType.isPrimitive() && rightType.isPrimitive()) {
+            final Integer leftRank = primitiveSpecificityRank(leftType);
+            final Integer rightRank = primitiveSpecificityRank(rightType);
+            if (leftRank == null || rightRank == null) {
+                return false;
+            }
+            return leftRank < rightRank;
+        }
+        if (!leftType.isPrimitive() && !rightType.isPrimitive()) {
+            return rightType.isAssignableFrom(leftType) && !leftType.isAssignableFrom(rightType);
+        }
+        if (leftType.isPrimitive() && !rightType.isPrimitive()) {
+            return rightType.isAssignableFrom(boxedType(leftType));
+        }
+        return false;
+    }
+
+    private static Integer primitiveSpecificityRank(final Class<?> primitiveType) {
+        if (primitiveType == byte.class) {
+            return 0;
+        }
+        if (primitiveType == short.class || primitiveType == char.class) {
+            return 1;
+        }
+        if (primitiveType == int.class) {
+            return 2;
+        }
+        if (primitiveType == long.class) {
+            return 3;
+        }
+        if (primitiveType == float.class) {
+            return 4;
+        }
+        if (primitiveType == double.class) {
+            return 5;
+        }
+        return null;
+    }
+
+    private static String ambiguousCandidatesDiagnostic(
+            final String memberName,
+            final Object[] tsArgs,
+            final List<? extends ResolvedExecutable<?>> candidates
+    ) {
+        final List<ResolvedExecutable<?>> sorted = new ArrayList<>(candidates);
+        sorted.sort(Comparator
+                .comparing((ResolvedExecutable<?> candidate) -> candidate.descriptor())
+                .thenComparing(candidate -> candidate.orderKey()));
+        final List<String> candidateDetails = new ArrayList<>(sorted.size());
+        for (ResolvedExecutable<?> candidate : sorted) {
+            candidateDetails.add(
+                    candidate.signature()
+                            + " score="
+                            + candidate.score()
+                            + " reason="
+                            + "same conversion score and no strict specificity winner"
+            );
+        }
+        return "Ambiguous interop candidates for `"
+                + memberName
+                + "` with argument types "
+                + describeTsArgTypes(tsArgs)
+                + ". Candidates: "
+                + String.join("; ", candidateDetails)
+                + ".";
     }
 
     private static boolean looksArrayLike(final Object value) {
@@ -1503,7 +1723,9 @@ public final class TsjJavaInterop {
             Object[] arguments,
             int score,
             boolean varArgs,
-            String signature
+            String signature,
+            String descriptor,
+            String orderKey
     ) {
     }
 

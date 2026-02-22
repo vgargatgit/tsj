@@ -1,0 +1,8 @@
+{
+  "code": "TSJ-RUN-009",
+  "contains": [
+    "app-isolated",
+    "dev.tsj.generated.MainProgram"
+  ],
+  "notes": "Run should fail before execution when app and dependency class names conflict."
+}

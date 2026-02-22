@@ -1,0 +1,15 @@
+{
+  "diagnostics": [
+    {
+      "code": "TS1002",
+      "message": "Unterminated string literal.",
+      "span": {
+        "endCol": 29,
+        "endLine": 1,
+        "file": "src/err/e001_unterminated.ts",
+        "startCol": 29,
+        "startLine": 1
+      }
+    }
+  ]
+}

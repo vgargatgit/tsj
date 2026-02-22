@@ -1,0 +1,1304 @@
+{
+  "children": [
+    {
+      "children": [
+        {
+          "children": [],
+          "kind": "DeclareKeyword",
+          "span": {
+            "endCol": 8,
+            "endLine": 1,
+            "file": "src/ok/110_jsx.tsx",
+            "startCol": 1,
+            "startLine": 1
+          },
+          "tokenText": "declare"
+        },
+        {
+          "children": [],
+          "kind": "Identifier",
+          "span": {
+            "endCol": 22,
+            "endLine": 1,
+            "file": "src/ok/110_jsx.tsx",
+            "startCol": 19,
+            "startLine": 1
+          },
+          "tokenText": "JSX"
+        },
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 30,
+                    "endLine": 2,
+                    "file": "src/ok/110_jsx.tsx",
+                    "startCol": 13,
+                    "startLine": 2
+                  },
+                  "tokenText": "IntrinsicElements"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "kind": "Identifier",
+                      "span": {
+                        "endCol": 8,
+                        "endLine": 3,
+                        "file": "src/ok/110_jsx.tsx",
+                        "startCol": 5,
+                        "startLine": 3
+                      },
+                      "tokenText": "div"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "kind": "Identifier",
+                              "span": {
+                                "endCol": 20,
+                                "endLine": 3,
+                                "file": "src/ok/110_jsx.tsx",
+                                "startCol": 12,
+                                "startLine": 3
+                              },
+                              "tokenText": "children"
+                            },
+                            {
+                              "children": [],
+                              "kind": "QuestionToken",
+                              "span": {
+                                "endCol": 21,
+                                "endLine": 3,
+                                "file": "src/ok/110_jsx.tsx",
+                                "startCol": 20,
+                                "startLine": 3
+                              },
+                              "tokenText": "?"
+                            },
+                            {
+                              "children": [],
+                              "kind": "UnknownKeyword",
+                              "span": {
+                                "endCol": 30,
+                                "endLine": 3,
+                                "file": "src/ok/110_jsx.tsx",
+                                "startCol": 23,
+                                "startLine": 3
+                              },
+                              "tokenText": "unknown"
+                            }
+                          ],
+                          "kind": "PropertySignature",
+                          "span": {
+                            "endCol": 30,
+                            "endLine": 3,
+                            "file": "src/ok/110_jsx.tsx",
+                            "startCol": 12,
+                            "startLine": 3
+                          }
+                        }
+                      ],
+                      "kind": "TypeLiteral",
+                      "span": {
+                        "endCol": 32,
+                        "endLine": 3,
+                        "file": "src/ok/110_jsx.tsx",
+                        "startCol": 10,
+                        "startLine": 3
+                      }
+                    }
+                  ],
+                  "kind": "PropertySignature",
+                  "span": {
+                    "endCol": 33,
+                    "endLine": 3,
+                    "file": "src/ok/110_jsx.tsx",
+                    "startCol": 5,
+                    "startLine": 3
+                  }
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "kind": "Identifier",
+                      "span": {
+                        "endCol": 9,
+                        "endLine": 4,
+                        "file": "src/ok/110_jsx.tsx",
+                        "startCol": 5,
+                        "startLine": 4
+                      },
+                      "tokenText": "span"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "kind": "Identifier",
+                              "span": {
+                                "endCol": 21,
+                                "endLine": 4,
+                                "file": "src/ok/110_jsx.tsx",
+                                "startCol": 13,
+                                "startLine": 4
+                              },
+                              "tokenText": "children"
+                            },
+                            {
+                              "children": [],
+                              "kind": "QuestionToken",
+                              "span": {
+                                "endCol": 22,
+                                "endLine": 4,
+                                "file": "src/ok/110_jsx.tsx",
+                                "startCol": 21,
+                                "startLine": 4
+                              },
+                              "tokenText": "?"
+                            },
+                            {
+                              "children": [],
+                              "kind": "UnknownKeyword",
+                              "span": {
+                                "endCol": 31,
+                                "endLine": 4,
+                                "file": "src/ok/110_jsx.tsx",
+                                "startCol": 24,
+                                "startLine": 4
+                              },
+                              "tokenText": "unknown"
+                            }
+                          ],
+                          "kind": "PropertySignature",
+                          "span": {
+                            "endCol": 31,
+                            "endLine": 4,
+                            "file": "src/ok/110_jsx.tsx",
+                            "startCol": 13,
+                            "startLine": 4
+                          }
+                        }
+                      ],
+                      "kind": "TypeLiteral",
+                      "span": {
+                        "endCol": 33,
+                        "endLine": 4,
+                        "file": "src/ok/110_jsx.tsx",
+                        "startCol": 11,
+                        "startLine": 4
+                      }
+                    }
+                  ],
+                  "kind": "PropertySignature",
+                  "span": {
+                    "endCol": 34,
+                    "endLine": 4,
+                    "file": "src/ok/110_jsx.tsx",
+                    "startCol": 5,
+                    "startLine": 4
+                  }
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "kind": "StringLiteral",
+                      "span": {
+                        "endCol": 15,
+                        "endLine": 5,
+                        "file": "src/ok/110_jsx.tsx",
+                        "startCol": 5,
+                        "startLine": 5
+                      },
+                      "tokenText": "\"svg:path\""
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "kind": "Identifier",
+                              "span": {
+                                "endCol": 21,
+                                "endLine": 5,
+                                "file": "src/ok/110_jsx.tsx",
+                                "startCol": 19,
+                                "startLine": 5
+                              },
+                              "tokenText": "id"
+                            },
+                            {
+                              "children": [],
+                              "kind": "QuestionToken",
+                              "span": {
+                                "endCol": 22,
+                                "endLine": 5,
+                                "file": "src/ok/110_jsx.tsx",
+                                "startCol": 21,
+                                "startLine": 5
+                              },
+                              "tokenText": "?"
+                            },
+                            {
+                              "children": [],
+                              "kind": "StringKeyword",
+                              "span": {
+                                "endCol": 30,
+                                "endLine": 5,
+                                "file": "src/ok/110_jsx.tsx",
+                                "startCol": 24,
+                                "startLine": 5
+                              },
+                              "tokenText": "string"
+                            }
+                          ],
+                          "kind": "PropertySignature",
+                          "span": {
+                            "endCol": 30,
+                            "endLine": 5,
+                            "file": "src/ok/110_jsx.tsx",
+                            "startCol": 19,
+                            "startLine": 5
+                          }
+                        }
+                      ],
+                      "kind": "TypeLiteral",
+                      "span": {
+                        "endCol": 32,
+                        "endLine": 5,
+                        "file": "src/ok/110_jsx.tsx",
+                        "startCol": 17,
+                        "startLine": 5
+                      }
+                    }
+                  ],
+                  "kind": "PropertySignature",
+                  "span": {
+                    "endCol": 33,
+                    "endLine": 5,
+                    "file": "src/ok/110_jsx.tsx",
+                    "startCol": 5,
+                    "startLine": 5
+                  }
+                }
+              ],
+              "kind": "InterfaceDeclaration",
+              "span": {
+                "endCol": 4,
+                "endLine": 6,
+                "file": "src/ok/110_jsx.tsx",
+                "startCol": 3,
+                "startLine": 2
+              }
+            }
+          ],
+          "kind": "ModuleBlock",
+          "span": {
+            "endCol": 2,
+            "endLine": 7,
+            "file": "src/ok/110_jsx.tsx",
+            "startCol": 23,
+            "startLine": 1
+          }
+        }
+      ],
+      "kind": "ModuleDeclaration",
+      "span": {
+        "endCol": 2,
+        "endLine": 7,
+        "file": "src/ok/110_jsx.tsx",
+        "startCol": 1,
+        "startLine": 1
+      }
+    },
+    {
+      "children": [
+        {
+          "children": [],
+          "kind": "Identifier",
+          "span": {
+            "endCol": 15,
+            "endLine": 9,
+            "file": "src/ok/110_jsx.tsx",
+            "startCol": 6,
+            "startLine": 9
+          },
+          "tokenText": "CompProps"
+        },
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 7,
+                    "endLine": 10,
+                    "file": "src/ok/110_jsx.tsx",
+                    "startCol": 3,
+                    "startLine": 10
+                  },
+                  "tokenText": "prop"
+                },
+                {
+                  "children": [],
+                  "kind": "NumberKeyword",
+                  "span": {
+                    "endCol": 15,
+                    "endLine": 10,
+                    "file": "src/ok/110_jsx.tsx",
+                    "startCol": 9,
+                    "startLine": 10
+                  },
+                  "tokenText": "number"
+                }
+              ],
+              "kind": "PropertySignature",
+              "span": {
+                "endCol": 16,
+                "endLine": 10,
+                "file": "src/ok/110_jsx.tsx",
+                "startCol": 3,
+                "startLine": 10
+              }
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 8,
+                    "endLine": 11,
+                    "file": "src/ok/110_jsx.tsx",
+                    "startCol": 3,
+                    "startLine": 11
+                  },
+                  "tokenText": "extra"
+                },
+                {
+                  "children": [],
+                  "kind": "QuestionToken",
+                  "span": {
+                    "endCol": 9,
+                    "endLine": 11,
+                    "file": "src/ok/110_jsx.tsx",
+                    "startCol": 8,
+                    "startLine": 11
+                  },
+                  "tokenText": "?"
+                },
+                {
+                  "children": [],
+                  "kind": "StringKeyword",
+                  "span": {
+                    "endCol": 17,
+                    "endLine": 11,
+                    "file": "src/ok/110_jsx.tsx",
+                    "startCol": 11,
+                    "startLine": 11
+                  },
+                  "tokenText": "string"
+                }
+              ],
+              "kind": "PropertySignature",
+              "span": {
+                "endCol": 18,
+                "endLine": 11,
+                "file": "src/ok/110_jsx.tsx",
+                "startCol": 3,
+                "startLine": 11
+              }
+            }
+          ],
+          "kind": "TypeLiteral",
+          "span": {
+            "endCol": 2,
+            "endLine": 12,
+            "file": "src/ok/110_jsx.tsx",
+            "startCol": 18,
+            "startLine": 9
+          }
+        }
+      ],
+      "kind": "TypeAliasDeclaration",
+      "span": {
+        "endCol": 3,
+        "endLine": 12,
+        "file": "src/ok/110_jsx.tsx",
+        "startCol": 1,
+        "startLine": 9
+      }
+    },
+    {
+      "children": [
+        {
+          "children": [],
+          "kind": "Identifier",
+          "span": {
+            "endCol": 14,
+            "endLine": 14,
+            "file": "src/ok/110_jsx.tsx",
+            "startCol": 10,
+            "startLine": 14
+          },
+          "tokenText": "Comp"
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "kind": "Identifier",
+              "span": {
+                "endCol": 20,
+                "endLine": 14,
+                "file": "src/ok/110_jsx.tsx",
+                "startCol": 15,
+                "startLine": 14
+              },
+              "tokenText": "props"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 31,
+                    "endLine": 14,
+                    "file": "src/ok/110_jsx.tsx",
+                    "startCol": 22,
+                    "startLine": 14
+                  },
+                  "tokenText": "CompProps"
+                }
+              ],
+              "kind": "TypeReference",
+              "span": {
+                "endCol": 31,
+                "endLine": 14,
+                "file": "src/ok/110_jsx.tsx",
+                "startCol": 22,
+                "startLine": 14
+              }
+            }
+          ],
+          "kind": "Parameter",
+          "span": {
+            "endCol": 31,
+            "endLine": 14,
+            "file": "src/ok/110_jsx.tsx",
+            "startCol": 15,
+            "startLine": 14
+          }
+        },
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "kind": "Identifier",
+                          "span": {
+                            "endCol": 15,
+                            "endLine": 15,
+                            "file": "src/ok/110_jsx.tsx",
+                            "startCol": 11,
+                            "startLine": 15
+                          },
+                          "tokenText": "span"
+                        },
+                        {
+                          "children": [],
+                          "kind": "JsxAttributes",
+                          "span": {
+                            "endCol": 15,
+                            "endLine": 15,
+                            "file": "src/ok/110_jsx.tsx",
+                            "startCol": 15,
+                            "startLine": 15
+                          }
+                        }
+                      ],
+                      "kind": "JsxOpeningElement",
+                      "span": {
+                        "endCol": 16,
+                        "endLine": 15,
+                        "file": "src/ok/110_jsx.tsx",
+                        "startCol": 10,
+                        "startLine": 15
+                      }
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "kind": "Identifier",
+                              "span": {
+                                "endCol": 22,
+                                "endLine": 15,
+                                "file": "src/ok/110_jsx.tsx",
+                                "startCol": 17,
+                                "startLine": 15
+                              },
+                              "tokenText": "props"
+                            },
+                            {
+                              "children": [],
+                              "kind": "Identifier",
+                              "span": {
+                                "endCol": 27,
+                                "endLine": 15,
+                                "file": "src/ok/110_jsx.tsx",
+                                "startCol": 23,
+                                "startLine": 15
+                              },
+                              "tokenText": "prop"
+                            }
+                          ],
+                          "kind": "PropertyAccessExpression",
+                          "span": {
+                            "endCol": 27,
+                            "endLine": 15,
+                            "file": "src/ok/110_jsx.tsx",
+                            "startCol": 17,
+                            "startLine": 15
+                          }
+                        }
+                      ],
+                      "kind": "JsxExpression",
+                      "span": {
+                        "endCol": 28,
+                        "endLine": 15,
+                        "file": "src/ok/110_jsx.tsx",
+                        "startCol": 16,
+                        "startLine": 15
+                      }
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "kind": "Identifier",
+                          "span": {
+                            "endCol": 34,
+                            "endLine": 15,
+                            "file": "src/ok/110_jsx.tsx",
+                            "startCol": 30,
+                            "startLine": 15
+                          },
+                          "tokenText": "span"
+                        }
+                      ],
+                      "kind": "JsxClosingElement",
+                      "span": {
+                        "endCol": 35,
+                        "endLine": 15,
+                        "file": "src/ok/110_jsx.tsx",
+                        "startCol": 28,
+                        "startLine": 15
+                      }
+                    }
+                  ],
+                  "kind": "JsxElement",
+                  "span": {
+                    "endCol": 35,
+                    "endLine": 15,
+                    "file": "src/ok/110_jsx.tsx",
+                    "startCol": 10,
+                    "startLine": 15
+                  }
+                }
+              ],
+              "kind": "ReturnStatement",
+              "span": {
+                "endCol": 36,
+                "endLine": 15,
+                "file": "src/ok/110_jsx.tsx",
+                "startCol": 3,
+                "startLine": 15
+              }
+            }
+          ],
+          "kind": "Block",
+          "span": {
+            "endCol": 2,
+            "endLine": 16,
+            "file": "src/ok/110_jsx.tsx",
+            "startCol": 33,
+            "startLine": 14
+          }
+        }
+      ],
+      "kind": "FunctionDeclaration",
+      "span": {
+        "endCol": 2,
+        "endLine": 16,
+        "file": "src/ok/110_jsx.tsx",
+        "startCol": 1,
+        "startLine": 14
+      }
+    },
+    {
+      "children": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 18,
+                    "endLine": 18,
+                    "file": "src/ok/110_jsx.tsx",
+                    "startCol": 7,
+                    "startLine": 18
+                  },
+                  "tokenText": "spreadProps"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "kind": "Identifier",
+                          "span": {
+                            "endCol": 28,
+                            "endLine": 18,
+                            "file": "src/ok/110_jsx.tsx",
+                            "startCol": 23,
+                            "startLine": 18
+                          },
+                          "tokenText": "extra"
+                        },
+                        {
+                          "children": [],
+                          "kind": "StringLiteral",
+                          "span": {
+                            "endCol": 34,
+                            "endLine": 18,
+                            "file": "src/ok/110_jsx.tsx",
+                            "startCol": 30,
+                            "startLine": 18
+                          },
+                          "tokenText": "\"ok\""
+                        }
+                      ],
+                      "kind": "PropertyAssignment",
+                      "span": {
+                        "endCol": 34,
+                        "endLine": 18,
+                        "file": "src/ok/110_jsx.tsx",
+                        "startCol": 23,
+                        "startLine": 18
+                      }
+                    }
+                  ],
+                  "kind": "ObjectLiteralExpression",
+                  "span": {
+                    "endCol": 36,
+                    "endLine": 18,
+                    "file": "src/ok/110_jsx.tsx",
+                    "startCol": 21,
+                    "startLine": 18
+                  }
+                }
+              ],
+              "kind": "VariableDeclaration",
+              "span": {
+                "endCol": 36,
+                "endLine": 18,
+                "file": "src/ok/110_jsx.tsx",
+                "startCol": 7,
+                "startLine": 18
+              }
+            }
+          ],
+          "kind": "VariableDeclarationList",
+          "span": {
+            "endCol": 36,
+            "endLine": 18,
+            "file": "src/ok/110_jsx.tsx",
+            "startCol": 1,
+            "startLine": 18
+          }
+        }
+      ],
+      "kind": "FirstStatement",
+      "span": {
+        "endCol": 37,
+        "endLine": 18,
+        "file": "src/ok/110_jsx.tsx",
+        "startCol": 1,
+        "startLine": 18
+      }
+    },
+    {
+      "children": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 11,
+                    "endLine": 19,
+                    "file": "src/ok/110_jsx.tsx",
+                    "startCol": 7,
+                    "startLine": 19
+                  },
+                  "tokenText": "view"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "kind": "JsxOpeningFragment",
+                          "span": {
+                            "endCol": 5,
+                            "endLine": 20,
+                            "file": "src/ok/110_jsx.tsx",
+                            "startCol": 3,
+                            "startLine": 20
+                          }
+                        },
+                        {
+                          "children": [],
+                          "kind": "JsxText",
+                          "span": {
+                            "endCol": 5,
+                            "endLine": 21,
+                            "file": "src/ok/110_jsx.tsx",
+                            "startCol": 5,
+                            "startLine": 21
+                          },
+                          "tokenText": ""
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "kind": "Identifier",
+                              "span": {
+                                "endCol": 9,
+                                "endLine": 21,
+                                "file": "src/ok/110_jsx.tsx",
+                                "startCol": 6,
+                                "startLine": 21
+                              },
+                              "tokenText": "div"
+                            },
+                            {
+                              "children": [],
+                              "kind": "JsxAttributes",
+                              "span": {
+                                "endCol": 9,
+                                "endLine": 21,
+                                "file": "src/ok/110_jsx.tsx",
+                                "startCol": 9,
+                                "startLine": 21
+                              }
+                            }
+                          ],
+                          "kind": "JsxSelfClosingElement",
+                          "span": {
+                            "endCol": 12,
+                            "endLine": 21,
+                            "file": "src/ok/110_jsx.tsx",
+                            "startCol": 5,
+                            "startLine": 21
+                          }
+                        },
+                        {
+                          "children": [],
+                          "kind": "JsxText",
+                          "span": {
+                            "endCol": 5,
+                            "endLine": 22,
+                            "file": "src/ok/110_jsx.tsx",
+                            "startCol": 5,
+                            "startLine": 22
+                          },
+                          "tokenText": ""
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "kind": "Identifier",
+                              "span": {
+                                "endCol": 10,
+                                "endLine": 22,
+                                "file": "src/ok/110_jsx.tsx",
+                                "startCol": 6,
+                                "startLine": 22
+                              },
+                              "tokenText": "Comp"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "kind": "Identifier",
+                                      "span": {
+                                        "endCol": 15,
+                                        "endLine": 22,
+                                        "file": "src/ok/110_jsx.tsx",
+                                        "startCol": 11,
+                                        "startLine": 22
+                                      },
+                                      "tokenText": "prop"
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "kind": "FirstLiteralToken",
+                                          "span": {
+                                            "endCol": 18,
+                                            "endLine": 22,
+                                            "file": "src/ok/110_jsx.tsx",
+                                            "startCol": 17,
+                                            "startLine": 22
+                                          },
+                                          "tokenText": "1"
+                                        }
+                                      ],
+                                      "kind": "JsxExpression",
+                                      "span": {
+                                        "endCol": 19,
+                                        "endLine": 22,
+                                        "file": "src/ok/110_jsx.tsx",
+                                        "startCol": 16,
+                                        "startLine": 22
+                                      }
+                                    }
+                                  ],
+                                  "kind": "JsxAttribute",
+                                  "span": {
+                                    "endCol": 19,
+                                    "endLine": 22,
+                                    "file": "src/ok/110_jsx.tsx",
+                                    "startCol": 11,
+                                    "startLine": 22
+                                  }
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "kind": "Identifier",
+                                      "span": {
+                                        "endCol": 35,
+                                        "endLine": 22,
+                                        "file": "src/ok/110_jsx.tsx",
+                                        "startCol": 24,
+                                        "startLine": 22
+                                      },
+                                      "tokenText": "spreadProps"
+                                    }
+                                  ],
+                                  "kind": "JsxSpreadAttribute",
+                                  "span": {
+                                    "endCol": 36,
+                                    "endLine": 22,
+                                    "file": "src/ok/110_jsx.tsx",
+                                    "startCol": 20,
+                                    "startLine": 22
+                                  }
+                                }
+                              ],
+                              "kind": "JsxAttributes",
+                              "span": {
+                                "endCol": 36,
+                                "endLine": 22,
+                                "file": "src/ok/110_jsx.tsx",
+                                "startCol": 11,
+                                "startLine": 22
+                              }
+                            }
+                          ],
+                          "kind": "JsxSelfClosingElement",
+                          "span": {
+                            "endCol": 39,
+                            "endLine": 22,
+                            "file": "src/ok/110_jsx.tsx",
+                            "startCol": 5,
+                            "startLine": 22
+                          }
+                        },
+                        {
+                          "children": [],
+                          "kind": "JsxText",
+                          "span": {
+                            "endCol": 5,
+                            "endLine": 23,
+                            "file": "src/ok/110_jsx.tsx",
+                            "startCol": 5,
+                            "startLine": 23
+                          },
+                          "tokenText": ""
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "kind": "Identifier",
+                                  "span": {
+                                    "endCol": 9,
+                                    "endLine": 23,
+                                    "file": "src/ok/110_jsx.tsx",
+                                    "startCol": 6,
+                                    "startLine": 23
+                                  },
+                                  "tokenText": "svg"
+                                },
+                                {
+                                  "children": [],
+                                  "kind": "Identifier",
+                                  "span": {
+                                    "endCol": 14,
+                                    "endLine": 23,
+                                    "file": "src/ok/110_jsx.tsx",
+                                    "startCol": 10,
+                                    "startLine": 23
+                                  },
+                                  "tokenText": "path"
+                                }
+                              ],
+                              "kind": "JsxNamespacedName",
+                              "span": {
+                                "endCol": 14,
+                                "endLine": 23,
+                                "file": "src/ok/110_jsx.tsx",
+                                "startCol": 6,
+                                "startLine": 23
+                              }
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "kind": "Identifier",
+                                      "span": {
+                                        "endCol": 17,
+                                        "endLine": 23,
+                                        "file": "src/ok/110_jsx.tsx",
+                                        "startCol": 15,
+                                        "startLine": 23
+                                      },
+                                      "tokenText": "id"
+                                    },
+                                    {
+                                      "children": [],
+                                      "kind": "StringLiteral",
+                                      "span": {
+                                        "endCol": 21,
+                                        "endLine": 23,
+                                        "file": "src/ok/110_jsx.tsx",
+                                        "startCol": 18,
+                                        "startLine": 23
+                                      },
+                                      "tokenText": "\"s\""
+                                    }
+                                  ],
+                                  "kind": "JsxAttribute",
+                                  "span": {
+                                    "endCol": 21,
+                                    "endLine": 23,
+                                    "file": "src/ok/110_jsx.tsx",
+                                    "startCol": 15,
+                                    "startLine": 23
+                                  }
+                                }
+                              ],
+                              "kind": "JsxAttributes",
+                              "span": {
+                                "endCol": 21,
+                                "endLine": 23,
+                                "file": "src/ok/110_jsx.tsx",
+                                "startCol": 15,
+                                "startLine": 23
+                              }
+                            }
+                          ],
+                          "kind": "JsxSelfClosingElement",
+                          "span": {
+                            "endCol": 24,
+                            "endLine": 23,
+                            "file": "src/ok/110_jsx.tsx",
+                            "startCol": 5,
+                            "startLine": 23
+                          }
+                        },
+                        {
+                          "children": [],
+                          "kind": "JsxText",
+                          "span": {
+                            "endCol": 3,
+                            "endLine": 24,
+                            "file": "src/ok/110_jsx.tsx",
+                            "startCol": 3,
+                            "startLine": 24
+                          },
+                          "tokenText": ""
+                        },
+                        {
+                          "children": [],
+                          "kind": "JsxClosingFragment",
+                          "span": {
+                            "endCol": 6,
+                            "endLine": 24,
+                            "file": "src/ok/110_jsx.tsx",
+                            "startCol": 3,
+                            "startLine": 24
+                          }
+                        }
+                      ],
+                      "kind": "JsxFragment",
+                      "span": {
+                        "endCol": 6,
+                        "endLine": 24,
+                        "file": "src/ok/110_jsx.tsx",
+                        "startCol": 3,
+                        "startLine": 20
+                      }
+                    }
+                  ],
+                  "kind": "ParenthesizedExpression",
+                  "span": {
+                    "endCol": 2,
+                    "endLine": 25,
+                    "file": "src/ok/110_jsx.tsx",
+                    "startCol": 14,
+                    "startLine": 19
+                  }
+                }
+              ],
+              "kind": "VariableDeclaration",
+              "span": {
+                "endCol": 2,
+                "endLine": 25,
+                "file": "src/ok/110_jsx.tsx",
+                "startCol": 7,
+                "startLine": 19
+              }
+            }
+          ],
+          "kind": "VariableDeclarationList",
+          "span": {
+            "endCol": 2,
+            "endLine": 25,
+            "file": "src/ok/110_jsx.tsx",
+            "startCol": 1,
+            "startLine": 19
+          }
+        }
+      ],
+      "kind": "FirstStatement",
+      "span": {
+        "endCol": 3,
+        "endLine": 25,
+        "file": "src/ok/110_jsx.tsx",
+        "startCol": 1,
+        "startLine": 19
+      }
+    },
+    {
+      "children": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 13,
+                    "endLine": 27,
+                    "file": "src/ok/110_jsx.tsx",
+                    "startCol": 7,
+                    "startLine": 27
+                  },
+                  "tokenText": "casted"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "kind": "FirstLiteralToken",
+                      "span": {
+                        "endCol": 17,
+                        "endLine": 27,
+                        "file": "src/ok/110_jsx.tsx",
+                        "startCol": 16,
+                        "startLine": 27
+                      },
+                      "tokenText": "1"
+                    },
+                    {
+                      "children": [],
+                      "kind": "NumberKeyword",
+                      "span": {
+                        "endCol": 27,
+                        "endLine": 27,
+                        "file": "src/ok/110_jsx.tsx",
+                        "startCol": 21,
+                        "startLine": 27
+                      },
+                      "tokenText": "number"
+                    }
+                  ],
+                  "kind": "AsExpression",
+                  "span": {
+                    "endCol": 27,
+                    "endLine": 27,
+                    "file": "src/ok/110_jsx.tsx",
+                    "startCol": 16,
+                    "startLine": 27
+                  }
+                }
+              ],
+              "kind": "VariableDeclaration",
+              "span": {
+                "endCol": 27,
+                "endLine": 27,
+                "file": "src/ok/110_jsx.tsx",
+                "startCol": 7,
+                "startLine": 27
+              }
+            }
+          ],
+          "kind": "VariableDeclarationList",
+          "span": {
+            "endCol": 27,
+            "endLine": 27,
+            "file": "src/ok/110_jsx.tsx",
+            "startCol": 1,
+            "startLine": 27
+          }
+        }
+      ],
+      "kind": "FirstStatement",
+      "span": {
+        "endCol": 28,
+        "endLine": 27,
+        "file": "src/ok/110_jsx.tsx",
+        "startCol": 1,
+        "startLine": 27
+      }
+    },
+    {
+      "children": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 11,
+                    "endLine": 29,
+                    "file": "src/ok/110_jsx.tsx",
+                    "startCol": 7,
+                    "startLine": 29
+                  },
+                  "tokenText": "view"
+                },
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 19,
+                    "endLine": 29,
+                    "file": "src/ok/110_jsx.tsx",
+                    "startCol": 13,
+                    "startLine": 29
+                  },
+                  "tokenText": "casted"
+                }
+              ],
+              "kind": "ArrayLiteralExpression",
+              "span": {
+                "endCol": 20,
+                "endLine": 29,
+                "file": "src/ok/110_jsx.tsx",
+                "startCol": 6,
+                "startLine": 29
+              }
+            }
+          ],
+          "kind": "VoidExpression",
+          "span": {
+            "endCol": 20,
+            "endLine": 29,
+            "file": "src/ok/110_jsx.tsx",
+            "startCol": 1,
+            "startLine": 29
+          }
+        }
+      ],
+      "kind": "ExpressionStatement",
+      "span": {
+        "endCol": 21,
+        "endLine": 29,
+        "file": "src/ok/110_jsx.tsx",
+        "startCol": 1,
+        "startLine": 29
+      }
+    },
+    {
+      "children": [],
+      "kind": "EndOfFileToken",
+      "span": {
+        "endCol": 1,
+        "endLine": 30,
+        "file": "src/ok/110_jsx.tsx",
+        "startCol": 1,
+        "startLine": 30
+      },
+      "tokenText": ""
+    }
+  ],
+  "kind": "SourceFile",
+  "span": {
+    "endCol": 1,
+    "endLine": 30,
+    "file": "src/ok/110_jsx.tsx",
+    "startCol": 1,
+    "startLine": 1
+  }
+}

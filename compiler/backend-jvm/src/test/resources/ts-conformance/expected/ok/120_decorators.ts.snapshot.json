@@ -1,0 +1,507 @@
+{
+  "astNodes" : [ {
+    "column" : 1,
+    "endColumn" : 1,
+    "endLine" : 19,
+    "kind" : "SourceFile",
+    "line" : 1
+  }, {
+    "column" : 1,
+    "endColumn" : 2,
+    "endLine" : 5,
+    "kind" : "FunctionDeclaration",
+    "line" : 1
+  }, {
+    "column" : 10,
+    "endColumn" : 13,
+    "endLine" : 1,
+    "kind" : "Identifier",
+    "line" : 1
+  }, {
+    "column" : 14,
+    "endColumn" : 33,
+    "endLine" : 1,
+    "kind" : "Parameter",
+    "line" : 1
+  }, {
+    "column" : 14,
+    "endColumn" : 17,
+    "endLine" : 1,
+    "kind" : "DotDotDotToken",
+    "line" : 1
+  }, {
+    "column" : 17,
+    "endColumn" : 22,
+    "endLine" : 1,
+    "kind" : "Identifier",
+    "line" : 1
+  }, {
+    "column" : 24,
+    "endColumn" : 33,
+    "endLine" : 1,
+    "kind" : "ArrayType",
+    "line" : 1
+  }, {
+    "column" : 24,
+    "endColumn" : 31,
+    "endLine" : 1,
+    "kind" : "UnknownKeyword",
+    "line" : 1
+  }, {
+    "column" : 35,
+    "endColumn" : 2,
+    "endLine" : 5,
+    "kind" : "Block",
+    "line" : 1
+  }, {
+    "column" : 3,
+    "endColumn" : 5,
+    "endLine" : 4,
+    "kind" : "ReturnStatement",
+    "line" : 2
+  }, {
+    "column" : 10,
+    "endColumn" : 4,
+    "endLine" : 4,
+    "kind" : "FunctionExpression",
+    "line" : 2
+  }, {
+    "column" : 19,
+    "endColumn" : 34,
+    "endLine" : 2,
+    "kind" : "Identifier",
+    "line" : 2
+  }, {
+    "column" : 35,
+    "endColumn" : 54,
+    "endLine" : 2,
+    "kind" : "Parameter",
+    "line" : 2
+  }, {
+    "column" : 35,
+    "endColumn" : 38,
+    "endLine" : 2,
+    "kind" : "DotDotDotToken",
+    "line" : 2
+  }, {
+    "column" : 38,
+    "endColumn" : 43,
+    "endLine" : 2,
+    "kind" : "Identifier",
+    "line" : 2
+  }, {
+    "column" : 45,
+    "endColumn" : 54,
+    "endLine" : 2,
+    "kind" : "ArrayType",
+    "line" : 2
+  }, {
+    "column" : 45,
+    "endColumn" : 52,
+    "endLine" : 2,
+    "kind" : "UnknownKeyword",
+    "line" : 2
+  }, {
+    "column" : 56,
+    "endColumn" : 4,
+    "endLine" : 4,
+    "kind" : "Block",
+    "line" : 2
+  }, {
+    "column" : 5,
+    "endColumn" : 21,
+    "endLine" : 3,
+    "kind" : "ReturnStatement",
+    "line" : 3
+  }, {
+    "column" : 12,
+    "endColumn" : 20,
+    "endLine" : 3,
+    "kind" : "ElementAccessExpression",
+    "line" : 3
+  }, {
+    "column" : 12,
+    "endColumn" : 17,
+    "endLine" : 3,
+    "kind" : "Identifier",
+    "line" : 3
+  }, {
+    "column" : 18,
+    "endColumn" : 19,
+    "endLine" : 3,
+    "kind" : "FirstLiteralToken",
+    "line" : 3
+  }, {
+    "column" : 1,
+    "endColumn" : 2,
+    "endLine" : 16,
+    "kind" : "ClassDeclaration",
+    "line" : 7
+  }, {
+    "column" : 1,
+    "endColumn" : 7,
+    "endLine" : 7,
+    "kind" : "Decorator",
+    "line" : 7
+  }, {
+    "column" : 2,
+    "endColumn" : 7,
+    "endLine" : 7,
+    "kind" : "CallExpression",
+    "line" : 7
+  }, {
+    "column" : 2,
+    "endColumn" : 5,
+    "endLine" : 7,
+    "kind" : "Identifier",
+    "line" : 7
+  }, {
+    "column" : 7,
+    "endColumn" : 21,
+    "endLine" : 8,
+    "kind" : "Identifier",
+    "line" : 8
+  }, {
+    "column" : 3,
+    "endColumn" : 30,
+    "endLine" : 10,
+    "kind" : "PropertyDeclaration",
+    "line" : 9
+  }, {
+    "column" : 3,
+    "endColumn" : 9,
+    "endLine" : 9,
+    "kind" : "Decorator",
+    "line" : 9
+  }, {
+    "column" : 4,
+    "endColumn" : 9,
+    "endLine" : 9,
+    "kind" : "CallExpression",
+    "line" : 9
+  }, {
+    "column" : 4,
+    "endColumn" : 7,
+    "endLine" : 9,
+    "kind" : "Identifier",
+    "line" : 9
+  }, {
+    "column" : 3,
+    "endColumn" : 11,
+    "endLine" : 10,
+    "kind" : "AccessorKeyword",
+    "line" : 10
+  }, {
+    "column" : 12,
+    "endColumn" : 17,
+    "endLine" : 10,
+    "kind" : "Identifier",
+    "line" : 10
+  }, {
+    "column" : 19,
+    "endColumn" : 25,
+    "endLine" : 10,
+    "kind" : "NumberKeyword",
+    "line" : 10
+  }, {
+    "column" : 28,
+    "endColumn" : 29,
+    "endLine" : 10,
+    "kind" : "FirstLiteralToken",
+    "line" : 10
+  }, {
+    "column" : 3,
+    "endColumn" : 4,
+    "endLine" : 15,
+    "kind" : "MethodDeclaration",
+    "line" : 12
+  }, {
+    "column" : 3,
+    "endColumn" : 9,
+    "endLine" : 12,
+    "kind" : "Decorator",
+    "line" : 12
+  }, {
+    "column" : 4,
+    "endColumn" : 9,
+    "endLine" : 12,
+    "kind" : "CallExpression",
+    "line" : 12
+  }, {
+    "column" : 4,
+    "endColumn" : 7,
+    "endLine" : 12,
+    "kind" : "Identifier",
+    "line" : 12
+  }, {
+    "column" : 3,
+    "endColumn" : 9,
+    "endLine" : 13,
+    "kind" : "Identifier",
+    "line" : 13
+  }, {
+    "column" : 10,
+    "endColumn" : 23,
+    "endLine" : 13,
+    "kind" : "Parameter",
+    "line" : 13
+  }, {
+    "column" : 10,
+    "endColumn" : 15,
+    "endLine" : 13,
+    "kind" : "Identifier",
+    "line" : 13
+  }, {
+    "column" : 17,
+    "endColumn" : 23,
+    "endLine" : 13,
+    "kind" : "NumberKeyword",
+    "line" : 13
+  }, {
+    "column" : 26,
+    "endColumn" : 32,
+    "endLine" : 13,
+    "kind" : "NumberKeyword",
+    "line" : 13
+  }, {
+    "column" : 33,
+    "endColumn" : 4,
+    "endLine" : 15,
+    "kind" : "Block",
+    "line" : 13
+  }, {
+    "column" : 5,
+    "endColumn" : 31,
+    "endLine" : 14,
+    "kind" : "ReturnStatement",
+    "line" : 14
+  }, {
+    "column" : 12,
+    "endColumn" : 30,
+    "endLine" : 14,
+    "kind" : "BinaryExpression",
+    "line" : 14
+  }, {
+    "column" : 12,
+    "endColumn" : 17,
+    "endLine" : 14,
+    "kind" : "Identifier",
+    "line" : 14
+  }, {
+    "column" : 18,
+    "endColumn" : 19,
+    "endLine" : 14,
+    "kind" : "PlusToken",
+    "line" : 14
+  }, {
+    "column" : 20,
+    "endColumn" : 30,
+    "endLine" : 14,
+    "kind" : "PropertyAccessExpression",
+    "line" : 14
+  }, {
+    "column" : 20,
+    "endColumn" : 24,
+    "endLine" : 14,
+    "kind" : "ThisKeyword",
+    "line" : 14
+  }, {
+    "column" : 25,
+    "endColumn" : 30,
+    "endLine" : 14,
+    "kind" : "Identifier",
+    "line" : 14
+  }, {
+    "column" : 1,
+    "endColumn" : 21,
+    "endLine" : 18,
+    "kind" : "ExpressionStatement",
+    "line" : 18
+  }, {
+    "column" : 1,
+    "endColumn" : 20,
+    "endLine" : 18,
+    "kind" : "VoidExpression",
+    "line" : 18
+  }, {
+    "column" : 6,
+    "endColumn" : 20,
+    "endLine" : 18,
+    "kind" : "Identifier",
+    "line" : 18
+  }, {
+    "column" : 1,
+    "endColumn" : 1,
+    "endLine" : 19,
+    "kind" : "EndOfFileToken",
+    "line" : 19
+  } ],
+  "diagnostics" : [ ],
+  "fixture" : "ok/120_decorators.ts",
+  "normalizedProgram" : {
+    "kind" : "Program",
+    "statements" : [ {
+      "column" : 1,
+      "declaration" : {
+        "async" : false,
+        "body" : [ {
+          "column" : 14,
+          "expression" : {
+            "arguments" : [ {
+              "column" : 14,
+              "kind" : "NumberLiteral",
+              "line" : 1,
+              "text" : "0"
+            } ],
+            "callee" : {
+              "column" : 14,
+              "kind" : "VariableExpression",
+              "line" : 1,
+              "name" : "__tsj_rest_args"
+            },
+            "column" : 14,
+            "kind" : "CallExpression",
+            "line" : 1
+          },
+          "kind" : "VariableDeclaration",
+          "line" : 1,
+          "name" : "_args"
+        }, {
+          "column" : 3,
+          "expression" : {
+            "async" : false,
+            "body" : [ {
+              "column" : 35,
+              "expression" : {
+                "arguments" : [ {
+                  "column" : 35,
+                  "kind" : "NumberLiteral",
+                  "line" : 2,
+                  "text" : "0"
+                } ],
+                "callee" : {
+                  "column" : 35,
+                  "kind" : "VariableExpression",
+                  "line" : 2,
+                  "name" : "__tsj_rest_args"
+                },
+                "column" : 35,
+                "kind" : "CallExpression",
+                "line" : 2
+              },
+              "kind" : "VariableDeclaration",
+              "line" : 2,
+              "name" : "inner"
+            }, {
+              "column" : 5,
+              "expression" : {
+                "column" : 12,
+                "kind" : "MemberAccessExpression",
+                "line" : 3,
+                "member" : "0",
+                "receiver" : {
+                  "column" : 12,
+                  "kind" : "VariableExpression",
+                  "line" : 3,
+                  "name" : "inner"
+                }
+              },
+              "kind" : "ReturnStatement",
+              "line" : 3
+            } ],
+            "column" : 10,
+            "kind" : "FunctionExpression",
+            "line" : 2,
+            "parameters" : [ ],
+            "thisMode" : "DYNAMIC"
+          },
+          "kind" : "ReturnStatement",
+          "line" : 2
+        } ],
+        "name" : "dec",
+        "parameters" : [ ]
+      },
+      "kind" : "FunctionDeclarationStatement",
+      "line" : 1
+    }, {
+      "column" : 1,
+      "declaration" : {
+        "constructorMethod" : {
+          "async" : false,
+          "body" : [ {
+            "column" : 3,
+            "expression" : {
+              "column" : 28,
+              "kind" : "NumberLiteral",
+              "line" : 10,
+              "text" : "1"
+            },
+            "kind" : "AssignmentStatement",
+            "line" : 9,
+            "target" : {
+              "column" : 3,
+              "kind" : "MemberAccessExpression",
+              "line" : 9,
+              "member" : "value",
+              "receiver" : {
+                "column" : 3,
+                "kind" : "ThisExpression",
+                "line" : 9
+              }
+            }
+          } ],
+          "name" : "constructor",
+          "parameters" : [ ]
+        },
+        "fieldNames" : [ "value" ],
+        "methods" : [ {
+          "async" : false,
+          "body" : [ {
+            "column" : 5,
+            "expression" : {
+              "column" : 12,
+              "kind" : "BinaryExpression",
+              "left" : {
+                "column" : 12,
+                "kind" : "VariableExpression",
+                "line" : 14,
+                "name" : "input"
+              },
+              "line" : 14,
+              "operator" : "+",
+              "right" : {
+                "column" : 20,
+                "kind" : "MemberAccessExpression",
+                "line" : 14,
+                "member" : "value",
+                "receiver" : {
+                  "column" : 20,
+                  "kind" : "ThisExpression",
+                  "line" : 14
+                }
+              }
+            },
+            "kind" : "ReturnStatement",
+            "line" : 14
+          } ],
+          "name" : "method",
+          "parameters" : [ "input" ]
+        } ],
+        "name" : "DecoratedClass",
+        "superClassName" : null
+      },
+      "kind" : "ClassDeclarationStatement",
+      "line" : 7
+    }, {
+      "column" : 1,
+      "expression" : {
+        "column" : 1,
+        "kind" : "UndefinedLiteral",
+        "line" : 18
+      },
+      "kind" : "ExpressionStatement",
+      "line" : 18
+    } ]
+  },
+  "schemaVersion" : "tsj-backend-token-v1"
+}

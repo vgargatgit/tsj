@@ -1,0 +1,322 @@
+{
+  "astNodes" : [ {
+    "column" : 1,
+    "endColumn" : 1,
+    "endLine" : 25,
+    "kind" : "SourceFile",
+    "line" : 1
+  }, {
+    "column" : 1,
+    "endColumn" : 2,
+    "endLine" : 9,
+    "kind" : "ModuleDeclaration",
+    "line" : 1
+  }, {
+    "column" : 11,
+    "endColumn" : 12,
+    "endLine" : 1,
+    "kind" : "Identifier",
+    "line" : 1
+  }, {
+    "column" : 13,
+    "endColumn" : 2,
+    "endLine" : 9,
+    "kind" : "ModuleBlock",
+    "line" : 1
+  }, {
+    "column" : 3,
+    "endColumn" : 26,
+    "endLine" : 2,
+    "kind" : "FirstStatement",
+    "line" : 2
+  }, {
+    "column" : 3,
+    "endColumn" : 9,
+    "endLine" : 2,
+    "kind" : "ExportKeyword",
+    "line" : 2
+  }, {
+    "column" : 10,
+    "endColumn" : 25,
+    "endLine" : 2,
+    "kind" : "VariableDeclarationList",
+    "line" : 2
+  }, {
+    "column" : 16,
+    "endColumn" : 25,
+    "endLine" : 2,
+    "kind" : "VariableDeclaration",
+    "line" : 2
+  }, {
+    "column" : 16,
+    "endColumn" : 21,
+    "endLine" : 2,
+    "kind" : "Identifier",
+    "line" : 2
+  }, {
+    "column" : 24,
+    "endColumn" : 25,
+    "endLine" : 2,
+    "kind" : "FirstLiteralToken",
+    "line" : 2
+  }, {
+    "column" : 3,
+    "endColumn" : 4,
+    "endLine" : 8,
+    "kind" : "ModuleDeclaration",
+    "line" : 4
+  }, {
+    "column" : 3,
+    "endColumn" : 9,
+    "endLine" : 4,
+    "kind" : "ExportKeyword",
+    "line" : 4
+  }, {
+    "column" : 20,
+    "endColumn" : 26,
+    "endLine" : 4,
+    "kind" : "Identifier",
+    "line" : 4
+  }, {
+    "column" : 27,
+    "endColumn" : 4,
+    "endLine" : 8,
+    "kind" : "ModuleBlock",
+    "line" : 4
+  }, {
+    "column" : 5,
+    "endColumn" : 6,
+    "endLine" : 7,
+    "kind" : "FunctionDeclaration",
+    "line" : 5
+  }, {
+    "column" : 5,
+    "endColumn" : 11,
+    "endLine" : 5,
+    "kind" : "ExportKeyword",
+    "line" : 5
+  }, {
+    "column" : 21,
+    "endColumn" : 25,
+    "endLine" : 5,
+    "kind" : "Identifier",
+    "line" : 5
+  }, {
+    "column" : 29,
+    "endColumn" : 35,
+    "endLine" : 5,
+    "kind" : "NumberKeyword",
+    "line" : 5
+  }, {
+    "column" : 36,
+    "endColumn" : 6,
+    "endLine" : 7,
+    "kind" : "Block",
+    "line" : 5
+  }, {
+    "column" : 7,
+    "endColumn" : 20,
+    "endLine" : 6,
+    "kind" : "ReturnStatement",
+    "line" : 6
+  }, {
+    "column" : 14,
+    "endColumn" : 19,
+    "endLine" : 6,
+    "kind" : "Identifier",
+    "line" : 6
+  }, {
+    "column" : 1,
+    "endColumn" : 2,
+    "endLine" : 15,
+    "kind" : "ModuleDeclaration",
+    "line" : 11
+  }, {
+    "column" : 1,
+    "endColumn" : 8,
+    "endLine" : 11,
+    "kind" : "DeclareKeyword",
+    "line" : 11
+  }, {
+    "column" : 9,
+    "endColumn" : 15,
+    "endLine" : 11,
+    "kind" : "Identifier",
+    "line" : 11
+  }, {
+    "column" : 16,
+    "endColumn" : 2,
+    "endLine" : 15,
+    "kind" : "ModuleBlock",
+    "line" : 11
+  }, {
+    "column" : 3,
+    "endColumn" : 4,
+    "endLine" : 14,
+    "kind" : "InterfaceDeclaration",
+    "line" : 12
+  }, {
+    "column" : 13,
+    "endColumn" : 23,
+    "endLine" : 12,
+    "kind" : "Identifier",
+    "line" : 12
+  }, {
+    "column" : 5,
+    "endColumn" : 24,
+    "endLine" : 13,
+    "kind" : "PropertySignature",
+    "line" : 13
+  }, {
+    "column" : 5,
+    "endColumn" : 14,
+    "endLine" : 13,
+    "kind" : "Identifier",
+    "line" : 13
+  }, {
+    "column" : 16,
+    "endColumn" : 23,
+    "endLine" : 13,
+    "kind" : "BooleanKeyword",
+    "line" : 13
+  }, {
+    "column" : 1,
+    "endColumn" : 2,
+    "endLine" : 21,
+    "kind" : "ModuleDeclaration",
+    "line" : 17
+  }, {
+    "column" : 1,
+    "endColumn" : 8,
+    "endLine" : 17,
+    "kind" : "DeclareKeyword",
+    "line" : 17
+  }, {
+    "column" : 16,
+    "endColumn" : 29,
+    "endLine" : 17,
+    "kind" : "StringLiteral",
+    "line" : 17
+  }, {
+    "column" : 30,
+    "endColumn" : 2,
+    "endLine" : 21,
+    "kind" : "ModuleBlock",
+    "line" : 17
+  }, {
+    "column" : 3,
+    "endColumn" : 4,
+    "endLine" : 20,
+    "kind" : "InterfaceDeclaration",
+    "line" : 18
+  }, {
+    "column" : 3,
+    "endColumn" : 9,
+    "endLine" : 18,
+    "kind" : "ExportKeyword",
+    "line" : 18
+  }, {
+    "column" : 20,
+    "endColumn" : 32,
+    "endLine" : 18,
+    "kind" : "Identifier",
+    "line" : 18
+  }, {
+    "column" : 5,
+    "endColumn" : 22,
+    "endLine" : 19,
+    "kind" : "PropertySignature",
+    "line" : 19
+  }, {
+    "column" : 5,
+    "endColumn" : 12,
+    "endLine" : 19,
+    "kind" : "Identifier",
+    "line" : 19
+  }, {
+    "column" : 14,
+    "endColumn" : 21,
+    "endLine" : 19,
+    "kind" : "BooleanKeyword",
+    "line" : 19
+  }, {
+    "column" : 1,
+    "endColumn" : 8,
+    "endLine" : 23,
+    "kind" : "ExpressionStatement",
+    "line" : 23
+  }, {
+    "column" : 1,
+    "endColumn" : 7,
+    "endLine" : 23,
+    "kind" : "VoidExpression",
+    "line" : 23
+  }, {
+    "column" : 6,
+    "endColumn" : 7,
+    "endLine" : 23,
+    "kind" : "Identifier",
+    "line" : 23
+  }, {
+    "column" : 1,
+    "endColumn" : 11,
+    "endLine" : 24,
+    "kind" : "ExportDeclaration",
+    "line" : 24
+  }, {
+    "column" : 8,
+    "endColumn" : 10,
+    "endLine" : 24,
+    "kind" : "NamedExports",
+    "line" : 24
+  }, {
+    "column" : 1,
+    "endColumn" : 1,
+    "endLine" : 25,
+    "kind" : "EndOfFileToken",
+    "line" : 25
+  } ],
+  "diagnostics" : [ ],
+  "fixture" : "ok/090_namespaces.ts",
+  "normalizedProgram" : {
+    "kind" : "Program",
+    "statements" : [ {
+      "column" : 1,
+      "expression" : {
+        "column" : 1,
+        "entries" : [ {
+          "key" : "value",
+          "value" : {
+            "column" : 24,
+            "kind" : "NumberLiteral",
+            "line" : 2,
+            "text" : "1"
+          }
+        }, {
+          "key" : "Nested",
+          "value" : {
+            "column" : 3,
+            "entries" : [ ],
+            "kind" : "ObjectLiteralExpression",
+            "line" : 4
+          }
+        } ],
+        "kind" : "ObjectLiteralExpression",
+        "line" : 1
+      },
+      "kind" : "VariableDeclaration",
+      "line" : 1,
+      "name" : "N"
+    }, {
+      "column" : 1,
+      "expression" : {
+        "column" : 1,
+        "kind" : "UndefinedLiteral",
+        "line" : 23
+      },
+      "kind" : "ExpressionStatement",
+      "line" : 23
+    } ]
+  },
+  "schemaVersion" : "tsj-backend-token-v1"
+}

@@ -1,0 +1,13 @@
+{
+  "entry": "src/main.ts",
+  "out": ".out/isolated",
+  "classpath": [
+    "deps/tita-fixtures-1.0.jar",
+    "deps/tita-app-conflict-1.0.jar"
+  ],
+  "interopPolicy": "broad",
+  "ackInteropRisk": true,
+  "classloaderIsolation": "app-isolated",
+  "expectedFailureCode": "TSJ-RUN-009",
+  "notes": "Current TSJ CLI does not consume --config JSON directly; use README commands."
+}

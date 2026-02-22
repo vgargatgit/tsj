@@ -1,0 +1,125 @@
+{
+  "diagnostics": [
+    {
+      "code": "TS1005",
+      "message": "':' expected.",
+      "span": {
+        "endCol": 10,
+        "endLine": 2,
+        "file": "src/err/e900_recovery_stress.ts",
+        "startCol": 9,
+        "startLine": 2
+      }
+    },
+    {
+      "code": "TS1109",
+      "message": "Expression expected.",
+      "span": {
+        "endCol": 14,
+        "endLine": 2,
+        "file": "src/err/e900_recovery_stress.ts",
+        "startCol": 13,
+        "startLine": 2
+      }
+    },
+    {
+      "code": "TS1109",
+      "message": "Expression expected.",
+      "span": {
+        "endCol": 17,
+        "endLine": 2,
+        "file": "src/err/e900_recovery_stress.ts",
+        "startCol": 16,
+        "startLine": 2
+      }
+    },
+    {
+      "code": "TS1109",
+      "message": "Expression expected.",
+      "span": {
+        "endCol": 18,
+        "endLine": 2,
+        "file": "src/err/e900_recovery_stress.ts",
+        "startCol": 17,
+        "startLine": 2
+      }
+    },
+    {
+      "code": "TS1005",
+      "message": "':' expected.",
+      "span": {
+        "endCol": 7,
+        "endLine": 3,
+        "file": "src/err/e900_recovery_stress.ts",
+        "startCol": 6,
+        "startLine": 3
+      }
+    },
+    {
+      "code": "TS1109",
+      "message": "Expression expected.",
+      "span": {
+        "endCol": 10,
+        "endLine": 3,
+        "file": "src/err/e900_recovery_stress.ts",
+        "startCol": 9,
+        "startLine": 3
+      }
+    },
+    {
+      "code": "TS1005",
+      "message": "')' expected.",
+      "span": {
+        "endCol": 13,
+        "endLine": 3,
+        "file": "src/err/e900_recovery_stress.ts",
+        "startCol": 12,
+        "startLine": 3
+      }
+    },
+    {
+      "code": "TS1109",
+      "message": "Expression expected.",
+      "span": {
+        "endCol": 14,
+        "endLine": 4,
+        "file": "src/err/e900_recovery_stress.ts",
+        "startCol": 12,
+        "startLine": 4
+      }
+    },
+    {
+      "code": "TS1109",
+      "message": "Expression expected.",
+      "span": {
+        "endCol": 15,
+        "endLine": 4,
+        "file": "src/err/e900_recovery_stress.ts",
+        "startCol": 14,
+        "startLine": 4
+      }
+    },
+    {
+      "code": "TS1109",
+      "message": "Expression expected.",
+      "span": {
+        "endCol": 4,
+        "endLine": 5,
+        "file": "src/err/e900_recovery_stress.ts",
+        "startCol": 3,
+        "startLine": 5
+      }
+    },
+    {
+      "code": "TS1128",
+      "message": "Declaration or statement expected.",
+      "span": {
+        "endCol": 2,
+        "endLine": 6,
+        "file": "src/err/e900_recovery_stress.ts",
+        "startCol": 1,
+        "startLine": 6
+      }
+    }
+  ]
+}

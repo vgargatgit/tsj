@@ -1,0 +1,109 @@
+{
+  "astNodes" : [ {
+    "column" : 1,
+    "endColumn" : 1,
+    "endLine" : 3,
+    "kind" : "SourceFile",
+    "line" : 1
+  }, {
+    "column" : 1,
+    "endColumn" : 29,
+    "endLine" : 1,
+    "kind" : "FirstStatement",
+    "line" : 1
+  }, {
+    "column" : 1,
+    "endColumn" : 29,
+    "endLine" : 1,
+    "kind" : "VariableDeclarationList",
+    "line" : 1
+  }, {
+    "column" : 7,
+    "endColumn" : 29,
+    "endLine" : 1,
+    "kind" : "VariableDeclaration",
+    "line" : 1
+  }, {
+    "column" : 7,
+    "endColumn" : 13,
+    "endLine" : 1,
+    "kind" : "Identifier",
+    "line" : 1
+  }, {
+    "column" : 16,
+    "endColumn" : 29,
+    "endLine" : 1,
+    "kind" : "StringLiteral",
+    "line" : 1
+  }, {
+    "column" : 1,
+    "endColumn" : 23,
+    "endLine" : 2,
+    "kind" : "FirstStatement",
+    "line" : 2
+  }, {
+    "column" : 1,
+    "endColumn" : 22,
+    "endLine" : 2,
+    "kind" : "VariableDeclarationList",
+    "line" : 2
+  }, {
+    "column" : 7,
+    "endColumn" : 22,
+    "endLine" : 2,
+    "kind" : "VariableDeclaration",
+    "line" : 2
+  }, {
+    "column" : 7,
+    "endColumn" : 18,
+    "endLine" : 2,
+    "kind" : "Identifier",
+    "line" : 2
+  }, {
+    "column" : 21,
+    "endColumn" : 22,
+    "endLine" : 2,
+    "kind" : "FirstLiteralToken",
+    "line" : 2
+  }, {
+    "column" : 1,
+    "endColumn" : 1,
+    "endLine" : 3,
+    "kind" : "EndOfFileToken",
+    "line" : 3
+  } ],
+  "diagnostics" : [ {
+    "code" : "TS1002",
+    "column" : 29,
+    "line" : 1,
+    "message" : "Unterminated string literal."
+  } ],
+  "fixture" : "err/e001_unterminated.ts",
+  "normalizedProgram" : {
+    "kind" : "Program",
+    "statements" : [ {
+      "column" : 1,
+      "expression" : {
+        "column" : 16,
+        "kind" : "StringLiteral",
+        "line" : 1,
+        "text" : "unterminated"
+      },
+      "kind" : "VariableDeclaration",
+      "line" : 1,
+      "name" : "broken"
+    }, {
+      "column" : 1,
+      "expression" : {
+        "column" : 21,
+        "kind" : "NumberLiteral",
+        "line" : 2,
+        "text" : "1"
+      },
+      "kind" : "VariableDeclaration",
+      "line" : 2,
+      "name" : "afterBroken"
+    } ]
+  },
+  "schemaVersion" : "tsj-backend-token-v1"
+}

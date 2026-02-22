@@ -1,0 +1,5 @@
+{
+  "entry": "src/entry.ts",
+  "out": ".out",
+  "notes": "Standalone TypeScript grammar torture app. Run parse harness with node --experimental-strip-types."
+}

@@ -2,6 +2,16 @@
 
 TSJ is a staged compiler project that lowers TypeScript into JVM-oriented IR and, eventually, JVM bytecode.
 
+## Start Here
+
+Use `docs/developer-guide.md` as the primary contributor guide.
+
+- Developer workflow and TDD policy: `docs/developer-guide.md`
+- CLI commands/flags/diagnostics: `docs/cli-contract.md`
+- Story status and acceptance criteria: `docs/stories.md`
+- Unsupported features and guardrails: `docs/unsupported-feature-matrix.md`
+- Current implementation gaps: `docs/todo.md`
+
 Current implementation status includes:
 1. Architecture decisions and runtime contracts (`TSJ-0`)
 2. Multi-module Maven monorepo with CI, lint, and tests (`TSJ-1`)
@@ -87,6 +97,8 @@ Current implementation status includes:
 - `tests/fixtures`: committed fixture inputs/expectations
 - `tests/spring-matrix`: TSJ-37 Spring module matrix fixtures
 - `examples/pet-store-api`: TypeScript-authored Spring-style Pet Store API sample
+- `examples/grammar-proof-app`: grammar support proof app for newly implemented TS constructs
+- `examples/grammar-proof-next-app`: follow-on grammar support proof app for spread/rest/default params and loop forms
 - `docs`: architecture decisions, contracts, stories, and format docs
 
 ## Prerequisites

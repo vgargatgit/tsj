@@ -92,6 +92,23 @@ class JavaOverloadResolverTest {
         assertTrue(resolution.diagnostic().contains("Ambiguous best candidates"));
         assertTrue(resolution.diagnostic().contains("Ljava/io/Serializable;"));
         assertTrue(resolution.diagnostic().contains("Ljava/lang/Comparable;"));
+        final int serializableIndex = resolution.diagnostic().indexOf("Ljava/io/Serializable;");
+        final int comparableIndex = resolution.diagnostic().indexOf("Ljava/lang/Comparable;");
+        assertTrue(serializableIndex >= 0 && comparableIndex >= 0 && serializableIndex < comparableIndex);
+    }
+
+    @Test
+    void candidateEnumerationIsDeterministicByDescriptorForMethods() {
+        final List<JavaOverloadResolver.Candidate> candidates = JavaOverloadResolver.candidatesForClassMethod(
+                OverloadFixture.class,
+                "pick",
+                JavaOverloadResolver.InvokeKind.STATIC_METHOD
+        );
+        final List<String> descriptors = candidates.stream()
+                .map(candidate -> candidate.identity().descriptor())
+                .toList();
+        final List<String> sortedDescriptors = descriptors.stream().sorted().toList();
+        assertEquals(sortedDescriptors, descriptors);
     }
 
     @Test

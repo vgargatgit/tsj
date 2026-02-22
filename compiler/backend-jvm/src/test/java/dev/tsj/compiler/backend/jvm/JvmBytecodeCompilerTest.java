@@ -14,6 +14,10 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class JvmBytecodeCompilerTest {
+    private static final String TOKEN_BRIDGE_SCRIPT_PROPERTY = "tsj.backend.tokenBridgeScript";
+    private static final String LEGACY_TOKENIZER_PROPERTY = "tsj.backend.legacyTokenizer";
+    private static final String AST_NO_FALLBACK_PROPERTY = "tsj.backend.astNoFallback";
+
     @TempDir
     Path tempDir;
 
@@ -101,6 +105,58 @@ class JvmBytecodeCompilerTest {
     }
 
     @Test
+    void supportsDoWhileControlFlowInTsj59Subset() throws Exception {
+        final Path sourceFile = tempDir.resolve("do-while-control-flow.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                let sum = 0;
+                let i = 1;
+                do {
+                  sum = sum + i;
+                  i = i + 1;
+                } while (i <= 4);
+                console.log("do=" + sum);
+                """,
+                UTF_8
+        );
+
+        final Path outDir = tempDir.resolve("do-while-build");
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(sourceFile, outDir);
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals("do=10\n", stdout.toString(UTF_8));
+    }
+
+    @Test
+    void supportsContinueTargetingDoWhileLoopInTsj59aSubset() throws Exception {
+        final Path sourceFile = tempDir.resolve("do-while-continue.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                let i = 0;
+                let sum = 0;
+                do {
+                  i = i + 1;
+                  if (i === 2) {
+                    continue;
+                  }
+                  sum = sum + i;
+                } while (i < 3);
+                console.log(sum);
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("do-while-supported"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals("4\n", stdout.toString(UTF_8));
+    }
+
+    @Test
     void supportsElseBranchWhenConditionIsFalse() throws Exception {
         final Path sourceFile = tempDir.resolve("else-branch.ts");
         Files.writeString(
@@ -149,6 +205,460 @@ class JvmBytecodeCompilerTest {
     }
 
     @Test
+    void supportsBigIntAndExtendedNumericLiteralFormsInTsjGrammarPath() throws Exception {
+        final Path sourceFile = tempDir.resolve("numeric-literals.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                const million = 1_000_000;
+                const mask = 0b1010_1010;
+                const hex = 0xCAFE_F00D;
+                const big = 123n;
+                console.log(million);
+                console.log(mask);
+                console.log(hex);
+                console.log(big);
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("numeric-out"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals("1000000\n170\n3405705229\n123\n", stdout.toString(UTF_8));
+    }
+
+    @Test
+    void supportsAssignmentExpressionInVariableInitializer() throws Exception {
+        final Path sourceFile = tempDir.resolve("assignment-expression.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                let value = 1;
+                const captured = (value = 7);
+                console.log(value);
+                console.log(captured);
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact =
+                new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out-assignment-expression"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals("7\n7\n", stdout.toString(UTF_8));
+    }
+
+    @Test
+    void supportsCompoundAssignmentOperators() throws Exception {
+        final Path sourceFile = tempDir.resolve("compound-assignment.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                let total = 10;
+                total += 5;
+                total -= 2;
+                total *= 3;
+                total /= 2;
+                console.log(total);
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact =
+                new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out-compound-assignment"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals("19.5\n", stdout.toString(UTF_8));
+    }
+
+    @Test
+    void supportsLogicalCompoundAssignments() throws Exception {
+        final Path sourceFile = tempDir.resolve("logical-compound-assignment.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                let nullable = null;
+                nullable ??= "fallback";
+                let orValue = false;
+                orValue ||= "alt";
+                let andValue = "seed";
+                andValue &&= "next";
+                console.log(nullable);
+                console.log(orValue);
+                console.log(andValue);
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact =
+                new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out-logical-compound-assignment"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals("fallback\nalt\nnext\n", stdout.toString(UTF_8));
+    }
+
+    @Test
+    void supportsOptionalMemberAccessAndOptionalCall() throws Exception {
+        final Path sourceFile = tempDir.resolve("optional-chain.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                const holder = {
+                  value: 4,
+                  read: () => "ok"
+                };
+                const maybeHolder = null;
+                const maybeFn = undefined;
+
+                console.log(holder?.value);
+                console.log(maybeHolder?.value);
+                console.log(holder.read?.());
+                console.log(maybeFn?.());
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact =
+                new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out-optional-chain"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals("4\nundefined\nok\nundefined\n", stdout.toString(UTF_8));
+    }
+
+    @Test
+    void supportsTemplateLiteralsWithInterpolation() throws Exception {
+        final Path sourceFile = tempDir.resolve("template-literals.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                const name = "tsj";
+                const count = 3;
+                console.log(`hello ${name} #${count}`);
+                console.log(`plain`);
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact =
+                new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out-template-literals"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals("hello tsj #3\nplain\n", stdout.toString(UTF_8));
+    }
+
+    @Test
+    void supportsBigIntElementAccessAndGenericInstantiationExpression() throws Exception {
+        final Path sourceFile = tempDir.resolve("bigint-element-access.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                function id<T>(value: T): T {
+                  return value;
+                }
+
+                const arr = [5, 6];
+                const first = arr[0];
+                const big = 123n;
+                const instantiate = id<string>;
+
+                console.log(first);
+                console.log(big);
+                console.log(instantiate(9));
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact =
+                new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out-bigint-element-access"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals("5\n123\n9\n", stdout.toString(UTF_8));
+    }
+
+    @Test
+    void supportsNamespaceValueExportsInTsjGrammarPath() throws Exception {
+        final Path sourceFile = tempDir.resolve("namespace-value-export.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                namespace StressSpace {
+                  export const defaultPayload = { id: "a", value: "b" };
+                }
+
+                console.log(StressSpace.defaultPayload.value);
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact =
+                new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out-namespace-value-export"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals("b\n", stdout.toString(UTF_8));
+    }
+
+    @Test
+    void supportsDestructuringInDeclarationsAssignmentsAndParameters() throws Exception {
+        final Path sourceFile = tempDir.resolve("destructuring.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                function sumPair([left, right]) {
+                  return left + right;
+                }
+
+                function readTitle({ title }) {
+                  return title;
+                }
+
+                const [first, second] = [3, 4];
+                const { x, y } = { x: 1, y: 2, title: "ok" };
+                console.log(`decl:${first}|${second}|${x}|${y}|${readTitle({ title: "ok" })}|${sumPair([5, 6])}`);
+
+                let a = 0;
+                let b = 0;
+                [a, b] = [9, 8];
+                let left = 0;
+                let right = 0;
+                ({ x: left, y: right } = { x: 1, y: 2 });
+                console.log(`assign:${a}|${b}|${left}|${right}`);
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact =
+                new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out-destructuring"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals("decl:3|4|1|2|ok|11\nassign:9|8|1|2\n", stdout.toString(UTF_8));
+    }
+
+    @Test
+    void supportsArrayObjectAndCallSpreadSyntax() throws Exception {
+        final Path sourceFile = tempDir.resolve("spread.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                function sum4(a, b, c, d) {
+                  return a + b + c + d;
+                }
+
+                const base = [2, 3];
+                const combined = [1, ...base, 4];
+                const [w, x, y, z] = combined;
+                console.log(`array:${w}|${x}|${y}|${z}`);
+                console.log(`call:${sum4(...combined)}`);
+
+                const left = { a: 1 };
+                const right = { b: 2, c: 3 };
+                const merged = { ...left, ...right, d: 4 };
+                const { a, b, c, d } = merged;
+                console.log(`object:${a}|${b}|${c}|${d}`);
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact =
+                new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out-spread"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals("array:1|2|3|4\ncall:10\nobject:1|2|3|4\n", stdout.toString(UTF_8));
+    }
+
+    @Test
+    void supportsDefaultAndRestParametersAcrossFunctionsAndMethods() throws Exception {
+        final Path sourceFile = tempDir.resolve("default-rest-params.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                function summary(a = 10, b = a + 1, ...rest) {
+                  const [first, second] = rest;
+                  return `${a}|${b}|${rest.length}|${first ?? "none"}|${second ?? "none"}`;
+                }
+
+                const combine = (prefix = "P", ...parts) => {
+                  const [head] = parts;
+                  return `${prefix}-${head ?? "none"}-${parts.length}`;
+                };
+
+                class Runner {
+                  run(seed = 1, ...tail) {
+                    const [first] = tail;
+                    return seed + (first ?? 0);
+                  }
+                }
+
+                const runner = new Runner();
+                console.log(summary());
+                console.log(summary(undefined, undefined, 7, 8));
+                console.log(summary(3, undefined, 9));
+                console.log(summary(null, undefined));
+                console.log(combine());
+                console.log(combine(undefined, "x", "y"));
+                console.log(`method:${runner.run(undefined, 4)}|${runner.run(2)}`);
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact =
+                new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out-default-rest-params"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals(
+                """
+                10|11|0|none|none
+                10|11|2|7|8
+                3|4|1|9|none
+                null|1|0|none|none
+                P-none-0
+                P-x-2
+                method:5|2
+                """,
+                stdout.toString(UTF_8)
+        );
+    }
+
+    @Test
+    void supportsForOfAndForInLoopsWithContinueAndDestructuring() throws Exception {
+        final Path sourceFile = tempDir.resolve("for-of-for-in.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                const values = [1, 2, 3];
+                let sum = 0;
+                for (const value of values) {
+                  if (value === 2) {
+                    continue;
+                  }
+                  sum += value;
+                }
+                console.log(`of:${sum}`);
+
+                const obj = { a: 1, b: 2 };
+                let keys = "";
+                for (const key in obj) {
+                  keys = keys + key;
+                }
+                console.log(`in:${keys}`);
+
+                let last = "";
+                for (last in obj) {
+                }
+                console.log(`last:${last}`);
+
+                let pairTotal = 0;
+                for (const [left, right] of [[1, 2], [3, 4]]) {
+                  pairTotal += left + right;
+                }
+                console.log(`pair:${pairTotal}`);
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact =
+                new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out-for-of-for-in"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals(
+                """
+                of:4
+                in:ab
+                last:b
+                pair:10
+                """,
+                stdout.toString(UTF_8)
+        );
+    }
+
+    @Test
+    void supportsClassComputedKeysStaticBlocksFieldInitializersAndPrivateFields() throws Exception {
+        final Path sourceFile = tempDir.resolve("class-extended-grammar.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                class Counter {
+                  #seed = 2;
+                  value = this.#seed;
+
+                  ["plus"](delta) {
+                    return this.#seed + delta;
+                  }
+
+                  static total = 1;
+
+                  static {
+                    Counter.total = Counter.total + 2;
+                  }
+
+                  static bump(step = 1) {
+                    Counter.total = Counter.total + step;
+                    return Counter.total;
+                  }
+                }
+
+                const counter = new Counter();
+                console.log(`class:${counter.value}|${counter.plus(3)}|${Counter.total}|${Counter.bump()}`);
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact =
+                new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out-class-extended-grammar"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals("class:2|5|3|4\n", stdout.toString(UTF_8));
+    }
+
+    @Test
+    void supportsTypeOnlyImportsExportsAndTsOnlyAssertionSyntax() throws Exception {
+        final Path moduleFile = tempDir.resolve("types.ts");
+        final Path sourceFile = tempDir.resolve("ts-only-syntax.ts");
+
+        Files.writeString(
+                moduleFile,
+                """
+                export type Person = { name: string };
+                export const base = 7 as const;
+                """,
+                UTF_8
+        );
+        Files.writeString(
+                sourceFile,
+                """
+                import type { Person } from "./types.ts";
+                import { base } from "./types.ts";
+
+                const checked = { name: "ok" } satisfies { name: string };
+                const person: Person = checked;
+                const total = (<number>base) + (base as number);
+                console.log(`types:${total}|${person.name}`);
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact =
+                new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out-ts-only-syntax"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals("types:14|ok\n", stdout.toString(UTF_8));
+    }
+
+    @Test
     void supportsFunctionCallsInsideExpressions() throws Exception {
         final Path sourceFile = tempDir.resolve("calls.ts");
         Files.writeString(
@@ -169,6 +679,149 @@ class JvmBytecodeCompilerTest {
         new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
 
         assertEquals("result=5\n", stdout.toString(UTF_8));
+    }
+
+    @Test
+    void supportsLogicalOperatorsAndNullishCoalescing() throws Exception {
+        final Path sourceFile = tempDir.resolve("logical-operators.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                const andValue = "left" && "right";
+                const orValue = "" || "fallback";
+                const nullValue = null ?? "null-fallback";
+                const undefinedValue = undefined ?? "undefined-fallback";
+                const keptValue = "kept" ?? "ignored";
+                console.log(andValue);
+                console.log(orValue);
+                console.log(nullValue);
+                console.log(undefinedValue);
+                console.log(keptValue);
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("logical-out"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals(
+                """
+                right
+                fallback
+                null-fallback
+                undefined-fallback
+                kept
+                """,
+                stdout.toString(UTF_8)
+        );
+    }
+
+    @Test
+    void logicalOperatorsShortCircuitRightHandEvaluation() throws Exception {
+        final Path sourceFile = tempDir.resolve("logical-short-circuit.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                let hits = 0;
+                function tick(value: string) {
+                  hits = hits + 1;
+                  return value;
+                }
+
+                const andValue = false && tick("and-rhs");
+                const orValue = true || tick("or-rhs");
+                const coalesceNull = null ?? tick("nullish-rhs");
+                const coalesceUndefined = undefined ?? tick("undefined-rhs");
+                const coalesceKept = "kept" ?? tick("coalesce-ignored");
+
+                console.log("hits=" + hits);
+                console.log(andValue);
+                console.log(orValue);
+                console.log(coalesceNull);
+                console.log(coalesceUndefined);
+                console.log(coalesceKept);
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("logical-short-out"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals(
+                """
+                hits=2
+                false
+                true
+                nullish-rhs
+                undefined-rhs
+                kept
+                """,
+                stdout.toString(UTF_8)
+        );
+    }
+
+    @Test
+    void supportsConditionalExpressionOperator() throws Exception {
+        final Path sourceFile = tempDir.resolve("conditional-expression.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                const score = 7;
+                const label = score > 5 ? "high" : "low";
+                console.log(label);
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(
+                sourceFile,
+                tempDir.resolve("conditional-expression-out")
+        );
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals("high\n", stdout.toString(UTF_8));
+    }
+
+    @Test
+    void conditionalExpressionEvaluatesOnlySelectedBranch() throws Exception {
+        final Path sourceFile = tempDir.resolve("conditional-branch-selection.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                let hits = 0;
+                function tick(value: string) {
+                  hits = hits + 1;
+                  return value;
+                }
+
+                const first = true ? tick("then") : tick("else");
+                const second = false ? tick("then-2") : tick("else-2");
+
+                console.log(first);
+                console.log(second);
+                console.log("hits=" + hits);
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(
+                sourceFile,
+                tempDir.resolve("conditional-branch-selection-out")
+        );
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals(
+                """
+                then
+                else-2
+                hits=2
+                """,
+                stdout.toString(UTF_8)
+        );
     }
 
     @Test
@@ -2179,6 +2832,65 @@ class JvmBytecodeCompilerTest {
     }
 
     @Test
+    void supportsMultilineNamedImportAcrossFiles() throws Exception {
+        final Path mathModule = tempDir.resolve("math-multiline.ts");
+        final Path entry = tempDir.resolve("main-multiline.ts");
+        Files.writeString(
+                mathModule,
+                """
+                export function double(n: number) {
+                  return n * 2;
+                }
+                export function triple(n: number) {
+                  return n * 3;
+                }
+                """,
+                UTF_8
+        );
+        Files.writeString(
+                entry,
+                """
+                import {
+                  double,
+                  triple as thrice
+                } from "./math-multiline.ts";
+
+                console.log("value=" + (double(2) + thrice(2)));
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(entry, tempDir.resolve("out23b"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals("value=10\n", stdout.toString(UTF_8));
+    }
+
+    @Test
+    void supportsMultilineJavaInteropNamedImportInTsj26() throws Exception {
+        final Path sourceFile = tempDir.resolve("interop-multiline-import.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                import {
+                  max,
+                  min as minimum
+                } from "java:java.lang.Math";
+
+                console.log("range=" + minimum(3, 9) + ":" + max(3, 9));
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out23c"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals("range=3:9\n", stdout.toString(UTF_8));
+    }
+
+    @Test
     void supportsTransitiveNamedImportsAcrossMultipleFiles() throws Exception {
         final Path moduleA = tempDir.resolve("a.ts");
         final Path moduleB = tempDir.resolve("b.ts");
@@ -2755,7 +3467,7 @@ class JvmBytecodeCompilerTest {
     }
 
     @Test
-    void rejectsUnsupportedForLoopInTsj7() throws Exception {
+    void supportsForLoopInTsj59aSubset() throws Exception {
         final Path sourceFile = tempDir.resolve("for-loop.ts");
         Files.writeString(
                 sourceFile,
@@ -2767,12 +3479,42 @@ class JvmBytecodeCompilerTest {
                 UTF_8
         );
 
-        final JvmCompilationException exception = org.junit.jupiter.api.Assertions.assertThrows(
-                JvmCompilationException.class,
-                () -> new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out7"))
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out7"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals("0\n1\n2\n", stdout.toString(UTF_8));
+    }
+
+    @Test
+    void supportsSwitchStatementInTsj59aSubset() throws Exception {
+        final Path sourceFile = tempDir.resolve("switch-statement.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                let bucket = "init";
+                const value = 2;
+                switch (value) {
+                  case 1:
+                    bucket = "one";
+                    break;
+                  case 2:
+                    bucket = "two";
+                    break;
+                  default:
+                    bucket = "other";
+                    break;
+                }
+                console.log(bucket);
+                """,
+                UTF_8
         );
-        assertEquals("TSJ-BACKEND-UNSUPPORTED", exception.code());
-        assertTrue(exception.getMessage().contains("Unsupported statement"));
+
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out59a-switch"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals("two\n", stdout.toString(UTF_8));
     }
 
     @Test
@@ -2956,7 +3698,7 @@ class JvmBytecodeCompilerTest {
     }
 
     @Test
-    void rejectsUnsupportedDecoratorLineWithTargetedDiagnostic() throws Exception {
+    void stripsUnknownDecoratorLinesInsteadOfFailingCompilation() throws Exception {
         final Path sourceFile = tempDir.resolve("unsupported-decorator.ts");
         Files.writeString(
                 sourceFile,
@@ -2972,13 +3714,333 @@ class JvmBytecodeCompilerTest {
                 UTF_8
         );
 
-        final JvmCompilationException exception = org.junit.jupiter.api.Assertions.assertThrows(
-                JvmCompilationException.class,
-                () -> new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out34"))
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out34"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals("1\n", stdout.toString(UTF_8));
+    }
+
+    @Test
+    void compilesDeclarationFilesAsNoOpPrograms() throws Exception {
+        final Path declarationFile = tempDir.resolve("ambient.d.ts");
+        Files.writeString(
+                declarationFile,
+                """
+                declare namespace Ambient {
+                  const value: number;
+                }
+
+                export as namespace AmbientGlobal;
+                export {};
+                """,
+                UTF_8
         );
 
-        assertEquals("TSJ-BACKEND-UNSUPPORTED", exception.code());
-        assertTrue(exception.getMessage().contains("@UnknownDecorator"));
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(declarationFile, tempDir.resolve("out-dts"));
+        assertTrue(Files.exists(artifact.classFile()));
+    }
+
+    @Test
+    void mapsBridgeParseDiagnosticsBackToOriginalModuleFile() throws Exception {
+        final Path entryFile = tempDir.resolve("main.ts");
+        final Path brokenDependency = tempDir.resolve("broken.ts");
+        Files.writeString(
+                entryFile,
+                """
+                import { value } from "./broken";
+                console.log(value);
+                """,
+                UTF_8
+        );
+        Files.writeString(
+                brokenDependency,
+                """
+                export const value = ;
+                """,
+                UTF_8
+        );
+
+        final JvmCompilationException exception = org.junit.jupiter.api.Assertions.assertThrows(
+                JvmCompilationException.class,
+                () -> new JvmBytecodeCompiler().compile(entryFile, tempDir.resolve("out58a"))
+        );
+
+        assertTrue(exception.code().startsWith("TS"));
+        assertTrue(exception.sourceFile() != null && exception.sourceFile().endsWith("broken.ts"));
+        assertEquals(1, exception.line());
+        assertTrue(exception.column() != null && exception.column() >= 1);
+    }
+
+    @Test
+    void canFallbackToLegacyTokenizerWhenTokenBridgeIsBroken() throws Exception {
+        final Path sourceFile = tempDir.resolve("legacy-tokenizer.ts");
+        final Path failingBridgeScript = tempDir.resolve("bridge-fails.cjs");
+        Files.writeString(
+                sourceFile,
+                """
+                const value = 41 + 1;
+                console.log("legacy=" + value);
+                """,
+                UTF_8
+        );
+        Files.writeString(
+                failingBridgeScript,
+                """
+                process.stderr.write("bridge intentionally failed");
+                process.exit(1);
+                """,
+                UTF_8
+        );
+
+        final String previousBridgeScript = System.getProperty(TOKEN_BRIDGE_SCRIPT_PROPERTY);
+        final String previousLegacyTokenizer = System.getProperty(LEGACY_TOKENIZER_PROPERTY);
+        try {
+            System.setProperty(TOKEN_BRIDGE_SCRIPT_PROPERTY, failingBridgeScript.toString());
+            System.setProperty(LEGACY_TOKENIZER_PROPERTY, "true");
+
+            final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out58b"));
+            final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+            new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+            assertEquals("legacy=42\n", stdout.toString(UTF_8));
+        } finally {
+            restoreSystemProperty(TOKEN_BRIDGE_SCRIPT_PROPERTY, previousBridgeScript);
+            restoreSystemProperty(LEGACY_TOKENIZER_PROPERTY, previousLegacyTokenizer);
+        }
+    }
+
+    @Test
+    void reportsBridgeSchemaErrorsWhenConfiguredBridgeIsInvalid() throws Exception {
+        final Path sourceFile = tempDir.resolve("bridge-schema.ts");
+        final Path invalidBridgeScript = tempDir.resolve("bridge-invalid-schema.cjs");
+        Files.writeString(
+                sourceFile,
+                """
+                console.log("schema");
+                """,
+                UTF_8
+        );
+        Files.writeString(
+                invalidBridgeScript,
+                """
+                process.stdout.write(JSON.stringify({
+                  schemaVersion: "tsj-backend-token-v0",
+                  diagnostics: [],
+                  tokens: []
+                }));
+                """,
+                UTF_8
+        );
+
+        final String previousBridgeScript = System.getProperty(TOKEN_BRIDGE_SCRIPT_PROPERTY);
+        final String previousLegacyTokenizer = System.getProperty(LEGACY_TOKENIZER_PROPERTY);
+        try {
+            System.setProperty(TOKEN_BRIDGE_SCRIPT_PROPERTY, invalidBridgeScript.toString());
+            System.clearProperty(LEGACY_TOKENIZER_PROPERTY);
+
+            final JvmCompilationException exception = org.junit.jupiter.api.Assertions.assertThrows(
+                    JvmCompilationException.class,
+                    () -> new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out58c"))
+            );
+
+            assertEquals("TSJ-BACKEND-AST-SCHEMA", exception.code());
+            assertTrue(exception.getMessage().contains("tsj-backend-token-v0"));
+        } finally {
+            restoreSystemProperty(TOKEN_BRIDGE_SCRIPT_PROPERTY, previousBridgeScript);
+            restoreSystemProperty(LEGACY_TOKENIZER_PROPERTY, previousLegacyTokenizer);
+        }
+    }
+
+    @Test
+    void reportsBridgeSchemaErrorsWhenAstPayloadIsMissing() throws Exception {
+        final Path sourceFile = tempDir.resolve("bridge-missing-ast.ts");
+        final Path invalidBridgeScript = tempDir.resolve("bridge-missing-ast.cjs");
+        Files.writeString(
+                sourceFile,
+                """
+                console.log("schema");
+                """,
+                UTF_8
+        );
+        Files.writeString(
+                invalidBridgeScript,
+                """
+                process.stdout.write(JSON.stringify({
+                  schemaVersion: "tsj-backend-token-v1",
+                  diagnostics: [],
+                  tokens: [{ type: "KEYWORD", text: "const", line: 1, column: 1 }]
+                }));
+                """,
+                UTF_8
+        );
+
+        final String previousBridgeScript = System.getProperty(TOKEN_BRIDGE_SCRIPT_PROPERTY);
+        final String previousLegacyTokenizer = System.getProperty(LEGACY_TOKENIZER_PROPERTY);
+        try {
+            System.setProperty(TOKEN_BRIDGE_SCRIPT_PROPERTY, invalidBridgeScript.toString());
+            System.clearProperty(LEGACY_TOKENIZER_PROPERTY);
+
+            final JvmCompilationException exception = org.junit.jupiter.api.Assertions.assertThrows(
+                    JvmCompilationException.class,
+                    () -> new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out58d"))
+            );
+
+            assertEquals("TSJ-BACKEND-AST-SCHEMA", exception.code());
+            assertTrue(exception.getMessage().contains("astNodes"));
+        } finally {
+            restoreSystemProperty(TOKEN_BRIDGE_SCRIPT_PROPERTY, previousBridgeScript);
+            restoreSystemProperty(LEGACY_TOKENIZER_PROPERTY, previousLegacyTokenizer);
+        }
+    }
+
+    @Test
+    void canCompileSimpleProgramWithAstOnlyPathWhenParserFallbackDisabled() throws Exception {
+        final Path sourceFile = tempDir.resolve("ast-only-simple.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                const value = 40 + 2;
+                console.log("ast=" + value);
+                """,
+                UTF_8
+        );
+
+        final String previousLegacyTokenizer = System.getProperty(LEGACY_TOKENIZER_PROPERTY);
+        final String previousAstNoFallback = System.getProperty(AST_NO_FALLBACK_PROPERTY);
+        try {
+            System.clearProperty(LEGACY_TOKENIZER_PROPERTY);
+            System.setProperty(AST_NO_FALLBACK_PROPERTY, "true");
+
+            final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out58e"));
+            final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+            new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+            assertEquals("ast=42\n", stdout.toString(UTF_8));
+        } finally {
+            restoreSystemProperty(LEGACY_TOKENIZER_PROPERTY, previousLegacyTokenizer);
+            restoreSystemProperty(AST_NO_FALLBACK_PROPERTY, previousAstNoFallback);
+        }
+    }
+
+    @Test
+    void canCompileClassProgramWithAstOnlyPathWhenParserFallbackDisabled() throws Exception {
+        final Path sourceFile = tempDir.resolve("ast-only-class.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                class Counter {
+                  value: number;
+                  constructor(seed: number) {
+                    this.value = seed;
+                  }
+
+                  inc(delta: number) {
+                    this.value = this.value + delta;
+                    return this.value;
+                  }
+                }
+
+                const counter = new Counter(10);
+                console.log("ast-class=" + counter.inc(5));
+                """,
+                UTF_8
+        );
+
+        final String previousLegacyTokenizer = System.getProperty(LEGACY_TOKENIZER_PROPERTY);
+        final String previousAstNoFallback = System.getProperty(AST_NO_FALLBACK_PROPERTY);
+        try {
+            System.clearProperty(LEGACY_TOKENIZER_PROPERTY);
+            System.setProperty(AST_NO_FALLBACK_PROPERTY, "true");
+
+            final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out58f"));
+            final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+            new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+            assertEquals("ast-class=15\n", stdout.toString(UTF_8));
+        } finally {
+            restoreSystemProperty(LEGACY_TOKENIZER_PROPERTY, previousLegacyTokenizer);
+            restoreSystemProperty(AST_NO_FALLBACK_PROPERTY, previousAstNoFallback);
+        }
+    }
+
+    @Test
+    void canCompileInheritedClassProgramWithAstOnlyPathWhenParserFallbackDisabled() throws Exception {
+        final Path sourceFile = tempDir.resolve("ast-only-class-inheritance.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                class Base {
+                  value: number;
+                  constructor(seed: number) {
+                    this.value = seed;
+                  }
+                }
+
+                class Derived extends Base {
+                  constructor(seed: number) {
+                    super(seed);
+                  }
+
+                  plus(delta: number) {
+                    return this.value + delta;
+                  }
+                }
+
+                const derived = new Derived(4);
+                console.log("ast-inherit=" + derived.plus(3));
+                """,
+                UTF_8
+        );
+
+        final String previousLegacyTokenizer = System.getProperty(LEGACY_TOKENIZER_PROPERTY);
+        final String previousAstNoFallback = System.getProperty(AST_NO_FALLBACK_PROPERTY);
+        try {
+            System.clearProperty(LEGACY_TOKENIZER_PROPERTY);
+            System.setProperty(AST_NO_FALLBACK_PROPERTY, "true");
+
+            final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out58g"));
+            final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+            new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+            assertEquals("ast-inherit=7\n", stdout.toString(UTF_8));
+        } finally {
+            restoreSystemProperty(LEGACY_TOKENIZER_PROPERTY, previousLegacyTokenizer);
+            restoreSystemProperty(AST_NO_FALLBACK_PROPERTY, previousAstNoFallback);
+        }
+    }
+
+    @Test
+    void failsAstOnlyPathWhenNormalizedProgramIsUnavailable() throws Exception {
+        final Path sourceFile = tempDir.resolve("ast-only-unsupported.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                async function run() {
+                  for await (const item of [1, 2, 3]) {
+                    console.log(item);
+                  }
+                }
+                """,
+                UTF_8
+        );
+
+        final String previousLegacyTokenizer = System.getProperty(LEGACY_TOKENIZER_PROPERTY);
+        final String previousAstNoFallback = System.getProperty(AST_NO_FALLBACK_PROPERTY);
+        try {
+            System.clearProperty(LEGACY_TOKENIZER_PROPERTY);
+            System.setProperty(AST_NO_FALLBACK_PROPERTY, "true");
+
+            final JvmCompilationException exception = org.junit.jupiter.api.Assertions.assertThrows(
+                    JvmCompilationException.class,
+                    () -> new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out58f"))
+            );
+
+            assertEquals("TSJ-BACKEND-AST-LOWERING", exception.code());
+        } finally {
+            restoreSystemProperty(LEGACY_TOKENIZER_PROPERTY, previousLegacyTokenizer);
+            restoreSystemProperty(AST_NO_FALLBACK_PROPERTY, previousAstNoFallback);
+        }
     }
 
     @Test
@@ -2998,6 +4060,72 @@ class JvmBytecodeCompilerTest {
 
         assertEquals(artifact.className(), mainClass.getName());
         assertTrue(Files.exists(artifact.classFile()));
+    }
+
+    @Test
+    void grammarProofExampleAppCompilesAndRunsWithExpectedOutput() throws Exception {
+        final Path repoRoot = locateRepositoryRoot();
+        final Path sourceFile = repoRoot.resolve("examples/grammar-proof-app/src/main.ts");
+
+        final JvmCompiledArtifact artifact =
+                new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("grammar-proof-example"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals(
+                """
+                --- grammar-proof ---
+                logical:false|true|fallback
+                assign:7|0|filled|alt|next
+                conditional:LE2
+                optional:4|undefined|ok|undefined
+                template:hello tsj #3
+                """,
+                stdout.toString(UTF_8)
+        );
+    }
+
+    @Test
+    void grammarProofNextExampleAppCompilesAndRunsWithExpectedOutput() throws Exception {
+        final Path repoRoot = locateRepositoryRoot();
+        final Path sourceFile = repoRoot.resolve("examples/grammar-proof-next-app/src/main.ts");
+
+        final JvmCompiledArtifact artifact =
+                new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("grammar-proof-next-example"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals(
+                """
+                --- grammar-proof-next ---
+                spread:1|2|3|4|10|1|2|3|4
+                params:10|11|0|none|none|3|4|1|9|none|P-x-2|5|2
+                loops:4|ab|b|10
+                class:2|5|3|4
+                ts-only:14|ok
+                """,
+                stdout.toString(UTF_8)
+        );
+    }
+
+    private static void restoreSystemProperty(final String key, final String value) {
+        if (value == null) {
+            System.clearProperty(key);
+        } else {
+            System.setProperty(key, value);
+        }
+    }
+
+    private static Path locateRepositoryRoot() {
+        Path cursor = Path.of("").toAbsolutePath().normalize();
+        while (cursor != null) {
+            final Path marker = cursor.resolve("examples/grammar-proof-app/src/main.ts");
+            if (Files.exists(marker)) {
+                return cursor;
+            }
+            cursor = cursor.getParent();
+        }
+        throw new IllegalStateException("Could not locate repository root for grammar-proof example.");
     }
 
     private static void assertUnsupportedFeature(

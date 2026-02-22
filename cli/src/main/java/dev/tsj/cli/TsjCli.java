@@ -128,6 +128,12 @@ public final class TsjCli {
     private static final String ARTIFACT_INTEROP_CLASS_INDEX_SYMBOL_COUNT = "interopClasspath.classIndex.symbolCount";
     private static final String ARTIFACT_INTEROP_CLASS_INDEX_DUPLICATE_COUNT =
             "interopClasspath.classIndex.duplicateCount";
+    private static final String ARTIFACT_INTEROP_CLASS_INDEX_MRJAR_WINNER_COUNT =
+            "interopClasspath.classIndex.mrJarWinnerCount";
+    private static final String ARTIFACT_INTEROP_CLASS_INDEX_MRJAR_BASE_WINNER_COUNT =
+            "interopClasspath.classIndex.mrJarBaseWinnerCount";
+    private static final String ARTIFACT_INTEROP_CLASS_INDEX_MRJAR_VERSIONED_WINNER_COUNT =
+            "interopClasspath.classIndex.mrJarVersionedWinnerCount";
     private static final String ARTIFACT_INTEROP_BRIDGE_SELECTED_COUNT = "interopBridges.selectedTargetCount";
     private static final String ARTIFACT_INTEROP_BRIDGE_SELECTED_PREFIX = "interopBridges.selectedTarget.";
     private static final String ARTIFACT_INTEROP_BRIDGE_UNRESOLVED_COUNT = "interopBridges.unresolvedTargetCount";
@@ -140,12 +146,12 @@ public final class TsjCli {
     private static final String AUTO_INTEROP_CACHE_FINGERPRINT_KEY = "fingerprint";
     private static final String AUTO_INTEROP_OUTPUT_DIR = "generated-interop";
     private static final String SPRING_PACKAGE_DEFAULT_JAR_NAME = "tsj-spring-app.jar";
-    private static final Pattern NAMED_IMPORT_PATTERN = Pattern.compile(
-            "^\\s*import\\s*\\{([^}]*)}\\s*from\\s*[\"']([^\"']+)[\"']\\s*;\\s*$"
+    private static final Pattern IMPORT_STATEMENT_PATTERN = Pattern.compile(
+            "(?s)\\bimport\\s+(?:(type\\s+)?(.+?)\\s+from\\s*[\"']([^\"']+)[\"']"
+                    + "(?:\\s+(?:with|assert)\\s*\\{[^;]*})?|[\"']([^\"']+)[\"']"
+                    + "(?:\\s+(?:with|assert)\\s*\\{[^;]*})?)\\s*;"
     );
-    private static final Pattern SIDE_EFFECT_IMPORT_PATTERN = Pattern.compile(
-            "^\\s*import\\s*[\"']([^\"']+)[\"']\\s*;\\s*$"
-    );
+    private static final Pattern NAMED_BINDINGS_PATTERN = Pattern.compile("(?s)\\{([^}]*)}");
     private static final Pattern INTEROP_MODULE_PATTERN = Pattern.compile(
             "^java:([A-Za-z_$][A-Za-z0-9_$]*(?:\\.[A-Za-z_$][A-Za-z0-9_$]*)*)$"
     );
@@ -284,6 +290,18 @@ public final class TsjCli {
                 "interopClassIndexDuplicates",
                 Integer.toString(artifact.classpathSymbolIndex().duplicateCount())
         );
+        context.put(
+                "interopClassIndexMrJarWinners",
+                Integer.toString(artifact.classpathSymbolIndex().mrJarWinnerCount())
+        );
+        context.put(
+                "interopClassIndexMrJarBaseWinners",
+                Integer.toString(artifact.classpathSymbolIndex().mrJarBaseWinnerCount())
+        );
+        context.put(
+                "interopClassIndexMrJarVersionedWinners",
+                Integer.toString(artifact.classpathSymbolIndex().mrJarVersionedWinnerCount())
+        );
         context.put("interopPolicy", options.interopPolicy().cliValue());
         context.put("interopPolicySource", options.interopPolicySource());
         context.put(
@@ -355,25 +373,34 @@ public final class TsjCli {
         final Path entryPath = Path.of(args[1]);
         final RunOptions runOptions = parseRunOptions(entryPath, args, 2);
         final Path outDir = runOptions.outDir() != null ? runOptions.outDir() : Path.of(DEFAULT_RUN_OUT_DIR);
-        final CompiledArtifact artifact = compileArtifact(
-                entryPath,
-                outDir,
-                runOptions.optimizationOptions(),
-                runOptions.interopClasspathEntries(),
-                runOptions.classpathMediationDecisions(),
-                runOptions.classpathUsageMode(),
-                runOptions.classpathScopeExclusions(),
-                runOptions.interopSpecPath(),
-                runOptions.interopPolicy(),
-                runOptions.interopRiskAcknowledged(),
-                runOptions.interopAuthorizationResolution(),
-                runOptions.interopDenylistPatterns(),
-                runOptions.interopAuditLogPath(),
-                runOptions.interopAuditAggregatePath(),
-                runOptions.interopTraceEnabled(),
-                runOptions.classloaderIsolationMode(),
-                COMMAND_RUN
-        );
+        final CompiledArtifact artifact;
+        try {
+            artifact = compileArtifact(
+                    entryPath,
+                    outDir,
+                    runOptions.optimizationOptions(),
+                    runOptions.interopClasspathEntries(),
+                    runOptions.classpathMediationDecisions(),
+                    runOptions.classpathUsageMode(),
+                    runOptions.classpathScopeExclusions(),
+                    runOptions.interopSpecPath(),
+                    runOptions.interopPolicy(),
+                    runOptions.interopRiskAcknowledged(),
+                    runOptions.interopAuthorizationResolution(),
+                    runOptions.interopDenylistPatterns(),
+                    runOptions.interopAuditLogPath(),
+                    runOptions.interopAuditAggregatePath(),
+                    runOptions.interopTraceEnabled(),
+                    runOptions.classloaderIsolationMode(),
+                    COMMAND_RUN
+            );
+        } catch (final CliFailure failure) {
+            final CliFailure remappedFailure = maybeRunInteropClasspathFailure(failure, entryPath);
+            if (remappedFailure != null) {
+                throw remappedFailure;
+            }
+            throw failure;
+        }
         executeArtifact(
                 artifact,
                 stdout,
@@ -1159,6 +1186,7 @@ public final class TsjCli {
             context.put("entry", entryPath.toAbsolutePath().normalize().toString());
             context.put("classloaderIsolation", classloaderIsolationMode.cliValue());
             context.put("className", conflictException.internalName().replace('/', '.'));
+            context.put("conflictClass", conflictException.internalName().replace('/', '.'));
             context.put(
                     "appOrigin",
                     conflictException.appOrigin().location() + "!" + conflictException.appOrigin().entry()
@@ -1170,6 +1198,11 @@ public final class TsjCli {
                             + conflictException.dependencyOrigin().entry()
             );
             context.put("rule", conflictException.rule());
+            context.put(
+                    "guidance",
+                    "Remove conflicting duplicate classes from the dependency classpath, "
+                            + "or run with `--classloader-isolation shared` when shadowing is intentional."
+            );
             throw CliFailure.runtime(
                     "TSJ-RUN-009",
                     conflictException.getMessage(),
@@ -1197,7 +1230,7 @@ public final class TsjCli {
             for (int index = 0; index < interopClasspathEntries.size(); index++) {
                 properties.setProperty(
                         ARTIFACT_INTEROP_CLASSPATH_ENTRY_PREFIX + index,
-                        interopClasspathEntries.get(index).toString()
+                        serializeClasspathEntry(interopClasspathEntries.get(index))
                 );
             }
             properties.setProperty(
@@ -1324,6 +1357,18 @@ public final class TsjCli {
                     ARTIFACT_INTEROP_CLASS_INDEX_DUPLICATE_COUNT,
                     Integer.toString(classpathSymbolIndex.duplicateCount())
             );
+            properties.setProperty(
+                    ARTIFACT_INTEROP_CLASS_INDEX_MRJAR_WINNER_COUNT,
+                    Integer.toString(classpathSymbolIndex.mrJarWinnerCount())
+            );
+            properties.setProperty(
+                    ARTIFACT_INTEROP_CLASS_INDEX_MRJAR_BASE_WINNER_COUNT,
+                    Integer.toString(classpathSymbolIndex.mrJarBaseWinnerCount())
+            );
+            properties.setProperty(
+                    ARTIFACT_INTEROP_CLASS_INDEX_MRJAR_VERSIONED_WINNER_COUNT,
+                    Integer.toString(classpathSymbolIndex.mrJarVersionedWinnerCount())
+            );
             properties.setProperty("interopDenylist.count", Integer.toString(interopDenylistPatterns.size()));
             properties.setProperty("frontendModule", FrontendModule.moduleName());
             properties.setProperty("irModule", IrModule.moduleName());
@@ -1354,7 +1399,10 @@ public final class TsjCli {
                     new ClasspathSymbolIndexSummary(
                             classIndexPath,
                             classpathSymbolIndex.symbolCount(),
-                            classpathSymbolIndex.duplicateCount()
+                            classpathSymbolIndex.duplicateCount(),
+                            classpathSymbolIndex.mrJarWinnerCount(),
+                            classpathSymbolIndex.mrJarBaseWinnerCount(),
+                            classpathSymbolIndex.mrJarVersionedWinnerCount()
                     ),
                     interopBridgeResult,
                     tsjWebControllerResult,
@@ -1414,6 +1462,56 @@ public final class TsjCli {
                         "guidance", "Move the dependency to compile/runtime scope or run with compatible classpath scope."
                 )
         );
+    }
+
+    private static CliFailure maybeRunInteropClasspathFailure(
+            final CliFailure failure,
+            final Path entryPath
+    ) {
+        if (!"TSJ-INTEROP-INVALID".equals(failure.code)) {
+            return null;
+        }
+        final String message = failure.getMessage();
+        final String prefix = "Interop target class was not found: ";
+        if (message == null || !message.startsWith(prefix)) {
+            return null;
+        }
+        final Map<String, String> context = new LinkedHashMap<>(failure.context);
+        context.putIfAbsent("entry", entryPath.toAbsolutePath().normalize().toString());
+        final String interopTargets = loadInteropTargetsFromGeneratedSpec(context.get("file"));
+        if (interopTargets != null) {
+            context.put("interopTargets", interopTargets);
+        }
+        context.putIfAbsent(
+                "guidance",
+                "Add required jars/classpath entries for `java:` imports or use an explicit interop spec."
+        );
+        return CliFailure.runtime(
+                "TSJ-RUN-006",
+                message,
+                Map.copyOf(context)
+        );
+    }
+
+    private static String loadInteropTargetsFromGeneratedSpec(final String specPathValue) {
+        if (specPathValue == null || specPathValue.isBlank()) {
+            return null;
+        }
+        final Path specPath = Path.of(specPathValue).toAbsolutePath().normalize();
+        if (!Files.exists(specPath) || !Files.isRegularFile(specPath)) {
+            return null;
+        }
+        final Properties properties = new Properties();
+        try (InputStream inputStream = Files.newInputStream(specPath)) {
+            properties.load(inputStream);
+        } catch (final IOException ioException) {
+            return null;
+        }
+        final String targets = properties.getProperty("targets");
+        if (targets == null || targets.isBlank()) {
+            return null;
+        }
+        return targets;
     }
 
     private static void enforceClasspathScopeCompatibility(
@@ -2228,10 +2326,10 @@ public final class TsjCli {
             final InteropPolicy interopPolicy,
             final List<String> discoveredTargets
     ) {
-        if (interopSpecPath == null) {
-            return AutoInteropBridgeResult.disabled();
-        }
         if (discoveredTargets.isEmpty()) {
+            if (interopSpecPath == null) {
+                return AutoInteropBridgeResult.disabled();
+            }
             return new AutoInteropBridgeResult(true, List.of(), false, 0, List.of(), List.of());
         }
 
@@ -2239,7 +2337,7 @@ public final class TsjCli {
         final Path generatedInteropDir = normalizedOutDir.resolve(AUTO_INTEROP_OUTPUT_DIR);
         final Path metadataPath = generatedInteropDir.resolve("interop-bridges.properties");
         final Path cacheFile = normalizedOutDir.resolve(AUTO_INTEROP_CACHE_FILE);
-        final String fingerprint = computeInteropFingerprint(interopSpecPath, discoveredTargets);
+        final String fingerprint = computeInteropFingerprint(interopSpecPath, discoveredTargets, interopPolicy);
         if (isAutoInteropCacheHit(cacheFile, metadataPath, fingerprint)) {
             return new AutoInteropBridgeResult(
                     true,
@@ -2286,15 +2384,22 @@ public final class TsjCli {
     ) {
         final Path normalizedOutDir = outDir.toAbsolutePath().normalize();
         final Path generatedWebDir = normalizedOutDir.resolve("generated-web");
-        final TsjSpringWebControllerArtifact artifact = new TsjSpringWebControllerGenerator().generate(
-                entryPath,
-                programClassName,
-                generatedWebDir
-        );
-        return new TsjWebControllerResult(
-                artifact.controllerClassNames(),
-                artifact.sourceFiles().size()
-        );
+        try {
+            final TsjSpringWebControllerArtifact artifact = new TsjSpringWebControllerGenerator().generate(
+                    entryPath,
+                    programClassName,
+                    generatedWebDir
+            );
+            return new TsjWebControllerResult(
+                    artifact.controllerClassNames(),
+                    artifact.sourceFiles().size()
+            );
+        } catch (final JvmCompilationException compilationException) {
+            if (isDecoratorSubsetDiagnostic(compilationException.code())) {
+                return new TsjWebControllerResult(List.of(), 0);
+            }
+            throw compilationException;
+        }
     }
 
     private static TsjSpringComponentResult maybeGenerateTsjSpringComponentAdapters(
@@ -2304,15 +2409,26 @@ public final class TsjCli {
     ) {
         final Path normalizedOutDir = outDir.toAbsolutePath().normalize();
         final Path generatedComponentsDir = normalizedOutDir.resolve("generated-components");
-        final TsjSpringComponentArtifact artifact = new TsjSpringComponentGenerator().generate(
-                entryPath,
-                programClassName,
-                generatedComponentsDir
-        );
-        return new TsjSpringComponentResult(
-                artifact.componentClassNames(),
-                artifact.sourceFiles().size()
-        );
+        try {
+            final TsjSpringComponentArtifact artifact = new TsjSpringComponentGenerator().generate(
+                    entryPath,
+                    programClassName,
+                    generatedComponentsDir
+            );
+            return new TsjSpringComponentResult(
+                    artifact.componentClassNames(),
+                    artifact.sourceFiles().size()
+            );
+        } catch (final JvmCompilationException compilationException) {
+            if (isDecoratorSubsetDiagnostic(compilationException.code())) {
+                return new TsjSpringComponentResult(List.of(), 0);
+            }
+            throw compilationException;
+        }
+    }
+
+    private static boolean isDecoratorSubsetDiagnostic(final String code) {
+        return code != null && code.startsWith("TSJ-DECORATOR-");
     }
 
     private static void collectInteropTargets(
@@ -2327,44 +2443,72 @@ public final class TsjCli {
         if (!visited.add(normalizedSource)) {
             return;
         }
-        final List<String> lines;
+        final String sourceText;
         try {
-            lines = Files.readAllLines(normalizedSource);
+            sourceText = Files.readString(normalizedSource);
         } catch (final IOException ioException) {
             return;
         }
-        for (String line : lines) {
-            final java.util.regex.Matcher namedImport = NAMED_IMPORT_PATTERN.matcher(line);
-            if (namedImport.matches()) {
-                final String rawBindings = namedImport.group(1);
-                final String importPath = namedImport.group(2);
-                final java.util.regex.Matcher interopImport = INTEROP_MODULE_PATTERN.matcher(importPath);
-                if (interopImport.matches()) {
-                    final String className = interopImport.group(1);
-                    for (String importedName : parseImportedNames(rawBindings)) {
-                        targets.add(className + "#" + importedName);
-                    }
+        for (StaticImportStatement importStatement : parseImportStatements(sourceText)) {
+            final String importPath = importStatement.moduleSpecifier();
+            final java.util.regex.Matcher interopImport = INTEROP_MODULE_PATTERN.matcher(importPath);
+            if (interopImport.matches()) {
+                if (importStatement.typeOnly() || importStatement.namedBindings() == null) {
                     continue;
                 }
-                if (importPath.startsWith(".")) {
-                    final Path dependency = resolveRelativeModule(normalizedSource, importPath);
-                    if (dependency != null) {
-                        collectInteropTargets(dependency, visited, targets);
-                    }
+                final String className = interopImport.group(1);
+                for (String importedName : parseImportedNames(importStatement.namedBindings())) {
+                    targets.add(className + "#" + importedName);
                 }
                 continue;
             }
-            final java.util.regex.Matcher sideEffectImport = SIDE_EFFECT_IMPORT_PATTERN.matcher(line);
-            if (sideEffectImport.matches()) {
-                final String importPath = sideEffectImport.group(1);
-                if (importPath.startsWith(".")) {
-                    final Path dependency = resolveRelativeModule(normalizedSource, importPath);
-                    if (dependency != null) {
-                        collectInteropTargets(dependency, visited, targets);
-                    }
-                }
+            if (importStatement.typeOnly() || !importPath.startsWith(".")) {
+                continue;
+            }
+            final Path dependency = resolveRelativeModule(normalizedSource, importPath);
+            if (dependency != null) {
+                collectInteropTargets(dependency, visited, targets);
             }
         }
+    }
+
+    private static List<StaticImportStatement> parseImportStatements(final String sourceText) {
+        final List<StaticImportStatement> statements = new ArrayList<>();
+        final java.util.regex.Matcher importMatcher = IMPORT_STATEMENT_PATTERN.matcher(sourceText);
+        while (importMatcher.find()) {
+            final String sideEffectModule = importMatcher.group(4);
+            if (sideEffectModule != null) {
+                statements.add(new StaticImportStatement(sideEffectModule, null, false));
+                continue;
+            }
+            final String importClause = importMatcher.group(2);
+            final String importModule = importMatcher.group(3);
+            final boolean typeOnly = importMatcher.group(1) != null;
+            statements.add(new StaticImportStatement(
+                    importModule,
+                    extractNamedBindings(importClause),
+                    typeOnly
+            ));
+        }
+        return List.copyOf(statements);
+    }
+
+    private static String extractNamedBindings(final String importClause) {
+        if (importClause == null || importClause.isBlank()) {
+            return null;
+        }
+        final java.util.regex.Matcher namedBindingsMatcher = NAMED_BINDINGS_PATTERN.matcher(importClause);
+        if (!namedBindingsMatcher.find()) {
+            return null;
+        }
+        return namedBindingsMatcher.group(1);
+    }
+
+    private record StaticImportStatement(
+            String moduleSpecifier,
+            String namedBindings,
+            boolean typeOnly
+    ) {
     }
 
     private static List<String> parseImportedNames(final String rawBindings) {
@@ -2414,26 +2558,38 @@ public final class TsjCli {
         return null;
     }
 
-    private static String computeInteropFingerprint(final Path interopSpecPath, final List<String> discoveredTargets) {
+    private static String computeInteropFingerprint(
+            final Path interopSpecPath,
+            final List<String> discoveredTargets,
+            final InteropPolicy interopPolicy
+    ) {
         final MessageDigest digest;
         try {
             digest = MessageDigest.getInstance("SHA-256");
         } catch (final NoSuchAlgorithmException noSuchAlgorithmException) {
             throw new IllegalStateException("Missing SHA-256 digest algorithm.", noSuchAlgorithmException);
         }
-        try {
-            digest.update(Files.readAllBytes(interopSpecPath));
-        } catch (final IOException ioException) {
-            throw new JvmCompilationException(
-                    "TSJ-INTEROP-INPUT",
-                    "Failed to read interop spec for fingerprint: " + ioException.getMessage(),
-                    null,
-                    null,
-                    interopSpecPath.toString(),
-                    null,
-                    null,
-                    ioException
-            );
+        if (interopSpecPath != null) {
+            try {
+                digest.update(Files.readAllBytes(interopSpecPath));
+            } catch (final IOException ioException) {
+                throw new JvmCompilationException(
+                        "TSJ-INTEROP-INPUT",
+                        "Failed to read interop spec for fingerprint: " + ioException.getMessage(),
+                        null,
+                        null,
+                        interopSpecPath.toString(),
+                        null,
+                        null,
+                        ioException
+                );
+            }
+        } else {
+            digest.update("no-spec".getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        }
+        if (interopPolicy != null) {
+            digest.update((byte) '\n');
+            digest.update(interopPolicy.cliValue().getBytes(java.nio.charset.StandardCharsets.UTF_8));
         }
         for (String target : discoveredTargets) {
             digest.update((byte) '\n');
@@ -2563,22 +2719,24 @@ public final class TsjCli {
             final InteropPolicy interopPolicy
     ) {
         final Properties properties = new Properties();
-        try (InputStream inputStream = Files.newInputStream(baseInteropSpec)) {
-            properties.load(inputStream);
-        } catch (final IOException ioException) {
-            throw new JvmCompilationException(
-                    "TSJ-INTEROP-INPUT",
-                    "Failed to read interop spec: " + ioException.getMessage(),
-                    null,
-                    null,
-                    baseInteropSpec.toString(),
-                    null,
-                    null,
-                    ioException
-            );
+        if (baseInteropSpec != null) {
+            try (InputStream inputStream = Files.newInputStream(baseInteropSpec)) {
+                properties.load(inputStream);
+            } catch (final IOException ioException) {
+                throw new JvmCompilationException(
+                        "TSJ-INTEROP-INPUT",
+                        "Failed to read interop spec: " + ioException.getMessage(),
+                        null,
+                        null,
+                        baseInteropSpec.toString(),
+                        null,
+                        null,
+                        ioException
+                );
+            }
         }
         properties.setProperty("targets", String.join(",", discoveredTargets));
-        if (interopPolicy == InteropPolicy.BROAD) {
+        if (baseInteropSpec == null || interopPolicy == InteropPolicy.BROAD) {
             properties.setProperty("allowlist", String.join(",", discoveredTargets));
         }
         try {
@@ -4190,19 +4348,10 @@ public final class TsjCli {
     }
 
     private static List<ClasspathInput> parseClasspathOptionEntries(final String rawValue) {
-        final String trimmedRaw = rawValue == null ? "" : rawValue.trim();
-        if (trimmedRaw.startsWith("jrt:/")
-                && !trimmedRaw.substring("jrt:/".length()).contains(File.pathSeparator)) {
-            return List.of(new ClasspathInput(parseClasspathPath(trimmedRaw), false));
-        }
-        final String[] segments = rawValue.split(Pattern.quote(File.pathSeparator));
+        final List<String> segments = splitClasspathSegments(rawValue);
         final List<ClasspathInput> inputs = new ArrayList<>();
         for (String segment : segments) {
-            final String trimmed = segment.trim();
-            if (trimmed.isEmpty()) {
-                continue;
-            }
-            inputs.add(new ClasspathInput(parseClasspathPath(trimmed), false));
+            inputs.add(new ClasspathInput(parseClasspathPath(segment), false));
         }
         if (inputs.isEmpty()) {
             throw CliFailure.usage(
@@ -4211,6 +4360,39 @@ public final class TsjCli {
             );
         }
         return List.copyOf(inputs);
+    }
+
+    private static List<String> splitClasspathSegments(final String rawValue) {
+        final String trimmedRaw = rawValue == null ? "" : rawValue.trim();
+        if (trimmedRaw.isEmpty()) {
+            return List.of();
+        }
+        if (File.pathSeparatorChar != ':') {
+            final String[] rawSegments = trimmedRaw.split(Pattern.quote(File.pathSeparator));
+            final List<String> segments = new ArrayList<>();
+            for (String rawSegment : rawSegments) {
+                final String trimmed = rawSegment.trim();
+                if (!trimmed.isEmpty()) {
+                    segments.add(trimmed);
+                }
+            }
+            return List.copyOf(segments);
+        }
+
+        final String[] rawSegments = trimmedRaw.split(Pattern.quote(File.pathSeparator), -1);
+        final List<String> merged = new ArrayList<>();
+        for (String rawSegment : rawSegments) {
+            final String trimmed = rawSegment.trim();
+            if (trimmed.isEmpty()) {
+                continue;
+            }
+            if (!merged.isEmpty() && "jrt".equals(merged.get(merged.size() - 1))) {
+                merged.set(merged.size() - 1, "jrt:" + trimmed);
+                continue;
+            }
+            merged.add(trimmed);
+        }
+        return List.copyOf(merged);
     }
 
     private static Path parseClasspathPath(final String rawValue) {
@@ -4226,6 +4408,13 @@ public final class TsjCli {
             }
         }
         return Path.of(trimmed);
+    }
+
+    private static String serializeClasspathEntry(final Path classpathEntry) {
+        if ("jrt".equalsIgnoreCase(classpathEntry.getFileSystem().provider().getScheme())) {
+            return classpathEntry.toUri().toString();
+        }
+        return classpathEntry.toString();
     }
 
     private static ClasspathResolution normalizeClasspathInputs(
@@ -5240,7 +5429,10 @@ public final class TsjCli {
     private record ClasspathSymbolIndexSummary(
             Path indexPath,
             int symbolCount,
-            int duplicateCount
+            int duplicateCount,
+            int mrJarWinnerCount,
+            int mrJarBaseWinnerCount,
+            int mrJarVersionedWinnerCount
     ) {
     }
 

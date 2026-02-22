@@ -1,0 +1,201 @@
+{
+  "astNodes" : [ {
+    "column" : 1,
+    "endColumn" : 1,
+    "endLine" : 5,
+    "kind" : "SourceFile",
+    "line" : 1
+  }, {
+    "column" : 1,
+    "endColumn" : 31,
+    "endLine" : 1,
+    "kind" : "ImportDeclaration",
+    "line" : 1
+  }, {
+    "column" : 8,
+    "endColumn" : 17,
+    "endLine" : 1,
+    "kind" : "ImportClause",
+    "line" : 1
+  }, {
+    "column" : 8,
+    "endColumn" : 17,
+    "endLine" : 1,
+    "kind" : "NamedImports",
+    "line" : 1
+  }, {
+    "column" : 10,
+    "endColumn" : 11,
+    "endLine" : 1,
+    "kind" : "ImportSpecifier",
+    "line" : 1
+  }, {
+    "column" : 10,
+    "endColumn" : 11,
+    "endLine" : 1,
+    "kind" : "Identifier",
+    "line" : 1
+  }, {
+    "column" : 14,
+    "endColumn" : 15,
+    "endLine" : 1,
+    "kind" : "ImportSpecifier",
+    "line" : 1
+  }, {
+    "column" : 14,
+    "endColumn" : 15,
+    "endLine" : 1,
+    "kind" : "Identifier",
+    "line" : 1
+  }, {
+    "column" : 23,
+    "endColumn" : 30,
+    "endLine" : 1,
+    "kind" : "StringLiteral",
+    "line" : 1
+  }, {
+    "column" : 1,
+    "endColumn" : 26,
+    "endLine" : 2,
+    "kind" : "ExportDeclaration",
+    "line" : 2
+  }, {
+    "column" : 8,
+    "endColumn" : 17,
+    "endLine" : 2,
+    "kind" : "NamespaceExport",
+    "line" : 2
+  }, {
+    "column" : 13,
+    "endColumn" : 17,
+    "endLine" : 2,
+    "kind" : "Identifier",
+    "line" : 2
+  }, {
+    "column" : 18,
+    "endColumn" : 25,
+    "endLine" : 2,
+    "kind" : "StringLiteral",
+    "line" : 2
+  }, {
+    "column" : 1,
+    "endColumn" : 17,
+    "endLine" : 3,
+    "kind" : "ImportEqualsDeclaration",
+    "line" : 3
+  }, {
+    "column" : 13,
+    "endColumn" : 17,
+    "endLine" : 3,
+    "kind" : "Identifier",
+    "line" : 3
+  }, {
+    "column" : 17,
+    "endColumn" : 17,
+    "endLine" : 3,
+    "kind" : "Identifier",
+    "line" : 3
+  }, {
+    "column" : 18,
+    "endColumn" : 23,
+    "endLine" : 3,
+    "kind" : "Block",
+    "line" : 3
+  }, {
+    "column" : 20,
+    "endColumn" : 21,
+    "endLine" : 3,
+    "kind" : "ExpressionStatement",
+    "line" : 3
+  }, {
+    "column" : 20,
+    "endColumn" : 21,
+    "endLine" : 3,
+    "kind" : "Identifier",
+    "line" : 3
+  }, {
+    "column" : 24,
+    "endColumn" : 28,
+    "endLine" : 3,
+    "kind" : "ExpressionStatement",
+    "line" : 3
+  }, {
+    "column" : 24,
+    "endColumn" : 28,
+    "endLine" : 3,
+    "kind" : "Identifier",
+    "line" : 3
+  }, {
+    "column" : 29,
+    "endColumn" : 37,
+    "endLine" : 3,
+    "kind" : "ExpressionStatement",
+    "line" : 3
+  }, {
+    "column" : 29,
+    "endColumn" : 36,
+    "endLine" : 3,
+    "kind" : "StringLiteral",
+    "line" : 3
+  }, {
+    "column" : 1,
+    "endColumn" : 29,
+    "endLine" : 4,
+    "kind" : "FirstStatement",
+    "line" : 4
+  }, {
+    "column" : 1,
+    "endColumn" : 28,
+    "endLine" : 4,
+    "kind" : "VariableDeclarationList",
+    "line" : 4
+  }, {
+    "column" : 7,
+    "endColumn" : 28,
+    "endLine" : 4,
+    "kind" : "VariableDeclaration",
+    "line" : 4
+  }, {
+    "column" : 7,
+    "endColumn" : 24,
+    "endLine" : 4,
+    "kind" : "Identifier",
+    "line" : 4
+  }, {
+    "column" : 27,
+    "endColumn" : 28,
+    "endLine" : 4,
+    "kind" : "FirstLiteralToken",
+    "line" : 4
+  }, {
+    "column" : 1,
+    "endColumn" : 1,
+    "endLine" : 5,
+    "kind" : "EndOfFileToken",
+    "line" : 5
+  } ],
+  "diagnostics" : [ {
+    "code" : "TS1003",
+    "column" : 12,
+    "line" : 1,
+    "message" : "Identifier expected."
+  }, {
+    "code" : "TS1005",
+    "column" : 18,
+    "line" : 2,
+    "message" : "'from' expected."
+  }, {
+    "code" : "TS1005",
+    "column" : 18,
+    "line" : 3,
+    "message" : "'=' expected."
+  }, {
+    "code" : "TS1434",
+    "column" : 24,
+    "line" : 3,
+    "message" : "Unexpected keyword or identifier."
+  } ],
+  "fixture" : "err/e020_bad_import.ts",
+  "normalizedProgram" : null,
+  "schemaVersion" : "tsj-backend-token-v1"
+}

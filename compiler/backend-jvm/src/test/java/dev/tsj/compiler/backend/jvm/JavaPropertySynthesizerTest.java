@@ -42,7 +42,26 @@ class JavaPropertySynthesizerTest {
 
         assertTrue(result.properties().isEmpty());
         assertTrue(result.diagnostics().stream().anyMatch(message -> message.contains("conflicting get/is")));
-        assertTrue(result.diagnostics().stream().anyMatch(message -> message.contains("ambiguous setter")));
+        assertTrue(
+                result.diagnostics().stream().anyMatch(
+                        message -> message.contains("ambiguous setter overloads [setMode(I)V, setMode(J)V]")
+                )
+        );
+    }
+
+    @Test
+    void skipsGetterAliasCasingConflictsWithDeterministicReason() {
+        final JavaPropertySynthesizer.SynthesisResult result =
+                synthesizer.synthesize(UrlAliasFixture.class, true);
+
+        assertTrue(result.properties().isEmpty());
+        assertTrue(
+                result.diagnostics().stream().anyMatch(
+                        message -> message.equals(
+                                "Skipped property `url`: conflicting accessor casing aliases [URL, url]."
+                        )
+                )
+        );
     }
 
     @Test
@@ -94,6 +113,22 @@ class JavaPropertySynthesizerTest {
         }
 
         public void setMode(final long value) {
+        }
+    }
+
+    public static final class UrlAliasFixture {
+        public String getURL() {
+            return "https://example.test";
+        }
+
+        public String getUrl() {
+            return "https://example.test";
+        }
+
+        public void setURL(final String value) {
+        }
+
+        public void setUrl(final String value) {
         }
     }
 }

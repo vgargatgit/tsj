@@ -1,0 +1,2188 @@
+{
+  "astNodes" : [ {
+    "column" : 1,
+    "endColumn" : 1,
+    "endLine" : 68,
+    "kind" : "SourceFile",
+    "line" : 1
+  }, {
+    "column" : 1,
+    "endColumn" : 26,
+    "endLine" : 1,
+    "kind" : "TypeAliasDeclaration",
+    "line" : 1
+  }, {
+    "column" : 6,
+    "endColumn" : 9,
+    "endLine" : 1,
+    "kind" : "Identifier",
+    "line" : 1
+  }, {
+    "column" : 12,
+    "endColumn" : 25,
+    "endLine" : 1,
+    "kind" : "TemplateLiteralType",
+    "line" : 1
+  }, {
+    "column" : 12,
+    "endColumn" : 17,
+    "endLine" : 1,
+    "kind" : "TemplateHead",
+    "line" : 1
+  }, {
+    "column" : 17,
+    "endColumn" : 25,
+    "endLine" : 1,
+    "kind" : "TemplateLiteralTypeSpan",
+    "line" : 1
+  }, {
+    "column" : 17,
+    "endColumn" : 23,
+    "endLine" : 1,
+    "kind" : "NumberKeyword",
+    "line" : 1
+  }, {
+    "column" : 23,
+    "endColumn" : 25,
+    "endLine" : 1,
+    "kind" : "LastTemplateToken",
+    "line" : 1
+  }, {
+    "column" : 1,
+    "endColumn" : 73,
+    "endLine" : 2,
+    "kind" : "TypeAliasDeclaration",
+    "line" : 2
+  }, {
+    "column" : 6,
+    "endColumn" : 11,
+    "endLine" : 2,
+    "kind" : "Identifier",
+    "line" : 2
+  }, {
+    "column" : 12,
+    "endColumn" : 13,
+    "endLine" : 2,
+    "kind" : "TypeParameter",
+    "line" : 2
+  }, {
+    "column" : 12,
+    "endColumn" : 13,
+    "endLine" : 2,
+    "kind" : "Identifier",
+    "line" : 2
+  }, {
+    "column" : 17,
+    "endColumn" : 72,
+    "endLine" : 2,
+    "kind" : "ConditionalType",
+    "line" : 2
+  }, {
+    "column" : 17,
+    "endColumn" : 18,
+    "endLine" : 2,
+    "kind" : "TypeReference",
+    "line" : 2
+  }, {
+    "column" : 17,
+    "endColumn" : 18,
+    "endLine" : 2,
+    "kind" : "Identifier",
+    "line" : 2
+  }, {
+    "column" : 27,
+    "endColumn" : 60,
+    "endLine" : 2,
+    "kind" : "TypeLiteral",
+    "line" : 2
+  }, {
+    "column" : 29,
+    "endColumn" : 58,
+    "endLine" : 2,
+    "kind" : "PropertySignature",
+    "line" : 2
+  }, {
+    "column" : 29,
+    "endColumn" : 34,
+    "endLine" : 2,
+    "kind" : "Identifier",
+    "line" : 2
+  }, {
+    "column" : 36,
+    "endColumn" : 58,
+    "endLine" : 2,
+    "kind" : "InferType",
+    "line" : 2
+  }, {
+    "column" : 42,
+    "endColumn" : 58,
+    "endLine" : 2,
+    "kind" : "TypeParameter",
+    "line" : 2
+  }, {
+    "column" : 42,
+    "endColumn" : 43,
+    "endLine" : 2,
+    "kind" : "Identifier",
+    "line" : 2
+  }, {
+    "column" : 52,
+    "endColumn" : 58,
+    "endLine" : 2,
+    "kind" : "StringKeyword",
+    "line" : 2
+  }, {
+    "column" : 63,
+    "endColumn" : 64,
+    "endLine" : 2,
+    "kind" : "TypeReference",
+    "line" : 2
+  }, {
+    "column" : 63,
+    "endColumn" : 64,
+    "endLine" : 2,
+    "kind" : "Identifier",
+    "line" : 2
+  }, {
+    "column" : 67,
+    "endColumn" : 72,
+    "endLine" : 2,
+    "kind" : "NeverKeyword",
+    "line" : 2
+  }, {
+    "column" : 1,
+    "endColumn" : 89,
+    "endLine" : 3,
+    "kind" : "TypeAliasDeclaration",
+    "line" : 3
+  }, {
+    "column" : 6,
+    "endColumn" : 13,
+    "endLine" : 3,
+    "kind" : "Identifier",
+    "line" : 3
+  }, {
+    "column" : 14,
+    "endColumn" : 15,
+    "endLine" : 3,
+    "kind" : "TypeParameter",
+    "line" : 3
+  }, {
+    "column" : 14,
+    "endColumn" : 15,
+    "endLine" : 3,
+    "kind" : "Identifier",
+    "line" : 3
+  }, {
+    "column" : 19,
+    "endColumn" : 88,
+    "endLine" : 3,
+    "kind" : "IntersectionType",
+    "line" : 3
+  }, {
+    "column" : 19,
+    "endColumn" : 64,
+    "endLine" : 3,
+    "kind" : "MappedType",
+    "line" : 3
+  }, {
+    "column" : 22,
+    "endColumn" : 34,
+    "endLine" : 3,
+    "kind" : "TypeParameter",
+    "line" : 3
+  }, {
+    "column" : 22,
+    "endColumn" : 23,
+    "endLine" : 3,
+    "kind" : "Identifier",
+    "line" : 3
+  }, {
+    "column" : 27,
+    "endColumn" : 34,
+    "endLine" : 3,
+    "kind" : "TypeOperator",
+    "line" : 3
+  }, {
+    "column" : 33,
+    "endColumn" : 34,
+    "endLine" : 3,
+    "kind" : "TypeReference",
+    "line" : 3
+  }, {
+    "column" : 33,
+    "endColumn" : 34,
+    "endLine" : 3,
+    "kind" : "Identifier",
+    "line" : 3
+  }, {
+    "column" : 38,
+    "endColumn" : 55,
+    "endLine" : 3,
+    "kind" : "TemplateLiteralType",
+    "line" : 3
+  }, {
+    "column" : 38,
+    "endColumn" : 43,
+    "endLine" : 3,
+    "kind" : "TemplateHead",
+    "line" : 3
+  }, {
+    "column" : 43,
+    "endColumn" : 55,
+    "endLine" : 3,
+    "kind" : "TemplateLiteralTypeSpan",
+    "line" : 3
+  }, {
+    "column" : 43,
+    "endColumn" : 53,
+    "endLine" : 3,
+    "kind" : "IntersectionType",
+    "line" : 3
+  }, {
+    "column" : 43,
+    "endColumn" : 49,
+    "endLine" : 3,
+    "kind" : "StringKeyword",
+    "line" : 3
+  }, {
+    "column" : 52,
+    "endColumn" : 53,
+    "endLine" : 3,
+    "kind" : "TypeReference",
+    "line" : 3
+  }, {
+    "column" : 52,
+    "endColumn" : 53,
+    "endLine" : 3,
+    "kind" : "Identifier",
+    "line" : 3
+  }, {
+    "column" : 53,
+    "endColumn" : 55,
+    "endLine" : 3,
+    "kind" : "LastTemplateToken",
+    "line" : 3
+  }, {
+    "column" : 58,
+    "endColumn" : 62,
+    "endLine" : 3,
+    "kind" : "IndexedAccessType",
+    "line" : 3
+  }, {
+    "column" : 58,
+    "endColumn" : 59,
+    "endLine" : 3,
+    "kind" : "TypeReference",
+    "line" : 3
+  }, {
+    "column" : 58,
+    "endColumn" : 59,
+    "endLine" : 3,
+    "kind" : "Identifier",
+    "line" : 3
+  }, {
+    "column" : 60,
+    "endColumn" : 61,
+    "endLine" : 3,
+    "kind" : "TypeReference",
+    "line" : 3
+  }, {
+    "column" : 60,
+    "endColumn" : 61,
+    "endLine" : 3,
+    "kind" : "Identifier",
+    "line" : 3
+  }, {
+    "column" : 67,
+    "endColumn" : 88,
+    "endLine" : 3,
+    "kind" : "TypeLiteral",
+    "line" : 3
+  }, {
+    "column" : 69,
+    "endColumn" : 86,
+    "endLine" : 3,
+    "kind" : "PropertySignature",
+    "line" : 3
+  }, {
+    "column" : 69,
+    "endColumn" : 73,
+    "endLine" : 3,
+    "kind" : "Identifier",
+    "line" : 3
+  }, {
+    "column" : 75,
+    "endColumn" : 86,
+    "endLine" : 3,
+    "kind" : "LiteralType",
+    "line" : 3
+  }, {
+    "column" : 75,
+    "endColumn" : 86,
+    "endLine" : 3,
+    "kind" : "StringLiteral",
+    "line" : 3
+  }, {
+    "column" : 1,
+    "endColumn" : 2,
+    "endLine" : 9,
+    "kind" : "FunctionDeclaration",
+    "line" : 5
+  }, {
+    "column" : 10,
+    "endColumn" : 16,
+    "endLine" : 5,
+    "kind" : "Identifier",
+    "line" : 5
+  }, {
+    "column" : 20,
+    "endColumn" : 34,
+    "endLine" : 5,
+    "kind" : "TypeReference",
+    "line" : 5
+  }, {
+    "column" : 20,
+    "endColumn" : 34,
+    "endLine" : 5,
+    "kind" : "Identifier",
+    "line" : 5
+  }, {
+    "column" : 35,
+    "endColumn" : 2,
+    "endLine" : 9,
+    "kind" : "Block",
+    "line" : 5
+  }, {
+    "column" : 3,
+    "endColumn" : 5,
+    "endLine" : 8,
+    "kind" : "ReturnStatement",
+    "line" : 6
+  }, {
+    "column" : 10,
+    "endColumn" : 4,
+    "endLine" : 8,
+    "kind" : "ArrowFunction",
+    "line" : 6
+  }, {
+    "column" : 13,
+    "endColumn" : 15,
+    "endLine" : 6,
+    "kind" : "EqualsGreaterThanToken",
+    "line" : 6
+  }, {
+    "column" : 16,
+    "endColumn" : 4,
+    "endLine" : 8,
+    "kind" : "Block",
+    "line" : 6
+  }, {
+    "column" : 1,
+    "endColumn" : 2,
+    "endLine" : 36,
+    "kind" : "ClassDeclaration",
+    "line" : 11
+  }, {
+    "column" : 1,
+    "endColumn" : 10,
+    "endLine" : 11,
+    "kind" : "Decorator",
+    "line" : 11
+  }, {
+    "column" : 2,
+    "endColumn" : 10,
+    "endLine" : 11,
+    "kind" : "CallExpression",
+    "line" : 11
+  }, {
+    "column" : 2,
+    "endColumn" : 8,
+    "endLine" : 11,
+    "kind" : "Identifier",
+    "line" : 11
+  }, {
+    "column" : 7,
+    "endColumn" : 16,
+    "endLine" : 12,
+    "kind" : "Identifier",
+    "line" : 12
+  }, {
+    "column" : 17,
+    "endColumn" : 56,
+    "endLine" : 12,
+    "kind" : "TypeParameter",
+    "line" : 12
+  }, {
+    "column" : 17,
+    "endColumn" : 18,
+    "endLine" : 12,
+    "kind" : "Identifier",
+    "line" : 12
+  }, {
+    "column" : 27,
+    "endColumn" : 56,
+    "endLine" : 12,
+    "kind" : "TypeLiteral",
+    "line" : 12
+  }, {
+    "column" : 29,
+    "endColumn" : 40,
+    "endLine" : 12,
+    "kind" : "PropertySignature",
+    "line" : 12
+  }, {
+    "column" : 29,
+    "endColumn" : 31,
+    "endLine" : 12,
+    "kind" : "Identifier",
+    "line" : 12
+  }, {
+    "column" : 33,
+    "endColumn" : 39,
+    "endLine" : 12,
+    "kind" : "StringKeyword",
+    "line" : 12
+  }, {
+    "column" : 41,
+    "endColumn" : 54,
+    "endLine" : 12,
+    "kind" : "PropertySignature",
+    "line" : 12
+  }, {
+    "column" : 41,
+    "endColumn" : 46,
+    "endLine" : 12,
+    "kind" : "Identifier",
+    "line" : 12
+  }, {
+    "column" : 48,
+    "endColumn" : 54,
+    "endLine" : 12,
+    "kind" : "StringKeyword",
+    "line" : 12
+  }, {
+    "column" : 3,
+    "endColumn" : 48,
+    "endLine" : 13,
+    "kind" : "PropertyDeclaration",
+    "line" : 13
+  }, {
+    "column" : 3,
+    "endColumn" : 9,
+    "endLine" : 13,
+    "kind" : "StaticKeyword",
+    "line" : 13
+  }, {
+    "column" : 10,
+    "endColumn" : 18,
+    "endLine" : 13,
+    "kind" : "Identifier",
+    "line" : 13
+  }, {
+    "column" : 20,
+    "endColumn" : 42,
+    "endLine" : 13,
+    "kind" : "TypeReference",
+    "line" : 13
+  }, {
+    "column" : 20,
+    "endColumn" : 26,
+    "endLine" : 13,
+    "kind" : "Identifier",
+    "line" : 13
+  }, {
+    "column" : 27,
+    "endColumn" : 33,
+    "endLine" : 13,
+    "kind" : "StringKeyword",
+    "line" : 13
+  }, {
+    "column" : 35,
+    "endColumn" : 41,
+    "endLine" : 13,
+    "kind" : "NumberKeyword",
+    "line" : 13
+  }, {
+    "column" : 45,
+    "endColumn" : 47,
+    "endLine" : 13,
+    "kind" : "ObjectLiteralExpression",
+    "line" : 13
+  }, {
+    "column" : 3,
+    "endColumn" : 14,
+    "endLine" : 14,
+    "kind" : "PropertyDeclaration",
+    "line" : 14
+  }, {
+    "column" : 3,
+    "endColumn" : 9,
+    "endLine" : 14,
+    "kind" : "PrivateIdentifier",
+    "line" : 14
+  }, {
+    "column" : 12,
+    "endColumn" : 13,
+    "endLine" : 14,
+    "kind" : "FirstLiteralToken",
+    "line" : 14
+  }, {
+    "column" : 3,
+    "endColumn" : 33,
+    "endLine" : 16,
+    "kind" : "Constructor",
+    "line" : 16
+  }, {
+    "column" : 15,
+    "endColumn" : 29,
+    "endLine" : 16,
+    "kind" : "Parameter",
+    "line" : 16
+  }, {
+    "column" : 15,
+    "endColumn" : 21,
+    "endLine" : 16,
+    "kind" : "PublicKeyword",
+    "line" : 16
+  }, {
+    "column" : 22,
+    "endColumn" : 26,
+    "endLine" : 16,
+    "kind" : "Identifier",
+    "line" : 16
+  }, {
+    "column" : 28,
+    "endColumn" : 29,
+    "endLine" : 16,
+    "kind" : "TypeReference",
+    "line" : 16
+  }, {
+    "column" : 28,
+    "endColumn" : 29,
+    "endLine" : 16,
+    "kind" : "Identifier",
+    "line" : 16
+  }, {
+    "column" : 31,
+    "endColumn" : 33,
+    "endLine" : 16,
+    "kind" : "Block",
+    "line" : 16
+  }, {
+    "column" : 3,
+    "endColumn" : 4,
+    "endLine" : 20,
+    "kind" : "ClassStaticBlockDeclaration",
+    "line" : 18
+  }, {
+    "column" : 10,
+    "endColumn" : 4,
+    "endLine" : 20,
+    "kind" : "Block",
+    "line" : 18
+  }, {
+    "column" : 5,
+    "endColumn" : 31,
+    "endLine" : 19,
+    "kind" : "ExpressionStatement",
+    "line" : 19
+  }, {
+    "column" : 5,
+    "endColumn" : 30,
+    "endLine" : 19,
+    "kind" : "BinaryExpression",
+    "line" : 19
+  }, {
+    "column" : 5,
+    "endColumn" : 26,
+    "endLine" : 19,
+    "kind" : "ElementAccessExpression",
+    "line" : 19
+  }, {
+    "column" : 5,
+    "endColumn" : 18,
+    "endLine" : 19,
+    "kind" : "PropertyAccessExpression",
+    "line" : 19
+  }, {
+    "column" : 5,
+    "endColumn" : 9,
+    "endLine" : 19,
+    "kind" : "ThisKeyword",
+    "line" : 19
+  }, {
+    "column" : 10,
+    "endColumn" : 18,
+    "endLine" : 19,
+    "kind" : "Identifier",
+    "line" : 19
+  }, {
+    "column" : 19,
+    "endColumn" : 25,
+    "endLine" : 19,
+    "kind" : "StringLiteral",
+    "line" : 19
+  }, {
+    "column" : 27,
+    "endColumn" : 28,
+    "endLine" : 19,
+    "kind" : "FirstAssignment",
+    "line" : 19
+  }, {
+    "column" : 29,
+    "endColumn" : 30,
+    "endLine" : 19,
+    "kind" : "FirstLiteralToken",
+    "line" : 19
+  }, {
+    "column" : 3,
+    "endColumn" : 4,
+    "endLine" : 24,
+    "kind" : "GetAccessor",
+    "line" : 22
+  }, {
+    "column" : 7,
+    "endColumn" : 9,
+    "endLine" : 22,
+    "kind" : "Identifier",
+    "line" : 22
+  }, {
+    "column" : 13,
+    "endColumn" : 19,
+    "endLine" : 22,
+    "kind" : "StringKeyword",
+    "line" : 22
+  }, {
+    "column" : 20,
+    "endColumn" : 4,
+    "endLine" : 24,
+    "kind" : "Block",
+    "line" : 22
+  }, {
+    "column" : 5,
+    "endColumn" : 25,
+    "endLine" : 23,
+    "kind" : "ReturnStatement",
+    "line" : 23
+  }, {
+    "column" : 12,
+    "endColumn" : 24,
+    "endLine" : 23,
+    "kind" : "PropertyAccessExpression",
+    "line" : 23
+  }, {
+    "column" : 12,
+    "endColumn" : 21,
+    "endLine" : 23,
+    "kind" : "PropertyAccessExpression",
+    "line" : 23
+  }, {
+    "column" : 12,
+    "endColumn" : 16,
+    "endLine" : 23,
+    "kind" : "ThisKeyword",
+    "line" : 23
+  }, {
+    "column" : 17,
+    "endColumn" : 21,
+    "endLine" : 23,
+    "kind" : "Identifier",
+    "line" : 23
+  }, {
+    "column" : 22,
+    "endColumn" : 24,
+    "endLine" : 23,
+    "kind" : "Identifier",
+    "line" : 23
+  }, {
+    "column" : 3,
+    "endColumn" : 4,
+    "endLine" : 28,
+    "kind" : "SetAccessor",
+    "line" : 26
+  }, {
+    "column" : 7,
+    "endColumn" : 9,
+    "endLine" : 26,
+    "kind" : "Identifier",
+    "line" : 26
+  }, {
+    "column" : 10,
+    "endColumn" : 22,
+    "endLine" : 26,
+    "kind" : "Parameter",
+    "line" : 26
+  }, {
+    "column" : 10,
+    "endColumn" : 14,
+    "endLine" : 26,
+    "kind" : "Identifier",
+    "line" : 26
+  }, {
+    "column" : 16,
+    "endColumn" : 22,
+    "endLine" : 26,
+    "kind" : "StringKeyword",
+    "line" : 26
+  }, {
+    "column" : 24,
+    "endColumn" : 4,
+    "endLine" : 28,
+    "kind" : "Block",
+    "line" : 26
+  }, {
+    "column" : 5,
+    "endColumn" : 44,
+    "endLine" : 27,
+    "kind" : "ExpressionStatement",
+    "line" : 27
+  }, {
+    "column" : 5,
+    "endColumn" : 43,
+    "endLine" : 27,
+    "kind" : "BinaryExpression",
+    "line" : 27
+  }, {
+    "column" : 5,
+    "endColumn" : 14,
+    "endLine" : 27,
+    "kind" : "PropertyAccessExpression",
+    "line" : 27
+  }, {
+    "column" : 5,
+    "endColumn" : 9,
+    "endLine" : 27,
+    "kind" : "ThisKeyword",
+    "line" : 27
+  }, {
+    "column" : 10,
+    "endColumn" : 14,
+    "endLine" : 27,
+    "kind" : "Identifier",
+    "line" : 27
+  }, {
+    "column" : 15,
+    "endColumn" : 16,
+    "endLine" : 27,
+    "kind" : "FirstAssignment",
+    "line" : 27
+  }, {
+    "column" : 17,
+    "endColumn" : 43,
+    "endLine" : 27,
+    "kind" : "ObjectLiteralExpression",
+    "line" : 27
+  }, {
+    "column" : 19,
+    "endColumn" : 31,
+    "endLine" : 27,
+    "kind" : "SpreadAssignment",
+    "line" : 27
+  }, {
+    "column" : 22,
+    "endColumn" : 31,
+    "endLine" : 27,
+    "kind" : "PropertyAccessExpression",
+    "line" : 27
+  }, {
+    "column" : 22,
+    "endColumn" : 26,
+    "endLine" : 27,
+    "kind" : "ThisKeyword",
+    "line" : 27
+  }, {
+    "column" : 27,
+    "endColumn" : 31,
+    "endLine" : 27,
+    "kind" : "Identifier",
+    "line" : 27
+  }, {
+    "column" : 33,
+    "endColumn" : 41,
+    "endLine" : 27,
+    "kind" : "PropertyAssignment",
+    "line" : 27
+  }, {
+    "column" : 33,
+    "endColumn" : 35,
+    "endLine" : 27,
+    "kind" : "Identifier",
+    "line" : 27
+  }, {
+    "column" : 37,
+    "endColumn" : 41,
+    "endLine" : 27,
+    "kind" : "Identifier",
+    "line" : 27
+  }, {
+    "column" : 3,
+    "endColumn" : 34,
+    "endLine" : 30,
+    "kind" : "MethodDeclaration",
+    "line" : 30
+  }, {
+    "column" : 3,
+    "endColumn" : 6,
+    "endLine" : 30,
+    "kind" : "Identifier",
+    "line" : 30
+  }, {
+    "column" : 7,
+    "endColumn" : 8,
+    "endLine" : 30,
+    "kind" : "TypeParameter",
+    "line" : 30
+  }, {
+    "column" : 7,
+    "endColumn" : 8,
+    "endLine" : 30,
+    "kind" : "Identifier",
+    "line" : 30
+  }, {
+    "column" : 10,
+    "endColumn" : 29,
+    "endLine" : 30,
+    "kind" : "Parameter",
+    "line" : 30
+  }, {
+    "column" : 10,
+    "endColumn" : 12,
+    "endLine" : 30,
+    "kind" : "Identifier",
+    "line" : 30
+  }, {
+    "column" : 14,
+    "endColumn" : 29,
+    "endLine" : 30,
+    "kind" : "FunctionType",
+    "line" : 30
+  }, {
+    "column" : 15,
+    "endColumn" : 23,
+    "endLine" : 30,
+    "kind" : "Parameter",
+    "line" : 30
+  }, {
+    "column" : 15,
+    "endColumn" : 20,
+    "endLine" : 30,
+    "kind" : "Identifier",
+    "line" : 30
+  }, {
+    "column" : 22,
+    "endColumn" : 23,
+    "endLine" : 30,
+    "kind" : "TypeReference",
+    "line" : 30
+  }, {
+    "column" : 22,
+    "endColumn" : 23,
+    "endLine" : 30,
+    "kind" : "Identifier",
+    "line" : 30
+  }, {
+    "column" : 28,
+    "endColumn" : 29,
+    "endLine" : 30,
+    "kind" : "TypeReference",
+    "line" : 30
+  }, {
+    "column" : 28,
+    "endColumn" : 29,
+    "endLine" : 30,
+    "kind" : "Identifier",
+    "line" : 30
+  }, {
+    "column" : 32,
+    "endColumn" : 33,
+    "endLine" : 30,
+    "kind" : "TypeReference",
+    "line" : 30
+  }, {
+    "column" : 32,
+    "endColumn" : 33,
+    "endLine" : 30,
+    "kind" : "Identifier",
+    "line" : 30
+  }, {
+    "column" : 3,
+    "endColumn" : 43,
+    "endLine" : 31,
+    "kind" : "MethodDeclaration",
+    "line" : 31
+  }, {
+    "column" : 3,
+    "endColumn" : 6,
+    "endLine" : 31,
+    "kind" : "Identifier",
+    "line" : 31
+  }, {
+    "column" : 7,
+    "endColumn" : 32,
+    "endLine" : 31,
+    "kind" : "Parameter",
+    "line" : 31
+  }, {
+    "column" : 7,
+    "endColumn" : 9,
+    "endLine" : 31,
+    "kind" : "Identifier",
+    "line" : 31
+  }, {
+    "column" : 11,
+    "endColumn" : 32,
+    "endLine" : 31,
+    "kind" : "FunctionType",
+    "line" : 31
+  }, {
+    "column" : 12,
+    "endColumn" : 20,
+    "endLine" : 31,
+    "kind" : "Parameter",
+    "line" : 31
+  }, {
+    "column" : 12,
+    "endColumn" : 17,
+    "endLine" : 31,
+    "kind" : "Identifier",
+    "line" : 31
+  }, {
+    "column" : 19,
+    "endColumn" : 20,
+    "endLine" : 31,
+    "kind" : "TypeReference",
+    "line" : 31
+  }, {
+    "column" : 19,
+    "endColumn" : 20,
+    "endLine" : 31,
+    "kind" : "Identifier",
+    "line" : 31
+  }, {
+    "column" : 25,
+    "endColumn" : 32,
+    "endLine" : 31,
+    "kind" : "UnknownKeyword",
+    "line" : 31
+  }, {
+    "column" : 35,
+    "endColumn" : 42,
+    "endLine" : 31,
+    "kind" : "UnknownKeyword",
+    "line" : 31
+  }, {
+    "column" : 3,
+    "endColumn" : 4,
+    "endLine" : 35,
+    "kind" : "MethodDeclaration",
+    "line" : 32
+  }, {
+    "column" : 3,
+    "endColumn" : 6,
+    "endLine" : 32,
+    "kind" : "Identifier",
+    "line" : 32
+  }, {
+    "column" : 7,
+    "endColumn" : 32,
+    "endLine" : 32,
+    "kind" : "Parameter",
+    "line" : 32
+  }, {
+    "column" : 7,
+    "endColumn" : 9,
+    "endLine" : 32,
+    "kind" : "Identifier",
+    "line" : 32
+  }, {
+    "column" : 11,
+    "endColumn" : 32,
+    "endLine" : 32,
+    "kind" : "FunctionType",
+    "line" : 32
+  }, {
+    "column" : 12,
+    "endColumn" : 20,
+    "endLine" : 32,
+    "kind" : "Parameter",
+    "line" : 32
+  }, {
+    "column" : 12,
+    "endColumn" : 17,
+    "endLine" : 32,
+    "kind" : "Identifier",
+    "line" : 32
+  }, {
+    "column" : 19,
+    "endColumn" : 20,
+    "endLine" : 32,
+    "kind" : "TypeReference",
+    "line" : 32
+  }, {
+    "column" : 19,
+    "endColumn" : 20,
+    "endLine" : 32,
+    "kind" : "Identifier",
+    "line" : 32
+  }, {
+    "column" : 25,
+    "endColumn" : 32,
+    "endLine" : 32,
+    "kind" : "UnknownKeyword",
+    "line" : 32
+  }, {
+    "column" : 35,
+    "endColumn" : 42,
+    "endLine" : 32,
+    "kind" : "UnknownKeyword",
+    "line" : 32
+  }, {
+    "column" : 43,
+    "endColumn" : 4,
+    "endLine" : 35,
+    "kind" : "Block",
+    "line" : 32
+  }, {
+    "column" : 5,
+    "endColumn" : 22,
+    "endLine" : 33,
+    "kind" : "ExpressionStatement",
+    "line" : 33
+  }, {
+    "column" : 5,
+    "endColumn" : 21,
+    "endLine" : 33,
+    "kind" : "BinaryExpression",
+    "line" : 33
+  }, {
+    "column" : 5,
+    "endColumn" : 16,
+    "endLine" : 33,
+    "kind" : "PropertyAccessExpression",
+    "line" : 33
+  }, {
+    "column" : 5,
+    "endColumn" : 9,
+    "endLine" : 33,
+    "kind" : "ThisKeyword",
+    "line" : 33
+  }, {
+    "column" : 10,
+    "endColumn" : 16,
+    "endLine" : 33,
+    "kind" : "PrivateIdentifier",
+    "line" : 33
+  }, {
+    "column" : 17,
+    "endColumn" : 19,
+    "endLine" : 33,
+    "kind" : "FirstCompoundAssignment",
+    "line" : 33
+  }, {
+    "column" : 20,
+    "endColumn" : 21,
+    "endLine" : 33,
+    "kind" : "FirstLiteralToken",
+    "line" : 33
+  }, {
+    "column" : 5,
+    "endColumn" : 26,
+    "endLine" : 34,
+    "kind" : "ReturnStatement",
+    "line" : 34
+  }, {
+    "column" : 12,
+    "endColumn" : 25,
+    "endLine" : 34,
+    "kind" : "CallExpression",
+    "line" : 34
+  }, {
+    "column" : 12,
+    "endColumn" : 14,
+    "endLine" : 34,
+    "kind" : "Identifier",
+    "line" : 34
+  }, {
+    "column" : 15,
+    "endColumn" : 24,
+    "endLine" : 34,
+    "kind" : "PropertyAccessExpression",
+    "line" : 34
+  }, {
+    "column" : 15,
+    "endColumn" : 19,
+    "endLine" : 34,
+    "kind" : "ThisKeyword",
+    "line" : 34
+  }, {
+    "column" : 20,
+    "endColumn" : 24,
+    "endLine" : 34,
+    "kind" : "Identifier",
+    "line" : 34
+  }, {
+    "column" : 1,
+    "endColumn" : 2,
+    "endLine" : 45,
+    "kind" : "ModuleDeclaration",
+    "line" : 38
+  }, {
+    "column" : 11,
+    "endColumn" : 22,
+    "endLine" : 38,
+    "kind" : "Identifier",
+    "line" : 38
+  }, {
+    "column" : 23,
+    "endColumn" : 2,
+    "endLine" : 45,
+    "kind" : "ModuleBlock",
+    "line" : 38
+  }, {
+    "column" : 3,
+    "endColumn" : 4,
+    "endLine" : 42,
+    "kind" : "InterfaceDeclaration",
+    "line" : 39
+  }, {
+    "column" : 3,
+    "endColumn" : 9,
+    "endLine" : 39,
+    "kind" : "ExportKeyword",
+    "line" : 39
+  }, {
+    "column" : 20,
+    "endColumn" : 27,
+    "endLine" : 39,
+    "kind" : "Identifier",
+    "line" : 39
+  }, {
+    "column" : 5,
+    "endColumn" : 16,
+    "endLine" : 40,
+    "kind" : "PropertySignature",
+    "line" : 40
+  }, {
+    "column" : 5,
+    "endColumn" : 7,
+    "endLine" : 40,
+    "kind" : "Identifier",
+    "line" : 40
+  }, {
+    "column" : 9,
+    "endColumn" : 15,
+    "endLine" : 40,
+    "kind" : "StringKeyword",
+    "line" : 40
+  }, {
+    "column" : 5,
+    "endColumn" : 19,
+    "endLine" : 41,
+    "kind" : "PropertySignature",
+    "line" : 41
+  }, {
+    "column" : 5,
+    "endColumn" : 10,
+    "endLine" : 41,
+    "kind" : "Identifier",
+    "line" : 41
+  }, {
+    "column" : 12,
+    "endColumn" : 18,
+    "endLine" : 41,
+    "kind" : "StringKeyword",
+    "line" : 41
+  }, {
+    "column" : 3,
+    "endColumn" : 66,
+    "endLine" : 44,
+    "kind" : "FirstStatement",
+    "line" : 44
+  }, {
+    "column" : 3,
+    "endColumn" : 9,
+    "endLine" : 44,
+    "kind" : "ExportKeyword",
+    "line" : 44
+  }, {
+    "column" : 10,
+    "endColumn" : 65,
+    "endLine" : 44,
+    "kind" : "VariableDeclarationList",
+    "line" : 44
+  }, {
+    "column" : 16,
+    "endColumn" : 65,
+    "endLine" : 44,
+    "kind" : "VariableDeclaration",
+    "line" : 44
+  }, {
+    "column" : 16,
+    "endColumn" : 30,
+    "endLine" : 44,
+    "kind" : "Identifier",
+    "line" : 44
+  }, {
+    "column" : 32,
+    "endColumn" : 39,
+    "endLine" : 44,
+    "kind" : "TypeReference",
+    "line" : 44
+  }, {
+    "column" : 32,
+    "endColumn" : 39,
+    "endLine" : 44,
+    "kind" : "Identifier",
+    "line" : 44
+  }, {
+    "column" : 42,
+    "endColumn" : 65,
+    "endLine" : 44,
+    "kind" : "ObjectLiteralExpression",
+    "line" : 44
+  }, {
+    "column" : 44,
+    "endColumn" : 51,
+    "endLine" : 44,
+    "kind" : "PropertyAssignment",
+    "line" : 44
+  }, {
+    "column" : 44,
+    "endColumn" : 46,
+    "endLine" : 44,
+    "kind" : "Identifier",
+    "line" : 44
+  }, {
+    "column" : 48,
+    "endColumn" : 51,
+    "endLine" : 44,
+    "kind" : "StringLiteral",
+    "line" : 44
+  }, {
+    "column" : 53,
+    "endColumn" : 63,
+    "endLine" : 44,
+    "kind" : "PropertyAssignment",
+    "line" : 44
+  }, {
+    "column" : 53,
+    "endColumn" : 58,
+    "endLine" : 44,
+    "kind" : "Identifier",
+    "line" : 44
+  }, {
+    "column" : 60,
+    "endColumn" : 63,
+    "endLine" : 44,
+    "kind" : "StringLiteral",
+    "line" : 44
+  }, {
+    "column" : 1,
+    "endColumn" : 2,
+    "endLine" : 51,
+    "kind" : "ModuleDeclaration",
+    "line" : 47
+  }, {
+    "column" : 1,
+    "endColumn" : 8,
+    "endLine" : 47,
+    "kind" : "DeclareKeyword",
+    "line" : 47
+  }, {
+    "column" : 16,
+    "endColumn" : 28,
+    "endLine" : 47,
+    "kind" : "StringLiteral",
+    "line" : 47
+  }, {
+    "column" : 29,
+    "endColumn" : 2,
+    "endLine" : 51,
+    "kind" : "ModuleBlock",
+    "line" : 47
+  }, {
+    "column" : 3,
+    "endColumn" : 4,
+    "endLine" : 50,
+    "kind" : "InterfaceDeclaration",
+    "line" : 48
+  }, {
+    "column" : 3,
+    "endColumn" : 9,
+    "endLine" : 48,
+    "kind" : "ExportKeyword",
+    "line" : 48
+  }, {
+    "column" : 20,
+    "endColumn" : 27,
+    "endLine" : 48,
+    "kind" : "Identifier",
+    "line" : 48
+  }, {
+    "column" : 5,
+    "endColumn" : 21,
+    "endLine" : 49,
+    "kind" : "PropertySignature",
+    "line" : 49
+  }, {
+    "column" : 5,
+    "endColumn" : 11,
+    "endLine" : 49,
+    "kind" : "Identifier",
+    "line" : 49
+  }, {
+    "column" : 13,
+    "endColumn" : 20,
+    "endLine" : 49,
+    "kind" : "BooleanKeyword",
+    "line" : 49
+  }, {
+    "column" : 1,
+    "endColumn" : 60,
+    "endLine" : 53,
+    "kind" : "FirstStatement",
+    "line" : 53
+  }, {
+    "column" : 1,
+    "endColumn" : 59,
+    "endLine" : 53,
+    "kind" : "VariableDeclarationList",
+    "line" : 53
+  }, {
+    "column" : 7,
+    "endColumn" : 59,
+    "endLine" : 53,
+    "kind" : "VariableDeclaration",
+    "line" : 53
+  }, {
+    "column" : 7,
+    "endColumn" : 15,
+    "endLine" : 53,
+    "kind" : "Identifier",
+    "line" : 53
+  }, {
+    "column" : 18,
+    "endColumn" : 59,
+    "endLine" : 53,
+    "kind" : "NewExpression",
+    "line" : 53
+  }, {
+    "column" : 22,
+    "endColumn" : 31,
+    "endLine" : 53,
+    "kind" : "Identifier",
+    "line" : 53
+  }, {
+    "column" : 32,
+    "endColumn" : 58,
+    "endLine" : 53,
+    "kind" : "PropertyAccessExpression",
+    "line" : 53
+  }, {
+    "column" : 32,
+    "endColumn" : 43,
+    "endLine" : 53,
+    "kind" : "Identifier",
+    "line" : 53
+  }, {
+    "column" : 44,
+    "endColumn" : 58,
+    "endLine" : 53,
+    "kind" : "Identifier",
+    "line" : 53
+  }, {
+    "column" : 1,
+    "endColumn" : 70,
+    "endLine" : 54,
+    "kind" : "FirstStatement",
+    "line" : 54
+  }, {
+    "column" : 1,
+    "endColumn" : 69,
+    "endLine" : 54,
+    "kind" : "VariableDeclarationList",
+    "line" : 54
+  }, {
+    "column" : 7,
+    "endColumn" : 69,
+    "endLine" : 54,
+    "kind" : "VariableDeclaration",
+    "line" : 54
+  }, {
+    "column" : 7,
+    "endColumn" : 13,
+    "endLine" : 54,
+    "kind" : "Identifier",
+    "line" : 54
+  }, {
+    "column" : 16,
+    "endColumn" : 69,
+    "endLine" : 54,
+    "kind" : "CallExpression",
+    "line" : 54
+  }, {
+    "column" : 16,
+    "endColumn" : 28,
+    "endLine" : 54,
+    "kind" : "PropertyAccessExpression",
+    "line" : 54
+  }, {
+    "column" : 16,
+    "endColumn" : 24,
+    "endLine" : 54,
+    "kind" : "Identifier",
+    "line" : 54
+  }, {
+    "column" : 25,
+    "endColumn" : 28,
+    "endLine" : 54,
+    "kind" : "Identifier",
+    "line" : 54
+  }, {
+    "column" : 29,
+    "endColumn" : 68,
+    "endLine" : 54,
+    "kind" : "ArrowFunction",
+    "line" : 54
+  }, {
+    "column" : 30,
+    "endColumn" : 35,
+    "endLine" : 54,
+    "kind" : "Parameter",
+    "line" : 54
+  }, {
+    "column" : 30,
+    "endColumn" : 35,
+    "endLine" : 54,
+    "kind" : "Identifier",
+    "line" : 54
+  }, {
+    "column" : 37,
+    "endColumn" : 39,
+    "endLine" : 54,
+    "kind" : "EqualsGreaterThanToken",
+    "line" : 54
+  }, {
+    "column" : 40,
+    "endColumn" : 68,
+    "endLine" : 54,
+    "kind" : "SatisfiesExpression",
+    "line" : 54
+  }, {
+    "column" : 40,
+    "endColumn" : 51,
+    "endLine" : 54,
+    "kind" : "PropertyAccessExpression",
+    "line" : 54
+  }, {
+    "column" : 40,
+    "endColumn" : 45,
+    "endLine" : 54,
+    "kind" : "Identifier",
+    "line" : 54
+  }, {
+    "column" : 46,
+    "endColumn" : 51,
+    "endLine" : 54,
+    "kind" : "Identifier",
+    "line" : 54
+  }, {
+    "column" : 62,
+    "endColumn" : 68,
+    "endLine" : 54,
+    "kind" : "StringKeyword",
+    "line" : 54
+  }, {
+    "column" : 1,
+    "endColumn" : 3,
+    "endLine" : 59,
+    "kind" : "FirstStatement",
+    "line" : 55
+  }, {
+    "column" : 1,
+    "endColumn" : 2,
+    "endLine" : 59,
+    "kind" : "VariableDeclarationList",
+    "line" : 55
+  }, {
+    "column" : 7,
+    "endColumn" : 2,
+    "endLine" : 59,
+    "kind" : "VariableDeclaration",
+    "line" : 55
+  }, {
+    "column" : 7,
+    "endColumn" : 11,
+    "endLine" : 55,
+    "kind" : "Identifier",
+    "line" : 55
+  }, {
+    "column" : 13,
+    "endColumn" : 51,
+    "endLine" : 55,
+    "kind" : "TypeReference",
+    "line" : 55
+  }, {
+    "column" : 13,
+    "endColumn" : 20,
+    "endLine" : 55,
+    "kind" : "Identifier",
+    "line" : 55
+  }, {
+    "column" : 21,
+    "endColumn" : 50,
+    "endLine" : 55,
+    "kind" : "TypeLiteral",
+    "line" : 55
+  }, {
+    "column" : 23,
+    "endColumn" : 34,
+    "endLine" : 55,
+    "kind" : "PropertySignature",
+    "line" : 55
+  }, {
+    "column" : 23,
+    "endColumn" : 25,
+    "endLine" : 55,
+    "kind" : "Identifier",
+    "line" : 55
+  }, {
+    "column" : 27,
+    "endColumn" : 33,
+    "endLine" : 55,
+    "kind" : "StringKeyword",
+    "line" : 55
+  }, {
+    "column" : 35,
+    "endColumn" : 48,
+    "endLine" : 55,
+    "kind" : "PropertySignature",
+    "line" : 55
+  }, {
+    "column" : 35,
+    "endColumn" : 40,
+    "endLine" : 55,
+    "kind" : "Identifier",
+    "line" : 55
+  }, {
+    "column" : 42,
+    "endColumn" : 48,
+    "endLine" : 55,
+    "kind" : "StringKeyword",
+    "line" : 55
+  }, {
+    "column" : 54,
+    "endColumn" : 2,
+    "endLine" : 59,
+    "kind" : "ObjectLiteralExpression",
+    "line" : 55
+  }, {
+    "column" : 3,
+    "endColumn" : 12,
+    "endLine" : 56,
+    "kind" : "PropertyAssignment",
+    "line" : 56
+  }, {
+    "column" : 3,
+    "endColumn" : 7,
+    "endLine" : 56,
+    "kind" : "Identifier",
+    "line" : 56
+  }, {
+    "column" : 9,
+    "endColumn" : 12,
+    "endLine" : 56,
+    "kind" : "StringLiteral",
+    "line" : 56
+  }, {
+    "column" : 3,
+    "endColumn" : 15,
+    "endLine" : 57,
+    "kind" : "PropertyAssignment",
+    "line" : 57
+  }, {
+    "column" : 3,
+    "endColumn" : 10,
+    "endLine" : 57,
+    "kind" : "Identifier",
+    "line" : 57
+  }, {
+    "column" : 12,
+    "endColumn" : 15,
+    "endLine" : 57,
+    "kind" : "StringLiteral",
+    "line" : 57
+  }, {
+    "column" : 3,
+    "endColumn" : 20,
+    "endLine" : 58,
+    "kind" : "PropertyAssignment",
+    "line" : 58
+  }, {
+    "column" : 3,
+    "endColumn" : 7,
+    "endLine" : 58,
+    "kind" : "Identifier",
+    "line" : 58
+  }, {
+    "column" : 9,
+    "endColumn" : 20,
+    "endLine" : 58,
+    "kind" : "StringLiteral",
+    "line" : 58
+  }, {
+    "column" : 1,
+    "endColumn" : 24,
+    "endLine" : 60,
+    "kind" : "FirstStatement",
+    "line" : 60
+  }, {
+    "column" : 1,
+    "endColumn" : 23,
+    "endLine" : 60,
+    "kind" : "VariableDeclarationList",
+    "line" : 60
+  }, {
+    "column" : 7,
+    "endColumn" : 23,
+    "endLine" : 60,
+    "kind" : "VariableDeclaration",
+    "line" : 60
+  }, {
+    "column" : 7,
+    "endColumn" : 10,
+    "endLine" : 60,
+    "kind" : "Identifier",
+    "line" : 60
+  }, {
+    "column" : 12,
+    "endColumn" : 15,
+    "endLine" : 60,
+    "kind" : "TypeReference",
+    "line" : 60
+  }, {
+    "column" : 12,
+    "endColumn" : 15,
+    "endLine" : 60,
+    "kind" : "Identifier",
+    "line" : 60
+  }, {
+    "column" : 18,
+    "endColumn" : 23,
+    "endLine" : 60,
+    "kind" : "StringLiteral",
+    "line" : 60
+  }, {
+    "column" : 1,
+    "endColumn" : 59,
+    "endLine" : 62,
+    "kind" : "TypeAliasDeclaration",
+    "line" : 62
+  }, {
+    "column" : 6,
+    "endColumn" : 15,
+    "endLine" : 62,
+    "kind" : "Identifier",
+    "line" : 62
+  }, {
+    "column" : 18,
+    "endColumn" : 58,
+    "endLine" : 62,
+    "kind" : "TypeReference",
+    "line" : 62
+  }, {
+    "column" : 18,
+    "endColumn" : 23,
+    "endLine" : 62,
+    "kind" : "Identifier",
+    "line" : 62
+  }, {
+    "column" : 24,
+    "endColumn" : 57,
+    "endLine" : 62,
+    "kind" : "TypeQuery",
+    "line" : 62
+  }, {
+    "column" : 31,
+    "endColumn" : 57,
+    "endLine" : 62,
+    "kind" : "FirstNode",
+    "line" : 62
+  }, {
+    "column" : 31,
+    "endColumn" : 42,
+    "endLine" : 62,
+    "kind" : "Identifier",
+    "line" : 62
+  }, {
+    "column" : 43,
+    "endColumn" : 57,
+    "endLine" : 62,
+    "kind" : "Identifier",
+    "line" : 62
+  }, {
+    "column" : 1,
+    "endColumn" : 32,
+    "endLine" : 64,
+    "kind" : "TypeAliasDeclaration",
+    "line" : 64
+  }, {
+    "column" : 6,
+    "endColumn" : 19,
+    "endLine" : 64,
+    "kind" : "Identifier",
+    "line" : 64
+  }, {
+    "column" : 22,
+    "endColumn" : 31,
+    "endLine" : 64,
+    "kind" : "TypeReference",
+    "line" : 64
+  }, {
+    "column" : 22,
+    "endColumn" : 31,
+    "endLine" : 64,
+    "kind" : "Identifier",
+    "line" : 64
+  }, {
+    "column" : 1,
+    "endColumn" : 36,
+    "endLine" : 66,
+    "kind" : "ExpressionStatement",
+    "line" : 66
+  }, {
+    "column" : 1,
+    "endColumn" : 35,
+    "endLine" : 66,
+    "kind" : "VoidExpression",
+    "line" : 66
+  }, {
+    "column" : 6,
+    "endColumn" : 35,
+    "endLine" : 66,
+    "kind" : "ArrayLiteralExpression",
+    "line" : 66
+  }, {
+    "column" : 7,
+    "endColumn" : 15,
+    "endLine" : 66,
+    "kind" : "Identifier",
+    "line" : 66
+  }, {
+    "column" : 17,
+    "endColumn" : 23,
+    "endLine" : 66,
+    "kind" : "Identifier",
+    "line" : 66
+  }, {
+    "column" : 25,
+    "endColumn" : 29,
+    "endLine" : 66,
+    "kind" : "Identifier",
+    "line" : 66
+  }, {
+    "column" : 31,
+    "endColumn" : 34,
+    "endLine" : 66,
+    "kind" : "Identifier",
+    "line" : 66
+  }, {
+    "column" : 1,
+    "endColumn" : 29,
+    "endLine" : 67,
+    "kind" : "ExpressionStatement",
+    "line" : 67
+  }, {
+    "column" : 1,
+    "endColumn" : 28,
+    "endLine" : 67,
+    "kind" : "VoidExpression",
+    "line" : 67
+  }, {
+    "column" : 6,
+    "endColumn" : 28,
+    "endLine" : 67,
+    "kind" : "ParenthesizedExpression",
+    "line" : 67
+  }, {
+    "column" : 7,
+    "endColumn" : 27,
+    "endLine" : 67,
+    "kind" : "AsExpression",
+    "line" : 67
+  }, {
+    "column" : 7,
+    "endColumn" : 10,
+    "endLine" : 67,
+    "kind" : "StringLiteral",
+    "line" : 67
+  }, {
+    "column" : 14,
+    "endColumn" : 27,
+    "endLine" : 67,
+    "kind" : "TypeReference",
+    "line" : 67
+  }, {
+    "column" : 14,
+    "endColumn" : 27,
+    "endLine" : 67,
+    "kind" : "Identifier",
+    "line" : 67
+  }, {
+    "column" : 1,
+    "endColumn" : 1,
+    "endLine" : 68,
+    "kind" : "EndOfFileToken",
+    "line" : 68
+  } ],
+  "diagnostics" : [ ],
+  "fixture" : "ok/900_stress_mix.ts",
+  "normalizedProgram" : {
+    "kind" : "Program",
+    "statements" : [ {
+      "column" : 1,
+      "declaration" : {
+        "async" : false,
+        "body" : [ {
+          "column" : 3,
+          "expression" : {
+            "async" : false,
+            "body" : [ ],
+            "column" : 10,
+            "kind" : "FunctionExpression",
+            "line" : 6,
+            "parameters" : [ ],
+            "thisMode" : "LEXICAL"
+          },
+          "kind" : "ReturnStatement",
+          "line" : 6
+        } ],
+        "name" : "mixDec",
+        "parameters" : [ ]
+      },
+      "kind" : "FunctionDeclarationStatement",
+      "line" : 5
+    }, {
+      "column" : 1,
+      "declaration" : {
+        "constructorMethod" : {
+          "async" : false,
+          "body" : [ {
+            "column" : 3,
+            "expression" : {
+              "column" : 12,
+              "kind" : "NumberLiteral",
+              "line" : 14,
+              "text" : "0"
+            },
+            "kind" : "AssignmentStatement",
+            "line" : 14,
+            "target" : {
+              "column" : 3,
+              "kind" : "MemberAccessExpression",
+              "line" : 14,
+              "member" : "__tsj_private_token",
+              "receiver" : {
+                "column" : 3,
+                "kind" : "ThisExpression",
+                "line" : 14
+              }
+            }
+          } ],
+          "name" : "constructor",
+          "parameters" : [ "item" ]
+        },
+        "fieldNames" : [ "__tsj_private_token" ],
+        "methods" : [ {
+          "async" : false,
+          "body" : [ {
+            "column" : 5,
+            "expression" : {
+              "column" : 5,
+              "expression" : {
+                "column" : 20,
+                "kind" : "NumberLiteral",
+                "line" : 33,
+                "text" : "1"
+              },
+              "kind" : "AssignmentExpression",
+              "line" : 33,
+              "operator" : "+=",
+              "target" : {
+                "column" : 5,
+                "kind" : "MemberAccessExpression",
+                "line" : 33,
+                "member" : "__tsj_private_token",
+                "receiver" : {
+                  "column" : 5,
+                  "kind" : "ThisExpression",
+                  "line" : 33
+                }
+              }
+            },
+            "kind" : "ExpressionStatement",
+            "line" : 33
+          }, {
+            "column" : 5,
+            "expression" : {
+              "arguments" : [ {
+                "column" : 15,
+                "kind" : "MemberAccessExpression",
+                "line" : 34,
+                "member" : "item",
+                "receiver" : {
+                  "column" : 15,
+                  "kind" : "ThisExpression",
+                  "line" : 34
+                }
+              } ],
+              "callee" : {
+                "column" : 12,
+                "kind" : "VariableExpression",
+                "line" : 34,
+                "name" : "fn"
+              },
+              "column" : 12,
+              "kind" : "CallExpression",
+              "line" : 34
+            },
+            "kind" : "ReturnStatement",
+            "line" : 34
+          } ],
+          "name" : "map",
+          "parameters" : [ "fn" ]
+        } ],
+        "name" : "StressBox",
+        "superClassName" : null
+      },
+      "kind" : "ClassDeclarationStatement",
+      "line" : 11
+    }, {
+      "column" : 3,
+      "expression" : {
+        "column" : 45,
+        "entries" : [ ],
+        "kind" : "ObjectLiteralExpression",
+        "line" : 13
+      },
+      "kind" : "AssignmentStatement",
+      "line" : 13,
+      "target" : {
+        "column" : 3,
+        "kind" : "MemberAccessExpression",
+        "line" : 13,
+        "member" : "registry",
+        "receiver" : {
+          "column" : 1,
+          "kind" : "VariableExpression",
+          "line" : 11,
+          "name" : "StressBox"
+        }
+      }
+    }, {
+      "column" : 5,
+      "expression" : {
+        "column" : 29,
+        "kind" : "NumberLiteral",
+        "line" : 19,
+        "text" : "1"
+      },
+      "kind" : "AssignmentStatement",
+      "line" : 19,
+      "target" : {
+        "column" : 5,
+        "kind" : "MemberAccessExpression",
+        "line" : 19,
+        "member" : "boot",
+        "receiver" : {
+          "column" : 5,
+          "kind" : "MemberAccessExpression",
+          "line" : 19,
+          "member" : "registry",
+          "receiver" : {
+            "column" : 1,
+            "kind" : "VariableExpression",
+            "line" : 11,
+            "name" : "StressBox"
+          }
+        }
+      }
+    }, {
+      "column" : 1,
+      "expression" : {
+        "column" : 1,
+        "entries" : [ {
+          "key" : "defaultPayload",
+          "value" : {
+            "column" : 42,
+            "entries" : [ {
+              "key" : "id",
+              "value" : {
+                "column" : 48,
+                "kind" : "StringLiteral",
+                "line" : 44,
+                "text" : "a"
+              }
+            }, {
+              "key" : "value",
+              "value" : {
+                "column" : 60,
+                "kind" : "StringLiteral",
+                "line" : 44,
+                "text" : "b"
+              }
+            } ],
+            "kind" : "ObjectLiteralExpression",
+            "line" : 44
+          }
+        } ],
+        "kind" : "ObjectLiteralExpression",
+        "line" : 38
+      },
+      "kind" : "VariableDeclaration",
+      "line" : 38,
+      "name" : "StressSpace"
+    }, {
+      "column" : 1,
+      "expression" : {
+        "arguments" : [ {
+          "column" : 32,
+          "kind" : "MemberAccessExpression",
+          "line" : 53,
+          "member" : "defaultPayload",
+          "receiver" : {
+            "column" : 32,
+            "kind" : "VariableExpression",
+            "line" : 53,
+            "name" : "StressSpace"
+          }
+        } ],
+        "column" : 18,
+        "constructor" : {
+          "column" : 22,
+          "kind" : "VariableExpression",
+          "line" : 53,
+          "name" : "StressBox"
+        },
+        "kind" : "NewExpression",
+        "line" : 53
+      },
+      "kind" : "VariableDeclaration",
+      "line" : 53,
+      "name" : "instance"
+    }, {
+      "column" : 1,
+      "expression" : {
+        "arguments" : [ {
+          "async" : false,
+          "body" : [ {
+            "column" : 40,
+            "expression" : {
+              "column" : 40,
+              "kind" : "MemberAccessExpression",
+              "line" : 54,
+              "member" : "value",
+              "receiver" : {
+                "column" : 40,
+                "kind" : "VariableExpression",
+                "line" : 54,
+                "name" : "value"
+              }
+            },
+            "kind" : "ReturnStatement",
+            "line" : 54
+          } ],
+          "column" : 29,
+          "kind" : "FunctionExpression",
+          "line" : 54,
+          "parameters" : [ "value" ],
+          "thisMode" : "LEXICAL"
+        } ],
+        "callee" : {
+          "column" : 16,
+          "kind" : "MemberAccessExpression",
+          "line" : 54,
+          "member" : "map",
+          "receiver" : {
+            "column" : 16,
+            "kind" : "VariableExpression",
+            "line" : 54,
+            "name" : "instance"
+          }
+        },
+        "column" : 16,
+        "kind" : "CallExpression",
+        "line" : 54
+      },
+      "kind" : "VariableDeclaration",
+      "line" : 54,
+      "name" : "output"
+    }, {
+      "column" : 1,
+      "expression" : {
+        "column" : 54,
+        "entries" : [ {
+          "key" : "p_id",
+          "value" : {
+            "column" : 9,
+            "kind" : "StringLiteral",
+            "line" : 56,
+            "text" : "x"
+          }
+        }, {
+          "key" : "p_value",
+          "value" : {
+            "column" : 12,
+            "kind" : "StringLiteral",
+            "line" : 57,
+            "text" : "y"
+          }
+        }, {
+          "key" : "kind",
+          "value" : {
+            "column" : 9,
+            "kind" : "StringLiteral",
+            "line" : 58,
+            "text" : "projected"
+          }
+        } ],
+        "kind" : "ObjectLiteralExpression",
+        "line" : 55
+      },
+      "kind" : "VariableDeclaration",
+      "line" : 55,
+      "name" : "view"
+    }, {
+      "column" : 1,
+      "expression" : {
+        "column" : 18,
+        "kind" : "StringLiteral",
+        "line" : 60,
+        "text" : "k_1"
+      },
+      "kind" : "VariableDeclaration",
+      "line" : 60,
+      "name" : "key"
+    }, {
+      "column" : 1,
+      "expression" : {
+        "column" : 1,
+        "kind" : "UndefinedLiteral",
+        "line" : 66
+      },
+      "kind" : "ExpressionStatement",
+      "line" : 66
+    }, {
+      "column" : 1,
+      "expression" : {
+        "column" : 1,
+        "kind" : "UndefinedLiteral",
+        "line" : 67
+      },
+      "kind" : "ExpressionStatement",
+      "line" : 67
+    } ]
+  },
+  "schemaVersion" : "tsj-backend-token-v1"
+}

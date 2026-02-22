@@ -17,6 +17,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -213,13 +214,21 @@ public final class InteropBridgeGenerator {
         final List<InteropBridgeArtifact.UnresolvedTarget> unresolvedTargets = new ArrayList<>();
         final List<String> emittedTargets = new ArrayList<>();
         final JavaOverloadResolver overloadResolver = new JavaOverloadResolver();
+        final Map<Class<?>, Map<String, List<JavaNullabilityAnalyzer.NullabilityState>>> nullabilityByClass =
+                new LinkedHashMap<>();
         for (InteropTarget target : requested) {
             final Class<?> targetClass = resolveTargetClass(target, normalizedSpec);
             validateBindingTarget(targetClass, target.bindingName(), normalizedSpec, target.displayName());
+            final Map<String, List<JavaNullabilityAnalyzer.NullabilityState>> methodNullabilityByKey =
+                    nullabilityByClass.computeIfAbsent(
+                            targetClass,
+                            InteropBridgeGenerator::resolveParameterNullabilityByMethodKey
+                    );
             final SelectedIdentityResolution selectedIdentityResolution = resolveSelectedIdentity(
                     targetClass,
                     target,
                     bindingArgsByBinding.get(target.bindingName()),
+                    methodNullabilityByKey,
                     overloadResolver,
                     normalizedSpec
             );
@@ -1194,12 +1203,19 @@ public final class InteropBridgeGenerator {
             final Class<?> targetClass,
             final InteropTarget target,
             final List<JavaOverloadResolver.Argument> bindingArgs,
+            final Map<String, List<JavaNullabilityAnalyzer.NullabilityState>> methodNullabilityByKey,
             final JavaOverloadResolver overloadResolver,
             final Path specFile
     ) {
         final String bindingName = target.bindingName();
         if (BINDING_CONSTRUCTOR.equals(bindingName)) {
-            return resolveSelectedConstructorIdentity(targetClass, target, bindingArgs, overloadResolver, specFile);
+            return resolveSelectedConstructorIdentity(
+                    targetClass,
+                    target,
+                    bindingArgs,
+                    overloadResolver,
+                    specFile
+            );
         }
         if (bindingName.startsWith(BINDING_INSTANCE_GET_PREFIX)) {
             return resolveSelectedFieldIdentity(
@@ -1246,16 +1262,119 @@ public final class InteropBridgeGenerator {
             final List<JavaOverloadResolver.Candidate> candidates = JavaOverloadResolver.candidatesForClassMethod(
                     targetClass,
                     methodName,
-                    JavaOverloadResolver.InvokeKind.INSTANCE_METHOD
+                    JavaOverloadResolver.InvokeKind.INSTANCE_METHOD,
+                    methodNullabilityByKey
             );
             return resolveSelectedCallableIdentity(target, bindingArgs, overloadResolver, specFile, candidates);
         }
         final List<JavaOverloadResolver.Candidate> candidates = JavaOverloadResolver.candidatesForClassMethod(
                 targetClass,
                 bindingName,
-                JavaOverloadResolver.InvokeKind.STATIC_METHOD
+                JavaOverloadResolver.InvokeKind.STATIC_METHOD,
+                methodNullabilityByKey
         );
         return resolveSelectedCallableIdentity(target, bindingArgs, overloadResolver, specFile, candidates);
+    }
+
+    private static Map<String, List<JavaNullabilityAnalyzer.NullabilityState>> resolveParameterNullabilityByMethodKey(
+            final Class<?> targetClass
+    ) {
+        final LinkedHashSet<Class<?>> declaringClasses = new LinkedHashSet<>();
+        declaringClasses.add(targetClass);
+        for (Method method : targetClass.getMethods()) {
+            declaringClasses.add(method.getDeclaringClass());
+        }
+        final List<Class<?>> orderedClasses = declaringClasses.stream()
+                .sorted(Comparator
+                        .comparingInt(InteropBridgeGenerator::inheritanceDepth)
+                        .thenComparing(Class::getName))
+                .toList();
+
+        final List<JavaClassfileReader.RawClassInfo> classInfos = new ArrayList<>();
+        final LinkedHashSet<String> packageInfoResources = new LinkedHashSet<>();
+        for (Class<?> declaringClass : orderedClasses) {
+            final String internalName = declaringClass.getName().replace('.', '/');
+            final int packageSeparator = internalName.lastIndexOf('/');
+            if (packageSeparator > 0) {
+                final String packageInfoResource = internalName.substring(0, packageSeparator) + "/package-info.class";
+                if (packageInfoResources.add(packageInfoResource)) {
+                    final JavaClassfileReader.RawClassInfo packageInfo =
+                            readRawClassInfo(declaringClass, packageInfoResource);
+                    if (packageInfo != null) {
+                        classInfos.add(packageInfo);
+                    }
+                }
+            }
+            final JavaClassfileReader.RawClassInfo classInfo =
+                    readRawClassInfo(declaringClass, internalName + ".class");
+            if (classInfo != null) {
+                classInfos.add(classInfo);
+            }
+        }
+        if (classInfos.isEmpty()) {
+            return Map.of();
+        }
+
+        final JavaNullabilityAnalyzer.AnalysisResult analysis = new JavaNullabilityAnalyzer().analyze(classInfos);
+        final Map<String, List<JavaNullabilityAnalyzer.NullabilityState>> methodNullabilityByKey = new LinkedHashMap<>();
+        for (Class<?> declaringClass : orderedClasses) {
+            final String internalName = declaringClass.getName().replace('.', '/');
+            final JavaNullabilityAnalyzer.ClassNullability classNullability =
+                    analysis.classesByInternalName().get(internalName);
+            if (classNullability == null) {
+                continue;
+            }
+            final List<Map.Entry<String, JavaNullabilityAnalyzer.MethodNullability>> methodEntries =
+                    new ArrayList<>(classNullability.methodsByKey().entrySet());
+            methodEntries.sort(Map.Entry.comparingByKey());
+            for (Map.Entry<String, JavaNullabilityAnalyzer.MethodNullability> methodEntry : methodEntries) {
+                methodNullabilityByKey.put(
+                        methodEntry.getKey(),
+                        methodEntry.getValue().parameterNullability()
+                );
+            }
+        }
+        return Map.copyOf(methodNullabilityByKey);
+    }
+
+    private static int inheritanceDepth(final Class<?> type) {
+        int depth = 0;
+        Class<?> cursor = type;
+        while (cursor != null && cursor.getSuperclass() != null) {
+            depth++;
+            cursor = cursor.getSuperclass();
+        }
+        return depth;
+    }
+
+    private static JavaClassfileReader.RawClassInfo readRawClassInfo(
+            final Class<?> lookupClass,
+            final String resourceName
+    ) {
+        final String normalizedResource = resourceName.startsWith("/")
+                ? resourceName.substring(1)
+                : resourceName;
+        final InputStream stream = openClassResource(lookupClass, normalizedResource);
+        if (stream == null) {
+            return null;
+        }
+        try (InputStream inputStream = stream) {
+            final byte[] classBytes = inputStream.readAllBytes();
+            return new JavaClassfileReader().read(classBytes, Path.of(normalizedResource));
+        } catch (final Exception ignored) {
+            return null;
+        }
+    }
+
+    private static InputStream openClassResource(final Class<?> lookupClass, final String resourceName) {
+        final ClassLoader classLoader = lookupClass.getClassLoader();
+        if (classLoader != null) {
+            final InputStream stream = classLoader.getResourceAsStream(resourceName);
+            if (stream != null) {
+                return stream;
+            }
+        }
+        return lookupClass.getResourceAsStream("/" + resourceName);
     }
 
     private static SelectedIdentityResolution resolveSelectedConstructorIdentity(

@@ -1,0 +1,2607 @@
+{
+  "children": [
+    {
+      "children": [
+        {
+          "children": [],
+          "kind": "DeclareKeyword",
+          "span": {
+            "endCol": 8,
+            "endLine": 1,
+            "file": "src/ok/030_statements.ts",
+            "startCol": 1,
+            "startLine": 1
+          },
+          "tokenText": "declare"
+        },
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 26,
+                    "endLine": 1,
+                    "file": "src/ok/030_statements.ts",
+                    "startCol": 15,
+                    "startLine": 1
+                  },
+                  "tokenText": "declaredTop"
+                },
+                {
+                  "children": [],
+                  "kind": "StringKeyword",
+                  "span": {
+                    "endCol": 34,
+                    "endLine": 1,
+                    "file": "src/ok/030_statements.ts",
+                    "startCol": 28,
+                    "startLine": 1
+                  },
+                  "tokenText": "string"
+                }
+              ],
+              "kind": "VariableDeclaration",
+              "span": {
+                "endCol": 34,
+                "endLine": 1,
+                "file": "src/ok/030_statements.ts",
+                "startCol": 15,
+                "startLine": 1
+              }
+            }
+          ],
+          "kind": "VariableDeclarationList",
+          "span": {
+            "endCol": 34,
+            "endLine": 1,
+            "file": "src/ok/030_statements.ts",
+            "startCol": 9,
+            "startLine": 1
+          }
+        }
+      ],
+      "kind": "FirstStatement",
+      "span": {
+        "endCol": 35,
+        "endLine": 1,
+        "file": "src/ok/030_statements.ts",
+        "startCol": 1,
+        "startLine": 1
+      }
+    },
+    {
+      "children": [
+        {
+          "children": [],
+          "kind": "DeclareKeyword",
+          "span": {
+            "endCol": 8,
+            "endLine": 2,
+            "file": "src/ok/030_statements.ts",
+            "startCol": 1,
+            "startLine": 2
+          },
+          "tokenText": "declare"
+        },
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 24,
+                    "endLine": 2,
+                    "file": "src/ok/030_statements.ts",
+                    "startCol": 15,
+                    "startLine": 2
+                  },
+                  "tokenText": "maybeText"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "kind": "StringKeyword",
+                      "span": {
+                        "endCol": 32,
+                        "endLine": 2,
+                        "file": "src/ok/030_statements.ts",
+                        "startCol": 26,
+                        "startLine": 2
+                      },
+                      "tokenText": "string"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "kind": "NullKeyword",
+                          "span": {
+                            "endCol": 39,
+                            "endLine": 2,
+                            "file": "src/ok/030_statements.ts",
+                            "startCol": 35,
+                            "startLine": 2
+                          },
+                          "tokenText": "null"
+                        }
+                      ],
+                      "kind": "LiteralType",
+                      "span": {
+                        "endCol": 39,
+                        "endLine": 2,
+                        "file": "src/ok/030_statements.ts",
+                        "startCol": 35,
+                        "startLine": 2
+                      }
+                    }
+                  ],
+                  "kind": "UnionType",
+                  "span": {
+                    "endCol": 39,
+                    "endLine": 2,
+                    "file": "src/ok/030_statements.ts",
+                    "startCol": 26,
+                    "startLine": 2
+                  }
+                }
+              ],
+              "kind": "VariableDeclaration",
+              "span": {
+                "endCol": 39,
+                "endLine": 2,
+                "file": "src/ok/030_statements.ts",
+                "startCol": 15,
+                "startLine": 2
+              }
+            }
+          ],
+          "kind": "VariableDeclarationList",
+          "span": {
+            "endCol": 39,
+            "endLine": 2,
+            "file": "src/ok/030_statements.ts",
+            "startCol": 9,
+            "startLine": 2
+          }
+        }
+      ],
+      "kind": "FirstStatement",
+      "span": {
+        "endCol": 40,
+        "endLine": 2,
+        "file": "src/ok/030_statements.ts",
+        "startCol": 1,
+        "startLine": 2
+      }
+    },
+    {
+      "children": [
+        {
+          "children": [],
+          "kind": "Identifier",
+          "span": {
+            "endCol": 14,
+            "endLine": 4,
+            "file": "src/ok/030_statements.ts",
+            "startCol": 5,
+            "startLine": 4
+          },
+          "tokenText": "maybeText"
+        },
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "kind": "Identifier",
+                          "span": {
+                            "endCol": 10,
+                            "endLine": 5,
+                            "file": "src/ok/030_statements.ts",
+                            "startCol": 3,
+                            "startLine": 5
+                          },
+                          "tokenText": "console"
+                        },
+                        {
+                          "children": [],
+                          "kind": "Identifier",
+                          "span": {
+                            "endCol": 14,
+                            "endLine": 5,
+                            "file": "src/ok/030_statements.ts",
+                            "startCol": 11,
+                            "startLine": 5
+                          },
+                          "tokenText": "log"
+                        }
+                      ],
+                      "kind": "PropertyAccessExpression",
+                      "span": {
+                        "endCol": 14,
+                        "endLine": 5,
+                        "file": "src/ok/030_statements.ts",
+                        "startCol": 3,
+                        "startLine": 5
+                      }
+                    },
+                    {
+                      "children": [],
+                      "kind": "Identifier",
+                      "span": {
+                        "endCol": 24,
+                        "endLine": 5,
+                        "file": "src/ok/030_statements.ts",
+                        "startCol": 15,
+                        "startLine": 5
+                      },
+                      "tokenText": "maybeText"
+                    }
+                  ],
+                  "kind": "CallExpression",
+                  "span": {
+                    "endCol": 25,
+                    "endLine": 5,
+                    "file": "src/ok/030_statements.ts",
+                    "startCol": 3,
+                    "startLine": 5
+                  }
+                }
+              ],
+              "kind": "ExpressionStatement",
+              "span": {
+                "endCol": 26,
+                "endLine": 5,
+                "file": "src/ok/030_statements.ts",
+                "startCol": 3,
+                "startLine": 5
+              }
+            }
+          ],
+          "kind": "Block",
+          "span": {
+            "endCol": 2,
+            "endLine": 6,
+            "file": "src/ok/030_statements.ts",
+            "startCol": 16,
+            "startLine": 4
+          }
+        },
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "kind": "Identifier",
+                          "span": {
+                            "endCol": 10,
+                            "endLine": 7,
+                            "file": "src/ok/030_statements.ts",
+                            "startCol": 3,
+                            "startLine": 7
+                          },
+                          "tokenText": "console"
+                        },
+                        {
+                          "children": [],
+                          "kind": "Identifier",
+                          "span": {
+                            "endCol": 14,
+                            "endLine": 7,
+                            "file": "src/ok/030_statements.ts",
+                            "startCol": 11,
+                            "startLine": 7
+                          },
+                          "tokenText": "log"
+                        }
+                      ],
+                      "kind": "PropertyAccessExpression",
+                      "span": {
+                        "endCol": 14,
+                        "endLine": 7,
+                        "file": "src/ok/030_statements.ts",
+                        "startCol": 3,
+                        "startLine": 7
+                      }
+                    },
+                    {
+                      "children": [],
+                      "kind": "Identifier",
+                      "span": {
+                        "endCol": 26,
+                        "endLine": 7,
+                        "file": "src/ok/030_statements.ts",
+                        "startCol": 15,
+                        "startLine": 7
+                      },
+                      "tokenText": "declaredTop"
+                    }
+                  ],
+                  "kind": "CallExpression",
+                  "span": {
+                    "endCol": 27,
+                    "endLine": 7,
+                    "file": "src/ok/030_statements.ts",
+                    "startCol": 3,
+                    "startLine": 7
+                  }
+                }
+              ],
+              "kind": "ExpressionStatement",
+              "span": {
+                "endCol": 28,
+                "endLine": 7,
+                "file": "src/ok/030_statements.ts",
+                "startCol": 3,
+                "startLine": 7
+              }
+            }
+          ],
+          "kind": "Block",
+          "span": {
+            "endCol": 2,
+            "endLine": 8,
+            "file": "src/ok/030_statements.ts",
+            "startCol": 8,
+            "startLine": 6
+          }
+        }
+      ],
+      "kind": "IfStatement",
+      "span": {
+        "endCol": 2,
+        "endLine": 8,
+        "file": "src/ok/030_statements.ts",
+        "startCol": 1,
+        "startLine": 4
+      }
+    },
+    {
+      "children": [
+        {
+          "children": [],
+          "kind": "FirstLiteralToken",
+          "span": {
+            "endCol": 10,
+            "endLine": 10,
+            "file": "src/ok/030_statements.ts",
+            "startCol": 9,
+            "startLine": 10
+          },
+          "tokenText": "2"
+        },
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "kind": "FirstLiteralToken",
+                  "span": {
+                    "endCol": 9,
+                    "endLine": 11,
+                    "file": "src/ok/030_statements.ts",
+                    "startCol": 8,
+                    "startLine": 11
+                  },
+                  "tokenText": "0"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "kind": "Identifier",
+                              "span": {
+                                "endCol": 12,
+                                "endLine": 12,
+                                "file": "src/ok/030_statements.ts",
+                                "startCol": 5,
+                                "startLine": 12
+                              },
+                              "tokenText": "console"
+                            },
+                            {
+                              "children": [],
+                              "kind": "Identifier",
+                              "span": {
+                                "endCol": 16,
+                                "endLine": 12,
+                                "file": "src/ok/030_statements.ts",
+                                "startCol": 13,
+                                "startLine": 12
+                              },
+                              "tokenText": "log"
+                            }
+                          ],
+                          "kind": "PropertyAccessExpression",
+                          "span": {
+                            "endCol": 16,
+                            "endLine": 12,
+                            "file": "src/ok/030_statements.ts",
+                            "startCol": 5,
+                            "startLine": 12
+                          }
+                        },
+                        {
+                          "children": [],
+                          "kind": "StringLiteral",
+                          "span": {
+                            "endCol": 23,
+                            "endLine": 12,
+                            "file": "src/ok/030_statements.ts",
+                            "startCol": 17,
+                            "startLine": 12
+                          },
+                          "tokenText": "\"zero\""
+                        }
+                      ],
+                      "kind": "CallExpression",
+                      "span": {
+                        "endCol": 24,
+                        "endLine": 12,
+                        "file": "src/ok/030_statements.ts",
+                        "startCol": 5,
+                        "startLine": 12
+                      }
+                    }
+                  ],
+                  "kind": "ExpressionStatement",
+                  "span": {
+                    "endCol": 25,
+                    "endLine": 12,
+                    "file": "src/ok/030_statements.ts",
+                    "startCol": 5,
+                    "startLine": 12
+                  }
+                },
+                {
+                  "children": [],
+                  "kind": "BreakStatement",
+                  "span": {
+                    "endCol": 11,
+                    "endLine": 13,
+                    "file": "src/ok/030_statements.ts",
+                    "startCol": 5,
+                    "startLine": 13
+                  }
+                }
+              ],
+              "kind": "CaseClause",
+              "span": {
+                "endCol": 11,
+                "endLine": 13,
+                "file": "src/ok/030_statements.ts",
+                "startCol": 3,
+                "startLine": 11
+              }
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "kind": "FirstLiteralToken",
+                  "span": {
+                    "endCol": 9,
+                    "endLine": 14,
+                    "file": "src/ok/030_statements.ts",
+                    "startCol": 8,
+                    "startLine": 14
+                  },
+                  "tokenText": "1"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "kind": "Identifier",
+                              "span": {
+                                "endCol": 12,
+                                "endLine": 15,
+                                "file": "src/ok/030_statements.ts",
+                                "startCol": 5,
+                                "startLine": 15
+                              },
+                              "tokenText": "console"
+                            },
+                            {
+                              "children": [],
+                              "kind": "Identifier",
+                              "span": {
+                                "endCol": 16,
+                                "endLine": 15,
+                                "file": "src/ok/030_statements.ts",
+                                "startCol": 13,
+                                "startLine": 15
+                              },
+                              "tokenText": "log"
+                            }
+                          ],
+                          "kind": "PropertyAccessExpression",
+                          "span": {
+                            "endCol": 16,
+                            "endLine": 15,
+                            "file": "src/ok/030_statements.ts",
+                            "startCol": 5,
+                            "startLine": 15
+                          }
+                        },
+                        {
+                          "children": [],
+                          "kind": "StringLiteral",
+                          "span": {
+                            "endCol": 22,
+                            "endLine": 15,
+                            "file": "src/ok/030_statements.ts",
+                            "startCol": 17,
+                            "startLine": 15
+                          },
+                          "tokenText": "\"one\""
+                        }
+                      ],
+                      "kind": "CallExpression",
+                      "span": {
+                        "endCol": 23,
+                        "endLine": 15,
+                        "file": "src/ok/030_statements.ts",
+                        "startCol": 5,
+                        "startLine": 15
+                      }
+                    }
+                  ],
+                  "kind": "ExpressionStatement",
+                  "span": {
+                    "endCol": 24,
+                    "endLine": 15,
+                    "file": "src/ok/030_statements.ts",
+                    "startCol": 5,
+                    "startLine": 15
+                  }
+                }
+              ],
+              "kind": "CaseClause",
+              "span": {
+                "endCol": 24,
+                "endLine": 15,
+                "file": "src/ok/030_statements.ts",
+                "startCol": 3,
+                "startLine": 14
+              }
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "kind": "Identifier",
+                              "span": {
+                                "endCol": 12,
+                                "endLine": 17,
+                                "file": "src/ok/030_statements.ts",
+                                "startCol": 5,
+                                "startLine": 17
+                              },
+                              "tokenText": "console"
+                            },
+                            {
+                              "children": [],
+                              "kind": "Identifier",
+                              "span": {
+                                "endCol": 16,
+                                "endLine": 17,
+                                "file": "src/ok/030_statements.ts",
+                                "startCol": 13,
+                                "startLine": 17
+                              },
+                              "tokenText": "log"
+                            }
+                          ],
+                          "kind": "PropertyAccessExpression",
+                          "span": {
+                            "endCol": 16,
+                            "endLine": 17,
+                            "file": "src/ok/030_statements.ts",
+                            "startCol": 5,
+                            "startLine": 17
+                          }
+                        },
+                        {
+                          "children": [],
+                          "kind": "StringLiteral",
+                          "span": {
+                            "endCol": 30,
+                            "endLine": 17,
+                            "file": "src/ok/030_statements.ts",
+                            "startCol": 17,
+                            "startLine": 17
+                          },
+                          "tokenText": "\"fallthrough\""
+                        }
+                      ],
+                      "kind": "CallExpression",
+                      "span": {
+                        "endCol": 31,
+                        "endLine": 17,
+                        "file": "src/ok/030_statements.ts",
+                        "startCol": 5,
+                        "startLine": 17
+                      }
+                    }
+                  ],
+                  "kind": "ExpressionStatement",
+                  "span": {
+                    "endCol": 32,
+                    "endLine": 17,
+                    "file": "src/ok/030_statements.ts",
+                    "startCol": 5,
+                    "startLine": 17
+                  }
+                },
+                {
+                  "children": [],
+                  "kind": "BreakStatement",
+                  "span": {
+                    "endCol": 11,
+                    "endLine": 18,
+                    "file": "src/ok/030_statements.ts",
+                    "startCol": 5,
+                    "startLine": 18
+                  }
+                }
+              ],
+              "kind": "DefaultClause",
+              "span": {
+                "endCol": 11,
+                "endLine": 18,
+                "file": "src/ok/030_statements.ts",
+                "startCol": 3,
+                "startLine": 16
+              }
+            }
+          ],
+          "kind": "CaseBlock",
+          "span": {
+            "endCol": 2,
+            "endLine": 19,
+            "file": "src/ok/030_statements.ts",
+            "startCol": 12,
+            "startLine": 10
+          }
+        }
+      ],
+      "kind": "SwitchStatement",
+      "span": {
+        "endCol": 2,
+        "endLine": 19,
+        "file": "src/ok/030_statements.ts",
+        "startCol": 1,
+        "startLine": 10
+      }
+    },
+    {
+      "children": [
+        {
+          "children": [],
+          "kind": "Identifier",
+          "span": {
+            "endCol": 6,
+            "endLine": 21,
+            "file": "src/ok/030_statements.ts",
+            "startCol": 1,
+            "startLine": 21
+          },
+          "tokenText": "outer"
+        },
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "kind": "Identifier",
+                      "span": {
+                        "endCol": 18,
+                        "endLine": 21,
+                        "file": "src/ok/030_statements.ts",
+                        "startCol": 17,
+                        "startLine": 21
+                      },
+                      "tokenText": "i"
+                    },
+                    {
+                      "children": [],
+                      "kind": "FirstLiteralToken",
+                      "span": {
+                        "endCol": 22,
+                        "endLine": 21,
+                        "file": "src/ok/030_statements.ts",
+                        "startCol": 21,
+                        "startLine": 21
+                      },
+                      "tokenText": "0"
+                    }
+                  ],
+                  "kind": "VariableDeclaration",
+                  "span": {
+                    "endCol": 22,
+                    "endLine": 21,
+                    "file": "src/ok/030_statements.ts",
+                    "startCol": 17,
+                    "startLine": 21
+                  }
+                }
+              ],
+              "kind": "VariableDeclarationList",
+              "span": {
+                "endCol": 22,
+                "endLine": 21,
+                "file": "src/ok/030_statements.ts",
+                "startCol": 13,
+                "startLine": 21
+              }
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 25,
+                    "endLine": 21,
+                    "file": "src/ok/030_statements.ts",
+                    "startCol": 24,
+                    "startLine": 21
+                  },
+                  "tokenText": "i"
+                },
+                {
+                  "children": [],
+                  "kind": "FirstBinaryOperator",
+                  "span": {
+                    "endCol": 27,
+                    "endLine": 21,
+                    "file": "src/ok/030_statements.ts",
+                    "startCol": 26,
+                    "startLine": 21
+                  },
+                  "tokenText": "<"
+                },
+                {
+                  "children": [],
+                  "kind": "FirstLiteralToken",
+                  "span": {
+                    "endCol": 29,
+                    "endLine": 21,
+                    "file": "src/ok/030_statements.ts",
+                    "startCol": 28,
+                    "startLine": 21
+                  },
+                  "tokenText": "3"
+                }
+              ],
+              "kind": "BinaryExpression",
+              "operator": "<",
+              "span": {
+                "endCol": 29,
+                "endLine": 21,
+                "file": "src/ok/030_statements.ts",
+                "startCol": 24,
+                "startLine": 21
+              }
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 32,
+                    "endLine": 21,
+                    "file": "src/ok/030_statements.ts",
+                    "startCol": 31,
+                    "startLine": 21
+                  },
+                  "tokenText": "i"
+                },
+                {
+                  "children": [],
+                  "kind": "FirstCompoundAssignment",
+                  "span": {
+                    "endCol": 35,
+                    "endLine": 21,
+                    "file": "src/ok/030_statements.ts",
+                    "startCol": 33,
+                    "startLine": 21
+                  },
+                  "tokenText": "+="
+                },
+                {
+                  "children": [],
+                  "kind": "FirstLiteralToken",
+                  "span": {
+                    "endCol": 37,
+                    "endLine": 21,
+                    "file": "src/ok/030_statements.ts",
+                    "startCol": 36,
+                    "startLine": 21
+                  },
+                  "tokenText": "1"
+                }
+              ],
+              "kind": "BinaryExpression",
+              "operator": "+=",
+              "span": {
+                "endCol": 37,
+                "endLine": 21,
+                "file": "src/ok/030_statements.ts",
+                "startCol": 31,
+                "startLine": 21
+              }
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "kind": "Identifier",
+                              "span": {
+                                "endCol": 13,
+                                "endLine": 22,
+                                "file": "src/ok/030_statements.ts",
+                                "startCol": 12,
+                                "startLine": 22
+                              },
+                              "tokenText": "j"
+                            },
+                            {
+                              "children": [],
+                              "kind": "FirstLiteralToken",
+                              "span": {
+                                "endCol": 17,
+                                "endLine": 22,
+                                "file": "src/ok/030_statements.ts",
+                                "startCol": 16,
+                                "startLine": 22
+                              },
+                              "tokenText": "0"
+                            }
+                          ],
+                          "kind": "VariableDeclaration",
+                          "span": {
+                            "endCol": 17,
+                            "endLine": 22,
+                            "file": "src/ok/030_statements.ts",
+                            "startCol": 12,
+                            "startLine": 22
+                          }
+                        }
+                      ],
+                      "kind": "VariableDeclarationList",
+                      "span": {
+                        "endCol": 17,
+                        "endLine": 22,
+                        "file": "src/ok/030_statements.ts",
+                        "startCol": 8,
+                        "startLine": 22
+                      }
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "kind": "Identifier",
+                          "span": {
+                            "endCol": 20,
+                            "endLine": 22,
+                            "file": "src/ok/030_statements.ts",
+                            "startCol": 19,
+                            "startLine": 22
+                          },
+                          "tokenText": "j"
+                        },
+                        {
+                          "children": [],
+                          "kind": "FirstBinaryOperator",
+                          "span": {
+                            "endCol": 22,
+                            "endLine": 22,
+                            "file": "src/ok/030_statements.ts",
+                            "startCol": 21,
+                            "startLine": 22
+                          },
+                          "tokenText": "<"
+                        },
+                        {
+                          "children": [],
+                          "kind": "FirstLiteralToken",
+                          "span": {
+                            "endCol": 24,
+                            "endLine": 22,
+                            "file": "src/ok/030_statements.ts",
+                            "startCol": 23,
+                            "startLine": 22
+                          },
+                          "tokenText": "3"
+                        }
+                      ],
+                      "kind": "BinaryExpression",
+                      "operator": "<",
+                      "span": {
+                        "endCol": 24,
+                        "endLine": 22,
+                        "file": "src/ok/030_statements.ts",
+                        "startCol": 19,
+                        "startLine": 22
+                      }
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "kind": "Identifier",
+                          "span": {
+                            "endCol": 27,
+                            "endLine": 22,
+                            "file": "src/ok/030_statements.ts",
+                            "startCol": 26,
+                            "startLine": 22
+                          },
+                          "tokenText": "j"
+                        },
+                        {
+                          "children": [],
+                          "kind": "FirstCompoundAssignment",
+                          "span": {
+                            "endCol": 30,
+                            "endLine": 22,
+                            "file": "src/ok/030_statements.ts",
+                            "startCol": 28,
+                            "startLine": 22
+                          },
+                          "tokenText": "+="
+                        },
+                        {
+                          "children": [],
+                          "kind": "FirstLiteralToken",
+                          "span": {
+                            "endCol": 32,
+                            "endLine": 22,
+                            "file": "src/ok/030_statements.ts",
+                            "startCol": 31,
+                            "startLine": 22
+                          },
+                          "tokenText": "1"
+                        }
+                      ],
+                      "kind": "BinaryExpression",
+                      "operator": "+=",
+                      "span": {
+                        "endCol": 32,
+                        "endLine": 22,
+                        "file": "src/ok/030_statements.ts",
+                        "startCol": 26,
+                        "startLine": 22
+                      }
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "kind": "Identifier",
+                                  "span": {
+                                    "endCol": 10,
+                                    "endLine": 23,
+                                    "file": "src/ok/030_statements.ts",
+                                    "startCol": 9,
+                                    "startLine": 23
+                                  },
+                                  "tokenText": "j"
+                                },
+                                {
+                                  "children": [],
+                                  "kind": "EqualsEqualsEqualsToken",
+                                  "span": {
+                                    "endCol": 14,
+                                    "endLine": 23,
+                                    "file": "src/ok/030_statements.ts",
+                                    "startCol": 11,
+                                    "startLine": 23
+                                  },
+                                  "tokenText": "==="
+                                },
+                                {
+                                  "children": [],
+                                  "kind": "FirstLiteralToken",
+                                  "span": {
+                                    "endCol": 16,
+                                    "endLine": 23,
+                                    "file": "src/ok/030_statements.ts",
+                                    "startCol": 15,
+                                    "startLine": 23
+                                  },
+                                  "tokenText": "1"
+                                }
+                              ],
+                              "kind": "BinaryExpression",
+                              "operator": "===",
+                              "span": {
+                                "endCol": 16,
+                                "endLine": 23,
+                                "file": "src/ok/030_statements.ts",
+                                "startCol": 9,
+                                "startLine": 23
+                              }
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "kind": "Identifier",
+                                      "span": {
+                                        "endCol": 21,
+                                        "endLine": 24,
+                                        "file": "src/ok/030_statements.ts",
+                                        "startCol": 16,
+                                        "startLine": 24
+                                      },
+                                      "tokenText": "outer"
+                                    }
+                                  ],
+                                  "kind": "ContinueStatement",
+                                  "span": {
+                                    "endCol": 22,
+                                    "endLine": 24,
+                                    "file": "src/ok/030_statements.ts",
+                                    "startCol": 7,
+                                    "startLine": 24
+                                  }
+                                }
+                              ],
+                              "kind": "Block",
+                              "span": {
+                                "endCol": 6,
+                                "endLine": 25,
+                                "file": "src/ok/030_statements.ts",
+                                "startCol": 18,
+                                "startLine": 23
+                              }
+                            }
+                          ],
+                          "kind": "IfStatement",
+                          "span": {
+                            "endCol": 6,
+                            "endLine": 25,
+                            "file": "src/ok/030_statements.ts",
+                            "startCol": 5,
+                            "startLine": 23
+                          }
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "kind": "Identifier",
+                                  "span": {
+                                    "endCol": 10,
+                                    "endLine": 26,
+                                    "file": "src/ok/030_statements.ts",
+                                    "startCol": 9,
+                                    "startLine": 26
+                                  },
+                                  "tokenText": "i"
+                                },
+                                {
+                                  "children": [],
+                                  "kind": "EqualsEqualsEqualsToken",
+                                  "span": {
+                                    "endCol": 14,
+                                    "endLine": 26,
+                                    "file": "src/ok/030_statements.ts",
+                                    "startCol": 11,
+                                    "startLine": 26
+                                  },
+                                  "tokenText": "==="
+                                },
+                                {
+                                  "children": [],
+                                  "kind": "FirstLiteralToken",
+                                  "span": {
+                                    "endCol": 16,
+                                    "endLine": 26,
+                                    "file": "src/ok/030_statements.ts",
+                                    "startCol": 15,
+                                    "startLine": 26
+                                  },
+                                  "tokenText": "2"
+                                }
+                              ],
+                              "kind": "BinaryExpression",
+                              "operator": "===",
+                              "span": {
+                                "endCol": 16,
+                                "endLine": 26,
+                                "file": "src/ok/030_statements.ts",
+                                "startCol": 9,
+                                "startLine": 26
+                              }
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "kind": "Identifier",
+                                      "span": {
+                                        "endCol": 18,
+                                        "endLine": 27,
+                                        "file": "src/ok/030_statements.ts",
+                                        "startCol": 13,
+                                        "startLine": 27
+                                      },
+                                      "tokenText": "outer"
+                                    }
+                                  ],
+                                  "kind": "BreakStatement",
+                                  "span": {
+                                    "endCol": 19,
+                                    "endLine": 27,
+                                    "file": "src/ok/030_statements.ts",
+                                    "startCol": 7,
+                                    "startLine": 27
+                                  }
+                                }
+                              ],
+                              "kind": "Block",
+                              "span": {
+                                "endCol": 6,
+                                "endLine": 28,
+                                "file": "src/ok/030_statements.ts",
+                                "startCol": 18,
+                                "startLine": 26
+                              }
+                            }
+                          ],
+                          "kind": "IfStatement",
+                          "span": {
+                            "endCol": 6,
+                            "endLine": 28,
+                            "file": "src/ok/030_statements.ts",
+                            "startCol": 5,
+                            "startLine": 26
+                          }
+                        }
+                      ],
+                      "kind": "Block",
+                      "span": {
+                        "endCol": 4,
+                        "endLine": 29,
+                        "file": "src/ok/030_statements.ts",
+                        "startCol": 34,
+                        "startLine": 22
+                      }
+                    }
+                  ],
+                  "kind": "ForStatement",
+                  "span": {
+                    "endCol": 4,
+                    "endLine": 29,
+                    "file": "src/ok/030_statements.ts",
+                    "startCol": 3,
+                    "startLine": 22
+                  }
+                }
+              ],
+              "kind": "Block",
+              "span": {
+                "endCol": 2,
+                "endLine": 30,
+                "file": "src/ok/030_statements.ts",
+                "startCol": 39,
+                "startLine": 21
+              }
+            }
+          ],
+          "kind": "ForStatement",
+          "span": {
+            "endCol": 2,
+            "endLine": 30,
+            "file": "src/ok/030_statements.ts",
+            "startCol": 8,
+            "startLine": 21
+          }
+        }
+      ],
+      "kind": "LabeledStatement",
+      "span": {
+        "endCol": 2,
+        "endLine": 30,
+        "file": "src/ok/030_statements.ts",
+        "startCol": 1,
+        "startLine": 21
+      }
+    },
+    {
+      "children": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 15,
+                    "endLine": 32,
+                    "file": "src/ok/030_statements.ts",
+                    "startCol": 12,
+                    "startLine": 32
+                  },
+                  "tokenText": "key"
+                }
+              ],
+              "kind": "VariableDeclaration",
+              "span": {
+                "endCol": 15,
+                "endLine": 32,
+                "file": "src/ok/030_statements.ts",
+                "startCol": 12,
+                "startLine": 32
+              }
+            }
+          ],
+          "kind": "VariableDeclarationList",
+          "span": {
+            "endCol": 15,
+            "endLine": 32,
+            "file": "src/ok/030_statements.ts",
+            "startCol": 6,
+            "startLine": 32
+          }
+        },
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 22,
+                    "endLine": 32,
+                    "file": "src/ok/030_statements.ts",
+                    "startCol": 21,
+                    "startLine": 32
+                  },
+                  "tokenText": "a"
+                },
+                {
+                  "children": [],
+                  "kind": "FirstLiteralToken",
+                  "span": {
+                    "endCol": 25,
+                    "endLine": 32,
+                    "file": "src/ok/030_statements.ts",
+                    "startCol": 24,
+                    "startLine": 32
+                  },
+                  "tokenText": "1"
+                }
+              ],
+              "kind": "PropertyAssignment",
+              "span": {
+                "endCol": 25,
+                "endLine": 32,
+                "file": "src/ok/030_statements.ts",
+                "startCol": 21,
+                "startLine": 32
+              }
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 28,
+                    "endLine": 32,
+                    "file": "src/ok/030_statements.ts",
+                    "startCol": 27,
+                    "startLine": 32
+                  },
+                  "tokenText": "b"
+                },
+                {
+                  "children": [],
+                  "kind": "FirstLiteralToken",
+                  "span": {
+                    "endCol": 31,
+                    "endLine": 32,
+                    "file": "src/ok/030_statements.ts",
+                    "startCol": 30,
+                    "startLine": 32
+                  },
+                  "tokenText": "2"
+                }
+              ],
+              "kind": "PropertyAssignment",
+              "span": {
+                "endCol": 31,
+                "endLine": 32,
+                "file": "src/ok/030_statements.ts",
+                "startCol": 27,
+                "startLine": 32
+              }
+            }
+          ],
+          "kind": "ObjectLiteralExpression",
+          "span": {
+            "endCol": 33,
+            "endLine": 32,
+            "file": "src/ok/030_statements.ts",
+            "startCol": 19,
+            "startLine": 32
+          }
+        },
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "kind": "Identifier",
+                          "span": {
+                            "endCol": 10,
+                            "endLine": 33,
+                            "file": "src/ok/030_statements.ts",
+                            "startCol": 3,
+                            "startLine": 33
+                          },
+                          "tokenText": "console"
+                        },
+                        {
+                          "children": [],
+                          "kind": "Identifier",
+                          "span": {
+                            "endCol": 14,
+                            "endLine": 33,
+                            "file": "src/ok/030_statements.ts",
+                            "startCol": 11,
+                            "startLine": 33
+                          },
+                          "tokenText": "log"
+                        }
+                      ],
+                      "kind": "PropertyAccessExpression",
+                      "span": {
+                        "endCol": 14,
+                        "endLine": 33,
+                        "file": "src/ok/030_statements.ts",
+                        "startCol": 3,
+                        "startLine": 33
+                      }
+                    },
+                    {
+                      "children": [],
+                      "kind": "Identifier",
+                      "span": {
+                        "endCol": 18,
+                        "endLine": 33,
+                        "file": "src/ok/030_statements.ts",
+                        "startCol": 15,
+                        "startLine": 33
+                      },
+                      "tokenText": "key"
+                    }
+                  ],
+                  "kind": "CallExpression",
+                  "span": {
+                    "endCol": 19,
+                    "endLine": 33,
+                    "file": "src/ok/030_statements.ts",
+                    "startCol": 3,
+                    "startLine": 33
+                  }
+                }
+              ],
+              "kind": "ExpressionStatement",
+              "span": {
+                "endCol": 20,
+                "endLine": 33,
+                "file": "src/ok/030_statements.ts",
+                "startCol": 3,
+                "startLine": 33
+              }
+            }
+          ],
+          "kind": "Block",
+          "span": {
+            "endCol": 2,
+            "endLine": 34,
+            "file": "src/ok/030_statements.ts",
+            "startCol": 35,
+            "startLine": 32
+          }
+        }
+      ],
+      "kind": "ForInStatement",
+      "span": {
+        "endCol": 2,
+        "endLine": 34,
+        "file": "src/ok/030_statements.ts",
+        "startCol": 1,
+        "startLine": 32
+      }
+    },
+    {
+      "children": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 17,
+                    "endLine": 36,
+                    "file": "src/ok/030_statements.ts",
+                    "startCol": 12,
+                    "startLine": 36
+                  },
+                  "tokenText": "value"
+                }
+              ],
+              "kind": "VariableDeclaration",
+              "span": {
+                "endCol": 17,
+                "endLine": 36,
+                "file": "src/ok/030_statements.ts",
+                "startCol": 12,
+                "startLine": 36
+              }
+            }
+          ],
+          "kind": "VariableDeclarationList",
+          "span": {
+            "endCol": 17,
+            "endLine": 36,
+            "file": "src/ok/030_statements.ts",
+            "startCol": 6,
+            "startLine": 36
+          }
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "kind": "FirstLiteralToken",
+              "span": {
+                "endCol": 23,
+                "endLine": 36,
+                "file": "src/ok/030_statements.ts",
+                "startCol": 22,
+                "startLine": 36
+              },
+              "tokenText": "1"
+            },
+            {
+              "children": [],
+              "kind": "FirstLiteralToken",
+              "span": {
+                "endCol": 26,
+                "endLine": 36,
+                "file": "src/ok/030_statements.ts",
+                "startCol": 25,
+                "startLine": 36
+              },
+              "tokenText": "2"
+            },
+            {
+              "children": [],
+              "kind": "FirstLiteralToken",
+              "span": {
+                "endCol": 29,
+                "endLine": 36,
+                "file": "src/ok/030_statements.ts",
+                "startCol": 28,
+                "startLine": 36
+              },
+              "tokenText": "3"
+            }
+          ],
+          "kind": "ArrayLiteralExpression",
+          "span": {
+            "endCol": 30,
+            "endLine": 36,
+            "file": "src/ok/030_statements.ts",
+            "startCol": 21,
+            "startLine": 36
+          }
+        },
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "kind": "Identifier",
+                          "span": {
+                            "endCol": 10,
+                            "endLine": 37,
+                            "file": "src/ok/030_statements.ts",
+                            "startCol": 3,
+                            "startLine": 37
+                          },
+                          "tokenText": "console"
+                        },
+                        {
+                          "children": [],
+                          "kind": "Identifier",
+                          "span": {
+                            "endCol": 14,
+                            "endLine": 37,
+                            "file": "src/ok/030_statements.ts",
+                            "startCol": 11,
+                            "startLine": 37
+                          },
+                          "tokenText": "log"
+                        }
+                      ],
+                      "kind": "PropertyAccessExpression",
+                      "span": {
+                        "endCol": 14,
+                        "endLine": 37,
+                        "file": "src/ok/030_statements.ts",
+                        "startCol": 3,
+                        "startLine": 37
+                      }
+                    },
+                    {
+                      "children": [],
+                      "kind": "Identifier",
+                      "span": {
+                        "endCol": 20,
+                        "endLine": 37,
+                        "file": "src/ok/030_statements.ts",
+                        "startCol": 15,
+                        "startLine": 37
+                      },
+                      "tokenText": "value"
+                    }
+                  ],
+                  "kind": "CallExpression",
+                  "span": {
+                    "endCol": 21,
+                    "endLine": 37,
+                    "file": "src/ok/030_statements.ts",
+                    "startCol": 3,
+                    "startLine": 37
+                  }
+                }
+              ],
+              "kind": "ExpressionStatement",
+              "span": {
+                "endCol": 22,
+                "endLine": 37,
+                "file": "src/ok/030_statements.ts",
+                "startCol": 3,
+                "startLine": 37
+              }
+            }
+          ],
+          "kind": "Block",
+          "span": {
+            "endCol": 2,
+            "endLine": 38,
+            "file": "src/ok/030_statements.ts",
+            "startCol": 32,
+            "startLine": 36
+          }
+        }
+      ],
+      "kind": "ForOfStatement",
+      "span": {
+        "endCol": 2,
+        "endLine": 38,
+        "file": "src/ok/030_statements.ts",
+        "startCol": 1,
+        "startLine": 36
+      }
+    },
+    {
+      "children": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "kind": "Identifier",
+                      "span": {
+                        "endCol": 18,
+                        "endLine": 41,
+                        "file": "src/ok/030_statements.ts",
+                        "startCol": 13,
+                        "startLine": 41
+                      },
+                      "tokenText": "Error"
+                    },
+                    {
+                      "children": [],
+                      "kind": "StringLiteral",
+                      "span": {
+                        "endCol": 25,
+                        "endLine": 41,
+                        "file": "src/ok/030_statements.ts",
+                        "startCol": 19,
+                        "startLine": 41
+                      },
+                      "tokenText": "\"boom\""
+                    }
+                  ],
+                  "kind": "NewExpression",
+                  "span": {
+                    "endCol": 26,
+                    "endLine": 41,
+                    "file": "src/ok/030_statements.ts",
+                    "startCol": 9,
+                    "startLine": 41
+                  }
+                }
+              ],
+              "kind": "ThrowStatement",
+              "span": {
+                "endCol": 27,
+                "endLine": 41,
+                "file": "src/ok/030_statements.ts",
+                "startCol": 3,
+                "startLine": 41
+              }
+            }
+          ],
+          "kind": "Block",
+          "span": {
+            "endCol": 2,
+            "endLine": 42,
+            "file": "src/ok/030_statements.ts",
+            "startCol": 5,
+            "startLine": 40
+          }
+        },
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 15,
+                    "endLine": 42,
+                    "file": "src/ok/030_statements.ts",
+                    "startCol": 10,
+                    "startLine": 42
+                  },
+                  "tokenText": "error"
+                }
+              ],
+              "kind": "VariableDeclaration",
+              "span": {
+                "endCol": 15,
+                "endLine": 42,
+                "file": "src/ok/030_statements.ts",
+                "startCol": 10,
+                "startLine": 42
+              }
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "kind": "Identifier",
+                              "span": {
+                                "endCol": 10,
+                                "endLine": 43,
+                                "file": "src/ok/030_statements.ts",
+                                "startCol": 3,
+                                "startLine": 43
+                              },
+                              "tokenText": "console"
+                            },
+                            {
+                              "children": [],
+                              "kind": "Identifier",
+                              "span": {
+                                "endCol": 14,
+                                "endLine": 43,
+                                "file": "src/ok/030_statements.ts",
+                                "startCol": 11,
+                                "startLine": 43
+                              },
+                              "tokenText": "log"
+                            }
+                          ],
+                          "kind": "PropertyAccessExpression",
+                          "span": {
+                            "endCol": 14,
+                            "endLine": 43,
+                            "file": "src/ok/030_statements.ts",
+                            "startCol": 3,
+                            "startLine": 43
+                          }
+                        },
+                        {
+                          "children": [],
+                          "kind": "Identifier",
+                          "span": {
+                            "endCol": 20,
+                            "endLine": 43,
+                            "file": "src/ok/030_statements.ts",
+                            "startCol": 15,
+                            "startLine": 43
+                          },
+                          "tokenText": "error"
+                        }
+                      ],
+                      "kind": "CallExpression",
+                      "span": {
+                        "endCol": 21,
+                        "endLine": 43,
+                        "file": "src/ok/030_statements.ts",
+                        "startCol": 3,
+                        "startLine": 43
+                      }
+                    }
+                  ],
+                  "kind": "ExpressionStatement",
+                  "span": {
+                    "endCol": 22,
+                    "endLine": 43,
+                    "file": "src/ok/030_statements.ts",
+                    "startCol": 3,
+                    "startLine": 43
+                  }
+                }
+              ],
+              "kind": "Block",
+              "span": {
+                "endCol": 2,
+                "endLine": 44,
+                "file": "src/ok/030_statements.ts",
+                "startCol": 17,
+                "startLine": 42
+              }
+            }
+          ],
+          "kind": "CatchClause",
+          "span": {
+            "endCol": 2,
+            "endLine": 44,
+            "file": "src/ok/030_statements.ts",
+            "startCol": 3,
+            "startLine": 42
+          }
+        },
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "kind": "Identifier",
+                          "span": {
+                            "endCol": 10,
+                            "endLine": 45,
+                            "file": "src/ok/030_statements.ts",
+                            "startCol": 3,
+                            "startLine": 45
+                          },
+                          "tokenText": "console"
+                        },
+                        {
+                          "children": [],
+                          "kind": "Identifier",
+                          "span": {
+                            "endCol": 14,
+                            "endLine": 45,
+                            "file": "src/ok/030_statements.ts",
+                            "startCol": 11,
+                            "startLine": 45
+                          },
+                          "tokenText": "log"
+                        }
+                      ],
+                      "kind": "PropertyAccessExpression",
+                      "span": {
+                        "endCol": 14,
+                        "endLine": 45,
+                        "file": "src/ok/030_statements.ts",
+                        "startCol": 3,
+                        "startLine": 45
+                      }
+                    },
+                    {
+                      "children": [],
+                      "kind": "StringLiteral",
+                      "span": {
+                        "endCol": 21,
+                        "endLine": 45,
+                        "file": "src/ok/030_statements.ts",
+                        "startCol": 15,
+                        "startLine": 45
+                      },
+                      "tokenText": "\"done\""
+                    }
+                  ],
+                  "kind": "CallExpression",
+                  "span": {
+                    "endCol": 22,
+                    "endLine": 45,
+                    "file": "src/ok/030_statements.ts",
+                    "startCol": 3,
+                    "startLine": 45
+                  }
+                }
+              ],
+              "kind": "ExpressionStatement",
+              "span": {
+                "endCol": 23,
+                "endLine": 45,
+                "file": "src/ok/030_statements.ts",
+                "startCol": 3,
+                "startLine": 45
+              }
+            }
+          ],
+          "kind": "Block",
+          "span": {
+            "endCol": 2,
+            "endLine": 46,
+            "file": "src/ok/030_statements.ts",
+            "startCol": 11,
+            "startLine": 44
+          }
+        }
+      ],
+      "kind": "TryStatement",
+      "span": {
+        "endCol": 2,
+        "endLine": 46,
+        "file": "src/ok/030_statements.ts",
+        "startCol": 1,
+        "startLine": 40
+      }
+    },
+    {
+      "children": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "kind": "StringLiteral",
+                  "span": {
+                    "endCol": 12,
+                    "endLine": 49,
+                    "file": "src/ok/030_statements.ts",
+                    "startCol": 9,
+                    "startLine": 49
+                  },
+                  "tokenText": "\"x\""
+                }
+              ],
+              "kind": "ThrowStatement",
+              "span": {
+                "endCol": 13,
+                "endLine": 49,
+                "file": "src/ok/030_statements.ts",
+                "startCol": 3,
+                "startLine": 49
+              }
+            }
+          ],
+          "kind": "Block",
+          "span": {
+            "endCol": 2,
+            "endLine": 50,
+            "file": "src/ok/030_statements.ts",
+            "startCol": 5,
+            "startLine": 48
+          }
+        },
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "kind": "Identifier",
+                              "span": {
+                                "endCol": 10,
+                                "endLine": 51,
+                                "file": "src/ok/030_statements.ts",
+                                "startCol": 3,
+                                "startLine": 51
+                              },
+                              "tokenText": "console"
+                            },
+                            {
+                              "children": [],
+                              "kind": "Identifier",
+                              "span": {
+                                "endCol": 14,
+                                "endLine": 51,
+                                "file": "src/ok/030_statements.ts",
+                                "startCol": 11,
+                                "startLine": 51
+                              },
+                              "tokenText": "log"
+                            }
+                          ],
+                          "kind": "PropertyAccessExpression",
+                          "span": {
+                            "endCol": 14,
+                            "endLine": 51,
+                            "file": "src/ok/030_statements.ts",
+                            "startCol": 3,
+                            "startLine": 51
+                          }
+                        },
+                        {
+                          "children": [],
+                          "kind": "StringLiteral",
+                          "span": {
+                            "endCol": 23,
+                            "endLine": 51,
+                            "file": "src/ok/030_statements.ts",
+                            "startCol": 15,
+                            "startLine": 51
+                          },
+                          "tokenText": "\"caught\""
+                        }
+                      ],
+                      "kind": "CallExpression",
+                      "span": {
+                        "endCol": 24,
+                        "endLine": 51,
+                        "file": "src/ok/030_statements.ts",
+                        "startCol": 3,
+                        "startLine": 51
+                      }
+                    }
+                  ],
+                  "kind": "ExpressionStatement",
+                  "span": {
+                    "endCol": 25,
+                    "endLine": 51,
+                    "file": "src/ok/030_statements.ts",
+                    "startCol": 3,
+                    "startLine": 51
+                  }
+                }
+              ],
+              "kind": "Block",
+              "span": {
+                "endCol": 2,
+                "endLine": 52,
+                "file": "src/ok/030_statements.ts",
+                "startCol": 9,
+                "startLine": 50
+              }
+            }
+          ],
+          "kind": "CatchClause",
+          "span": {
+            "endCol": 2,
+            "endLine": 52,
+            "file": "src/ok/030_statements.ts",
+            "startCol": 3,
+            "startLine": 50
+          }
+        }
+      ],
+      "kind": "TryStatement",
+      "span": {
+        "endCol": 2,
+        "endLine": 52,
+        "file": "src/ok/030_statements.ts",
+        "startCol": 1,
+        "startLine": 48
+      }
+    },
+    {
+      "children": [
+        {
+          "children": [],
+          "kind": "Identifier",
+          "span": {
+            "endCol": 29,
+            "endLine": 54,
+            "file": "src/ok/030_statements.ts",
+            "startCol": 10,
+            "startLine": 54
+          },
+          "tokenText": "withStatementTarget"
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "kind": "Identifier",
+              "span": {
+                "endCol": 35,
+                "endLine": 54,
+                "file": "src/ok/030_statements.ts",
+                "startCol": 30,
+                "startLine": 54
+              },
+              "tokenText": "scope"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 43,
+                    "endLine": 54,
+                    "file": "src/ok/030_statements.ts",
+                    "startCol": 37,
+                    "startLine": 54
+                  },
+                  "tokenText": "Record"
+                },
+                {
+                  "children": [],
+                  "kind": "StringKeyword",
+                  "span": {
+                    "endCol": 50,
+                    "endLine": 54,
+                    "file": "src/ok/030_statements.ts",
+                    "startCol": 44,
+                    "startLine": 54
+                  },
+                  "tokenText": "string"
+                },
+                {
+                  "children": [],
+                  "kind": "NumberKeyword",
+                  "span": {
+                    "endCol": 58,
+                    "endLine": 54,
+                    "file": "src/ok/030_statements.ts",
+                    "startCol": 52,
+                    "startLine": 54
+                  },
+                  "tokenText": "number"
+                }
+              ],
+              "kind": "TypeReference",
+              "span": {
+                "endCol": 59,
+                "endLine": 54,
+                "file": "src/ok/030_statements.ts",
+                "startCol": 37,
+                "startLine": 54
+              }
+            }
+          ],
+          "kind": "Parameter",
+          "span": {
+            "endCol": 59,
+            "endLine": 54,
+            "file": "src/ok/030_statements.ts",
+            "startCol": 30,
+            "startLine": 54
+          }
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "kind": "Identifier",
+              "span": {
+                "endCol": 68,
+                "endLine": 54,
+                "file": "src/ok/030_statements.ts",
+                "startCol": 62,
+                "startLine": 54
+              },
+              "tokenText": "Record"
+            },
+            {
+              "children": [],
+              "kind": "StringKeyword",
+              "span": {
+                "endCol": 75,
+                "endLine": 54,
+                "file": "src/ok/030_statements.ts",
+                "startCol": 69,
+                "startLine": 54
+              },
+              "tokenText": "string"
+            },
+            {
+              "children": [],
+              "kind": "NumberKeyword",
+              "span": {
+                "endCol": 83,
+                "endLine": 54,
+                "file": "src/ok/030_statements.ts",
+                "startCol": 77,
+                "startLine": 54
+              },
+              "tokenText": "number"
+            }
+          ],
+          "kind": "TypeReference",
+          "span": {
+            "endCol": 84,
+            "endLine": 54,
+            "file": "src/ok/030_statements.ts",
+            "startCol": 62,
+            "startLine": 54
+          }
+        },
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 14,
+                    "endLine": 55,
+                    "file": "src/ok/030_statements.ts",
+                    "startCol": 9,
+                    "startLine": 55
+                  },
+                  "tokenText": "scope"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "kind": "Identifier",
+                              "span": {
+                                "endCol": 10,
+                                "endLine": 56,
+                                "file": "src/ok/030_statements.ts",
+                                "startCol": 5,
+                                "startLine": 56
+                              },
+                              "tokenText": "value"
+                            },
+                            {
+                              "children": [],
+                              "kind": "FirstAssignment",
+                              "span": {
+                                "endCol": 12,
+                                "endLine": 56,
+                                "file": "src/ok/030_statements.ts",
+                                "startCol": 11,
+                                "startLine": 56
+                              },
+                              "tokenText": "="
+                            },
+                            {
+                              "children": [],
+                              "kind": "FirstLiteralToken",
+                              "span": {
+                                "endCol": 14,
+                                "endLine": 56,
+                                "file": "src/ok/030_statements.ts",
+                                "startCol": 13,
+                                "startLine": 56
+                              },
+                              "tokenText": "1"
+                            }
+                          ],
+                          "kind": "BinaryExpression",
+                          "operator": "=",
+                          "span": {
+                            "endCol": 14,
+                            "endLine": 56,
+                            "file": "src/ok/030_statements.ts",
+                            "startCol": 5,
+                            "startLine": 56
+                          }
+                        }
+                      ],
+                      "kind": "ExpressionStatement",
+                      "span": {
+                        "endCol": 15,
+                        "endLine": 56,
+                        "file": "src/ok/030_statements.ts",
+                        "startCol": 5,
+                        "startLine": 56
+                      }
+                    }
+                  ],
+                  "kind": "Block",
+                  "span": {
+                    "endCol": 4,
+                    "endLine": 57,
+                    "file": "src/ok/030_statements.ts",
+                    "startCol": 16,
+                    "startLine": 55
+                  }
+                }
+              ],
+              "kind": "WithStatement",
+              "span": {
+                "endCol": 4,
+                "endLine": 57,
+                "file": "src/ok/030_statements.ts",
+                "startCol": 3,
+                "startLine": 55
+              }
+            },
+            {
+              "children": [],
+              "kind": "LastStatement",
+              "span": {
+                "endCol": 12,
+                "endLine": 58,
+                "file": "src/ok/030_statements.ts",
+                "startCol": 3,
+                "startLine": 58
+              }
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 15,
+                    "endLine": 59,
+                    "file": "src/ok/030_statements.ts",
+                    "startCol": 10,
+                    "startLine": 59
+                  },
+                  "tokenText": "scope"
+                }
+              ],
+              "kind": "ReturnStatement",
+              "span": {
+                "endCol": 16,
+                "endLine": 59,
+                "file": "src/ok/030_statements.ts",
+                "startCol": 3,
+                "startLine": 59
+              }
+            }
+          ],
+          "kind": "Block",
+          "span": {
+            "endCol": 2,
+            "endLine": 60,
+            "file": "src/ok/030_statements.ts",
+            "startCol": 85,
+            "startLine": 54
+          }
+        }
+      ],
+      "kind": "FunctionDeclaration",
+      "span": {
+        "endCol": 2,
+        "endLine": 60,
+        "file": "src/ok/030_statements.ts",
+        "startCol": 1,
+        "startLine": 54
+      }
+    },
+    {
+      "children": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 24,
+                    "endLine": 62,
+                    "file": "src/ok/030_statements.ts",
+                    "startCol": 7,
+                    "startLine": 62
+                  },
+                  "tokenText": "statementResource"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "kind": "Identifier",
+                                  "span": {
+                                    "endCol": 10,
+                                    "endLine": 63,
+                                    "file": "src/ok/030_statements.ts",
+                                    "startCol": 4,
+                                    "startLine": 63
+                                  },
+                                  "tokenText": "Symbol"
+                                },
+                                {
+                                  "children": [],
+                                  "kind": "Identifier",
+                                  "span": {
+                                    "endCol": 18,
+                                    "endLine": 63,
+                                    "file": "src/ok/030_statements.ts",
+                                    "startCol": 11,
+                                    "startLine": 63
+                                  },
+                                  "tokenText": "dispose"
+                                }
+                              ],
+                              "kind": "PropertyAccessExpression",
+                              "span": {
+                                "endCol": 18,
+                                "endLine": 63,
+                                "file": "src/ok/030_statements.ts",
+                                "startCol": 4,
+                                "startLine": 63
+                              }
+                            }
+                          ],
+                          "kind": "ComputedPropertyName",
+                          "span": {
+                            "endCol": 19,
+                            "endLine": 63,
+                            "file": "src/ok/030_statements.ts",
+                            "startCol": 3,
+                            "startLine": 63
+                          }
+                        },
+                        {
+                          "children": [],
+                          "kind": "VoidKeyword",
+                          "span": {
+                            "endCol": 27,
+                            "endLine": 63,
+                            "file": "src/ok/030_statements.ts",
+                            "startCol": 23,
+                            "startLine": 63
+                          },
+                          "tokenText": "void"
+                        },
+                        {
+                          "children": [],
+                          "kind": "Block",
+                          "span": {
+                            "endCol": 4,
+                            "endLine": 65,
+                            "file": "src/ok/030_statements.ts",
+                            "startCol": 28,
+                            "startLine": 63
+                          }
+                        }
+                      ],
+                      "kind": "MethodDeclaration",
+                      "span": {
+                        "endCol": 4,
+                        "endLine": 65,
+                        "file": "src/ok/030_statements.ts",
+                        "startCol": 3,
+                        "startLine": 63
+                      }
+                    }
+                  ],
+                  "kind": "ObjectLiteralExpression",
+                  "span": {
+                    "endCol": 2,
+                    "endLine": 66,
+                    "file": "src/ok/030_statements.ts",
+                    "startCol": 27,
+                    "startLine": 62
+                  }
+                }
+              ],
+              "kind": "VariableDeclaration",
+              "span": {
+                "endCol": 2,
+                "endLine": 66,
+                "file": "src/ok/030_statements.ts",
+                "startCol": 7,
+                "startLine": 62
+              }
+            }
+          ],
+          "kind": "VariableDeclarationList",
+          "span": {
+            "endCol": 2,
+            "endLine": 66,
+            "file": "src/ok/030_statements.ts",
+            "startCol": 1,
+            "startLine": 62
+          }
+        }
+      ],
+      "kind": "FirstStatement",
+      "span": {
+        "endCol": 3,
+        "endLine": 66,
+        "file": "src/ok/030_statements.ts",
+        "startCol": 1,
+        "startLine": 62
+      }
+    },
+    {
+      "children": [
+        {
+          "children": [
+            {
+              "children": [],
+              "kind": "Identifier",
+              "span": {
+                "endCol": 23,
+                "endLine": 68,
+                "file": "src/ok/030_statements.ts",
+                "startCol": 6,
+                "startLine": 68
+              },
+              "tokenText": "statementResource"
+            }
+          ],
+          "kind": "VoidExpression",
+          "span": {
+            "endCol": 23,
+            "endLine": 68,
+            "file": "src/ok/030_statements.ts",
+            "startCol": 1,
+            "startLine": 68
+          }
+        }
+      ],
+      "kind": "ExpressionStatement",
+      "span": {
+        "endCol": 24,
+        "endLine": 68,
+        "file": "src/ok/030_statements.ts",
+        "startCol": 1,
+        "startLine": 68
+      }
+    },
+    {
+      "children": [
+        {
+          "children": [
+            {
+              "children": [],
+              "kind": "Identifier",
+              "span": {
+                "endCol": 25,
+                "endLine": 69,
+                "file": "src/ok/030_statements.ts",
+                "startCol": 6,
+                "startLine": 69
+              },
+              "tokenText": "withStatementTarget"
+            }
+          ],
+          "kind": "VoidExpression",
+          "span": {
+            "endCol": 25,
+            "endLine": 69,
+            "file": "src/ok/030_statements.ts",
+            "startCol": 1,
+            "startLine": 69
+          }
+        }
+      ],
+      "kind": "ExpressionStatement",
+      "span": {
+        "endCol": 26,
+        "endLine": 69,
+        "file": "src/ok/030_statements.ts",
+        "startCol": 1,
+        "startLine": 69
+      }
+    },
+    {
+      "children": [],
+      "kind": "EndOfFileToken",
+      "span": {
+        "endCol": 1,
+        "endLine": 70,
+        "file": "src/ok/030_statements.ts",
+        "startCol": 1,
+        "startLine": 70
+      },
+      "tokenText": ""
+    }
+  ],
+  "kind": "SourceFile",
+  "span": {
+    "endCol": 1,
+    "endLine": 70,
+    "file": "src/ok/030_statements.ts",
+    "startCol": 1,
+    "startLine": 1
+  }
+}

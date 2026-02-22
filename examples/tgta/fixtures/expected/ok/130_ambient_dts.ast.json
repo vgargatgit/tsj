@@ -1,0 +1,779 @@
+{
+  "children": [
+    {
+      "children": [
+        {
+          "children": [],
+          "kind": "DeclareKeyword",
+          "span": {
+            "endCol": 8,
+            "endLine": 1,
+            "file": "src/ok/130_ambient_dts.d.ts",
+            "startCol": 1,
+            "startLine": 1
+          },
+          "tokenText": "declare"
+        },
+        {
+          "children": [],
+          "kind": "Identifier",
+          "span": {
+            "endCol": 28,
+            "endLine": 1,
+            "file": "src/ok/130_ambient_dts.d.ts",
+            "startCol": 19,
+            "startLine": 1
+          },
+          "tokenText": "AmbientNs"
+        },
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 16,
+                    "endLine": 2,
+                    "file": "src/ok/130_ambient_dts.d.ts",
+                    "startCol": 12,
+                    "startLine": 2
+                  },
+                  "tokenText": "pick"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "kind": "Identifier",
+                      "span": {
+                        "endCol": 22,
+                        "endLine": 2,
+                        "file": "src/ok/130_ambient_dts.d.ts",
+                        "startCol": 17,
+                        "startLine": 2
+                      },
+                      "tokenText": "input"
+                    },
+                    {
+                      "children": [],
+                      "kind": "NumberKeyword",
+                      "span": {
+                        "endCol": 30,
+                        "endLine": 2,
+                        "file": "src/ok/130_ambient_dts.d.ts",
+                        "startCol": 24,
+                        "startLine": 2
+                      },
+                      "tokenText": "number"
+                    }
+                  ],
+                  "kind": "Parameter",
+                  "span": {
+                    "endCol": 30,
+                    "endLine": 2,
+                    "file": "src/ok/130_ambient_dts.d.ts",
+                    "startCol": 17,
+                    "startLine": 2
+                  }
+                },
+                {
+                  "children": [],
+                  "kind": "StringKeyword",
+                  "span": {
+                    "endCol": 39,
+                    "endLine": 2,
+                    "file": "src/ok/130_ambient_dts.d.ts",
+                    "startCol": 33,
+                    "startLine": 2
+                  },
+                  "tokenText": "string"
+                }
+              ],
+              "kind": "FunctionDeclaration",
+              "span": {
+                "endCol": 40,
+                "endLine": 2,
+                "file": "src/ok/130_ambient_dts.d.ts",
+                "startCol": 3,
+                "startLine": 2
+              }
+            }
+          ],
+          "kind": "ModuleBlock",
+          "span": {
+            "endCol": 2,
+            "endLine": 3,
+            "file": "src/ok/130_ambient_dts.d.ts",
+            "startCol": 29,
+            "startLine": 1
+          }
+        }
+      ],
+      "kind": "ModuleDeclaration",
+      "span": {
+        "endCol": 2,
+        "endLine": 3,
+        "file": "src/ok/130_ambient_dts.d.ts",
+        "startCol": 1,
+        "startLine": 1
+      }
+    },
+    {
+      "children": [
+        {
+          "children": [],
+          "kind": "DeclareKeyword",
+          "span": {
+            "endCol": 8,
+            "endLine": 5,
+            "file": "src/ok/130_ambient_dts.d.ts",
+            "startCol": 1,
+            "startLine": 5
+          },
+          "tokenText": "declare"
+        },
+        {
+          "children": [],
+          "kind": "StringLiteral",
+          "span": {
+            "endCol": 29,
+            "endLine": 5,
+            "file": "src/ok/130_ambient_dts.d.ts",
+            "startCol": 16,
+            "startLine": 5
+          },
+          "tokenText": "\"ambient-pkg\""
+        },
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "kind": "ExportKeyword",
+                  "span": {
+                    "endCol": 9,
+                    "endLine": 6,
+                    "file": "src/ok/130_ambient_dts.d.ts",
+                    "startCol": 3,
+                    "startLine": 6
+                  },
+                  "tokenText": "export"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "kind": "Identifier",
+                          "span": {
+                            "endCol": 21,
+                            "endLine": 6,
+                            "file": "src/ok/130_ambient_dts.d.ts",
+                            "startCol": 16,
+                            "startLine": 6
+                          },
+                          "tokenText": "value"
+                        },
+                        {
+                          "children": [],
+                          "kind": "NumberKeyword",
+                          "span": {
+                            "endCol": 29,
+                            "endLine": 6,
+                            "file": "src/ok/130_ambient_dts.d.ts",
+                            "startCol": 23,
+                            "startLine": 6
+                          },
+                          "tokenText": "number"
+                        }
+                      ],
+                      "kind": "VariableDeclaration",
+                      "span": {
+                        "endCol": 29,
+                        "endLine": 6,
+                        "file": "src/ok/130_ambient_dts.d.ts",
+                        "startCol": 16,
+                        "startLine": 6
+                      }
+                    }
+                  ],
+                  "kind": "VariableDeclarationList",
+                  "span": {
+                    "endCol": 29,
+                    "endLine": 6,
+                    "file": "src/ok/130_ambient_dts.d.ts",
+                    "startCol": 10,
+                    "startLine": 6
+                  }
+                }
+              ],
+              "kind": "FirstStatement",
+              "span": {
+                "endCol": 30,
+                "endLine": 6,
+                "file": "src/ok/130_ambient_dts.d.ts",
+                "startCol": 3,
+                "startLine": 6
+              }
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "kind": "ExportKeyword",
+                  "span": {
+                    "endCol": 9,
+                    "endLine": 7,
+                    "file": "src/ok/130_ambient_dts.d.ts",
+                    "startCol": 3,
+                    "startLine": 7
+                  },
+                  "tokenText": "export"
+                },
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 22,
+                    "endLine": 7,
+                    "file": "src/ok/130_ambient_dts.d.ts",
+                    "startCol": 19,
+                    "startLine": 7
+                  },
+                  "tokenText": "run"
+                },
+                {
+                  "children": [],
+                  "kind": "VoidKeyword",
+                  "span": {
+                    "endCol": 30,
+                    "endLine": 7,
+                    "file": "src/ok/130_ambient_dts.d.ts",
+                    "startCol": 26,
+                    "startLine": 7
+                  },
+                  "tokenText": "void"
+                }
+              ],
+              "kind": "FunctionDeclaration",
+              "span": {
+                "endCol": 31,
+                "endLine": 7,
+                "file": "src/ok/130_ambient_dts.d.ts",
+                "startCol": 3,
+                "startLine": 7
+              }
+            }
+          ],
+          "kind": "ModuleBlock",
+          "span": {
+            "endCol": 2,
+            "endLine": 8,
+            "file": "src/ok/130_ambient_dts.d.ts",
+            "startCol": 30,
+            "startLine": 5
+          }
+        }
+      ],
+      "kind": "ModuleDeclaration",
+      "span": {
+        "endCol": 2,
+        "endLine": 8,
+        "file": "src/ok/130_ambient_dts.d.ts",
+        "startCol": 1,
+        "startLine": 5
+      }
+    },
+    {
+      "children": [
+        {
+          "children": [],
+          "kind": "DeclareKeyword",
+          "span": {
+            "endCol": 8,
+            "endLine": 10,
+            "file": "src/ok/130_ambient_dts.d.ts",
+            "startCol": 1,
+            "startLine": 10
+          },
+          "tokenText": "declare"
+        },
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 27,
+                    "endLine": 10,
+                    "file": "src/ok/130_ambient_dts.d.ts",
+                    "startCol": 15,
+                    "startLine": 10
+                  },
+                  "tokenText": "ambientConst"
+                },
+                {
+                  "children": [],
+                  "kind": "StringKeyword",
+                  "span": {
+                    "endCol": 35,
+                    "endLine": 10,
+                    "file": "src/ok/130_ambient_dts.d.ts",
+                    "startCol": 29,
+                    "startLine": 10
+                  },
+                  "tokenText": "string"
+                }
+              ],
+              "kind": "VariableDeclaration",
+              "span": {
+                "endCol": 35,
+                "endLine": 10,
+                "file": "src/ok/130_ambient_dts.d.ts",
+                "startCol": 15,
+                "startLine": 10
+              }
+            }
+          ],
+          "kind": "VariableDeclarationList",
+          "span": {
+            "endCol": 35,
+            "endLine": 10,
+            "file": "src/ok/130_ambient_dts.d.ts",
+            "startCol": 9,
+            "startLine": 10
+          }
+        }
+      ],
+      "kind": "FirstStatement",
+      "span": {
+        "endCol": 36,
+        "endLine": 10,
+        "file": "src/ok/130_ambient_dts.d.ts",
+        "startCol": 1,
+        "startLine": 10
+      }
+    },
+    {
+      "children": [
+        {
+          "children": [],
+          "kind": "DeclareKeyword",
+          "span": {
+            "endCol": 8,
+            "endLine": 11,
+            "file": "src/ok/130_ambient_dts.d.ts",
+            "startCol": 1,
+            "startLine": 11
+          },
+          "tokenText": "declare"
+        },
+        {
+          "children": [],
+          "kind": "Identifier",
+          "span": {
+            "endCol": 27,
+            "endLine": 11,
+            "file": "src/ok/130_ambient_dts.d.ts",
+            "startCol": 18,
+            "startLine": 11
+          },
+          "tokenText": "ambientFn"
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "kind": "Identifier",
+              "span": {
+                "endCol": 33,
+                "endLine": 11,
+                "file": "src/ok/130_ambient_dts.d.ts",
+                "startCol": 28,
+                "startLine": 11
+              },
+              "tokenText": "value"
+            },
+            {
+              "children": [],
+              "kind": "StringKeyword",
+              "span": {
+                "endCol": 41,
+                "endLine": 11,
+                "file": "src/ok/130_ambient_dts.d.ts",
+                "startCol": 35,
+                "startLine": 11
+              },
+              "tokenText": "string"
+            }
+          ],
+          "kind": "Parameter",
+          "span": {
+            "endCol": 41,
+            "endLine": 11,
+            "file": "src/ok/130_ambient_dts.d.ts",
+            "startCol": 28,
+            "startLine": 11
+          }
+        },
+        {
+          "children": [],
+          "kind": "NumberKeyword",
+          "span": {
+            "endCol": 50,
+            "endLine": 11,
+            "file": "src/ok/130_ambient_dts.d.ts",
+            "startCol": 44,
+            "startLine": 11
+          },
+          "tokenText": "number"
+        }
+      ],
+      "kind": "FunctionDeclaration",
+      "span": {
+        "endCol": 51,
+        "endLine": 11,
+        "file": "src/ok/130_ambient_dts.d.ts",
+        "startCol": 1,
+        "startLine": 11
+      }
+    },
+    {
+      "children": [
+        {
+          "children": [],
+          "kind": "Identifier",
+          "span": {
+            "endCol": 23,
+            "endLine": 13,
+            "file": "src/ok/130_ambient_dts.d.ts",
+            "startCol": 11,
+            "startLine": 13
+          },
+          "tokenText": "AmbientShape"
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "kind": "ReadonlyKeyword",
+              "span": {
+                "endCol": 11,
+                "endLine": 14,
+                "file": "src/ok/130_ambient_dts.d.ts",
+                "startCol": 3,
+                "startLine": 14
+              },
+              "tokenText": "readonly"
+            },
+            {
+              "children": [],
+              "kind": "Identifier",
+              "span": {
+                "endCol": 14,
+                "endLine": 14,
+                "file": "src/ok/130_ambient_dts.d.ts",
+                "startCol": 12,
+                "startLine": 14
+              },
+              "tokenText": "id"
+            },
+            {
+              "children": [],
+              "kind": "StringKeyword",
+              "span": {
+                "endCol": 22,
+                "endLine": 14,
+                "file": "src/ok/130_ambient_dts.d.ts",
+                "startCol": 16,
+                "startLine": 14
+              },
+              "tokenText": "string"
+            }
+          ],
+          "kind": "PropertySignature",
+          "span": {
+            "endCol": 23,
+            "endLine": 14,
+            "file": "src/ok/130_ambient_dts.d.ts",
+            "startCol": 3,
+            "startLine": 14
+          }
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "kind": "Identifier",
+              "span": {
+                "endCol": 11,
+                "endLine": 15,
+                "file": "src/ok/130_ambient_dts.d.ts",
+                "startCol": 3,
+                "startLine": 15
+              },
+              "tokenText": "optional"
+            },
+            {
+              "children": [],
+              "kind": "QuestionToken",
+              "span": {
+                "endCol": 12,
+                "endLine": 15,
+                "file": "src/ok/130_ambient_dts.d.ts",
+                "startCol": 11,
+                "startLine": 15
+              },
+              "tokenText": "?"
+            },
+            {
+              "children": [],
+              "kind": "NumberKeyword",
+              "span": {
+                "endCol": 20,
+                "endLine": 15,
+                "file": "src/ok/130_ambient_dts.d.ts",
+                "startCol": 14,
+                "startLine": 15
+              },
+              "tokenText": "number"
+            }
+          ],
+          "kind": "PropertySignature",
+          "span": {
+            "endCol": 21,
+            "endLine": 15,
+            "file": "src/ok/130_ambient_dts.d.ts",
+            "startCol": 3,
+            "startLine": 15
+          }
+        }
+      ],
+      "kind": "InterfaceDeclaration",
+      "span": {
+        "endCol": 2,
+        "endLine": 16,
+        "file": "src/ok/130_ambient_dts.d.ts",
+        "startCol": 1,
+        "startLine": 13
+      }
+    },
+    {
+      "children": [
+        {
+          "children": [],
+          "kind": "DeclareKeyword",
+          "span": {
+            "endCol": 8,
+            "endLine": 18,
+            "file": "src/ok/130_ambient_dts.d.ts",
+            "startCol": 1,
+            "startLine": 18
+          },
+          "tokenText": "declare"
+        },
+        {
+          "children": [],
+          "kind": "Identifier",
+          "span": {
+            "endCol": 15,
+            "endLine": 18,
+            "file": "src/ok/130_ambient_dts.d.ts",
+            "startCol": 9,
+            "startLine": 18
+          },
+          "tokenText": "global"
+        },
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "kind": "Identifier",
+                  "span": {
+                    "endCol": 18,
+                    "endLine": 19,
+                    "file": "src/ok/130_ambient_dts.d.ts",
+                    "startCol": 13,
+                    "startLine": 19
+                  },
+                  "tokenText": "Array"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "kind": "Identifier",
+                      "span": {
+                        "endCol": 20,
+                        "endLine": 19,
+                        "file": "src/ok/130_ambient_dts.d.ts",
+                        "startCol": 19,
+                        "startLine": 19
+                      },
+                      "tokenText": "T"
+                    }
+                  ],
+                  "kind": "TypeParameter",
+                  "span": {
+                    "endCol": 20,
+                    "endLine": 19,
+                    "file": "src/ok/130_ambient_dts.d.ts",
+                    "startCol": 19,
+                    "startLine": 19
+                  }
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "kind": "Identifier",
+                      "span": {
+                        "endCol": 12,
+                        "endLine": 20,
+                        "file": "src/ok/130_ambient_dts.d.ts",
+                        "startCol": 5,
+                        "startLine": 20
+                      },
+                      "tokenText": "tgtaTag"
+                    },
+                    {
+                      "children": [],
+                      "kind": "QuestionToken",
+                      "span": {
+                        "endCol": 13,
+                        "endLine": 20,
+                        "file": "src/ok/130_ambient_dts.d.ts",
+                        "startCol": 12,
+                        "startLine": 20
+                      },
+                      "tokenText": "?"
+                    },
+                    {
+                      "children": [],
+                      "kind": "StringKeyword",
+                      "span": {
+                        "endCol": 21,
+                        "endLine": 20,
+                        "file": "src/ok/130_ambient_dts.d.ts",
+                        "startCol": 15,
+                        "startLine": 20
+                      },
+                      "tokenText": "string"
+                    }
+                  ],
+                  "kind": "PropertySignature",
+                  "span": {
+                    "endCol": 22,
+                    "endLine": 20,
+                    "file": "src/ok/130_ambient_dts.d.ts",
+                    "startCol": 5,
+                    "startLine": 20
+                  }
+                }
+              ],
+              "kind": "InterfaceDeclaration",
+              "span": {
+                "endCol": 4,
+                "endLine": 21,
+                "file": "src/ok/130_ambient_dts.d.ts",
+                "startCol": 3,
+                "startLine": 19
+              }
+            }
+          ],
+          "kind": "ModuleBlock",
+          "span": {
+            "endCol": 2,
+            "endLine": 22,
+            "file": "src/ok/130_ambient_dts.d.ts",
+            "startCol": 16,
+            "startLine": 18
+          }
+        }
+      ],
+      "kind": "ModuleDeclaration",
+      "span": {
+        "endCol": 2,
+        "endLine": 22,
+        "file": "src/ok/130_ambient_dts.d.ts",
+        "startCol": 1,
+        "startLine": 18
+      }
+    },
+    {
+      "children": [
+        {
+          "children": [],
+          "kind": "Identifier",
+          "span": {
+            "endCol": 34,
+            "endLine": 24,
+            "file": "src/ok/130_ambient_dts.d.ts",
+            "startCol": 21,
+            "startLine": 24
+          },
+          "tokenText": "AmbientGlobal"
+        }
+      ],
+      "kind": "NamespaceExportDeclaration",
+      "span": {
+        "endCol": 35,
+        "endLine": 24,
+        "file": "src/ok/130_ambient_dts.d.ts",
+        "startCol": 1,
+        "startLine": 24
+      }
+    },
+    {
+      "children": [
+        {
+          "children": [],
+          "kind": "NamedExports",
+          "span": {
+            "endCol": 10,
+            "endLine": 25,
+            "file": "src/ok/130_ambient_dts.d.ts",
+            "startCol": 8,
+            "startLine": 25
+          }
+        }
+      ],
+      "kind": "ExportDeclaration",
+      "span": {
+        "endCol": 11,
+        "endLine": 25,
+        "file": "src/ok/130_ambient_dts.d.ts",
+        "startCol": 1,
+        "startLine": 25
+      }
+    },
+    {
+      "children": [],
+      "kind": "EndOfFileToken",
+      "span": {
+        "endCol": 1,
+        "endLine": 26,
+        "file": "src/ok/130_ambient_dts.d.ts",
+        "startCol": 1,
+        "startLine": 26
+      },
+      "tokenText": ""
+    }
+  ],
+  "kind": "SourceFile",
+  "span": {
+    "endCol": 1,
+    "endLine": 26,
+    "file": "src/ok/130_ambient_dts.d.ts",
+    "startCol": 1,
+    "startLine": 1
+  }
+}

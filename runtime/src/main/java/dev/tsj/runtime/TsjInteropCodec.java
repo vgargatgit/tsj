@@ -105,6 +105,12 @@ public final class TsjInteropCodec {
             final Type targetType,
             final String targetContext
     ) {
+        if (targetType instanceof TypeVariable<?> typeVariable) {
+            return toJavaTypeVariable(tsValue, typeVariable, targetContext);
+        }
+        if (targetType instanceof WildcardType wildcardType) {
+            return toJavaWildcard(tsValue, wildcardType, targetContext);
+        }
         final Type normalizedType = normalizeType(targetType);
         if (normalizedType instanceof Class<?> classType) {
             return toJavaClass(tsValue, classType, normalizedType, targetContext);
@@ -127,6 +133,57 @@ public final class TsjInteropCodec {
         throw new IllegalArgumentException(
                 "Unsupported TSJ interop conversion target type `" + targetType.getTypeName() + "`."
         );
+    }
+
+    private static Object toJavaTypeVariable(
+            final Object tsValue,
+            final TypeVariable<?> typeVariable,
+            final String targetContext
+    ) {
+        final Type[] bounds = typeVariable.getBounds();
+        final Type primaryBound = selectPrimaryBound(bounds);
+        final Object converted = toJavaInternal(tsValue, primaryBound, targetContext);
+        ensureValueSatisfiesBounds(
+                converted,
+                bounds,
+                targetContext,
+                "type variable `" + typeVariable.getName() + "`"
+        );
+        return converted;
+    }
+
+    private static Object toJavaWildcard(
+            final Object tsValue,
+            final WildcardType wildcardType,
+            final String targetContext
+    ) {
+        final Type[] lowerBounds = wildcardType.getLowerBounds();
+        if (lowerBounds.length > 0) {
+            final Type primaryLowerBound = selectPrimaryBound(lowerBounds);
+            final Object converted = toJavaInternal(tsValue, primaryLowerBound, targetContext);
+            ensureValueSatisfiesBounds(
+                    converted,
+                    lowerBounds,
+                    targetContext,
+                    "wildcard super-bound"
+            );
+            return converted;
+        }
+
+        final Type[] upperBounds = wildcardType.getUpperBounds();
+        if (upperBounds.length > 0) {
+            final Type primaryUpperBound = selectPrimaryBound(upperBounds);
+            final Object converted = toJavaInternal(tsValue, primaryUpperBound, targetContext);
+            ensureValueSatisfiesBounds(
+                    converted,
+                    upperBounds,
+                    targetContext,
+                    "wildcard extends-bound"
+            );
+            return converted;
+        }
+
+        return toJavaInternal(tsValue, Object.class, targetContext);
     }
 
     private static Object toJavaClass(
@@ -605,15 +662,62 @@ public final class TsjInteropCodec {
         }
     }
 
+    private static Type selectPrimaryBound(final Type[] bounds) {
+        if (bounds == null || bounds.length == 0) {
+            return Object.class;
+        }
+        Type fallback = normalizeType(bounds[0]);
+        for (Type bound : bounds) {
+            final Type normalizedBound = normalizeType(bound);
+            if (eraseType(normalizedBound) != Object.class) {
+                return normalizedBound;
+            }
+            fallback = normalizedBound;
+        }
+        return fallback;
+    }
+
+    private static void ensureValueSatisfiesBounds(
+            final Object convertedValue,
+            final Type[] bounds,
+            final String targetContext,
+            final String boundsContext
+    ) {
+        if (convertedValue == null || bounds == null || bounds.length == 0) {
+            return;
+        }
+        for (Type bound : bounds) {
+            final Type normalizedBound = normalizeType(bound);
+            final Class<?> erasedBound = eraseType(normalizedBound);
+            if (erasedBound == Object.class) {
+                continue;
+            }
+            if (erasedBound.isInstance(convertedValue)) {
+                continue;
+            }
+            throw new IllegalArgumentException(
+                    "Converted value of runtime type `"
+                            + convertedValue.getClass().getName()
+                            + "` does not satisfy "
+                            + boundsContext
+                            + " bound `"
+                            + normalizedBound.getTypeName()
+                            + "` for "
+                            + targetContext
+                            + "."
+            );
+        }
+    }
+
     private static Type normalizeType(final Type type) {
         if (type instanceof WildcardType wildcardType) {
-            final Type[] upperBounds = wildcardType.getUpperBounds();
-            if (upperBounds.length > 0) {
-                return normalizeType(upperBounds[0]);
-            }
             final Type[] lowerBounds = wildcardType.getLowerBounds();
             if (lowerBounds.length > 0) {
                 return normalizeType(lowerBounds[0]);
+            }
+            final Type[] upperBounds = wildcardType.getUpperBounds();
+            if (upperBounds.length > 0) {
+                return normalizeType(upperBounds[0]);
             }
             return Object.class;
         }
@@ -802,7 +906,7 @@ public final class TsjInteropCodec {
         }
         Method candidate = null;
         for (Method method : type.getMethods()) {
-            if (method.getDeclaringClass() == Object.class) {
+            if (method.getDeclaringClass() == Object.class || isObjectContractMethod(method)) {
                 continue;
             }
             if (Modifier.isStatic(method.getModifiers()) || !Modifier.isAbstract(method.getModifiers())) {
@@ -817,6 +921,23 @@ public final class TsjInteropCodec {
             }
         }
         return candidate;
+    }
+
+    private static boolean isObjectContractMethod(final Method method) {
+        final String name = method.getName();
+        final Class<?>[] parameterTypes = method.getParameterTypes();
+        if ("toString".equals(name)) {
+            return parameterTypes.length == 0 && method.getReturnType() == String.class;
+        }
+        if ("hashCode".equals(name)) {
+            return parameterTypes.length == 0 && method.getReturnType() == int.class;
+        }
+        if ("equals".equals(name)) {
+            return parameterTypes.length == 1
+                    && parameterTypes[0] == Object.class
+                    && method.getReturnType() == boolean.class;
+        }
+        return false;
     }
 
     private static Object invokeTsCallable(final Object callable, final Object[] args) {

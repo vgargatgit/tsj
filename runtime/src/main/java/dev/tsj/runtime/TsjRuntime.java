@@ -4,8 +4,10 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 /**
  * Runtime helpers used by TSJ-generated JVM classes in TSJ-9 subset.
@@ -146,6 +148,9 @@ public final class TsjRuntime {
         if (target instanceof TsjObject tsjObject) {
             return tsjObject.get(key);
         }
+        if (target instanceof TsjClass tsjClass) {
+            return tsjClass.getStaticMember(key);
+        }
         throw new IllegalArgumentException("Cannot get property `" + key + "` from " + toDisplayString(target));
     }
 
@@ -157,6 +162,9 @@ public final class TsjRuntime {
         if (target instanceof TsjObject tsjObject) {
             return cache.read(tsjObject, key);
         }
+        if (target instanceof TsjClass) {
+            return getProperty(target, key);
+        }
         throw new IllegalArgumentException("Cannot get property `" + key + "` from " + toDisplayString(target));
     }
 
@@ -165,12 +173,24 @@ public final class TsjRuntime {
             tsjObject.set(key, value);
             return value;
         }
+        if (target instanceof TsjClass tsjClass) {
+            tsjClass.setStaticMember(key, value);
+            return value;
+        }
         throw new IllegalArgumentException("Cannot set property `" + key + "` on " + toDisplayString(target));
+    }
+
+    public static Object setPropertyDynamic(final Object target, final Object key, final Object value) {
+        final String normalizedKey = key == null ? "null" : toDisplayString(key);
+        return setProperty(target, normalizedKey, value);
     }
 
     public static boolean deleteProperty(final Object target, final String key) {
         if (target instanceof TsjObject tsjObject) {
             return tsjObject.deleteOwn(key);
+        }
+        if (target instanceof TsjClass tsjClass) {
+            return tsjClass.deleteStaticMember(key);
         }
         throw new IllegalArgumentException("Cannot delete property `" + key + "` from " + toDisplayString(target));
     }
@@ -190,6 +210,188 @@ public final class TsjRuntime {
         throw new IllegalArgumentException("Prototype must be object|null|undefined: " + toDisplayString(prototype));
     }
 
+    public static Object setPrototypeValue(final Object target, final Object prototype) {
+        setPrototype(target, prototype);
+        return prototype;
+    }
+
+    public static Object assignCell(final TsjCell cell, final Object value) {
+        Objects.requireNonNull(cell, "cell");
+        cell.set(value);
+        return value;
+    }
+
+    public static Object assignLogicalAnd(final TsjCell cell, final Supplier<Object> valueSupplier) {
+        Objects.requireNonNull(cell, "cell");
+        Objects.requireNonNull(valueSupplier, "valueSupplier");
+        final Object current = cell.get();
+        if (!truthy(current)) {
+            return current;
+        }
+        return assignCell(cell, valueSupplier.get());
+    }
+
+    public static Object assignLogicalOr(final TsjCell cell, final Supplier<Object> valueSupplier) {
+        Objects.requireNonNull(cell, "cell");
+        Objects.requireNonNull(valueSupplier, "valueSupplier");
+        final Object current = cell.get();
+        if (truthy(current)) {
+            return current;
+        }
+        return assignCell(cell, valueSupplier.get());
+    }
+
+    public static Object assignNullish(final TsjCell cell, final Supplier<Object> valueSupplier) {
+        Objects.requireNonNull(cell, "cell");
+        Objects.requireNonNull(valueSupplier, "valueSupplier");
+        final Object current = cell.get();
+        if (!isNullish(current)) {
+            return current;
+        }
+        return assignCell(cell, valueSupplier.get());
+    }
+
+    public static Object assignPropertyLogicalAnd(
+            final Object target,
+            final String key,
+            final Supplier<Object> valueSupplier
+    ) {
+        Objects.requireNonNull(valueSupplier, "valueSupplier");
+        final Object current = getProperty(target, key);
+        if (!truthy(current)) {
+            return current;
+        }
+        return setProperty(target, key, valueSupplier.get());
+    }
+
+    public static Object assignPropertyLogicalOr(
+            final Object target,
+            final String key,
+            final Supplier<Object> valueSupplier
+    ) {
+        Objects.requireNonNull(valueSupplier, "valueSupplier");
+        final Object current = getProperty(target, key);
+        if (truthy(current)) {
+            return current;
+        }
+        return setProperty(target, key, valueSupplier.get());
+    }
+
+    public static Object assignPropertyNullish(
+            final Object target,
+            final String key,
+            final Supplier<Object> valueSupplier
+    ) {
+        Objects.requireNonNull(valueSupplier, "valueSupplier");
+        final Object current = getProperty(target, key);
+        if (!isNullish(current)) {
+            return current;
+        }
+        return setProperty(target, key, valueSupplier.get());
+    }
+
+    public static Object optionalMemberAccess(final Object receiver, final String key) {
+        if (isNullish(receiver)) {
+            return undefined();
+        }
+        return getProperty(receiver, key);
+    }
+
+    public static Object optionalCall(final Object callee, final Supplier<Object[]> argsSupplier) {
+        Objects.requireNonNull(argsSupplier, "argsSupplier");
+        if (isNullish(callee)) {
+            return undefined();
+        }
+        final Object[] args = argsSupplier.get();
+        return call(callee, args == null ? new Object[0] : args);
+    }
+
+    public static Object arraySpread(final Object... segments) {
+        final List<Object> values = new ArrayList<>();
+        for (Object segment : segments) {
+            appendSpreadValues(values, segment);
+        }
+        return arrayLiteral(values.toArray());
+    }
+
+    public static Object objectSpread(final Object... segments) {
+        final TsjObject result = new TsjObject(null);
+        for (Object segment : segments) {
+            if (isNullish(segment)) {
+                continue;
+            }
+            if (segment instanceof TsjObject tsjObject) {
+                for (Map.Entry<String, Object> entry : tsjObject.ownPropertiesView().entrySet()) {
+                    result.setOwn(entry.getKey(), entry.getValue());
+                }
+                continue;
+            }
+            if (segment instanceof Map<?, ?> mapSegment) {
+                for (Map.Entry<?, ?> entry : mapSegment.entrySet()) {
+                    final String key = entry.getKey() == null ? "null" : entry.getKey().toString();
+                    result.setOwn(key, entry.getValue());
+                }
+                continue;
+            }
+            throw new IllegalArgumentException("Spread target is not an object: " + toDisplayString(segment));
+        }
+        return result;
+    }
+
+    public static Object callSpread(final Object callee, final Object... segments) {
+        final List<Object> values = new ArrayList<>();
+        for (Object segment : segments) {
+            appendSpreadValues(values, segment);
+        }
+        return call(callee, values.toArray());
+    }
+
+    public static Object restArgs(final Object[] args, final int startIndex) {
+        final List<Object> values = new ArrayList<>();
+        if (args != null) {
+            final int safeStart = Math.max(0, startIndex);
+            for (int index = safeStart; index < args.length; index++) {
+                values.add(args[index]);
+            }
+        }
+        return arrayLiteral(values.toArray());
+    }
+
+    public static Object indexRead(final Object target, final Object index) {
+        final String key = index == null ? "null" : toDisplayString(index);
+        return getProperty(target, key);
+    }
+
+    public static Object forOfValues(final Object value) {
+        if (isNullish(value)) {
+            throw new IllegalArgumentException("Cannot iterate nullish value in for...of loop.");
+        }
+        final List<Object> values = new ArrayList<>();
+        appendSpreadValues(values, value);
+        return arrayLiteral(values.toArray());
+    }
+
+    public static Object forInKeys(final Object value) {
+        if (isNullish(value)) {
+            throw new IllegalArgumentException("Cannot enumerate nullish value in for...in loop.");
+        }
+        final List<Object> keys = new ArrayList<>();
+        if (value instanceof TsjObject tsjObject) {
+            for (String key : tsjObject.ownPropertiesView().keySet()) {
+                keys.add(key);
+            }
+            return arrayLiteral(keys.toArray());
+        }
+        if (value instanceof Map<?, ?> mapValue) {
+            for (Object key : mapValue.keySet()) {
+                keys.add(key == null ? "null" : key.toString());
+            }
+            return arrayLiteral(keys.toArray());
+        }
+        throw new IllegalArgumentException("Cannot enumerate keys from value in for...in loop: "
+                + toDisplayString(value));
+    }
+
     public static Object invokeMember(final Object target, final String methodName, final Object... args) {
         if (target instanceof TsjObject tsjObject) {
             final Object member = tsjObject.get(methodName);
@@ -200,6 +402,18 @@ public final class TsjRuntime {
                 return callableWithThis.callWithThis(tsjObject, args);
             }
             return call(member, args);
+        }
+        if (target instanceof TsjClass tsjClass) {
+            final Object member = tsjClass.getStaticMember(methodName);
+            if (member instanceof TsjCallableWithThis callableWithThis) {
+                return callableWithThis.callWithThis(tsjClass, args);
+            }
+            if (member instanceof TsjCallable callable) {
+                return callable.call(args);
+            }
+            throw new IllegalArgumentException(
+                    "Cannot invoke static member `" + methodName + "` on " + toDisplayString(target)
+            );
         }
         if (target != null && target != TsjUndefined.INSTANCE) {
             return TsjJavaInterop.invokeInstanceMember(target, methodName, args);
@@ -224,6 +438,10 @@ public final class TsjRuntime {
 
     public static Object divide(final Object left, final Object right) {
         return Double.valueOf(toNumber(left) / toNumber(right));
+    }
+
+    public static Object modulo(final Object left, final Object right) {
+        return Double.valueOf(toNumber(left) % toNumber(right));
     }
 
     public static Object negate(final Object value) {
@@ -312,6 +530,34 @@ public final class TsjRuntime {
         return true;
     }
 
+    public static Object logicalAnd(final Object left, final Supplier<Object> rightSupplier) {
+        Objects.requireNonNull(rightSupplier, "rightSupplier");
+        if (!truthy(left)) {
+            return left;
+        }
+        return rightSupplier.get();
+    }
+
+    public static Object logicalOr(final Object left, final Supplier<Object> rightSupplier) {
+        Objects.requireNonNull(rightSupplier, "rightSupplier");
+        if (truthy(left)) {
+            return left;
+        }
+        return rightSupplier.get();
+    }
+
+    public static Object nullishCoalesce(final Object left, final Supplier<Object> rightSupplier) {
+        Objects.requireNonNull(rightSupplier, "rightSupplier");
+        if (isNullish(left)) {
+            return rightSupplier.get();
+        }
+        return left;
+    }
+
+    public static boolean isNullishValue(final Object value) {
+        return isNullish(value);
+    }
+
     public static String toDisplayString(final Object value) {
         if (isUndefined(value)) {
             return "undefined";
@@ -384,6 +630,33 @@ public final class TsjRuntime {
 
     private static boolean isNullish(final Object value) {
         return value == null || isUndefined(value);
+    }
+
+    private static void appendSpreadValues(final List<Object> target, final Object segment) {
+        if (segment instanceof TsjObject tsjObject) {
+            final Object lengthValue = tsjObject.get("length");
+            if (lengthValue instanceof Number) {
+                final int length = (int) toNumber(lengthValue);
+                for (int index = 0; index < Math.max(0, length); index++) {
+                    target.add(tsjObject.get(Integer.toString(index)));
+                }
+                return;
+            }
+            throw new IllegalArgumentException("Spread target is not iterable: " + toDisplayString(segment));
+        }
+        if (segment instanceof Object[] objectArray) {
+            for (Object value : objectArray) {
+                target.add(value);
+            }
+            return;
+        }
+        if (segment instanceof Iterable<?> iterable) {
+            for (Object value : iterable) {
+                target.add(value);
+            }
+            return;
+        }
+        throw new IllegalArgumentException("Spread target is not iterable: " + toDisplayString(segment));
     }
 
     private static Object toPrimitiveForAbstractEquals(final TsjObject objectValue) {

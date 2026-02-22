@@ -1,7 +1,43 @@
 # TSJ Agent Instructions
 
 ## Engineering Strategy
-This project follows a comprehensive test-driven development (TDD) strategy.
+- This project follows a comprehensive test-driven development (TDD) strategy.
+- In plan mode, if something goes sideways, STOP and re-plan immediately - don't keep pushing
+
+### Self-Improvement loop
+- After ANY correction from the user: update `docs/lessons.md` with the pattern
+- Write rules for yourself that prevent the same mistake
+- Ruthlessly iterate on these lessons until mistake rate drops
+- Review lessons at session start for relevant project
+
+### Verification Before Done
+- Never mark a task complete without proving it works
+- Diff behavior between main and your changes when relevant
+- Ask yourself: "would a Phd level compiler designer approve this?"
+
+### Demand Elegance (Balanced)
+- For non-trivial changes: pause and ask "is there a more elegant way?"
+- If a fix feels hacky: "Knowing everything I know now, implement the elegant solution"
+- Skip this for simple, obvious fixes - don't over-engineer
+- Challenge your own work before presenting it
+
+### Autonomous Bug Fixing
+- When given a bug report: just fix it. Don't ask for hand-holding
+- Point at logs, errors, failing tests - then resolve them
+- Zero context switching required from the user
+
+## Task Management
+- **Plan First**: Write plan to `docs/plans.md` with checkable items
+- **Verify Plans**: Check in before starting implementation 
+- **Track Progress**: Mark items complete as you go
+- **Explain Changes**: High-level summary at each step
+- **Document Results**: Add review section to `docs/todo.md`
+- **Capture Lessons**: Update `docs/lesson.md` after corrections
+
+## Core Principles
+- **Simplicity**: Make every change as simple as possible. Impact minimal code.
+- **No Laziness**: Find root causes. No temporary fixes. Senior developer standards.
+- **Minimal Impact**: Changes should only touch what's neccessary. Avoid introducing bugs.
 
 ### Required Workflow
 1. `Red`: add or update tests to express intended behavior before implementation changes.

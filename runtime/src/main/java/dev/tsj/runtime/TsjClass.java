@@ -7,12 +7,14 @@ public final class TsjClass {
     private final String name;
     private final TsjClass superClass;
     private final TsjObject prototype;
+    private final TsjObject staticMembers;
     private TsjMethod constructorMethod;
 
     public TsjClass(final String name, final TsjClass superClass) {
         this.name = name;
         this.superClass = superClass;
         this.prototype = new TsjObject(superClass != null ? superClass.prototype : null);
+        this.staticMembers = new TsjObject(superClass != null ? superClass.staticMembers : null);
         this.constructorMethod = null;
     }
 
@@ -26,6 +28,24 @@ public final class TsjClass {
 
     public TsjObject prototype() {
         return prototype;
+    }
+
+    public Object getStaticMember(final String key) {
+        if ("prototype".equals(key)) {
+            return prototype;
+        }
+        return staticMembers.get(key);
+    }
+
+    public void setStaticMember(final String key, final Object value) {
+        staticMembers.set(key, value);
+    }
+
+    public boolean deleteStaticMember(final String key) {
+        if ("prototype".equals(key)) {
+            return false;
+        }
+        return staticMembers.deleteOwn(key);
     }
 
     public void setConstructor(final TsjMethod constructorMethod) {
