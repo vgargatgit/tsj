@@ -472,3 +472,13 @@ Progress update:
   - `examples/XTTA/src/grammar/009_control_flow.ts` runs with `TSJ-RUN-SUCCESS`,
   - XTTA progression remains monotonic (`PASS` non-decreasing, `CRASH` non-increasing).
 - [x] Follow-up semantic parity: fix `switch` fallthrough behavior (`switch_fall`) so `grammar/009_control_flow` reaches 9/9 checks.
+
+## 2026-03-02 README Recheck: JITA / UTTA / XTTA
+
+- [x] Re-run `examples/JITA/scripts/run_matrix.sh` and capture current matrix outcome.
+- [x] Re-run `examples/UTTA/scripts/run.sh` and capture current totals plus notable feature status.
+- [x] Re-run `examples/XTTA/scripts/run.sh` and capture current totals plus notable failure families.
+- [x] Update `examples/JITA/README.md` to reflect current workflow/output and remove stale claims.
+- [x] Update `examples/UTTA/README.md` to reflect current measured status and scope.
+- [x] Update `examples/XTTA/README.md` to reflect current measured status and scope.
+- [x] Sanity-check updated README instructions/commands against current scripts and file layout.

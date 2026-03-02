@@ -793,3 +793,18 @@
 - Final regression confirmation:
   CLI reactor tail from patched state passed end-to-end:
   `mvn -B -ntp -rf :cli test` -> `Tests run: 255, Failures: 0, Errors: 0`.
+
+## Review: JITA/UTTA/XTTA README Recheck (2026-03-02)
+- Scope delivered:
+  revalidated README claims against live harness output and updated
+  `examples/JITA/README.md`, `examples/UTTA/README.md`, and `examples/XTTA/README.md`
+  to match current behavior and commands.
+- Verification commands:
+  `bash examples/JITA/scripts/run_matrix.sh` -> `summary: total=5 passed=5 failed=0`.
+  `bash examples/UTTA/scripts/run.sh` -> `TOTAL: 30 | PASS: 29 | FAIL: 1 | CRASH: 0`
+  with one remaining `EMPTY` case: `interop/005_completable_future`.
+  `bash examples/XTTA/scripts/run.sh` -> `TOTAL: 30 | PASS: 30 | FAIL: 0 | CRASH: 0`.
+- Documentation outcome:
+  JITA README now reflects deterministic diagnostic-gate status (5/5),
+  UTTA README now reflects near-closure status (29/30 with one `EMPTY` harness case),
+  XTTA README now reflects full-green status (30/30).
