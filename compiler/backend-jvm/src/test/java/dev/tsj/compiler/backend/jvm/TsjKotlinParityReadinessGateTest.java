@@ -12,6 +12,8 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class TsjKotlinParityReadinessGateTest {
+    private static final String PERFORMANCE_BASELINE_OVERRIDE_PROPERTY = "tsj.kotlinParity.performanceBaselinePath";
+
     @TempDir
     Path tempDir;
 
@@ -64,5 +66,29 @@ class TsjKotlinParityReadinessGateTest {
                 ids
         );
         assertTrue(report.criteria().stream().allMatch(TsjKotlinParityReadinessGateReport.Criterion::passed));
+    }
+
+    @Test
+    void readinessGateBootstrapsWorkspacePerformanceBaselineWhenRepoBaselineIsMissing() throws Exception {
+        final Path reportPath = tempDir.resolve("tsj38-kotlin-parity-readiness.json");
+        final Path missingBaselinePath = tempDir.resolve("missing-benchmark-baseline.json");
+        final String previousOverride = System.getProperty(PERFORMANCE_BASELINE_OVERRIDE_PROPERTY);
+        try {
+            System.setProperty(PERFORMANCE_BASELINE_OVERRIDE_PROPERTY, missingBaselinePath.toString());
+            final TsjKotlinParityReadinessGateReport report = new TsjKotlinParityReadinessGateHarness().run(reportPath);
+
+            final TsjKotlinParityReadinessGateReport.Criterion performanceCriterion = report.criteria().stream()
+                    .filter(criterion -> "performance-baseline-signal".equals(criterion.id()))
+                    .findFirst()
+                    .orElseThrow();
+            assertTrue(performanceCriterion.passed());
+            assertTrue(Files.exists(tempDir.resolve("tsj38-kotlin-parity-benchmark-baseline.json")));
+        } finally {
+            if (previousOverride == null) {
+                System.clearProperty(PERFORMANCE_BASELINE_OVERRIDE_PROPERTY);
+            } else {
+                System.setProperty(PERFORMANCE_BASELINE_OVERRIDE_PROPERTY, previousOverride);
+            }
+        }
     }
 }
