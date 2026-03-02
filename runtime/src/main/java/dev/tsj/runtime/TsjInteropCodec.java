@@ -35,9 +35,6 @@ public final class TsjInteropCodec {
         if (javaValue == null) {
             return null;
         }
-        if (javaValue instanceof Optional<?> optionalValue) {
-            return optionalValue.map(TsjInteropCodec::fromJava).orElse(null);
-        }
         if (javaValue instanceof CompletableFuture<?> completableFuture) {
             return fromCompletableFuture(completableFuture);
         }
@@ -52,9 +49,6 @@ public final class TsjInteropCodec {
         }
         if (javaValue instanceof Map<?, ?> mapValue) {
             return fromJavaMap(mapValue);
-        }
-        if (javaValue instanceof Enum<?> enumValue) {
-            return enumValue.name();
         }
         if (javaValue instanceof Character character) {
             return Character.toString(character.charValue());
@@ -239,6 +233,9 @@ public final class TsjInteropCodec {
             return toFunctionalInterfaceProxy(tsValue, normalizedTarget);
         }
         if (normalizedTarget == String.class) {
+            if (tsValue == null || tsValue == TsjUndefined.INSTANCE) {
+                return null;
+            }
             return TsjRuntime.toDisplayString(tsValue);
         }
         if (normalizedTarget == Boolean.class) {

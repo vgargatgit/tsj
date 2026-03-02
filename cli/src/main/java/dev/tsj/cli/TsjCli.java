@@ -2823,12 +2823,7 @@ public final class TsjCli {
         )) {
             final Iterable<? extends JavaFileObject> compilationUnits =
                     fileManager.getJavaFileObjectsFromPaths(sourceFiles);
-            String classPath = System.getProperty("java.class.path", "");
-            if (classPath.isBlank()) {
-                classPath = classesDir.toString();
-            } else {
-                classPath = classPath + File.pathSeparator + classesDir;
-            }
+            final String classPath = buildInteropBridgeJavacClasspath(classesDir);
             final List<String> options = List.of(
                     "--release",
                     "21",
@@ -2861,6 +2856,51 @@ public final class TsjCli {
                     null,
                     ioException
             );
+        }
+    }
+
+    private static String buildInteropBridgeJavacClasspath(final Path classesDir) {
+        final LinkedHashSet<String> entries = new LinkedHashSet<>();
+        addClasspathEntries(entries, System.getProperty("java.class.path", ""));
+        addClasspathEntry(entries, classesDir);
+        addClasspathEntry(entries, classCodeSourcePath(TsjCli.class));
+        addClasspathEntry(entries, classCodeSourcePath(RuntimeModule.class));
+        addClasspathEntry(entries, classCodeSourcePath(TsjRuntime.class));
+        addClasspathEntry(entries, classCodeSourcePath(TsjJavaInterop.class));
+        addClasspathEntry(entries, classCodeSourcePath(InteropBridgeGenerator.class));
+        return String.join(File.pathSeparator, entries);
+    }
+
+    private static void addClasspathEntries(final Set<String> entries, final String classPath) {
+        if (classPath == null || classPath.isBlank()) {
+            return;
+        }
+        for (String entry : classPath.split(Pattern.quote(File.pathSeparator))) {
+            if (entry != null && !entry.isBlank()) {
+                entries.add(entry);
+            }
+        }
+    }
+
+    private static void addClasspathEntry(final Set<String> entries, final Path candidate) {
+        if (candidate == null) {
+            return;
+        }
+        final Path normalized = candidate.toAbsolutePath().normalize();
+        if (Files.exists(normalized)) {
+            entries.add(normalized.toString());
+        }
+    }
+
+    private static Path classCodeSourcePath(final Class<?> type) {
+        try {
+            final URL codeSource = type.getProtectionDomain().getCodeSource().getLocation();
+            if (codeSource == null) {
+                return null;
+            }
+            return Path.of(codeSource.toURI()).toAbsolutePath().normalize();
+        } catch (final Exception ignored) {
+            return null;
         }
     }
 

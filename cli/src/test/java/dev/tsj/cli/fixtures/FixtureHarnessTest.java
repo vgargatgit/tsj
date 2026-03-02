@@ -810,17 +810,18 @@ class FixtureHarnessTest {
         Files.writeString(
                 entryFile,
                 """
-                for (let i = 0; i < 2; i = i + 1) {
-                  console.log(i);
-                }
+                const loader = import("./dep.ts");
+                console.log("node-ok");
+                void loader;
                 """,
                 UTF_8
         );
+        Files.writeString(inputDir.resolve("dep.ts"), "export const value = 1;\n", UTF_8);
 
-        Files.writeString(expectedDir.resolve("node.stdout"), "0\n1\n", UTF_8);
+        Files.writeString(expectedDir.resolve("node.stdout"), "node-ok\n", UTF_8);
         Files.writeString(expectedDir.resolve("node.stderr"), "", UTF_8);
         Files.writeString(expectedDir.resolve("tsj.stdout"), "", UTF_8);
-        Files.writeString(expectedDir.resolve("tsj.stderr"), "\"code\":\"TSJ-BACKEND-UNSUPPORTED\"", UTF_8);
+        Files.writeString(expectedDir.resolve("tsj.stderr"), "\"featureId\":\"TSJ15-DYNAMIC-IMPORT\"", UTF_8);
 
         final String properties = String.join(
                 "\n",

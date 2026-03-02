@@ -1850,6 +1850,7 @@
             "async" : false,
             "body" : [ ],
             "column" : 10,
+            "generator" : false,
             "kind" : "FunctionExpression",
             "line" : 6,
             "parameters" : [ ],
@@ -1858,6 +1859,7 @@
           "kind" : "ReturnStatement",
           "line" : 6
         } ],
+        "generator" : false,
         "name" : "mixDec",
         "parameters" : [ ]
       },
@@ -1889,11 +1891,32 @@
                 "line" : 14
               }
             }
+          }, {
+            "column" : 15,
+            "expression" : {
+              "column" : 15,
+              "kind" : "VariableExpression",
+              "line" : 16,
+              "name" : "item"
+            },
+            "kind" : "AssignmentStatement",
+            "line" : 16,
+            "target" : {
+              "column" : 15,
+              "kind" : "MemberAccessExpression",
+              "line" : 16,
+              "member" : "item",
+              "receiver" : {
+                "column" : 15,
+                "kind" : "ThisExpression",
+                "line" : 16
+              }
+            }
           } ],
           "name" : "constructor",
           "parameters" : [ "item" ]
         },
-        "fieldNames" : [ "__tsj_private_token" ],
+        "fieldNames" : [ "__tsj_private_token", "item" ],
         "methods" : [ {
           "async" : false,
           "body" : [ {
@@ -2009,42 +2032,414 @@
         }
       }
     }, {
+      "column" : 3,
+      "expression" : {
+        "arguments" : [ {
+          "column" : 1,
+          "kind" : "MemberAccessExpression",
+          "line" : 11,
+          "member" : "prototype",
+          "receiver" : {
+            "column" : 1,
+            "kind" : "VariableExpression",
+            "line" : 11,
+            "name" : "StressBox"
+          }
+        }, {
+          "column" : 7,
+          "kind" : "StringLiteral",
+          "line" : 22,
+          "text" : "id"
+        }, {
+          "async" : false,
+          "body" : [ {
+            "column" : 5,
+            "expression" : {
+              "column" : 12,
+              "kind" : "MemberAccessExpression",
+              "line" : 23,
+              "member" : "id",
+              "receiver" : {
+                "column" : 12,
+                "kind" : "MemberAccessExpression",
+                "line" : 23,
+                "member" : "item",
+                "receiver" : {
+                  "column" : 12,
+                  "kind" : "ThisExpression",
+                  "line" : 23
+                }
+              }
+            },
+            "kind" : "ReturnStatement",
+            "line" : 23
+          } ],
+          "column" : 3,
+          "kind" : "FunctionExpression",
+          "line" : 22,
+          "parameters" : [ ],
+          "thisMode" : "DYNAMIC"
+        }, {
+          "column" : 3,
+          "kind" : "UndefinedLiteral",
+          "line" : 22
+        } ],
+        "callee" : {
+          "column" : 3,
+          "kind" : "VariableExpression",
+          "line" : 22,
+          "name" : "__tsj_define_accessor"
+        },
+        "column" : 3,
+        "kind" : "CallExpression",
+        "line" : 22
+      },
+      "kind" : "ExpressionStatement",
+      "line" : 22
+    }, {
+      "column" : 3,
+      "expression" : {
+        "arguments" : [ {
+          "column" : 1,
+          "kind" : "MemberAccessExpression",
+          "line" : 11,
+          "member" : "prototype",
+          "receiver" : {
+            "column" : 1,
+            "kind" : "VariableExpression",
+            "line" : 11,
+            "name" : "StressBox"
+          }
+        }, {
+          "column" : 7,
+          "kind" : "StringLiteral",
+          "line" : 26,
+          "text" : "id"
+        }, {
+          "column" : 3,
+          "kind" : "UndefinedLiteral",
+          "line" : 26
+        }, {
+          "async" : false,
+          "body" : [ {
+            "column" : 5,
+            "expression" : {
+              "arguments" : [ {
+                "column" : 22,
+                "kind" : "MemberAccessExpression",
+                "line" : 27,
+                "member" : "item",
+                "receiver" : {
+                  "column" : 22,
+                  "kind" : "ThisExpression",
+                  "line" : 27
+                }
+              }, {
+                "column" : 17,
+                "entries" : [ {
+                  "key" : "id",
+                  "value" : {
+                    "column" : 37,
+                    "kind" : "VariableExpression",
+                    "line" : 27,
+                    "name" : "next"
+                  }
+                } ],
+                "kind" : "ObjectLiteralExpression",
+                "line" : 27
+              } ],
+              "callee" : {
+                "column" : 17,
+                "kind" : "VariableExpression",
+                "line" : 27,
+                "name" : "__tsj_object_spread"
+              },
+              "column" : 17,
+              "kind" : "CallExpression",
+              "line" : 27
+            },
+            "kind" : "AssignmentStatement",
+            "line" : 27,
+            "target" : {
+              "column" : 5,
+              "kind" : "MemberAccessExpression",
+              "line" : 27,
+              "member" : "item",
+              "receiver" : {
+                "column" : 5,
+                "kind" : "ThisExpression",
+                "line" : 27
+              }
+            }
+          } ],
+          "column" : 3,
+          "kind" : "FunctionExpression",
+          "line" : 26,
+          "parameters" : [ "next" ],
+          "thisMode" : "DYNAMIC"
+        } ],
+        "callee" : {
+          "column" : 3,
+          "kind" : "VariableExpression",
+          "line" : 26,
+          "name" : "__tsj_define_accessor"
+        },
+        "column" : 3,
+        "kind" : "CallExpression",
+        "line" : 26
+      },
+      "kind" : "ExpressionStatement",
+      "line" : 26
+    }, {
       "column" : 1,
       "expression" : {
-        "column" : 1,
-        "entries" : [ {
-          "key" : "defaultPayload",
-          "value" : {
-            "column" : 42,
-            "entries" : [ {
-              "key" : "id",
-              "value" : {
-                "column" : 48,
+        "arguments" : [ ],
+        "callee" : {
+          "async" : false,
+          "body" : [ {
+            "column" : 1,
+            "expression" : {
+              "column" : 2,
+              "kind" : "VariableExpression",
+              "line" : 11,
+              "name" : "mixDec"
+            },
+            "kind" : "VariableDeclaration",
+            "line" : 11,
+            "name" : "decoratorFactory_3"
+          }, {
+            "column" : 1,
+            "condition" : {
+              "column" : 1,
+              "kind" : "BinaryExpression",
+              "left" : {
+                "column" : 1,
+                "expression" : {
+                  "column" : 1,
+                  "kind" : "VariableExpression",
+                  "line" : 11,
+                  "name" : "decoratorFactory_3"
+                },
+                "kind" : "UnaryExpression",
+                "line" : 11,
+                "operator" : "typeof"
+              },
+              "line" : 11,
+              "operator" : "===",
+              "right" : {
+                "column" : 1,
                 "kind" : "StringLiteral",
-                "line" : 44,
-                "text" : "a"
+                "line" : 11,
+                "text" : "function"
               }
-            }, {
-              "key" : "value",
-              "value" : {
-                "column" : 60,
-                "kind" : "StringLiteral",
-                "line" : 44,
-                "text" : "b"
-              }
+            },
+            "elseBlock" : [ {
+              "column" : 1,
+              "expression" : {
+                "column" : 1,
+                "kind" : "UndefinedLiteral",
+                "line" : 11
+              },
+              "kind" : "ReturnStatement",
+              "line" : 11
             } ],
-            "kind" : "ObjectLiteralExpression",
-            "line" : 44
+            "kind" : "IfStatement",
+            "line" : 11,
+            "thenBlock" : [ {
+              "column" : 1,
+              "expression" : {
+                "arguments" : [ ],
+                "callee" : {
+                  "column" : 1,
+                  "kind" : "VariableExpression",
+                  "line" : 11,
+                  "name" : "decoratorFactory_3"
+                },
+                "column" : 1,
+                "kind" : "CallExpression",
+                "line" : 11
+              },
+              "kind" : "ReturnStatement",
+              "line" : 11
+            } ]
+          } ],
+          "column" : 1,
+          "generator" : false,
+          "kind" : "FunctionExpression",
+          "line" : 11,
+          "parameters" : [ ],
+          "thisMode" : "LEXICAL"
+        },
+        "column" : 1,
+        "kind" : "CallExpression",
+        "line" : 11
+      },
+      "kind" : "VariableDeclaration",
+      "line" : 11,
+      "name" : "classDecorator_1"
+    }, {
+      "column" : 1,
+      "condition" : {
+        "column" : 1,
+        "kind" : "BinaryExpression",
+        "left" : {
+          "column" : 1,
+          "expression" : {
+            "column" : 1,
+            "kind" : "VariableExpression",
+            "line" : 11,
+            "name" : "classDecorator_1"
+          },
+          "kind" : "UnaryExpression",
+          "line" : 11,
+          "operator" : "typeof"
+        },
+        "line" : 11,
+        "operator" : "===",
+        "right" : {
+          "column" : 1,
+          "kind" : "StringLiteral",
+          "line" : 11,
+          "text" : "function"
+        }
+      },
+      "elseBlock" : [ ],
+      "kind" : "IfStatement",
+      "line" : 11,
+      "thenBlock" : [ {
+        "column" : 1,
+        "expression" : {
+          "arguments" : [ {
+            "column" : 1,
+            "kind" : "VariableExpression",
+            "line" : 11,
+            "name" : "StressBox"
+          } ],
+          "callee" : {
+            "column" : 1,
+            "kind" : "VariableExpression",
+            "line" : 11,
+            "name" : "classDecorator_1"
+          },
+          "column" : 1,
+          "kind" : "CallExpression",
+          "line" : 11
+        },
+        "kind" : "VariableDeclaration",
+        "line" : 11,
+        "name" : "classDecoratorResult_2"
+      }, {
+        "column" : 1,
+        "condition" : {
+          "column" : 1,
+          "kind" : "VariableExpression",
+          "line" : 11,
+          "name" : "classDecoratorResult_2"
+        },
+        "elseBlock" : [ ],
+        "kind" : "IfStatement",
+        "line" : 11,
+        "thenBlock" : [ {
+          "column" : 1,
+          "expression" : {
+            "column" : 1,
+            "kind" : "VariableExpression",
+            "line" : 11,
+            "name" : "classDecoratorResult_2"
+          },
+          "kind" : "AssignmentStatement",
+          "line" : 11,
+          "target" : {
+            "column" : 1,
+            "kind" : "VariableExpression",
+            "line" : 11,
+            "name" : "StressBox"
           }
-        } ],
-        "kind" : "ObjectLiteralExpression",
+        } ]
+      } ]
+    }, {
+      "column" : 1,
+      "expression" : {
+        "arguments" : [ ],
+        "callee" : {
+          "async" : false,
+          "body" : [ {
+            "column" : 1,
+            "expression" : {
+              "column" : 1,
+              "kind" : "UndefinedLiteral",
+              "line" : 38
+            },
+            "kind" : "VariableDeclaration",
+            "line" : 38,
+            "name" : "StressSpace_ns_4"
+          }, {
+            "column" : 1,
+            "expression" : {
+              "column" : 1,
+              "entries" : [ {
+                "key" : "defaultPayload",
+                "value" : {
+                  "column" : 42,
+                  "entries" : [ {
+                    "key" : "id",
+                    "value" : {
+                      "column" : 48,
+                      "kind" : "StringLiteral",
+                      "line" : 44,
+                      "text" : "a"
+                    }
+                  }, {
+                    "key" : "value",
+                    "value" : {
+                      "column" : 60,
+                      "kind" : "StringLiteral",
+                      "line" : 44,
+                      "text" : "b"
+                    }
+                  } ],
+                  "kind" : "ObjectLiteralExpression",
+                  "line" : 44
+                }
+              } ],
+              "kind" : "ObjectLiteralExpression",
+              "line" : 38
+            },
+            "kind" : "AssignmentStatement",
+            "line" : 38,
+            "target" : {
+              "column" : 1,
+              "kind" : "VariableExpression",
+              "line" : 38,
+              "name" : "StressSpace_ns_4"
+            }
+          }, {
+            "column" : 1,
+            "expression" : {
+              "column" : 1,
+              "kind" : "VariableExpression",
+              "line" : 38,
+              "name" : "StressSpace_ns_4"
+            },
+            "kind" : "ReturnStatement",
+            "line" : 38
+          } ],
+          "column" : 1,
+          "generator" : false,
+          "kind" : "FunctionExpression",
+          "line" : 38,
+          "parameters" : [ ],
+          "thisMode" : "LEXICAL"
+        },
+        "column" : 1,
+        "kind" : "CallExpression",
         "line" : 38
       },
       "kind" : "VariableDeclaration",
       "line" : 38,
       "name" : "StressSpace"
     }, {
-      "column" : 1,
+      "column" : 7,
       "expression" : {
         "arguments" : [ {
           "column" : 32,
@@ -2072,7 +2467,7 @@
       "line" : 53,
       "name" : "instance"
     }, {
-      "column" : 1,
+      "column" : 7,
       "expression" : {
         "arguments" : [ {
           "async" : false,
@@ -2094,6 +2489,7 @@
             "line" : 54
           } ],
           "column" : 29,
+          "generator" : false,
           "kind" : "FunctionExpression",
           "line" : 54,
           "parameters" : [ "value" ],
@@ -2119,7 +2515,7 @@
       "line" : 54,
       "name" : "output"
     }, {
-      "column" : 1,
+      "column" : 7,
       "expression" : {
         "column" : 54,
         "entries" : [ {
@@ -2154,7 +2550,7 @@
       "line" : 55,
       "name" : "view"
     }, {
-      "column" : 1,
+      "column" : 7,
       "expression" : {
         "column" : 18,
         "kind" : "StringLiteral",

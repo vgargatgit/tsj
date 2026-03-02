@@ -82,7 +82,7 @@
   "normalizedProgram" : {
     "kind" : "Program",
     "statements" : [ {
-      "column" : 1,
+      "column" : 7,
       "expression" : {
         "column" : 16,
         "kind" : "StringLiteral",
@@ -93,7 +93,7 @@
       "line" : 1,
       "name" : "broken"
     }, {
-      "column" : 1,
+      "column" : 7,
       "expression" : {
         "column" : 21,
         "kind" : "NumberLiteral",

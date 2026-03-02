@@ -106,6 +106,64 @@ class TsjCliTest {
     }
 
     @Test
+    void runInteropBridgeCompilationSucceedsWhenJavaClassPathPropertyIsBlank() throws Exception {
+        final Path entryFile = tempDir.resolve("interop-blank-classpath.ts");
+        Files.writeString(
+                entryFile,
+                """
+                import { ping } from "java:sample.xtta.InteropFixture";
+                console.log(ping("ok"));
+                """,
+                UTF_8
+        );
+        final Path outDir = tempDir.resolve("interop-blank-classpath-out");
+        final Path jarFile = buildInteropJar(
+                "sample.xtta.InteropFixture",
+                """
+                package sample.xtta;
+
+                public final class InteropFixture {
+                    private InteropFixture() {
+                    }
+
+                    public static String ping(final String value) {
+                        return "pong:" + value;
+                    }
+                }
+                """
+        );
+
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+
+        final int exitCode = withSystemProperty(
+                "java.class.path",
+                "",
+                () -> TsjCli.execute(
+                        new String[]{
+                                "run",
+                                entryFile.toString(),
+                                "--out",
+                                outDir.toString(),
+                                "--jar",
+                                jarFile.toString(),
+                                "--interop-policy",
+                                "broad",
+                                "--ack-interop-risk"
+                        },
+                        new PrintStream(stdout),
+                        new PrintStream(stderr)
+                )
+        );
+
+        assertEquals(0, exitCode);
+        final String stdoutText = stdout.toString(UTF_8);
+        assertTrue(stdoutText.contains("pong:ok"));
+        assertTrue(stdoutText.contains("\"code\":\"TSJ-RUN-SUCCESS\""));
+        assertEquals("", stderr.toString(UTF_8));
+    }
+
+    @Test
     void compilePersistsClasspathSymbolIndexWithShadowDiagnosticsInSharedMode() throws Exception {
         final Path entryFile = tempDir.resolve("tsj45-shared-index.ts");
         Files.writeString(entryFile, "console.log('index');\n", UTF_8);
@@ -304,6 +362,186 @@ class TsjCliTest {
         assertTrue(stdoutText.contains("triple=21"));
         assertTrue(stdoutText.contains("\"code\":\"TSJ-RUN-SUCCESS\""));
         assertEquals("", stderr.toString(UTF_8));
+    }
+
+    @Test
+    void runSupportsInteropStaticMethodWithNullLiteralArgument() throws Exception {
+        final Path entryFile = tempDir.resolve("run-jar-interop-null-literal.ts");
+        Files.writeString(
+                entryFile,
+                """
+                import { nullSafe } from "java:sample.interop.NullSafe";
+                console.log("nullSafe=" + nullSafe(null as any));
+                console.log("nonNull=" + nullSafe("ok"));
+                """,
+                UTF_8
+        );
+        final Path jarFile = buildInteropJar(
+                "sample.interop.NullSafe",
+                """
+                package sample.interop;
+
+                public final class NullSafe {
+                    private NullSafe() {
+                    }
+
+                    public static String nullSafe(final String input) {
+                        if (input == null) {
+                            return "was-null";
+                        }
+                        return input.toUpperCase();
+                    }
+                }
+                """
+        );
+
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+
+        final int exitCode = TsjCli.execute(
+                new String[]{
+                        "run",
+                        entryFile.toString(),
+                        "--out",
+                        tempDir.resolve("run-jar-null-literal-out").toString(),
+                        "--jar",
+                        jarFile.toString(),
+                        "--interop-policy",
+                        "broad",
+                        "--ack-interop-risk"
+                },
+                new PrintStream(stdout),
+                new PrintStream(stderr)
+        );
+
+        final String stdoutText = stdout.toString(UTF_8);
+        assertEquals(
+                0,
+                exitCode,
+                "stdout:\n" + stdoutText + "\nstderr:\n" + stderr.toString(UTF_8)
+        );
+        assertTrue(stdoutText.contains("nullSafe=was-null"), stdoutText);
+        assertTrue(stdoutText.contains("nonNull=OK"), stdoutText);
+        assertTrue(stdoutText.contains("\"code\":\"TSJ-RUN-SUCCESS\""), stdoutText);
+        assertEquals("", stderr.toString(UTF_8), stdoutText);
+    }
+
+    @Test
+    void runSupportsJavaInteropExceptionMessageAccessInCatchBlock() throws Exception {
+        final Path entryFile = tempDir.resolve("run-jar-interop-exception-message.ts");
+        Files.writeString(
+                entryFile,
+                """
+                import { riskyOperation } from "java:sample.interop.Risky";
+                console.log("success=" + riskyOperation(false));
+                let caught = false;
+                try {
+                  riskyOperation(true);
+                } catch (e: any) {
+                  caught = true;
+                  console.log("message=" + (e.message !== null && e.message !== undefined));
+                  console.log("name=" + e.name);
+                }
+                console.log("caught=" + caught);
+                """,
+                UTF_8
+        );
+        final Path jarFile = buildInteropJar(
+                "sample.interop.Risky",
+                """
+                package sample.interop;
+
+                public final class Risky {
+                    private Risky() {
+                    }
+
+                    public static String riskyOperation(final boolean shouldFail) {
+                        if (shouldFail) {
+                            throw new IllegalArgumentException("boom");
+                        }
+                        return "success";
+                    }
+                }
+                """
+        );
+
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+
+        final int exitCode = TsjCli.execute(
+                new String[]{
+                        "run",
+                        entryFile.toString(),
+                        "--out",
+                        tempDir.resolve("run-jar-exception-message-out").toString(),
+                        "--jar",
+                        jarFile.toString(),
+                        "--interop-policy",
+                        "broad",
+                        "--ack-interop-risk"
+                },
+                new PrintStream(stdout),
+                new PrintStream(stderr)
+        );
+
+        final String stdoutText = stdout.toString(UTF_8);
+        assertEquals(
+                0,
+                exitCode,
+                "stdout:\n" + stdoutText + "\nstderr:\n" + stderr.toString(UTF_8)
+        );
+        assertTrue(stdoutText.contains("success=success"), stdoutText);
+        assertTrue(stdoutText.contains("message=true"), stdoutText);
+        assertTrue(stdoutText.contains("name=IllegalArgumentException"), stdoutText);
+        assertTrue(stdoutText.contains("caught=true"), stdoutText);
+        assertTrue(stdoutText.contains("\"code\":\"TSJ-RUN-SUCCESS\""), stdoutText);
+        assertEquals("", stderr.toString(UTF_8), stdoutText);
+    }
+
+    @Test
+    void runSupportsDestructuringDefaultsArrayRestAndSwapAssignment() throws Exception {
+        final Path entryFile = tempDir.resolve("run-destructuring-default-rest.ts");
+        Files.writeString(
+                entryFile,
+                """
+                const obj = { a: 1, b: 2 };
+                const { d = 99, a: aa } = obj as any;
+                const arr = [10, 20, 30];
+                const [head, ...tail] = arr;
+                let sw1 = 1, sw2 = 2;
+                [sw1, sw2] = [sw2, sw1];
+                console.log("default=" + (d === 99 && aa === 1));
+                console.log("rest=" + (head === 10 && tail.length === 2 && tail[0] === 20 && tail[1] === 30));
+                console.log("swap=" + (sw1 === 2 && sw2 === 1));
+                """,
+                UTF_8
+        );
+
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+
+        final int exitCode = TsjCli.execute(
+                new String[]{
+                        "run",
+                        entryFile.toString(),
+                        "--out",
+                        tempDir.resolve("run-destructuring-default-rest-out").toString()
+                },
+                new PrintStream(stdout),
+                new PrintStream(stderr)
+        );
+
+        final String stdoutText = stdout.toString(UTF_8);
+        assertEquals(
+                0,
+                exitCode,
+                "stdout:\n" + stdoutText + "\nstderr:\n" + stderr.toString(UTF_8)
+        );
+        assertTrue(stdoutText.contains("default=true"), stdoutText);
+        assertTrue(stdoutText.contains("rest=true"), stdoutText);
+        assertTrue(stdoutText.contains("swap=true"), stdoutText);
+        assertTrue(stdoutText.contains("\"code\":\"TSJ-RUN-SUCCESS\""), stdoutText);
+        assertEquals("", stderr.toString(UTF_8), stdoutText);
     }
 
     @Test
@@ -1692,6 +1930,90 @@ class TsjCliTest {
     }
 
     @Test
+    void runSupportsBareStaticFieldImportsWithBroadInteropPolicy() throws Exception {
+        final Path entryFile = tempDir.resolve("run-bare-static-fields.ts");
+        Files.writeString(
+                entryFile,
+                """
+                import { VERSION, MAX_SIZE, PI_APPROX } from "java:sample.interop.ConstantsApi";
+                console.log("version=" + VERSION);
+                console.log("size=" + MAX_SIZE);
+                console.log("pi=" + PI_APPROX);
+                """,
+                UTF_8
+        );
+        final Path jarFile = buildInteropJar(
+                "sample.interop.ConstantsApi",
+                """
+                package sample.interop;
+
+                public final class ConstantsApi {
+                    public static final String VERSION = "1.0.0";
+                    public static final int MAX_SIZE = 1024;
+                    public static final double PI_APPROX = 3.14159;
+
+                    private ConstantsApi() {
+                    }
+                }
+                """
+        );
+        final Path outDir = tempDir.resolve("run-bare-static-fields-out");
+
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+        final int exitCode = TsjCli.execute(
+                new String[]{
+                        "run",
+                        entryFile.toString(),
+                        "--out",
+                        outDir.toString(),
+                        "--jar",
+                        jarFile.toString(),
+                        "--interop-policy",
+                        "broad",
+                        "--ack-interop-risk"
+                },
+                new PrintStream(stdout),
+                new PrintStream(stderr)
+        );
+
+        final String stdoutText = stdout.toString(UTF_8);
+        assertEquals(0, exitCode, "stdout:\n" + stdoutText + "\nstderr:\n" + stderr.toString(UTF_8));
+        assertTrue(stdoutText.contains("version=1.0.0"));
+        assertTrue(stdoutText.contains("size=1024"));
+        assertTrue(stdoutText.contains("pi=3.14159"));
+        assertTrue(stdoutText.contains("\"code\":\"TSJ-RUN-SUCCESS\""));
+        assertEquals("", stderr.toString(UTF_8));
+
+        final Properties artifact = loadArtifactProperties(outDir.resolve("program.tsj.properties"));
+        assertEquals("3", artifact.getProperty("interopBridges.selectedTargetCount"));
+
+        int versionIndex = -1;
+        int sizeIndex = -1;
+        int piIndex = -1;
+        for (int index = 0; index < 3; index++) {
+            final String binding = artifact.getProperty("interopBridges.selectedTarget." + index + ".binding");
+            if ("VERSION".equals(binding)) {
+                versionIndex = index;
+            } else if ("MAX_SIZE".equals(binding)) {
+                sizeIndex = index;
+            } else if ("PI_APPROX".equals(binding)) {
+                piIndex = index;
+            }
+        }
+
+        assertTrue(versionIndex >= 0);
+        assertTrue(sizeIndex >= 0);
+        assertTrue(piIndex >= 0);
+        assertEquals("STATIC_FIELD_GET", artifact.getProperty("interopBridges.selectedTarget." + versionIndex + ".invokeKind"));
+        assertEquals("()Ljava/lang/String;", artifact.getProperty("interopBridges.selectedTarget." + versionIndex + ".descriptor"));
+        assertEquals("STATIC_FIELD_GET", artifact.getProperty("interopBridges.selectedTarget." + sizeIndex + ".invokeKind"));
+        assertEquals("()I", artifact.getProperty("interopBridges.selectedTarget." + sizeIndex + ".descriptor"));
+        assertEquals("STATIC_FIELD_GET", artifact.getProperty("interopBridges.selectedTarget." + piIndex + ".invokeKind"));
+        assertEquals("()D", artifact.getProperty("interopBridges.selectedTarget." + piIndex + ".descriptor"));
+    }
+
+    @Test
     void runSupportsTsj30InteropCallbackAndCompletableFutureAwait() throws Exception {
         final Path entryFile = tempDir.resolve("run-tsj30-interop.ts");
         Files.writeString(
@@ -2356,10 +2678,9 @@ class TsjCliTest {
 
         final String stderrText = stderr.toString(UTF_8);
         assertEquals(1, exitCode);
-        assertTrue(stderrText.contains("\"code\":\"TSJ-RUN-006\""));
-        assertTrue(stderrText.contains("TSJ-INTEROP-REFLECTIVE"));
+        assertTrue(stderrText.contains("\"code\":\"TSJ-INTEROP-INVALID\""));
         assertTrue(stderrText.contains("hiddenStatic"));
-        assertTrue(stderrText.contains("non-public"));
+        assertTrue(stderrText.contains("not found or not static"));
         assertEquals("", stdout.toString(UTF_8));
     }
 
@@ -5648,15 +5969,23 @@ class TsjCliTest {
     }
 
     @Test
-    void runRejectsDefaultImportWithFeatureDiagnosticMetadata() throws Exception {
+    void runSupportsDefaultImportWithOptionalNamedBindingsInTsj22() throws Exception {
         final Path helperFile = tempDir.resolve("helper-default.ts");
         final Path entryFile = tempDir.resolve("main-default.ts");
-        Files.writeString(helperFile, "export const value = 2;\n", UTF_8);
+        Files.writeString(
+                helperFile,
+                """
+                const defaultValue = 41;
+                export default defaultValue;
+                export const value = 2;
+                """,
+                UTF_8
+        );
         Files.writeString(
                 entryFile,
                 """
-                import value from "./helper-default.ts";
-                console.log(value);
+                import value, { value as named } from "./helper-default.ts";
+                console.log("default=" + value + ",named=" + named);
                 """,
                 UTF_8
         );
@@ -5670,23 +5999,31 @@ class TsjCliTest {
                 new PrintStream(stderr)
         );
 
-        final String stderrText = stderr.toString(UTF_8);
-        assertEquals(1, exitCode);
-        assertTrue(stderrText.contains("\"code\":\"TSJ-BACKEND-UNSUPPORTED\""));
-        assertTrue(stderrText.contains("\"featureId\":\"TSJ22-IMPORT-DEFAULT\""));
-        assertTrue(stderrText.contains("Use named imports"));
+        final String stdoutText = stdout.toString(UTF_8);
+        assertEquals(0, exitCode);
+        assertTrue(stdoutText.contains("default=41,named=2"));
+        assertTrue(stdoutText.contains("\"code\":\"TSJ-RUN-SUCCESS\""));
+        assertEquals("", stderr.toString(UTF_8));
     }
 
     @Test
-    void runRejectsNamespaceImportWithFeatureDiagnosticMetadata() throws Exception {
+    void runSupportsNamespaceImportInTsj22() throws Exception {
         final Path helperFile = tempDir.resolve("helper-namespace.ts");
         final Path entryFile = tempDir.resolve("main-namespace.ts");
-        Files.writeString(helperFile, "export const value = 2;\n", UTF_8);
+        Files.writeString(
+                helperFile,
+                """
+                const defaultValue = 41;
+                export default defaultValue;
+                export const value = 7;
+                """,
+                UTF_8
+        );
         Files.writeString(
                 entryFile,
                 """
                 import * as ns from "./helper-namespace.ts";
-                console.log(ns.value);
+                console.log("ns=" + ns.default + ":" + ns.value);
                 """,
                 UTF_8
         );
@@ -5700,11 +6037,11 @@ class TsjCliTest {
                 new PrintStream(stderr)
         );
 
-        final String stderrText = stderr.toString(UTF_8);
-        assertEquals(1, exitCode);
-        assertTrue(stderrText.contains("\"code\":\"TSJ-BACKEND-UNSUPPORTED\""));
-        assertTrue(stderrText.contains("\"featureId\":\"TSJ22-IMPORT-NAMESPACE\""));
-        assertTrue(stderrText.contains("Use named imports"));
+        final String stdoutText = stdout.toString(UTF_8);
+        assertEquals(0, exitCode);
+        assertTrue(stdoutText.contains("ns=41:7"));
+        assertTrue(stdoutText.contains("\"code\":\"TSJ-RUN-SUCCESS\""));
+        assertEquals("", stderr.toString(UTF_8));
     }
 
     @Test
@@ -6600,9 +6937,8 @@ class TsjCliTest {
         Files.writeString(
                 entryFile,
                 """
-                for (let i = 0; i < 2; i = i + 1) {
-                  console.log(i);
-                }
+                const loader = import("./dep.ts");
+                console.log(loader);
                 """,
                 UTF_8
         );
@@ -6617,7 +6953,9 @@ class TsjCliTest {
         );
 
         assertEquals(1, exitCode);
-        assertTrue(stderr.toString(UTF_8).contains("\"code\":\"TSJ-BACKEND-UNSUPPORTED\""));
+        final String stderrText = stderr.toString(UTF_8);
+        assertTrue(stderrText.contains("\"code\":\"TSJ-BACKEND-UNSUPPORTED\""));
+        assertTrue(stderrText.contains("\"featureId\":\"TSJ15-DYNAMIC-IMPORT\""));
         assertEquals("", stdout.toString(UTF_8));
     }
 
@@ -6684,13 +7022,17 @@ class TsjCliTest {
     }
 
     @Test
-    void compileProxyIncludesUnsupportedFeatureContext() throws Exception {
+    void compileProxySourceSucceeds() throws Exception {
         final Path entryFile = tempDir.resolve("proxy.ts");
         Files.writeString(
                 entryFile,
                 """
                 const target = { value: 1 };
-                const proxy = new Proxy(target, {});
+                const proxy = new Proxy(target, {
+                  get(obj: any, prop: string) {
+                    return prop in obj ? obj[prop] : -1;
+                  }
+                });
                 console.log(proxy.value);
                 """,
                 UTF_8
@@ -6705,12 +7047,9 @@ class TsjCliTest {
                 new PrintStream(stderr)
         );
 
-        final String stderrText = stderr.toString(UTF_8);
-        assertEquals(1, exitCode);
-        assertTrue(stderrText.contains("\"featureId\":\"TSJ15-PROXY\""));
-        assertTrue(stderrText.contains("\"line\":\"2\""));
-        assertTrue(stderrText.contains("Proxy semantics are outside MVP"));
-        assertEquals("", stdout.toString(UTF_8));
+        assertEquals(0, exitCode);
+        assertEquals("", stderr.toString(UTF_8));
+        assertTrue(stdout.toString(UTF_8).contains("\"code\":\"TSJ-COMPILE-SUCCESS\""));
     }
 
     @Test

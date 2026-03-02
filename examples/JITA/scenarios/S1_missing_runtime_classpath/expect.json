@@ -1,0 +1,11 @@
+{
+  "scenario": "S1_missing_runtime_classpath",
+  "description": "Run without api.jar on classpath. Tests runtime class-not-found detection for interop targets.",
+  "expectCompile": null,
+  "expectRun": {
+    "result": "fail",
+    "diagnosticCode": "TSJ-RUN-006",
+    "contains": ["Interop target class was not found"]
+  },
+  "notes": "Current TSJ run command re-compiles; separate compile/run classpath split will be testable when --config JSON ingestion is supported."
+}

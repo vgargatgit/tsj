@@ -1121,6 +1121,27 @@
             "kind" : "SuperCallStatement",
             "line" : 19
           }, {
+            "column" : 15,
+            "expression" : {
+              "column" : 15,
+              "kind" : "VariableExpression",
+              "line" : 18,
+              "name" : "x"
+            },
+            "kind" : "AssignmentStatement",
+            "line" : 18,
+            "target" : {
+              "column" : 15,
+              "kind" : "MemberAccessExpression",
+              "line" : 18,
+              "member" : "x",
+              "receiver" : {
+                "column" : 15,
+                "kind" : "ThisExpression",
+                "line" : 18
+              }
+            }
+          }, {
             "column" : 5,
             "expression" : {
               "column" : 18,
@@ -1145,7 +1166,7 @@
           "name" : "constructor",
           "parameters" : [ "x", "label" ]
         },
-        "fieldNames" : [ "ready", "label", "value", "__tsj_private_secret" ],
+        "fieldNames" : [ "ready", "label", "value", "__tsj_private_secret", "x" ],
         "methods" : [ {
           "async" : false,
           "body" : [ {
@@ -1265,6 +1286,130 @@
         }
       }
     }, {
+      "column" : 3,
+      "expression" : {
+        "arguments" : [ {
+          "column" : 1,
+          "kind" : "MemberAccessExpression",
+          "line" : 11,
+          "member" : "prototype",
+          "receiver" : {
+            "column" : 1,
+            "kind" : "VariableExpression",
+            "line" : 11,
+            "name" : "DerivedClass"
+          }
+        }, {
+          "column" : 7,
+          "kind" : "StringLiteral",
+          "line" : 23,
+          "text" : "size"
+        }, {
+          "async" : false,
+          "body" : [ {
+            "column" : 5,
+            "expression" : {
+              "column" : 12,
+              "kind" : "MemberAccessExpression",
+              "line" : 24,
+              "member" : "__tsj_private_secret",
+              "receiver" : {
+                "column" : 12,
+                "kind" : "ThisExpression",
+                "line" : 24
+              }
+            },
+            "kind" : "ReturnStatement",
+            "line" : 24
+          } ],
+          "column" : 3,
+          "kind" : "FunctionExpression",
+          "line" : 23,
+          "parameters" : [ ],
+          "thisMode" : "DYNAMIC"
+        }, {
+          "column" : 3,
+          "kind" : "UndefinedLiteral",
+          "line" : 23
+        } ],
+        "callee" : {
+          "column" : 3,
+          "kind" : "VariableExpression",
+          "line" : 23,
+          "name" : "__tsj_define_accessor"
+        },
+        "column" : 3,
+        "kind" : "CallExpression",
+        "line" : 23
+      },
+      "kind" : "ExpressionStatement",
+      "line" : 23
+    }, {
+      "column" : 3,
+      "expression" : {
+        "arguments" : [ {
+          "column" : 1,
+          "kind" : "MemberAccessExpression",
+          "line" : 11,
+          "member" : "prototype",
+          "receiver" : {
+            "column" : 1,
+            "kind" : "VariableExpression",
+            "line" : 11,
+            "name" : "DerivedClass"
+          }
+        }, {
+          "column" : 7,
+          "kind" : "StringLiteral",
+          "line" : 27,
+          "text" : "size"
+        }, {
+          "column" : 3,
+          "kind" : "UndefinedLiteral",
+          "line" : 27
+        }, {
+          "async" : false,
+          "body" : [ {
+            "column" : 5,
+            "expression" : {
+              "column" : 20,
+              "kind" : "VariableExpression",
+              "line" : 28,
+              "name" : "next"
+            },
+            "kind" : "AssignmentStatement",
+            "line" : 28,
+            "target" : {
+              "column" : 5,
+              "kind" : "MemberAccessExpression",
+              "line" : 28,
+              "member" : "__tsj_private_secret",
+              "receiver" : {
+                "column" : 5,
+                "kind" : "ThisExpression",
+                "line" : 28
+              }
+            }
+          } ],
+          "column" : 3,
+          "kind" : "FunctionExpression",
+          "line" : 27,
+          "parameters" : [ "next" ],
+          "thisMode" : "DYNAMIC"
+        } ],
+        "callee" : {
+          "column" : 3,
+          "kind" : "VariableExpression",
+          "line" : 27,
+          "name" : "__tsj_define_accessor"
+        },
+        "column" : 3,
+        "kind" : "CallExpression",
+        "line" : 27
+      },
+      "kind" : "ExpressionStatement",
+      "line" : 27
+    }, {
       "column" : 5,
       "expression" : {
         "column" : 5,
@@ -1293,10 +1438,87 @@
       "kind" : "ExpressionStatement",
       "line" : 41
     }, {
-      "column" : 1,
+      "column" : 7,
       "expression" : {
+        "arguments" : [ ],
+        "callee" : {
+          "async" : false,
+          "body" : [ {
+            "column" : 19,
+            "declaration" : {
+              "constructorMethod" : {
+                "async" : false,
+                "body" : [ {
+                  "column" : 3,
+                  "expression" : {
+                    "column" : 11,
+                    "kind" : "NumberLiteral",
+                    "line" : 46,
+                    "text" : "0"
+                  },
+                  "kind" : "AssignmentStatement",
+                  "line" : 46,
+                  "target" : {
+                    "column" : 3,
+                    "kind" : "MemberAccessExpression",
+                    "line" : 46,
+                    "member" : "value",
+                    "receiver" : {
+                      "column" : 3,
+                      "kind" : "ThisExpression",
+                      "line" : 46
+                    }
+                  }
+                } ],
+                "name" : "constructor",
+                "parameters" : [ ]
+              },
+              "fieldNames" : [ "value" ],
+              "methods" : [ {
+                "async" : false,
+                "body" : [ {
+                  "column" : 5,
+                  "expression" : {
+                    "column" : 12,
+                    "kind" : "MemberAccessExpression",
+                    "line" : 49,
+                    "member" : "value",
+                    "receiver" : {
+                      "column" : 12,
+                      "kind" : "ThisExpression",
+                      "line" : 49
+                    }
+                  },
+                  "kind" : "ReturnStatement",
+                  "line" : 49
+                } ],
+                "name" : "method",
+                "parameters" : [ "this" ]
+              } ],
+              "name" : "LocalExpr",
+              "superClassName" : null
+            },
+            "kind" : "ClassDeclarationStatement",
+            "line" : 45
+          }, {
+            "column" : 19,
+            "expression" : {
+              "column" : 19,
+              "kind" : "VariableExpression",
+              "line" : 45,
+              "name" : "LocalExpr"
+            },
+            "kind" : "ReturnStatement",
+            "line" : 45
+          } ],
+          "column" : 19,
+          "kind" : "FunctionExpression",
+          "line" : 45,
+          "parameters" : [ ],
+          "thisMode" : "LEXICAL"
+        },
         "column" : 19,
-        "kind" : "UndefinedLiteral",
+        "kind" : "CallExpression",
         "line" : 45
       },
       "kind" : "VariableDeclaration",

@@ -1805,7 +1805,7 @@
   "normalizedProgram" : {
     "kind" : "Program",
     "statements" : [ {
-      "column" : 1,
+      "column" : 15,
       "expression" : {
         "column" : 15,
         "kind" : "UndefinedLiteral",
@@ -1815,7 +1815,7 @@
       "line" : 1,
       "name" : "a"
     }, {
-      "column" : 1,
+      "column" : 15,
       "expression" : {
         "column" : 15,
         "kind" : "UndefinedLiteral",
@@ -1825,7 +1825,7 @@
       "line" : 2,
       "name" : "b"
     }, {
-      "column" : 1,
+      "column" : 15,
       "expression" : {
         "column" : 15,
         "kind" : "UndefinedLiteral",
@@ -1835,7 +1835,7 @@
       "line" : 3,
       "name" : "c"
     }, {
-      "column" : 1,
+      "column" : 15,
       "expression" : {
         "column" : 15,
         "kind" : "UndefinedLiteral",
@@ -1845,7 +1845,7 @@
       "line" : 4,
       "name" : "d"
     }, {
-      "column" : 1,
+      "column" : 15,
       "expression" : {
         "column" : 15,
         "kind" : "UndefinedLiteral",
@@ -1855,7 +1855,7 @@
       "line" : 5,
       "name" : "e"
     }, {
-      "column" : 1,
+      "column" : 15,
       "expression" : {
         "column" : 15,
         "kind" : "UndefinedLiteral",
@@ -1865,7 +1865,7 @@
       "line" : 6,
       "name" : "f"
     }, {
-      "column" : 1,
+      "column" : 15,
       "expression" : {
         "column" : 15,
         "kind" : "UndefinedLiteral",
@@ -1875,7 +1875,7 @@
       "line" : 7,
       "name" : "g"
     }, {
-      "column" : 1,
+      "column" : 15,
       "expression" : {
         "column" : 15,
         "kind" : "UndefinedLiteral",
@@ -1885,7 +1885,7 @@
       "line" : 8,
       "name" : "x"
     }, {
-      "column" : 1,
+      "column" : 7,
       "expression" : {
         "column" : 20,
         "kind" : "BinaryExpression",
@@ -1921,7 +1921,7 @@
                 "name" : "c"
               },
               "line" : 10,
-              "operator" : "*",
+              "operator" : "**",
               "right" : {
                 "column" : 34,
                 "kind" : "VariableExpression",
@@ -1968,7 +1968,7 @@
       "line" : 10,
       "name" : "precedence"
     }, {
-      "column" : 1,
+      "column" : 7,
       "expression" : {
         "column" : 15,
         "kind" : "BinaryExpression",
@@ -2008,7 +2008,7 @@
       "line" : 11,
       "name" : "chain"
     }, {
-      "column" : 1,
+      "column" : 7,
       "expression" : {
         "column" : 17,
         "kind" : "MemberAccessExpression",
@@ -2025,7 +2025,7 @@
       "line" : 12,
       "name" : "nonNull"
     }, {
-      "column" : 1,
+      "column" : 7,
       "expression" : {
         "column" : 16,
         "kind" : "MemberAccessExpression",
@@ -2042,7 +2042,7 @@
       "line" : 13,
       "name" : "asCast"
     }, {
-      "column" : 1,
+      "column" : 7,
       "expression" : {
         "column" : 19,
         "kind" : "MemberAccessExpression",
@@ -2065,24 +2065,37 @@
         "body" : [ {
           "column" : 3,
           "expression" : {
-            "column" : 9,
-            "kind" : "NumberLiteral",
-            "line" : 17,
-            "text" : "1"
+            "column" : 3,
+            "delegate" : false,
+            "expression" : {
+              "column" : 9,
+              "kind" : "NumberLiteral",
+              "line" : 17,
+              "text" : "1"
+            },
+            "kind" : "YieldExpression",
+            "line" : 17
           },
           "kind" : "ExpressionStatement",
           "line" : 17
         }, {
           "column" : 3,
           "expression" : {
-            "column" : 10,
-            "kind" : "VariableExpression",
-            "line" : 18,
-            "name" : "source"
+            "column" : 3,
+            "delegate" : true,
+            "expression" : {
+              "column" : 10,
+              "kind" : "VariableExpression",
+              "line" : 18,
+              "name" : "source"
+            },
+            "kind" : "YieldExpression",
+            "line" : 18
           },
           "kind" : "ExpressionStatement",
           "line" : 18
         } ],
+        "generator" : true,
         "name" : "expressionGenerator",
         "parameters" : [ "source" ]
       },
@@ -2093,7 +2106,7 @@
       "declaration" : {
         "async" : true,
         "body" : [ {
-          "column" : 3,
+          "column" : 9,
           "expression" : {
             "column" : 19,
             "expression" : {
@@ -2136,6 +2149,7 @@
           "kind" : "ReturnStatement",
           "line" : 23
         } ],
+        "generator" : false,
         "name" : "expressionAsync",
         "parameters" : [ ]
       },
@@ -2155,13 +2169,14 @@
           "kind" : "ReturnStatement",
           "line" : 27
         } ],
+        "generator" : false,
         "name" : "captureNewTarget",
         "parameters" : [ ]
       },
       "kind" : "FunctionDeclarationStatement",
       "line" : 26
     }, {
-      "column" : 1,
+      "column" : 7,
       "expression" : {
         "column" : 23,
         "kind" : "MemberAccessExpression",
@@ -2177,17 +2192,34 @@
       "line" : 30,
       "name" : "importMetaUrl"
     }, {
-      "column" : 1,
+      "column" : 7,
       "expression" : {
+        "arguments" : [ {
+          "column" : 27,
+          "kind" : "UndefinedLiteral",
+          "line" : 31
+        } ],
+        "callee" : {
+          "column" : 27,
+          "kind" : "MemberAccessExpression",
+          "line" : 31,
+          "member" : "resolve",
+          "receiver" : {
+            "column" : 27,
+            "kind" : "VariableExpression",
+            "line" : 31,
+            "name" : "Promise"
+          }
+        },
         "column" : 27,
-        "kind" : "UndefinedLiteral",
+        "kind" : "CallExpression",
         "line" : 31
       },
       "kind" : "VariableDeclaration",
       "line" : 31,
       "name" : "dynamicImportExpr"
     }, {
-      "column" : 1,
+      "column" : 7,
       "expression" : {
         "column" : 23,
         "kind" : "BinaryExpression",
@@ -2201,7 +2233,7 @@
             "text" : "k"
           },
           "line" : 32,
-          "operator" : "===",
+          "operator" : "in",
           "right" : {
             "column" : 31,
             "kind" : "VariableExpression",
@@ -2221,7 +2253,7 @@
             "name" : "a"
           },
           "line" : 32,
-          "operator" : "===",
+          "operator" : "instanceof",
           "right" : {
             "column" : 51,
             "kind" : "VariableExpression",
@@ -2234,7 +2266,7 @@
       "line" : 32,
       "name" : "inAndInstance"
     }, {
-      "column" : 1,
+      "column" : 5,
       "expression" : {
         "column" : 12,
         "kind" : "NumberLiteral",
@@ -2324,7 +2356,7 @@
         "name" : "left"
       }
     }, {
-      "column" : 1,
+      "column" : 7,
       "expression" : {
         "column" : 17,
         "entries" : [ {
@@ -2343,11 +2375,81 @@
       "line" : 38,
       "name" : "satExpr"
     }, {
-      "column" : 1,
+      "column" : 7,
       "expression" : {
+        "arguments" : [ ],
+        "callee" : {
+          "async" : false,
+          "body" : [ {
+            "column" : 20,
+            "expression" : {
+              "column" : 20,
+              "entries" : [ ],
+              "kind" : "ObjectLiteralExpression",
+              "line" : 40
+            },
+            "kind" : "VariableDeclaration",
+            "line" : 40,
+            "name" : "objLit_3"
+          }, {
+            "column" : 3,
+            "expression" : {
+              "arguments" : [ {
+                "column" : 20,
+                "kind" : "VariableExpression",
+                "line" : 40,
+                "name" : "objLit_3"
+              }, {
+                "column" : 4,
+                "kind" : "MemberAccessExpression",
+                "line" : 41,
+                "member" : "dispose",
+                "receiver" : {
+                  "column" : 4,
+                  "kind" : "VariableExpression",
+                  "line" : 41,
+                  "name" : "Symbol"
+                }
+              }, {
+                "async" : false,
+                "body" : [ ],
+                "column" : 3,
+                "kind" : "FunctionExpression",
+                "line" : 41,
+                "parameters" : [ ],
+                "thisMode" : "DYNAMIC"
+              } ],
+              "callee" : {
+                "column" : 3,
+                "kind" : "VariableExpression",
+                "line" : 41,
+                "name" : "__tsj_set_dynamic_key"
+              },
+              "column" : 3,
+              "kind" : "CallExpression",
+              "line" : 41
+            },
+            "kind" : "ExpressionStatement",
+            "line" : 41
+          }, {
+            "column" : 20,
+            "expression" : {
+              "column" : 20,
+              "kind" : "VariableExpression",
+              "line" : 40,
+              "name" : "objLit_3"
+            },
+            "kind" : "ReturnStatement",
+            "line" : 40
+          } ],
+          "column" : 20,
+          "kind" : "FunctionExpression",
+          "line" : 40,
+          "parameters" : [ ],
+          "thisMode" : "LEXICAL"
+        },
         "column" : 20,
-        "entries" : [ ],
-        "kind" : "ObjectLiteralExpression",
+        "kind" : "CallExpression",
         "line" : 40
       },
       "kind" : "VariableDeclaration",
@@ -2358,7 +2460,7 @@
       "declaration" : {
         "async" : true,
         "body" : [ {
-          "column" : 3,
+          "column" : 15,
           "expression" : {
             "column" : 33,
             "expression" : {
@@ -2390,6 +2492,7 @@
           "kind" : "ReturnStatement",
           "line" : 48
         } ],
+        "generator" : false,
         "name" : "usingAsync",
         "parameters" : [ "factory" ]
       },

@@ -1493,7 +1493,7 @@
   "normalizedProgram" : {
     "kind" : "Program",
     "statements" : [ {
-      "column" : 1,
+      "column" : 15,
       "expression" : {
         "column" : 15,
         "kind" : "UndefinedLiteral",
@@ -1503,7 +1503,7 @@
       "line" : 29,
       "name" : "shapeValue"
     }, {
-      "column" : 1,
+      "column" : 7,
       "expression" : {
         "column" : 13,
         "entries" : [ {
@@ -1540,9 +1540,15 @@
             "kind" : "BinaryExpression",
             "left" : {
               "column" : 7,
-              "kind" : "StringLiteral",
+              "expression" : {
+                "column" : 14,
+                "kind" : "VariableExpression",
+                "line" : 39,
+                "name" : "value"
+              },
+              "kind" : "UnaryExpression",
               "line" : 39,
-              "text" : "undefined"
+              "operator" : "typeof"
             },
             "line" : 39,
             "operator" : "!==",
@@ -1579,6 +1585,7 @@
             "line" : 40
           } ]
         } ],
+        "generator" : false,
         "name" : "assertIsString",
         "parameters" : [ "value" ]
       },

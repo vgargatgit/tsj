@@ -1,0 +1,10 @@
+{
+  "scenario": "S4_provided_scope_runtime",
+  "description": "Use provided-scope dependency at runtime. Tests scope-aware classpath filtering.",
+  "expectCompile": null,
+  "expectRun": {
+    "result": "fail",
+    "diagnosticCode": "TSJ-CLASSPATH-SCOPE",
+    "contains": ["\"scope\":\"provided\""]
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "scenario": "S2_non_public_member",
+  "description": "Import non-public static member from Java class. Tests visibility enforcement.",
+  "expectCompile": null,
+  "expectRun": {
+    "result": "fail",
+    "diagnosticCode": "TSJ-INTEROP-INVALID",
+    "contains": ["was not found or not static"]
+  }
+}

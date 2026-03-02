@@ -1307,7 +1307,7 @@
   "normalizedProgram" : {
     "kind" : "Program",
     "statements" : [ {
-      "column" : 1,
+      "column" : 15,
       "expression" : {
         "column" : 15,
         "kind" : "UndefinedLiteral",
@@ -1317,7 +1317,7 @@
       "line" : 1,
       "name" : "declaredTop"
     }, {
-      "column" : 1,
+      "column" : 15,
       "expression" : {
         "column" : 15,
         "kind" : "UndefinedLiteral",
@@ -1381,9 +1381,42 @@
         "line" : 10,
         "name" : "__tsj_switch_value_1"
       }, {
-        "body" : [ {
+        "column" : 1,
+        "expression" : {
+          "column" : 1,
+          "kind" : "NumberLiteral",
+          "line" : 10,
+          "text" : "-1"
+        },
+        "kind" : "VariableDeclaration",
+        "line" : 10,
+        "name" : "__tsj_switch_index_2"
+      }, {
+        "column" : 3,
+        "condition" : {
           "column" : 3,
-          "condition" : {
+          "kind" : "BinaryExpression",
+          "left" : {
+            "column" : 1,
+            "kind" : "BinaryExpression",
+            "left" : {
+              "column" : 1,
+              "kind" : "VariableExpression",
+              "line" : 10,
+              "name" : "__tsj_switch_index_2"
+            },
+            "line" : 10,
+            "operator" : "===",
+            "right" : {
+              "column" : 1,
+              "kind" : "NumberLiteral",
+              "line" : 10,
+              "text" : "-1"
+            }
+          },
+          "line" : 11,
+          "operator" : "&&",
+          "right" : {
             "column" : 3,
             "kind" : "BinaryExpression",
             "left" : {
@@ -1396,6 +1429,152 @@
             "operator" : "===",
             "right" : {
               "column" : 8,
+              "kind" : "NumberLiteral",
+              "line" : 11,
+              "text" : "0"
+            }
+          }
+        },
+        "elseBlock" : [ ],
+        "kind" : "IfStatement",
+        "line" : 11,
+        "thenBlock" : [ {
+          "column" : 3,
+          "expression" : {
+            "column" : 3,
+            "kind" : "NumberLiteral",
+            "line" : 11,
+            "text" : "0"
+          },
+          "kind" : "AssignmentStatement",
+          "line" : 11,
+          "target" : {
+            "column" : 1,
+            "kind" : "VariableExpression",
+            "line" : 10,
+            "name" : "__tsj_switch_index_2"
+          }
+        } ]
+      }, {
+        "column" : 3,
+        "condition" : {
+          "column" : 3,
+          "kind" : "BinaryExpression",
+          "left" : {
+            "column" : 1,
+            "kind" : "BinaryExpression",
+            "left" : {
+              "column" : 1,
+              "kind" : "VariableExpression",
+              "line" : 10,
+              "name" : "__tsj_switch_index_2"
+            },
+            "line" : 10,
+            "operator" : "===",
+            "right" : {
+              "column" : 1,
+              "kind" : "NumberLiteral",
+              "line" : 10,
+              "text" : "-1"
+            }
+          },
+          "line" : 14,
+          "operator" : "&&",
+          "right" : {
+            "column" : 3,
+            "kind" : "BinaryExpression",
+            "left" : {
+              "column" : 1,
+              "kind" : "VariableExpression",
+              "line" : 10,
+              "name" : "__tsj_switch_value_1"
+            },
+            "line" : 14,
+            "operator" : "===",
+            "right" : {
+              "column" : 8,
+              "kind" : "NumberLiteral",
+              "line" : 14,
+              "text" : "1"
+            }
+          }
+        },
+        "elseBlock" : [ ],
+        "kind" : "IfStatement",
+        "line" : 14,
+        "thenBlock" : [ {
+          "column" : 3,
+          "expression" : {
+            "column" : 3,
+            "kind" : "NumberLiteral",
+            "line" : 14,
+            "text" : "1"
+          },
+          "kind" : "AssignmentStatement",
+          "line" : 14,
+          "target" : {
+            "column" : 1,
+            "kind" : "VariableExpression",
+            "line" : 10,
+            "name" : "__tsj_switch_index_2"
+          }
+        } ]
+      }, {
+        "column" : 1,
+        "condition" : {
+          "column" : 1,
+          "kind" : "BinaryExpression",
+          "left" : {
+            "column" : 1,
+            "kind" : "VariableExpression",
+            "line" : 10,
+            "name" : "__tsj_switch_index_2"
+          },
+          "line" : 10,
+          "operator" : "===",
+          "right" : {
+            "column" : 1,
+            "kind" : "NumberLiteral",
+            "line" : 10,
+            "text" : "-1"
+          }
+        },
+        "elseBlock" : [ ],
+        "kind" : "IfStatement",
+        "line" : 10,
+        "thenBlock" : [ {
+          "column" : 1,
+          "expression" : {
+            "column" : 1,
+            "kind" : "NumberLiteral",
+            "line" : 10,
+            "text" : "2"
+          },
+          "kind" : "AssignmentStatement",
+          "line" : 10,
+          "target" : {
+            "column" : 1,
+            "kind" : "VariableExpression",
+            "line" : 10,
+            "name" : "__tsj_switch_index_2"
+          }
+        } ]
+      }, {
+        "body" : [ {
+          "column" : 3,
+          "condition" : {
+            "column" : 3,
+            "kind" : "BinaryExpression",
+            "left" : {
+              "column" : 1,
+              "kind" : "VariableExpression",
+              "line" : 10,
+              "name" : "__tsj_switch_index_2"
+            },
+            "line" : 11,
+            "operator" : "===",
+            "right" : {
+              "column" : 3,
               "kind" : "NumberLiteral",
               "line" : 11,
               "text" : "0"
@@ -1415,9 +1594,10 @@
             "kind" : "ConsoleLogStatement",
             "line" : 12
           }, {
-            "column" : 3,
+            "column" : 5,
             "kind" : "BreakStatement",
-            "line" : 11
+            "label" : null,
+            "line" : 13
           } ]
         }, {
           "column" : 3,
@@ -1428,12 +1608,12 @@
               "column" : 1,
               "kind" : "VariableExpression",
               "line" : 10,
-              "name" : "__tsj_switch_value_1"
+              "name" : "__tsj_switch_index_2"
             },
             "line" : 14,
             "operator" : "===",
             "right" : {
-              "column" : 8,
+              "column" : 3,
               "kind" : "NumberLiteral",
               "line" : 14,
               "text" : "1"
@@ -1454,22 +1634,69 @@
             "line" : 15
           }, {
             "column" : 3,
-            "kind" : "BreakStatement",
+            "expression" : {
+              "column" : 3,
+              "kind" : "NumberLiteral",
+              "line" : 14,
+              "text" : "2"
+            },
+            "kind" : "AssignmentStatement",
+            "line" : 14,
+            "target" : {
+              "column" : 1,
+              "kind" : "VariableExpression",
+              "line" : 10,
+              "name" : "__tsj_switch_index_2"
+            }
+          }, {
+            "column" : 3,
+            "kind" : "ContinueStatement",
+            "label" : null,
             "line" : 14
           } ]
         }, {
-          "column" : 5,
-          "expression" : {
-            "column" : 17,
-            "kind" : "StringLiteral",
-            "line" : 17,
-            "text" : "fallthrough"
+          "column" : 3,
+          "condition" : {
+            "column" : 3,
+            "kind" : "BinaryExpression",
+            "left" : {
+              "column" : 1,
+              "kind" : "VariableExpression",
+              "line" : 10,
+              "name" : "__tsj_switch_index_2"
+            },
+            "line" : 16,
+            "operator" : "===",
+            "right" : {
+              "column" : 3,
+              "kind" : "NumberLiteral",
+              "line" : 16,
+              "text" : "2"
+            }
           },
-          "kind" : "ConsoleLogStatement",
-          "line" : 17
+          "elseBlock" : [ ],
+          "kind" : "IfStatement",
+          "line" : 16,
+          "thenBlock" : [ {
+            "column" : 5,
+            "expression" : {
+              "column" : 17,
+              "kind" : "StringLiteral",
+              "line" : 17,
+              "text" : "fallthrough"
+            },
+            "kind" : "ConsoleLogStatement",
+            "line" : 17
+          }, {
+            "column" : 5,
+            "kind" : "BreakStatement",
+            "label" : null,
+            "line" : 18
+          } ]
         }, {
           "column" : 1,
           "kind" : "BreakStatement",
+          "label" : null,
           "line" : 10
         } ],
         "column" : 1,
@@ -1481,6 +1708,228 @@
         },
         "kind" : "WhileStatement",
         "line" : 10
+      } ]
+    }, {
+      "column" : 1,
+      "condition" : {
+        "column" : 1,
+        "kind" : "BooleanLiteral",
+        "line" : 21,
+        "value" : true
+      },
+      "elseBlock" : [ ],
+      "kind" : "IfStatement",
+      "line" : 21,
+      "thenBlock" : [ {
+        "column" : 17,
+        "expression" : {
+          "column" : 21,
+          "kind" : "NumberLiteral",
+          "line" : 21,
+          "text" : "0"
+        },
+        "kind" : "VariableDeclaration",
+        "line" : 21,
+        "name" : "i"
+      }, {
+        "column" : 1,
+        "kind" : "LabeledStatement",
+        "label" : "outer",
+        "line" : 21,
+        "statement" : {
+          "body" : [ {
+            "column" : 3,
+            "condition" : {
+              "column" : 3,
+              "kind" : "BooleanLiteral",
+              "line" : 22,
+              "value" : true
+            },
+            "elseBlock" : [ ],
+            "kind" : "IfStatement",
+            "line" : 22,
+            "thenBlock" : [ {
+              "column" : 12,
+              "expression" : {
+                "column" : 16,
+                "kind" : "NumberLiteral",
+                "line" : 22,
+                "text" : "0"
+              },
+              "kind" : "VariableDeclaration",
+              "line" : 22,
+              "name" : "j"
+            }, {
+              "body" : [ {
+                "column" : 5,
+                "condition" : {
+                  "column" : 9,
+                  "kind" : "BinaryExpression",
+                  "left" : {
+                    "column" : 9,
+                    "kind" : "VariableExpression",
+                    "line" : 23,
+                    "name" : "j"
+                  },
+                  "line" : 23,
+                  "operator" : "===",
+                  "right" : {
+                    "column" : 15,
+                    "kind" : "NumberLiteral",
+                    "line" : 23,
+                    "text" : "1"
+                  }
+                },
+                "elseBlock" : [ ],
+                "kind" : "IfStatement",
+                "line" : 23,
+                "thenBlock" : [ {
+                  "column" : 31,
+                  "expression" : {
+                    "column" : 31,
+                    "expression" : {
+                      "column" : 36,
+                      "kind" : "NumberLiteral",
+                      "line" : 21,
+                      "text" : "1"
+                    },
+                    "kind" : "AssignmentExpression",
+                    "line" : 21,
+                    "operator" : "+=",
+                    "target" : {
+                      "column" : 31,
+                      "kind" : "VariableExpression",
+                      "line" : 21,
+                      "name" : "i"
+                    }
+                  },
+                  "kind" : "ExpressionStatement",
+                  "line" : 21
+                }, {
+                  "column" : 7,
+                  "kind" : "ContinueStatement",
+                  "label" : "outer",
+                  "line" : 24
+                } ]
+              }, {
+                "column" : 5,
+                "condition" : {
+                  "column" : 9,
+                  "kind" : "BinaryExpression",
+                  "left" : {
+                    "column" : 9,
+                    "kind" : "VariableExpression",
+                    "line" : 26,
+                    "name" : "i"
+                  },
+                  "line" : 26,
+                  "operator" : "===",
+                  "right" : {
+                    "column" : 15,
+                    "kind" : "NumberLiteral",
+                    "line" : 26,
+                    "text" : "2"
+                  }
+                },
+                "elseBlock" : [ ],
+                "kind" : "IfStatement",
+                "line" : 26,
+                "thenBlock" : [ {
+                  "column" : 7,
+                  "kind" : "BreakStatement",
+                  "label" : "outer",
+                  "line" : 27
+                } ]
+              }, {
+                "column" : 26,
+                "expression" : {
+                  "column" : 26,
+                  "expression" : {
+                    "column" : 31,
+                    "kind" : "NumberLiteral",
+                    "line" : 22,
+                    "text" : "1"
+                  },
+                  "kind" : "AssignmentExpression",
+                  "line" : 22,
+                  "operator" : "+=",
+                  "target" : {
+                    "column" : 26,
+                    "kind" : "VariableExpression",
+                    "line" : 22,
+                    "name" : "j"
+                  }
+                },
+                "kind" : "ExpressionStatement",
+                "line" : 22
+              } ],
+              "column" : 3,
+              "condition" : {
+                "column" : 19,
+                "kind" : "BinaryExpression",
+                "left" : {
+                  "column" : 19,
+                  "kind" : "VariableExpression",
+                  "line" : 22,
+                  "name" : "j"
+                },
+                "line" : 22,
+                "operator" : "<",
+                "right" : {
+                  "column" : 23,
+                  "kind" : "NumberLiteral",
+                  "line" : 22,
+                  "text" : "3"
+                }
+              },
+              "kind" : "WhileStatement",
+              "line" : 22
+            } ]
+          }, {
+            "column" : 31,
+            "expression" : {
+              "column" : 31,
+              "expression" : {
+                "column" : 36,
+                "kind" : "NumberLiteral",
+                "line" : 21,
+                "text" : "1"
+              },
+              "kind" : "AssignmentExpression",
+              "line" : 21,
+              "operator" : "+=",
+              "target" : {
+                "column" : 31,
+                "kind" : "VariableExpression",
+                "line" : 21,
+                "name" : "i"
+              }
+            },
+            "kind" : "ExpressionStatement",
+            "line" : 21
+          } ],
+          "column" : 8,
+          "condition" : {
+            "column" : 24,
+            "kind" : "BinaryExpression",
+            "left" : {
+              "column" : 24,
+              "kind" : "VariableExpression",
+              "line" : 21,
+              "name" : "i"
+            },
+            "line" : 21,
+            "operator" : "<",
+            "right" : {
+              "column" : 28,
+              "kind" : "NumberLiteral",
+              "line" : 21,
+              "text" : "3"
+            }
+          },
+          "kind" : "WhileStatement",
+          "line" : 21
+        }
       } ]
     }, {
       "column" : 1,
@@ -1530,7 +1979,7 @@
         },
         "kind" : "VariableDeclaration",
         "line" : 32,
-        "name" : "forInKeys_2"
+        "name" : "forInKeys_3"
       }, {
         "column" : 1,
         "expression" : {
@@ -1541,7 +1990,7 @@
         },
         "kind" : "VariableDeclaration",
         "line" : 32,
-        "name" : "forIndex_3"
+        "name" : "forIndex_4"
       }, {
         "body" : [ {
           "column" : 1,
@@ -1550,12 +1999,12 @@
               "column" : 1,
               "kind" : "VariableExpression",
               "line" : 32,
-              "name" : "forInKeys_2"
+              "name" : "forInKeys_3"
             }, {
               "column" : 1,
               "kind" : "VariableExpression",
               "line" : 32,
-              "name" : "forIndex_3"
+              "name" : "forIndex_4"
             } ],
             "callee" : {
               "column" : 1,
@@ -1589,7 +2038,7 @@
               "column" : 1,
               "kind" : "VariableExpression",
               "line" : 32,
-              "name" : "forIndex_3"
+              "name" : "forIndex_4"
             },
             "line" : 32,
             "operator" : "+",
@@ -1606,7 +2055,7 @@
             "column" : 1,
             "kind" : "VariableExpression",
             "line" : 32,
-            "name" : "forIndex_3"
+            "name" : "forIndex_4"
           }
         } ],
         "column" : 1,
@@ -1617,7 +2066,7 @@
             "column" : 1,
             "kind" : "VariableExpression",
             "line" : 32,
-            "name" : "forIndex_3"
+            "name" : "forIndex_4"
           },
           "line" : 32,
           "operator" : "<",
@@ -1630,7 +2079,7 @@
               "column" : 1,
               "kind" : "VariableExpression",
               "line" : 32,
-              "name" : "forInKeys_2"
+              "name" : "forInKeys_3"
             }
           }
         },
@@ -1684,7 +2133,7 @@
         },
         "kind" : "VariableDeclaration",
         "line" : 36,
-        "name" : "forOfValues_4"
+        "name" : "forOfValues_5"
       }, {
         "column" : 1,
         "expression" : {
@@ -1695,7 +2144,7 @@
         },
         "kind" : "VariableDeclaration",
         "line" : 36,
-        "name" : "forIndex_5"
+        "name" : "forIndex_6"
       }, {
         "body" : [ {
           "column" : 1,
@@ -1704,12 +2153,12 @@
               "column" : 1,
               "kind" : "VariableExpression",
               "line" : 36,
-              "name" : "forOfValues_4"
+              "name" : "forOfValues_5"
             }, {
               "column" : 1,
               "kind" : "VariableExpression",
               "line" : 36,
-              "name" : "forIndex_5"
+              "name" : "forIndex_6"
             } ],
             "callee" : {
               "column" : 1,
@@ -1743,7 +2192,7 @@
               "column" : 1,
               "kind" : "VariableExpression",
               "line" : 36,
-              "name" : "forIndex_5"
+              "name" : "forIndex_6"
             },
             "line" : 36,
             "operator" : "+",
@@ -1760,7 +2209,7 @@
             "column" : 1,
             "kind" : "VariableExpression",
             "line" : 36,
-            "name" : "forIndex_5"
+            "name" : "forIndex_6"
           }
         } ],
         "column" : 1,
@@ -1771,7 +2220,7 @@
             "column" : 1,
             "kind" : "VariableExpression",
             "line" : 36,
-            "name" : "forIndex_5"
+            "name" : "forIndex_6"
           },
           "line" : 36,
           "operator" : "<",
@@ -1784,7 +2233,7 @@
               "column" : 1,
               "kind" : "VariableExpression",
               "line" : 36,
-              "name" : "forOfValues_4"
+              "name" : "forOfValues_5"
             }
           }
         },
@@ -1883,17 +2332,88 @@
           "kind" : "ReturnStatement",
           "line" : 59
         } ],
+        "generator" : false,
         "name" : "withStatementTarget",
         "parameters" : [ "scope" ]
       },
       "kind" : "FunctionDeclarationStatement",
       "line" : 54
     }, {
-      "column" : 1,
+      "column" : 7,
       "expression" : {
+        "arguments" : [ ],
+        "callee" : {
+          "async" : false,
+          "body" : [ {
+            "column" : 27,
+            "expression" : {
+              "column" : 27,
+              "entries" : [ ],
+              "kind" : "ObjectLiteralExpression",
+              "line" : 62
+            },
+            "kind" : "VariableDeclaration",
+            "line" : 62,
+            "name" : "objLit_7"
+          }, {
+            "column" : 3,
+            "expression" : {
+              "arguments" : [ {
+                "column" : 27,
+                "kind" : "VariableExpression",
+                "line" : 62,
+                "name" : "objLit_7"
+              }, {
+                "column" : 4,
+                "kind" : "MemberAccessExpression",
+                "line" : 63,
+                "member" : "dispose",
+                "receiver" : {
+                  "column" : 4,
+                  "kind" : "VariableExpression",
+                  "line" : 63,
+                  "name" : "Symbol"
+                }
+              }, {
+                "async" : false,
+                "body" : [ ],
+                "column" : 3,
+                "kind" : "FunctionExpression",
+                "line" : 63,
+                "parameters" : [ ],
+                "thisMode" : "DYNAMIC"
+              } ],
+              "callee" : {
+                "column" : 3,
+                "kind" : "VariableExpression",
+                "line" : 63,
+                "name" : "__tsj_set_dynamic_key"
+              },
+              "column" : 3,
+              "kind" : "CallExpression",
+              "line" : 63
+            },
+            "kind" : "ExpressionStatement",
+            "line" : 63
+          }, {
+            "column" : 27,
+            "expression" : {
+              "column" : 27,
+              "kind" : "VariableExpression",
+              "line" : 62,
+              "name" : "objLit_7"
+            },
+            "kind" : "ReturnStatement",
+            "line" : 62
+          } ],
+          "column" : 27,
+          "kind" : "FunctionExpression",
+          "line" : 62,
+          "parameters" : [ ],
+          "thisMode" : "LEXICAL"
+        },
         "column" : 27,
-        "entries" : [ ],
-        "kind" : "ObjectLiteralExpression",
+        "kind" : "CallExpression",
         "line" : 62
       },
       "kind" : "VariableDeclaration",

@@ -261,7 +261,7 @@
   "normalizedProgram" : {
     "kind" : "Program",
     "statements" : [ {
-      "column" : 1,
+      "column" : 7,
       "expression" : {
         "column" : 25,
         "kind" : "NumberLiteral",

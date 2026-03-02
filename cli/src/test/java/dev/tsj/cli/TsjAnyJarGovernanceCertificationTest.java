@@ -43,6 +43,13 @@ class TsjAnyJarGovernanceCertificationTest {
         assertTrue(report.gatePassed());
         assertTrue(report.signoffCriteria().stream().allMatch(TsjAnyJarGovernanceCertificationReport.SignoffCriterion::passed));
         assertTrue(report.signoffApproved());
+        final TsjAnyJarGovernanceCertificationReport.SignoffCriterion matrixCriterion = report.signoffCriteria()
+                .stream()
+                .filter(criterion -> "matrix-gate".equals(criterion.criterion()))
+                .findFirst()
+                .orElseThrow();
+        assertTrue(matrixCriterion.notes().contains("scenarios="));
+        assertTrue(matrixCriterion.notes().contains("failed=0"));
     }
 
     @Test

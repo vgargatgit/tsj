@@ -14,7 +14,7 @@ This sample demonstrates a multi-file TypeScript project running through TSJ.
 ## Run with TSJ
 
 ```bash
-mvn -B -ntp -pl cli -am exec:java \
+mvn -B -ntp -f cli/pom.xml exec:java \
   -Dexec.mainClass=dev.tsj.cli.TsjCli \
   -Dexec.args="run examples/multi-file-demo/src/main.ts --out examples/multi-file-demo/.tsj-build"
 ```

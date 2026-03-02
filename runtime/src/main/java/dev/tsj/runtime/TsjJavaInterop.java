@@ -95,6 +95,25 @@ public final class TsjJavaInterop {
         return invokeStatic(targetClass, className, methodName, normalizeTsArgs(tsArgs));
     }
 
+    public static boolean hasPublicStaticField(final String className, final String fieldName) {
+        Objects.requireNonNull(className, "className");
+        Objects.requireNonNull(fieldName, "fieldName");
+        final Class<?> targetClass = resolveClass(className);
+        try {
+            final Field field = targetClass.getField(fieldName);
+            return Modifier.isStatic(field.getModifiers());
+        } catch (NoSuchFieldException noSuchFieldException) {
+            return false;
+        }
+    }
+
+    public static Object readPublicStaticField(final String className, final String fieldName) {
+        Objects.requireNonNull(className, "className");
+        Objects.requireNonNull(fieldName, "fieldName");
+        final Class<?> targetClass = resolveClass(className);
+        return readStaticField(targetClass, fieldName, EMPTY_TS_ARGS);
+    }
+
     public static Object invokeBindingPreselected(
             final String className,
             final String bindingName,
@@ -986,8 +1005,14 @@ public final class TsjJavaInterop {
             final int varArgCount = tsArgs.length - fixedCount;
             final Object varArgArray = Array.newInstance(componentType, varArgCount);
             for (int varIndex = 0; varIndex < varArgCount; varIndex++) {
+                final Object tsVarArgValue = tsArgs[fixedCount + varIndex];
+                if (componentType == String.class && tsVarArgValue == null) {
+                    Array.set(varArgArray, varIndex, "null");
+                    score += 1;
+                    continue;
+                }
                 final ConversionResult conversion = tryConvert(
-                        tsArgs[fixedCount + varIndex],
+                        tsVarArgValue,
                         componentType,
                         componentGenericType
                 );

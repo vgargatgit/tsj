@@ -1,6 +1,6 @@
 # TSJ Developer Guide
 
-This is the primary developer-facing guide for working on TSJ.
+For a simpler docs map, start at `docs/README.md`.
 
 ## What TSJ Is (Today)
 
@@ -10,8 +10,9 @@ TSJ compiles a **TypeScript subset** to JVM bytecode and executes on the JVM.
 - Interop with Java (`java:` imports) is implemented in staged subsets.
 - Feature/story status is tracked in `docs/stories.md`.
 
-Use these references as the source of truth:
+Use these references as source of truth:
 
+- Docs map / read order: `docs/README.md`
 - CLI behavior and flags: `docs/cli-contract.md`
 - Unsupported non-goals (MVP gates): `docs/unsupported-feature-matrix.md`
 - Story status and acceptance criteria: `docs/stories.md`
@@ -50,7 +51,7 @@ Done criteria for any change:
 Compile:
 
 ```bash
-mvn -B -ntp -pl cli -am exec:java \
+mvn -B -ntp -f cli/pom.xml exec:java \
   -Dexec.mainClass=dev.tsj.cli.TsjCli \
   -Dexec.args="compile path/to/main.ts --out build"
 ```
@@ -58,7 +59,7 @@ mvn -B -ntp -pl cli -am exec:java \
 Run:
 
 ```bash
-mvn -B -ntp -pl cli -am exec:java \
+mvn -B -ntp -f cli/pom.xml exec:java \
   -Dexec.mainClass=dev.tsj.cli.TsjCli \
   -Dexec.args="run path/to/main.ts --out build"
 ```
@@ -66,7 +67,7 @@ mvn -B -ntp -pl cli -am exec:java \
 Run fixtures:
 
 ```bash
-mvn -B -ntp -pl cli -am exec:java \
+mvn -B -ntp -f cli/pom.xml exec:java \
   -Dexec.mainClass=dev.tsj.cli.TsjCli \
   -Dexec.args="fixtures tests/fixtures"
 ```
@@ -97,7 +98,7 @@ console.log(max(3, 7));
 Run with external jar(s):
 
 ```bash
-mvn -B -ntp -pl cli -am exec:java \
+mvn -B -ntp -f cli/pom.xml exec:java \
   -Dexec.mainClass=dev.tsj.cli.TsjCli \
   -Dexec.args="run app.ts --out build --jar path/to/lib.jar"
 ```
@@ -105,7 +106,7 @@ mvn -B -ntp -pl cli -am exec:java \
 Run with explicit classpath:
 
 ```bash
-mvn -B -ntp -pl cli -am exec:java \
+mvn -B -ntp -f cli/pom.xml exec:java \
   -Dexec.mainClass=dev.tsj.cli.TsjCli \
   -Dexec.args="run app.ts --out build --classpath path/to/a.jar:path/to/b.jar"
 ```
@@ -127,6 +128,9 @@ Before adopting syntax in production fixtures:
 3. Check active parser/runtime gaps in `docs/todo.md`.
 4. Add a failing test first for any new syntax/semantic expectation.
 
+For known unsupported or non-parity grammar/semantic cases tracked as a progression suite:
+`unsupported/README.md` and `unsupported/run_progress.sh`.
+
 ## Diagnostics and Debugging
 
 - CLI emits structured diagnostics with codes (for example `TSJ-CLI-*`, `TSJ-RUN-*`, `TSJ-BACKEND-*`).
@@ -136,8 +140,9 @@ Before adopting syntax in production fixtures:
 ## Recommended Read Order for New Contributors
 
 1. `README.md`
-2. `docs/developer-guide.md` (this file)
-3. `docs/cli-contract.md`
-4. `docs/stories.md`
+2. `docs/README.md`
+3. `docs/developer-guide.md` (this file)
+4. `docs/cli-contract.md`
 5. `docs/unsupported-feature-matrix.md`
 6. `docs/todo.md`
+7. `docs/stories.md`

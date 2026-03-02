@@ -975,11 +975,32 @@
       "declaration" : {
         "constructorMethod" : {
           "async" : false,
-          "body" : [ ],
+          "body" : [ {
+            "column" : 15,
+            "expression" : {
+              "column" : 15,
+              "kind" : "VariableExpression",
+              "line" : 2,
+              "name" : "value"
+            },
+            "kind" : "AssignmentStatement",
+            "line" : 2,
+            "target" : {
+              "column" : 15,
+              "kind" : "MemberAccessExpression",
+              "line" : 2,
+              "member" : "value",
+              "receiver" : {
+                "column" : 15,
+                "kind" : "ThisExpression",
+                "line" : 2
+              }
+            }
+          } ],
           "name" : "constructor",
           "parameters" : [ "value" ]
         },
-        "fieldNames" : [ ],
+        "fieldNames" : [ "value" ],
         "methods" : [ ],
         "name" : "Box",
         "superClassName" : null
@@ -1011,6 +1032,7 @@
           "kind" : "ReturnStatement",
           "line" : 6
         } ],
+        "generator" : false,
         "name" : "pair",
         "parameters" : [ "left", "right" ]
       },
@@ -1031,6 +1053,7 @@
           "kind" : "ReturnStatement",
           "line" : 10
         } ],
+        "generator" : false,
         "name" : "constIdentity",
         "parameters" : [ "value" ]
       },
@@ -1051,13 +1074,14 @@
           "kind" : "ReturnStatement",
           "line" : 14
         } ],
+        "generator" : false,
         "name" : "id",
         "parameters" : [ "value" ]
       },
       "kind" : "FunctionDeclarationStatement",
       "line" : 13
     }, {
-      "column" : 1,
+      "column" : 7,
       "expression" : {
         "column" : 21,
         "kind" : "VariableExpression",
@@ -1068,7 +1092,7 @@
       "line" : 17,
       "name" : "instantiate"
     }, {
-      "column" : 1,
+      "column" : 7,
       "expression" : {
         "arguments" : [ {
           "column" : 23,
@@ -1090,7 +1114,7 @@
       "line" : 24,
       "name" : "boxed"
     }, {
-      "column" : 1,
+      "column" : 7,
       "expression" : {
         "arguments" : [ {
           "column" : 24,
@@ -1117,7 +1141,7 @@
       "line" : 25,
       "name" : "pairValue"
     }, {
-      "column" : 1,
+      "column" : 7,
       "expression" : {
         "arguments" : [ {
           "column" : 34,

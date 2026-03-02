@@ -1,0 +1,10 @@
+{
+  "scenario": "S5_app_isolated_duplication",
+  "description": "App-isolated mode with dependency jar containing same class as app output. Tests isolation conflict detection.",
+  "expectCompile": null,
+  "expectRun": {
+    "result": "fail",
+    "diagnosticCode": "TSJ-RUN-009",
+    "contains": ["app-isolated"]
+  }
+}

@@ -1219,7 +1219,7 @@
       "line" : 2,
       "name" : "ly"
     }, {
-      "column" : 1,
+      "column" : 7,
       "expression" : {
         "column" : 20,
         "kind" : "NumberLiteral",
@@ -1244,6 +1244,7 @@
           "kind" : "ReturnStatement",
           "line" : 8
         } ],
+        "generator" : false,
         "name" : "overloaded",
         "parameters" : [ "value" ]
       },
@@ -1315,7 +1316,7 @@
           "line" : 11,
           "name" : "rest"
         }, {
-          "column" : 3,
+          "column" : 9,
           "expression" : {
             "arguments" : [ {
               "async" : false,
@@ -1343,6 +1344,7 @@
                 "line" : 12
               } ],
               "column" : 29,
+              "generator" : false,
               "kind" : "FunctionExpression",
               "line" : 12,
               "parameters" : [ "sum", "item" ],
@@ -1400,13 +1402,14 @@
           "kind" : "ReturnStatement",
           "line" : 13
         } ],
+        "generator" : false,
         "name" : "withDefaults",
         "parameters" : [ "this", "value" ]
       },
       "kind" : "FunctionDeclarationStatement",
       "line" : 11
     }, {
-      "column" : 1,
+      "column" : 7,
       "expression" : {
         "async" : false,
         "body" : [ {
@@ -1421,6 +1424,7 @@
           "line" : 16
         } ],
         "column" : 18,
+        "generator" : false,
         "kind" : "FunctionExpression",
         "line" : 16,
         "parameters" : [ "x" ],
@@ -1430,7 +1434,7 @@
       "line" : 16,
       "name" : "identity"
     }, {
-      "column" : 1,
+      "column" : 15,
       "expression" : {
         "column" : 15,
         "kind" : "UndefinedLiteral",
@@ -1486,7 +1490,7 @@
       "line" : 24,
       "name" : "legacy"
     }, {
-      "column" : 1,
+      "column" : 7,
       "expression" : {
         "column" : 23,
         "entries" : [ {

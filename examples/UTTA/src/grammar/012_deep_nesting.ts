@@ -42,4 +42,4 @@ console.log("concat_chain:" + (s === "012345678910111213141516171819"));
 // 8. Nested spread
 const base = [1, 2];
 const r8 = [...[...base, 3], ...[4, ...base]];
-console.log("nested_spread:" + (r8.length === 7 && r8[0] === 1 && r8[6] === 2));
+console.log("nested_spread:" + (r8.length === 6 && r8[0] === 1 && r8[5] === 2));

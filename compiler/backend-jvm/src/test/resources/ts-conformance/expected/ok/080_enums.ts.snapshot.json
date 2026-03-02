@@ -365,6 +365,14 @@
             "text" : "0"
           }
         }, {
+          "key" : "0",
+          "value" : {
+            "column" : 1,
+            "kind" : "StringLiteral",
+            "line" : 1,
+            "text" : "First"
+          }
+        }, {
           "key" : "Second",
           "value" : {
             "column" : 12,
@@ -373,12 +381,28 @@
             "text" : "4"
           }
         }, {
+          "key" : "4",
+          "value" : {
+            "column" : 1,
+            "kind" : "StringLiteral",
+            "line" : 1,
+            "text" : "Second"
+          }
+        }, {
           "key" : "Third",
           "value" : {
             "column" : 1,
             "kind" : "NumberLiteral",
             "line" : 1,
             "text" : "5"
+          }
+        }, {
+          "key" : "5",
+          "value" : {
+            "column" : 1,
+            "kind" : "StringLiteral",
+            "line" : 1,
+            "text" : "Third"
           }
         } ],
         "kind" : "ObjectLiteralExpression",
@@ -427,6 +451,14 @@
             "text" : "0"
           }
         }, {
+          "key" : "0",
+          "value" : {
+            "column" : 1,
+            "kind" : "StringLiteral",
+            "line" : 12,
+            "text" : "No"
+          }
+        }, {
           "key" : "Yes",
           "value" : {
             "column" : 9,
@@ -454,12 +486,28 @@
             "text" : "0"
           }
         }, {
+          "key" : "0",
+          "value" : {
+            "column" : 1,
+            "kind" : "StringLiteral",
+            "line" : 17,
+            "text" : "None"
+          }
+        }, {
           "key" : "Read",
           "value" : {
             "column" : 10,
             "kind" : "NumberLiteral",
             "line" : 19,
             "text" : "1"
+          }
+        }, {
+          "key" : "1",
+          "value" : {
+            "column" : 1,
+            "kind" : "StringLiteral",
+            "line" : 17,
+            "text" : "Read"
           }
         }, {
           "key" : "Write",
@@ -469,6 +517,14 @@
             "line" : 20,
             "text" : "2"
           }
+        }, {
+          "key" : "2",
+          "value" : {
+            "column" : 1,
+            "kind" : "StringLiteral",
+            "line" : 17,
+            "text" : "Write"
+          }
         } ],
         "kind" : "ObjectLiteralExpression",
         "line" : 17
@@ -477,7 +533,7 @@
       "line" : 17,
       "name" : "Flags"
     }, {
-      "column" : 1,
+      "column" : 7,
       "expression" : {
         "column" : 19,
         "kind" : "BinaryExpression",
@@ -494,7 +550,7 @@
           }
         },
         "line" : 23,
-        "operator" : "+",
+        "operator" : "|",
         "right" : {
           "column" : 32,
           "kind" : "MemberAccessExpression",

@@ -57,7 +57,7 @@ jobs:
         run: >
           mvn -B -ntp -pl cli -am
           -Dsurefire.failIfNoSpecifiedTests=false
-          -Dtest=TsjTgtaCompileGateTest#tgtaNonTsxFixturesCompileWithTsjCompileSuccess
+          -Dtest=TsjTgtaCompileGateTest#tgtaNonTsxFixturesCompileWithTsjCompileSuccess+tgtaKnownFailingFixturesEmitStableDiagnosticCodes
           test
 
       - name: Grammar Feature Gate (Parser/Backend/CLI)

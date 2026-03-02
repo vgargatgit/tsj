@@ -1544,7 +1544,7 @@
     `security-reference-parity` as the remaining full-parity blocker.
   - CI now runs a dedicated TSJ-38a gate step and uploads the TSJ-38a report artifact.
   - Certified scope and execution details are documented in:
-    `docs/tsj38a-db-parity.md`.
+    `docs/tsj38-parity-guide.md`.
 - Status: `Complete`.
 - Dependencies: TSJ-37b, TSJ-38.
 
@@ -1573,7 +1573,7 @@
     `compiler/backend-jvm/target/tsj38b-security-parity-report.json`.
   - CI now runs a dedicated TSJ-38b gate step and uploads the TSJ-38b report artifact.
   - Certified scope and non-goals are documented in:
-    `docs/tsj38b-security-parity.md`.
+    `docs/tsj38-parity-guide.md`.
 - Status: `Complete`.
 - Dependencies: TSJ-37d, TSJ-38a.
 
@@ -1598,7 +1598,7 @@
   - `fullParityReady` now derives from dimension thresholds plus DB/security parity signals.
   - CI now runs a dedicated TSJ-38c gate step and uploads the TSJ-38c report artifact.
   - Certified thresholds and artifact semantics are documented in:
-    `docs/tsj38c-parity-certification.md`.
+    `docs/tsj38-parity-guide.md`.
   - TSJ-38 parent story is promoted to `Complete` after TSJ-38c closure-gate activation.
 - Status: `Complete`.
 - Dependencies: TSJ-38a, TSJ-38b.
@@ -1622,7 +1622,7 @@
   - Compatibility tests now validate metadata via reflection on compiled generated bridges:
     generic return/parameter type names and parameter-name retention.
   - Documentation now defines metadata guarantees/non-goals for broad-jar mode in:
-    `docs/interop-metadata-guarantees.md`.
+    `docs/interop-compatibility-guide.md`.
   - Parent completion gate:
     TSJ-39 can move from `Complete (Subset)` to `Complete` only when TSJ-39a, TSJ-39b, and TSJ-39c
     are `Complete`, and this story no longer carries a remaining-gap note.
@@ -1879,7 +1879,7 @@
     `TsjCliTest#runSupportsTsj41bGenericTypeAdaptationParity`, and
     `TsjCliTest#runReportsTsj41bGenericAdaptationFailureWithTargetTypeContext`.
   - Supported guarantees and non-goals are documented in:
-    `docs/interop-generic-adaptation.md`.
+    `docs/interop-compatibility-guide.md`.
 - Status: `Complete`.
 - Dependencies: TSJ-39a, TSJ-41a.
 
@@ -1906,7 +1906,7 @@
     `TsjCliTest#runSupportsTsj41cReflectiveDefaultMethodAndBridgeDispatchParity`, and
     `TsjCliTest#runReportsTsj41cReflectiveDiagnosticForNonPublicMethodAccess`.
   - Reflective compatibility boundaries and fallback guidance are documented in:
-    `docs/interop-reflective-compatibility.md`.
+    `docs/interop-compatibility-guide.md`.
 - Status: `Complete`.
 - Dependencies: TSJ-41a, TSJ-43.
 
@@ -1926,7 +1926,7 @@
   - Certification artifact path:
     `cli/target/tsj41d-invocation-conversion-certification.json`.
   - Certified scope and best-effort boundaries are documented in:
-    `docs/interop-invocation-certification.md`.
+    `docs/interop-compatibility-guide.md`.
   - CI now runs a dedicated TSJ-41d certification step and uploads the TSJ-41d report artifact.
 - Status: `Complete`.
 - Dependencies: TSJ-41a, TSJ-41b, TSJ-41c.
@@ -1975,7 +1975,7 @@
     `cli/target/tsj42a-jpa-realdb-parity.json`.
   - CI now runs a dedicated TSJ-42a gate step and uploads the TSJ-42a report artifact.
   - Certified scope and execution details are documented in:
-    `docs/hibernate-jpa-realdb-parity.md`.
+    `docs/jpa-certification-guide.md`.
 - Status: `Complete`.
 - Dependencies: TSJ-37b, TSJ-42.
 
@@ -2001,7 +2001,7 @@
     `cli/target/tsj42b-jpa-lazy-proxy-parity.json`.
   - CI now runs a dedicated TSJ-42b gate step and uploads the TSJ-42b report artifact.
   - Certified scope and non-goals are documented in:
-    `docs/hibernate-jpa-lazy-proxy-parity.md`.
+    `docs/jpa-certification-guide.md`.
 - Status: `Complete`.
 - Dependencies: TSJ-42a.
 
@@ -2028,7 +2028,7 @@
     `cli/target/tsj42c-jpa-lifecycle-parity.json`.
   - CI now runs a dedicated TSJ-42c gate step and uploads the TSJ-42c report artifact.
   - Certified scope and non-goals are documented in:
-    `docs/hibernate-jpa-lifecycle-parity.md`.
+    `docs/jpa-certification-guide.md`.
 - Status: `Complete`.
 - Dependencies: TSJ-35b, TSJ-42a.
 
@@ -2051,7 +2051,7 @@
   - Closure report artifact:
     `cli/target/tsj42d-jpa-certification.json`.
   - Certified-vs-best-effort ORM release guidance is documented in:
-    `docs/hibernate-jpa-certification.md`.
+    `docs/jpa-certification-guide.md`.
   - TSJ-42 parent story is promoted to `Complete` after TSJ-42d closure-gate activation.
 - Status: `Complete`.
 - Dependencies: TSJ-42a, TSJ-42b, TSJ-42c.
@@ -2272,7 +2272,7 @@
     `cli/target/tsj44c-real-app-certification.json`.
   - CI now runs a dedicated TSJ-44c gate check and uploads the TSJ-44c report artifact.
   - Tiering/usage guidance is documented in:
-    `docs/anyjar-realapp-certification.md`.
+    `docs/anyjar-certification.md`.
 - Status: `Complete`.
 - Dependencies: TSJ-38c, TSJ-44a, TSJ-44b.
 
@@ -2295,7 +2295,7 @@
     `cli/target/tsj44d-anyjar-governance.json`.
   - CI now runs a dedicated TSJ-44d signoff check and uploads the TSJ-44d report artifact.
   - Governance contract is documented in:
-    `docs/anyjar-governance-signoff.md`.
+    `docs/anyjar-certification.md`.
 - Status: `Complete`.
 - Dependencies: TSJ-44a, TSJ-44b, TSJ-44c.
 

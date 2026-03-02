@@ -85,7 +85,43 @@ final class JavaInteropSymbolResolver {
             ));
             return;
         }
-        resolveMethod(binding, targetClass, importedName, true, symbols, diagnostics);
+        resolveStaticMethodOrField(binding, targetClass, importedName, symbols, diagnostics);
+    }
+
+    private static void resolveStaticMethodOrField(
+            final FrontendInteropBinding binding,
+            final Class<?> targetClass,
+            final String memberName,
+            final List<FrontendInteropSymbol> symbols,
+            final List<FrontendDiagnostic> diagnostics
+    ) {
+        final List<FrontendInteropSymbol> methodSymbols = new ArrayList<>();
+        final List<FrontendDiagnostic> methodDiagnostics = new ArrayList<>();
+        resolveMethod(binding, targetClass, memberName, true, methodSymbols, methodDiagnostics);
+        if (!methodSymbols.isEmpty()) {
+            symbols.addAll(methodSymbols);
+            return;
+        }
+
+        final List<FrontendInteropSymbol> fieldSymbols = new ArrayList<>();
+        final List<FrontendDiagnostic> fieldDiagnostics = new ArrayList<>();
+        resolveField(binding, targetClass, memberName, true, true, fieldSymbols, fieldDiagnostics);
+        if (!fieldSymbols.isEmpty()) {
+            symbols.addAll(fieldSymbols);
+            return;
+        }
+
+        final FrontendDiagnostic methodDiagnostic =
+                methodDiagnostics.isEmpty() ? null : methodDiagnostics.getFirst();
+        if (methodDiagnostic != null && !CODE_MEMBER_NOT_FOUND.equals(methodDiagnostic.code())) {
+            diagnostics.add(methodDiagnostic);
+            return;
+        }
+        if (!fieldDiagnostics.isEmpty()) {
+            diagnostics.addAll(fieldDiagnostics);
+            return;
+        }
+        diagnostics.addAll(methodDiagnostics);
     }
 
     private static void resolveConstructor(

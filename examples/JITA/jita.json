@@ -1,0 +1,14 @@
+{
+  "name": "JITA — Jar Interop Torture App",
+  "description": "5 scenario fixtures, each targeting exactly one jar-interop shortfall.",
+  "scenarios": [
+    "scenarios/S1_missing_runtime_classpath",
+    "scenarios/S2_non_public_member",
+    "scenarios/S3_conflicting_versions",
+    "scenarios/S4_provided_scope_runtime",
+    "scenarios/S5_app_isolated_duplication"
+  ],
+  "buildFixtures": "bash examples/JITA/scripts/build-fixtures.sh",
+  "runMatrix": "bash examples/JITA/scripts/run_matrix.sh",
+  "notes": "Build fixture jars before running the matrix. Current TSJ CLI does not consume --config JSON directly."
+}

@@ -24,7 +24,7 @@ This sample is a TypeScript-authored Spring-style Pet Store API for TSJ.
 ## Compile with TSJ
 
 ```bash
-mvn -B -ntp -pl cli -am exec:java \
+mvn -B -ntp -f cli/pom.xml exec:java \
   -Dexec.mainClass=dev.tsj.cli.TsjCli \
   -Dexec.args="compile examples/pet-store-api/main.ts --out examples/pet-store-api/.tsj-build"
 ```
@@ -32,7 +32,7 @@ mvn -B -ntp -pl cli -am exec:java \
 ## Run generated TSJ program
 
 ```bash
-mvn -B -ntp -pl cli -am exec:java \
+mvn -B -ntp -f cli/pom.xml exec:java \
   -Dexec.mainClass=dev.tsj.cli.TsjCli \
   -Dexec.args="run examples/pet-store-api/main.ts --out examples/pet-store-api/.tsj-build"
 ```
@@ -49,7 +49,7 @@ tsj-pet-store-boot
 on classpath (or equivalent stubs).
 
 ```bash
-mvn -B -ntp -pl cli -am exec:java \
+mvn -B -ntp -f cli/pom.xml exec:java \
   -Dexec.mainClass=dev.tsj.cli.TsjCli \
   -Dexec.args="spring-package examples/pet-store-api/main.ts --out examples/pet-store-api/.tsj-package --classpath /path/to/spring-web.jar:/path/to/spring-context.jar --smoke-run --smoke-endpoint-url stdout://tsj-pet-store-boot"
 ```

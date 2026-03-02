@@ -205,6 +205,81 @@ class JvmBytecodeCompilerTest {
     }
 
     @Test
+    void supportsGeneratorFunctionsWithYieldYieldStarAndNextArguments() throws Exception {
+        final Path sourceFile = tempDir.resolve("generators.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                function* count() {
+                  yield 1;
+                  yield 2;
+                  return 3;
+                }
+                const c = count();
+                const s1 = c.next();
+                const s2 = c.next();
+                const s3 = c.next();
+                console.log("basic=" + (s1.value === 1 && s2.value === 2 && s3.value === 3 && s3.done === true));
+
+                function* accumulator() {
+                  let total = 0;
+                  while (true) {
+                    const step: number = yield total;
+                    total = total + step;
+                  }
+                }
+                const acc = accumulator();
+                acc.next();
+                acc.next(10);
+                const accStep = acc.next(20);
+                console.log("nextArg=" + (accStep.value === 30));
+
+                function* naturals() {
+                  let n = 1;
+                  while (true) {
+                    yield n++;
+                  }
+                }
+                const n = naturals();
+                const first = n.next().value;
+                const second = n.next().value;
+                const third = n.next().value;
+                console.log("naturals=" + (first === 1 && second === 2 && third === 3));
+
+                function* inner() {
+                  yield "a";
+                  yield "b";
+                }
+                function* outer() {
+                  yield "start";
+                  yield* inner();
+                  yield "end";
+                }
+                const values: string[] = [];
+                for (const value of outer()) {
+                  values.push(value);
+                }
+                console.log("yieldStar=" + (values.length === 4 && values[0] === "start" && values[1] === "a" && values[3] === "end"));
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("generators-out"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals(
+                """
+                basic=true
+                nextArg=true
+                naturals=true
+                yieldStar=true
+                """,
+                stdout.toString(UTF_8)
+        );
+    }
+
+    @Test
     void supportsBigIntAndExtendedNumericLiteralFormsInTsjGrammarPath() throws Exception {
         final Path sourceFile = tempDir.resolve("numeric-literals.ts");
         Files.writeString(
@@ -227,6 +302,80 @@ class JvmBytecodeCompilerTest {
         new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
 
         assertEquals("1000000\n170\n3405705229\n123\n", stdout.toString(UTF_8));
+    }
+
+    @Test
+    void supportsUnaryPlusExponentBitwiseShiftAndTypeRelationOperatorsInTsjGrammarPath() throws Exception {
+        final Path sourceFile = tempDir.resolve("operators.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                class Box {
+                }
+
+                const unary = +"5";
+                const exp = 2 ** 3;
+                const left = 1 << 3;
+                const right = 9 >> 1;
+                const unsigned = -1 >>> 0;
+                const band = 6 & 3;
+                const bxor = 6 ^ 2;
+                const bor = 4 | 1;
+                const kind = typeof 1;
+                const has = "a" in { a: 1 };
+                const isBox = new Box() instanceof Box;
+                console.log("unary=" + unary);
+                console.log("exp=" + exp);
+                console.log("left=" + left);
+                console.log("right=" + right);
+                console.log("unsigned=" + unsigned);
+                console.log("band=" + band);
+                console.log("bxor=" + bxor);
+                console.log("bor=" + bor);
+                console.log("typeof=" + kind);
+                console.log("in=" + has);
+                console.log("instanceof=" + isBox);
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("operators-out"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals(
+                "unary=5\n"
+                        + "exp=8\n"
+                        + "left=8\n"
+                        + "right=4\n"
+                        + "unsigned=4294967295\n"
+                        + "band=2\n"
+                        + "bxor=4\n"
+                        + "bor=5\n"
+                        + "typeof=number\n"
+                        + "in=true\n"
+                        + "instanceof=true\n",
+                stdout.toString(UTF_8)
+        );
+    }
+
+    @Test
+    void supportsTypeofOnUndeclaredIdentifierWithoutCompileFailure() throws Exception {
+        final Path sourceFile = tempDir.resolve("typeof-undeclared.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                console.log(typeof undeclaredVariable === "undefined");
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact =
+                new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("typeof-undeclared-out"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals("true\n", stdout.toString(UTF_8));
     }
 
     @Test
@@ -276,6 +425,50 @@ class JvmBytecodeCompilerTest {
     }
 
     @Test
+    void supportsBitwiseAndShiftCompoundAssignmentOperators() throws Exception {
+        final Path sourceFile = tempDir.resolve("bitwise-compound-assignment.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                let a = 0xFF;
+                a &= 0x0F;
+                let b = 0x00;
+                b |= 0xFF;
+                let c = 0xFF;
+                c ^= 0x0F;
+                let d = 1;
+                d <<= 8;
+                let e = 256;
+                e >>= 4;
+                let f = -1;
+                f >>>= 0;
+                console.log("and_eq=" + a);
+                console.log("or_eq=" + b);
+                console.log("xor_eq=" + c);
+                console.log("shl_eq=" + d);
+                console.log("shr_eq=" + e);
+                console.log("ushr_eq=" + f);
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact =
+                new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out-bitwise-compound-assignment"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals(
+                "and_eq=15\n"
+                        + "or_eq=255\n"
+                        + "xor_eq=240\n"
+                        + "shl_eq=256\n"
+                        + "shr_eq=16\n"
+                        + "ushr_eq=4294967295\n",
+                stdout.toString(UTF_8)
+        );
+    }
+
+    @Test
     void supportsLogicalCompoundAssignments() throws Exception {
         final Path sourceFile = tempDir.resolve("logical-compound-assignment.ts");
         Files.writeString(
@@ -300,6 +493,62 @@ class JvmBytecodeCompilerTest {
         new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
 
         assertEquals("fallback\nalt\nnext\n", stdout.toString(UTF_8));
+    }
+
+    @Test
+    void supportsElementAccessAssignmentTargets() throws Exception {
+        final Path sourceFile = tempDir.resolve("element-access-assignment.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                const key = "k";
+                const obj: any = {};
+                obj[key] = 41;
+                obj["x"] = 1;
+                const items = ["a", "b", "c"];
+                const map: Record<string, number> = {};
+                items.forEach((item, i) => { map[item] = i; });
+                console.log("obj=" + (obj[key] === 41 && obj.x === 1));
+                console.log("map=" + (map.a === 0 && map.c === 2));
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact =
+                new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out-element-access-assignment"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals("obj=true\nmap=true\n", stdout.toString(UTF_8));
+    }
+
+    @Test
+    void supportsPostfixUpdateOnMemberAccessReturningPreviousValue() throws Exception {
+        final Path sourceFile = tempDir.resolve("postfix-member-update.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                class Counter {
+                  nextId = 1;
+                  allocate() {
+                    const id = this.nextId++;
+                    return id;
+                  }
+                }
+                const counter = new Counter();
+                console.log("id1=" + counter.allocate());
+                console.log("id2=" + counter.allocate());
+                console.log("next=" + counter.nextId);
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact =
+                new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out-postfix-member-update"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals("id1=1\nid2=2\nnext=3\n", stdout.toString(UTF_8));
     }
 
     @Test
@@ -332,6 +581,56 @@ class JvmBytecodeCompilerTest {
     }
 
     @Test
+    void supportsOptionalPrimitiveMemberMethodCall() throws Exception {
+        final Path sourceFile = tempDir.resolve("optional-primitive-member-call.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                const str = "hello";
+                const maybe = null;
+
+                console.log(str?.toUpperCase());
+                console.log(maybe?.toUpperCase());
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact =
+                new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out-optional-primitive-member-call"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals("HELLO\nundefined\n", stdout.toString(UTF_8));
+    }
+
+    @Test
+    void supportsOptionalElementAccessAndOptionalDeleteChains() throws Exception {
+        final Path sourceFile = tempDir.resolve("optional-element-and-delete.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                const values = [10, 20, 30];
+                const maybeValues: any = values;
+                const noValues: any = null;
+                console.log("elem=" + (maybeValues?.[1] === 20));
+                console.log("elem_null=" + (noValues?.[1] === undefined));
+
+                const mutable: any = { a: { b: 1 } };
+                delete mutable?.a?.b;
+                console.log("delete_chain=" + (mutable.a.b === undefined));
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact =
+                new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out-optional-element-and-delete"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals("elem=true\nelem_null=true\ndelete_chain=true\n", stdout.toString(UTF_8));
+    }
+
+    @Test
     void supportsTemplateLiteralsWithInterpolation() throws Exception {
         final Path sourceFile = tempDir.resolve("template-literals.ts");
         Files.writeString(
@@ -351,6 +650,59 @@ class JvmBytecodeCompilerTest {
         new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
 
         assertEquals("hello tsj #3\nplain\n", stdout.toString(UTF_8));
+    }
+
+    @Test
+    void supportsMultilineTemplateLiteralsWithoutBreakingJavaEmission() throws Exception {
+        final Path sourceFile = tempDir.resolve("template-literals-multiline.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                const multi = `line1
+                line2
+                line3`;
+                console.log(multi === "line1\\nline2\\nline3");
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact =
+                new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out-template-literals-multiline"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals("true\n", stdout.toString(UTF_8));
+    }
+
+    @Test
+    void supportsTaggedTemplateThatUsesGlobalStringCoercionFunction() throws Exception {
+        final Path sourceFile = tempDir.resolve("template-literals-tagged-string.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                function tag(strings: TemplateStringsArray, ...values: any[]): string {
+                  let result = "";
+                  for (let i = 0; i < strings.length; i++) {
+                    result += strings[i];
+                    if (i < values.length) {
+                      result += String(values[i]).toUpperCase();
+                    }
+                  }
+                  return result;
+                }
+
+                const tagged = tag`hello ${"world"} and ${"test"}`;
+                console.log(tagged);
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact =
+                new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out-template-literals-tagged-string"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals("hello WORLD and TEST\n", stdout.toString(UTF_8));
     }
 
     @Test
@@ -381,6 +733,91 @@ class JvmBytecodeCompilerTest {
         new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
 
         assertEquals("5\n123\n9\n", stdout.toString(UTF_8));
+    }
+
+    @Test
+    void supportsBigIntLiteralTypeofAndConstructorInTsjRuntime() throws Exception {
+        final Path sourceFile = tempDir.resolve("bigint-runtime.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                const literal = 42n;
+                const ctor = BigInt(7);
+                console.log("type=" + typeof literal);
+                console.log("ctor_type=" + typeof ctor);
+                console.log("sum=" + (literal + ctor === 49n));
+                console.log("str=" + (String(42n) === "42"));
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact =
+                new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out-bigint-runtime"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals("type=bigint\nctor_type=bigint\nsum=true\nstr=true\n", stdout.toString(UTF_8));
+    }
+
+    @Test
+    void supportsSymbolCreationRegistryAndSymbolPropertyKeys() throws Exception {
+        final Path sourceFile = tempDir.resolve("symbol-runtime.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                const s1 = Symbol("test");
+                const s2 = Symbol("test");
+                const shared1 = Symbol.for("shared");
+                const shared2 = Symbol.for("shared");
+                const key = Symbol("k");
+                const obj: any = {};
+                obj[key] = 41;
+
+                console.log("unique=" + (s1 !== s2));
+                console.log("global=" + (shared1 === shared2));
+                console.log("key_for=" + (Symbol.keyFor(shared1) === "shared"));
+                console.log("prop=" + (obj[key] === 41));
+                console.log("typeof=" + (typeof key === "symbol"));
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact =
+                new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out-symbol-runtime"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals("unique=true\nglobal=true\nkey_for=true\nprop=true\ntypeof=true\n", stdout.toString(UTF_8));
+    }
+
+    @Test
+    void supportsClassExpressionReturnedFromMixinFactory() throws Exception {
+        final Path sourceFile = tempDir.resolve("class-expression-mixin.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                function addTimestamp<T extends new (...args: any[]) => any>(Base: T) {
+                  return class extends Base {
+                    timestamp = 123;
+                    getTimestamp() { return this.timestamp; }
+                  };
+                }
+
+                class BaseEntity { name = "entity"; }
+                const Enhanced = addTimestamp(BaseEntity);
+                const inst = new Enhanced();
+                console.log("name=" + inst.name);
+                console.log("ts=" + inst.getTimestamp());
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact =
+                new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out-class-expression-mixin"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals("name=entity\nts=123\n", stdout.toString(UTF_8));
     }
 
     @Test
@@ -525,6 +962,168 @@ class JvmBytecodeCompilerTest {
                 P-none-0
                 P-x-2
                 method:5|2
+                """,
+                stdout.toString(UTF_8)
+        );
+    }
+
+    @Test
+    void supportsComputedObjectPropertyNameFromStringConcatenation() throws Exception {
+        final Path sourceFile = tempDir.resolve("computed-object-key.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                const key = "a" + "b";
+                const obj = { [key]: 99, ["x" + "y"]: 42 };
+                console.log(`v:${obj.ab}|${obj.xy}`);
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact =
+                new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out-computed-object-key"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals("v:99|42\n", stdout.toString(UTF_8));
+    }
+
+    @Test
+    void supportsObjectLiteralGettersAndSetters() throws Exception {
+        final Path sourceFile = tempDir.resolve("object-literal-accessors.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                const person = {
+                  _name: "Alice",
+                  get name() { return this._name.toUpperCase(); }
+                };
+
+                const counter = {
+                  _count: 0,
+                  get count() { return this._count; },
+                  set count(v: number) { this._count = v > 0 ? v : 0; }
+                };
+
+                counter.count = 5;
+                const first = counter.count;
+                counter.count = -1;
+                const second = counter.count;
+                console.log(`getter:${person.name}|setter:${first}|guard:${second}`);
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact =
+                new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out-object-literal-accessors"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals("getter:ALICE|setter:5|guard:0\n", stdout.toString(UTF_8));
+    }
+
+    @Test
+    void supportsClassAccessorsPrivateFieldsAndConstructorParameterProperties() throws Exception {
+        final Path sourceFile = tempDir.resolve("class-accessor-parameter-properties.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                class Counter {
+                  #count = 0;
+                  increment() { this.#count++; }
+                  get value() { return this.#count; }
+                }
+
+                abstract class Shape {
+                  abstract area(): number;
+                }
+
+                class Circle extends Shape {
+                  constructor(private radius: number) { super(); }
+                  area() { return Math.PI * this.radius * this.radius; }
+                }
+
+                class Document {
+                  constructor(private content: string) {}
+                  print() { return "DOC:" + this.content; }
+                }
+
+                const c = new Counter();
+                c.increment();
+                c.increment();
+                const circle = new Circle(1);
+                const doc = new Document("hello");
+                console.log(`counter:${c.value}`);
+                console.log(`area:${circle.area() > 3.14 && circle.area() < 3.15}`);
+                console.log(`doc:${doc.print()}`);
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact =
+                new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out-class-accessor-parameter-properties"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals(
+                """
+                counter:2
+                area:true
+                doc:DOC:hello
+                """,
+                stdout.toString(UTF_8)
+        );
+    }
+
+    @Test
+    void supportsTopLevelAwaitOnAsyncIifeCallPattern() throws Exception {
+        final Path sourceFile = tempDir.resolve("top-level-await-async-iife.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                const value = await (async () => {
+                  return 42;
+                })();
+                console.log(value === 42);
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact =
+                new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out-top-level-await-async-iife"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals("true\n", stdout.toString(UTF_8));
+    }
+
+    @Test
+    void supportsNamespaceExportedFunctionsAndNumericEnumReverseMapping() throws Exception {
+        final Path sourceFile = tempDir.resolve("namespace-enum-reverse.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                enum Direction { Up, Down, Left, Right }
+                namespace MathOps {
+                  export function add(a: number, b: number) { return a + b; }
+                  export function mul(a: number, b: number) { return a * b; }
+                }
+
+                console.log(`reverse:${Direction[0]}`);
+                console.log(`ops:${MathOps.add(2, 3)}|${MathOps.mul(2, 3)}`);
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact =
+                new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out-namespace-enum-reverse"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals(
+                """
+                reverse:Up
+                ops:5|6
                 """,
                 stdout.toString(UTF_8)
         );
@@ -1124,6 +1723,42 @@ class JvmBytecodeCompilerTest {
         new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
 
         assertEquals("inherit=5,10\n", stdout.toString(UTF_8));
+    }
+
+    @Test
+    void supportsSuperMemberMethodCallsInDerivedMethods() throws Exception {
+        final Path sourceFile = tempDir.resolve("class-super-member-call.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                class A {
+                  greet(): string {
+                    return "A";
+                  }
+                }
+
+                class B extends A {
+                  greet(): string {
+                    return super.greet() + "B";
+                  }
+                }
+
+                class C extends B {
+                  greet(): string {
+                    return super.greet() + "C";
+                  }
+                }
+
+                console.log("super_chain=" + new C().greet());
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out14b"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals("super_chain=ABC\n", stdout.toString(UTF_8));
     }
 
     @Test
@@ -2475,6 +3110,332 @@ class JvmBytecodeCompilerTest {
     }
 
     @Test
+    void supportsTryStatementsWithEmptyCatchOrFinallyBodies() throws Exception {
+        final Path sourceFile = tempDir.resolve("empty-catch-finally.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                function withFinally(): string {
+                  try {
+                    return "try";
+                  } finally {
+                  }
+                }
+
+                try {
+                  throw "boom";
+                } catch {
+                }
+
+                console.log("finally=" + withFinally());
+                console.log("emptyCatch=ok");
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out22k8a"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals("finally=try\nemptyCatch=ok\n", stdout.toString(UTF_8));
+    }
+
+    @Test
+    void supportsErrorBuiltinClassExtensionAndThrowableInstanceofChecks() throws Exception {
+        final Path sourceFile = tempDir.resolve("error-builtin.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                class AppError extends Error {
+                  code: number;
+                  constructor(message: string, code: number) {
+                    super(message);
+                    this.code = code;
+                  }
+                }
+
+                try {
+                  throw new Error("inner");
+                } catch (e: any) {
+                  console.log("message=" + e.message);
+                }
+
+                try {
+                  throw new AppError("not found", 404);
+                } catch (e: any) {
+                  console.log("custom=" + (e.code === 404 && e.message === "not found"));
+                }
+
+                try {
+                  (null as any).x;
+                } catch (e: any) {
+                  console.log("instanceof=" + (e instanceof Error));
+                }
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out22k8b"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals("message=inner\ncustom=true\ninstanceof=true\n", stdout.toString(UTF_8));
+    }
+
+    @Test
+    void supportsErrorCauseAndAggregateErrorConstructorInTsj59aSubset() throws Exception {
+        final Path sourceFile = tempDir.resolve("error-cause-aggregate.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                try {
+                  try {
+                    throw new Error("root");
+                  } catch (inner) {
+                    throw new Error("wrapper", { cause: inner });
+                  }
+                } catch (e: any) {
+                  console.log("cause=" + (e.message === "wrapper" && e.cause.message === "root"));
+                }
+
+                const errors = [new Error("e1"), new Error("e2")];
+                const agg = new AggregateError(errors, "many");
+                console.log("agg=" + (agg.message === "many" && agg.errors.length === 2 && agg.errors[0].message === "e1"));
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out22k8c"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals("cause=true\nagg=true\n", stdout.toString(UTF_8));
+    }
+
+    @Test
+    void supportsJsonBuiltinParseStringifyAndReplacerInTsj59aSubset() throws Exception {
+        final Path sourceFile = tempDir.resolve("json-builtin.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                const encoded = JSON.stringify({ a: 1, b: 2 }, (key: string, value: any) => {
+                  if (key === "b") {
+                    return undefined;
+                  }
+                  return value;
+                });
+                console.log("encoded=" + encoded.includes("\\"a\\":1") + ":" + !encoded.includes("\\"b\\""));
+
+                const parsed = JSON.parse("{\\"x\\":3,\\"arr\\":[1,2]}");
+                console.log("parsed=" + (parsed.x === 3 && parsed.arr[1] === 2));
+
+                const roundtrip = JSON.parse(JSON.stringify({ nested: { name: "ok" } }));
+                console.log("roundtrip=" + (roundtrip.nested.name === "ok"));
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out22k8c"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals("encoded=true:true\nparsed=true\nroundtrip=true\n", stdout.toString(UTF_8));
+    }
+
+    @Test
+    void supportsMathNumberAndGlobalNumericBuiltinsInTsj59aSubset() throws Exception {
+        final Path sourceFile = tempDir.resolve("math-number-builtin.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                const mathOk =
+                  Math.floor(3.7) === 3
+                  && Math.ceil(3.2) === 4
+                  && Math.round(3.5) === 4
+                  && Math.PI > 3.14
+                  && Math.log10(1000) === 3;
+                console.log("math=" + mathOk);
+
+                const numberOk =
+                  Number("42") === 42
+                  && Number.isInteger(5) === true
+                  && Number.isFinite(Infinity) === false
+                  && Number.isNaN(NaN) === true;
+                console.log("number=" + numberOk);
+
+                const parseOk =
+                  parseInt("42") === 42
+                  && parseFloat("3.14") === 3.14;
+                console.log("parse=" + parseOk);
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out22k8d"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals("math=true\nnumber=true\nparse=true\n", stdout.toString(UTF_8));
+    }
+
+    @Test
+    void supportsObjectDateAndErrorSubtypeBuiltinsInTsj59aSubset() throws Exception {
+        final Path sourceFile = tempDir.resolve("object-date-error-builtin.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                const keys = Object.keys({ a: 1, b: 2 });
+                console.log("keys=" + (keys.length === 2 && keys[0] === "a"));
+
+                const now = Date.now();
+                const epoch = new Date(0);
+                console.log("date=" + (now > 0 && epoch.getTime() === 0 && epoch.toISOString().includes("1970")));
+
+                try {
+                  throw new TypeError("bad");
+                } catch (e: any) {
+                  console.log("type=" + (e instanceof TypeError && e instanceof Error && e.name === "TypeError"));
+                }
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out22k8e"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals("keys=true\ndate=true\ntype=true\n", stdout.toString(UTF_8));
+    }
+
+    @Test
+    void supportsArrayBuiltinMethodsAndHelpersInTsj59aSubset() throws Exception {
+        final Path sourceFile = tempDir.resolve("array-builtin.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                const mapped = [1, 2, 3].map((n: number) => n * 2);
+                const reduced = [1, 2, 3].reduce((acc: number, value: number) => acc + value, 0);
+                const from = Array.from("ab");
+                const filled = new Array(3).fill(0);
+                console.log("array=" + (
+                  mapped[2] === 6
+                  && reduced === 6
+                  && from[1] === "b"
+                  && Array.isArray(mapped)
+                  && filled[0] === 0
+                  && filled.length === 3
+                ));
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out22k8f"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals("array=true\n", stdout.toString(UTF_8));
+    }
+
+    @Test
+    void supportsMapAndSetBuiltinsInTsj59aSubset() throws Exception {
+        final Path sourceFile = tempDir.resolve("map-set-builtin.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                const map = new Map<string, number>();
+                map.set("a", 1);
+                map.set("b", 2);
+                const mapOk = map.get("a") === 1 && map.size === 2;
+
+                const set = new Set<number>();
+                set.add(1);
+                set.add(1);
+                set.add(2);
+                const setOk = set.size === 2 && set.has(2) === true;
+
+                console.log("mapset=" + (mapOk && setOk));
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out22k8g"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals("mapset=true\n", stdout.toString(UTF_8));
+    }
+
+    @Test
+    void supportsWeakCollectionsAndWeakRefBuiltinsInTsj59aSubset() throws Exception {
+        final Path sourceFile = tempDir.resolve("weak-builtins.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                const wm = new WeakMap<object, string>();
+                const k = { id: 1 };
+                wm.set(k, "one");
+                const wmOk = wm.get(k) === "one" && wm.has(k) === true;
+                wm.delete(k);
+                const wmDelOk = wm.has(k) === false;
+
+                const ws = new WeakSet<object>();
+                const o = { x: 1 };
+                ws.add(o);
+                const wsOk = ws.has(o) === true;
+                ws.delete(o);
+                const wsDelOk = ws.has(o) === false;
+
+                const target = { value: 42 };
+                const ref = new WeakRef(target);
+                const deref = ref.deref();
+                const wrOk = deref !== undefined && deref.value === 42;
+
+                console.log("weak=" + (wmOk && wmDelOk && wsOk && wsDelOk && wrOk));
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out22k8ga"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals("weak=true\n", stdout.toString(UTF_8));
+    }
+
+    @Test
+    void supportsRegexpLiteralAndConstructorBuiltinsInTsj59aSubset() throws Exception {
+        final Path sourceFile = tempDir.resolve("regexp-builtin.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                const re = /hello/i;
+                const testOk = re.test("HELLO");
+
+                const dynamic = new RegExp("test", "i");
+                const ctorOk = dynamic.test("TEST");
+
+                const all: string[] = [];
+                const digits = /\\d+/g;
+                let m;
+                while ((m = digits.exec("a1b22")) !== null) {
+                  all.push(m[0]);
+                }
+
+                const matchOk = "ab3cd".search(/\\d/) === 2;
+                const replaceOk = "aabaa".replace(/a/g, "x") === "xxbxx";
+                console.log("regex=" + (testOk && ctorOk && all.length === 2 && all[1] === "22" && matchOk && replaceOk));
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out22k8h"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals("regex=true\n", stdout.toString(UTF_8));
+    }
+
+    @Test
     void supportsAsyncFunctionExpressionWithAwaitInBinaryExpression() throws Exception {
         final Path sourceFile = tempDir.resolve("async-fn-expression.ts");
         Files.writeString(
@@ -3216,53 +4177,61 @@ class JvmBytecodeCompilerTest {
     }
 
     @Test
-    void rejectsDefaultImportWithFeatureDiagnosticMetadata() throws Exception {
+    void supportsDefaultImportWithOptionalNamedBindingsInTsj22() throws Exception {
         final Path module = tempDir.resolve("dep.ts");
         final Path entry = tempDir.resolve("main.ts");
-        Files.writeString(module, "export const value = 1;\n", UTF_8);
+        Files.writeString(
+                module,
+                """
+                const defaultValue = 41;
+                export default defaultValue;
+                export const value = 2;
+                """,
+                UTF_8
+        );
         Files.writeString(
                 entry,
                 """
-                import value from "./dep.ts";
-                console.log(value);
+                import renamedDefault, { value as named } from "./dep.ts";
+                console.log("default=" + renamedDefault + ",named=" + named);
                 """,
                 UTF_8
         );
 
-        final JvmCompilationException exception = org.junit.jupiter.api.Assertions.assertThrows(
-                JvmCompilationException.class,
-                () -> new JvmBytecodeCompiler().compile(entry, tempDir.resolve("out26a"))
-        );
-        assertUnsupportedFeature(
-                exception,
-                "TSJ22-IMPORT-DEFAULT",
-                "Use named imports"
-        );
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(entry, tempDir.resolve("out26a"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals("default=41,named=2\n", stdout.toString(UTF_8));
     }
 
     @Test
-    void rejectsNamespaceImportWithFeatureDiagnosticMetadata() throws Exception {
+    void supportsNamespaceImportInTsj22() throws Exception {
         final Path module = tempDir.resolve("dep.ts");
         final Path entry = tempDir.resolve("main.ts");
-        Files.writeString(module, "export const value = 1;\n", UTF_8);
+        Files.writeString(
+                module,
+                """
+                const defaultValue = 41;
+                export default defaultValue;
+                export const value = 7;
+                """,
+                UTF_8
+        );
         Files.writeString(
                 entry,
                 """
                 import * as ns from "./dep.ts";
-                console.log(ns.value);
+                console.log("ns=" + ns.default + ":" + ns.value);
                 """,
                 UTF_8
         );
 
-        final JvmCompilationException exception = org.junit.jupiter.api.Assertions.assertThrows(
-                JvmCompilationException.class,
-                () -> new JvmBytecodeCompiler().compile(entry, tempDir.resolve("out26"))
-        );
-        assertUnsupportedFeature(
-                exception,
-                "TSJ22-IMPORT-NAMESPACE",
-                "Use named imports"
-        );
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(entry, tempDir.resolve("out26"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals("ns=41:7\n", stdout.toString(UTF_8));
     }
 
     @Test
@@ -3306,7 +4275,28 @@ class JvmBytecodeCompilerTest {
     }
 
     @Test
+    void supportsJavaInteropBareStaticFieldValueImportsInTsj26() throws Exception {
+        dev.tsj.compiler.backend.jvm.fixtures.InteropFixtureType.GLOBAL = 100;
+        final Path entry = tempDir.resolve("interop-static-field-value.ts");
+        Files.writeString(
+                entry,
+                """
+                import { GLOBAL } from "java:dev.tsj.compiler.backend.jvm.fixtures.InteropFixtureType";
+                console.log("global=" + GLOBAL);
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(entry, tempDir.resolve("out26interop-static-field"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals("global=100\n", stdout.toString(UTF_8));
+    }
+
+    @Test
     void supportsTsj29InteropConstructorInstanceFieldsAndVarArgs() throws Exception {
+        dev.tsj.compiler.backend.jvm.fixtures.InteropFixtureType.GLOBAL = 100;
         final Path entry = tempDir.resolve("interop-tsj29.ts");
         Files.writeString(
                 entry,
@@ -3518,6 +4508,133 @@ class JvmBytecodeCompilerTest {
     }
 
     @Test
+    void supportsSwitchFallthroughAndDefaultInMiddleInTsj59aSubset() throws Exception {
+        final Path sourceFile = tempDir.resolve("switch-fallthrough.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                function fallthrough(n: number): string {
+                  let r = "";
+                  switch (n) {
+                    case 1: r += "one";
+                    case 2: r += "two"; break;
+                    case 3: r += "three"; break;
+                  }
+                  return r;
+                }
+
+                function midDefault(n: number): string {
+                  switch (n) {
+                    case 1: return "one";
+                    default: return "other";
+                    case 3: return "three";
+                  }
+                }
+
+                console.log("fall1=" + fallthrough(1));
+                console.log("fall2=" + fallthrough(2));
+                console.log("mid1=" + midDefault(1));
+                console.log("mid3=" + midDefault(3));
+                console.log("mid99=" + midDefault(99));
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact =
+                new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out59a-switch-fallthrough"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals(
+                "fall1=onetwo\nfall2=two\nmid1=one\nmid3=three\nmid99=other\n",
+                stdout.toString(UTF_8)
+        );
+    }
+
+    @Test
+    void supportsLabeledBreakAndContinueInTsj59aSubset() throws Exception {
+        final Path sourceFile = tempDir.resolve("labeled-loop-control-flow.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                let result1 = 0;
+                outer: for (let i = 0; i < 5; i++) {
+                  for (let j = 0; j < 5; j++) {
+                    if (j === 2) break outer;
+                    result1 = result1 + 1;
+                  }
+                }
+
+                let result2 = 0;
+                loop: for (let i = 0; i < 3; i++) {
+                  for (let j = 0; j < 3; j++) {
+                    if (j === 1) continue loop;
+                    result2 = result2 + 1;
+                  }
+                }
+
+                console.log("labeled_break=" + result1);
+                console.log("labeled_continue=" + result2);
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact =
+                new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out59a-labeled"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals("labeled_break=2\nlabeled_continue=3\n", stdout.toString(UTF_8));
+    }
+
+    @Test
+    void supportsCommaOperatorEvaluationOrderAndFinalValueInTsj59aSubset() throws Exception {
+        final Path sourceFile = tempDir.resolve("comma-operator.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                let a = 0;
+                const result = (a = a + 1, a = a + 2, a);
+                console.log("a=" + a);
+                console.log("result=" + result);
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact =
+                new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out59a-comma"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals("a=3\nresult=3\n", stdout.toString(UTF_8));
+    }
+
+    @Test
+    void supportsForLetLoopClosureCapturePerIteration() throws Exception {
+        final Path sourceFile = tempDir.resolve("for-let-loop-closure.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                const fns: (() => number)[] = [];
+                for (let i = 0; i < 3; i++) {
+                  fns.push(() => i);
+                }
+                console.log("v0=" + fns[0]());
+                console.log("v1=" + fns[1]());
+                console.log("v2=" + fns[2]());
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact =
+                new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out59a-for-let-loop"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals("v0=0\nv1=1\nv2=2\n", stdout.toString(UTF_8));
+    }
+
+    @Test
     void rejectsDynamicImportWithFeatureDiagnosticMetadata() throws Exception {
         final Path sourceFile = tempDir.resolve("dynamic-import.ts");
         Files.writeString(
@@ -3596,30 +4713,51 @@ class JvmBytecodeCompilerTest {
     }
 
     @Test
-    void rejectsProxyConstructorWithFeatureDiagnosticMetadata() throws Exception {
+    void supportsProxyConstructorReflectApiAndRevocableProxy() throws Exception {
         final Path sourceFile = tempDir.resolve("proxy.ts");
         Files.writeString(
                 sourceFile,
                 """
-                const target = { value: 1 };
-                const proxy = new Proxy(target, {});
-                console.log(proxy.value);
+                const target = { x: 1 };
+                const proxy = new Proxy(target, {
+                  get(obj: any, prop: string) {
+                    return prop in obj ? obj[prop] : -1;
+                  },
+                  set(obj: any, prop: string, value: any) {
+                    obj[prop] = value;
+                    return true;
+                  }
+                });
+                proxy.y = 7;
+                console.log("proxy_get=" + (proxy.x === 1 && proxy.missing === -1));
+                console.log("proxy_set=" + (target.y === 7));
+                console.log("reflect_get=" + (Reflect.get(proxy, "x") === 1));
+                Reflect.set(proxy, "x", 2);
+                console.log("reflect_set=" + (target.x === 2));
+                console.log("reflect_has=" + (Reflect.has(proxy, "x") === true));
+                console.log("reflect_keys=" + (Reflect.ownKeys({ a: 1, b: 2 }).length === 2));
+                const revocable = Proxy.revocable({ data: 42 }, {});
+                console.log("revocable=" + (revocable.proxy.data === 42));
                 """,
                 UTF_8
         );
 
-        final JvmCompilationException exception = org.junit.jupiter.api.Assertions.assertThrows(
-                JvmCompilationException.class,
-                () -> new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out31"))
-        );
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out31"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
 
-        assertUnsupportedFeature(
-                exception,
-                "TSJ15-PROXY",
-                "Proxy semantics are outside MVP"
+        assertEquals(
+                """
+                proxy_get=true
+                proxy_set=true
+                reflect_get=true
+                reflect_set=true
+                reflect_has=true
+                reflect_keys=true
+                revocable=true
+                """,
+                stdout.toString(UTF_8)
         );
-        assertEquals(2, exception.line());
-        assertEquals(sourceFile.toAbsolutePath().normalize().toString(), exception.sourceFile());
     }
 
     @Test
@@ -3719,6 +4857,96 @@ class JvmBytecodeCompilerTest {
         new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
 
         assertEquals("1\n", stdout.toString(UTF_8));
+    }
+
+    @Test
+    void supportsLegacyDecoratorsForClassMethodPropertyAndStaticMembers() throws Exception {
+        final Path sourceFile = tempDir.resolve("legacy-decorators.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                function sealed(target: any) {
+                  Object.seal(target);
+                  Object.seal(target.prototype);
+                }
+
+                @sealed
+                class Frozen {
+                  x = 1;
+                  method() { return this.x; }
+                }
+                const f = new Frozen();
+                console.log("class_dec:" + (f.method() === 1));
+
+                function log(_target: any, _key: string, descriptor: PropertyDescriptor) {
+                  const orig = descriptor.value;
+                  descriptor.value = function (...args: any[]) {
+                    return "logged:" + orig.apply(this, args);
+                  };
+                  return descriptor;
+                }
+
+                class Svc {
+                  @log
+                  hello(name: string) { return name; }
+                }
+                const svc = new Svc();
+                console.log("method_dec:" + (svc.hello("world") === "logged:world"));
+
+                function defaultVal(val: any) {
+                  return function (_target: any, key: string) {
+                    const symbol = Symbol(key);
+                    Object.defineProperty(_target, key, {
+                      get() { return this[symbol] ?? val; },
+                      set(v: any) { this[symbol] = v; }
+                    });
+                  };
+                }
+
+                class Config {
+                  @defaultVal(3000)
+                  port!: number;
+                  @defaultVal("localhost")
+                  host!: string;
+                }
+                const cfg = new Config();
+                console.log("prop_dec:" + (cfg.port === 3000 && cfg.host === "localhost"));
+
+                function addTag(tag: string) {
+                  return function (target: any) {
+                    target.prototype.tags = (target.prototype.tags || []).concat(tag);
+                  };
+                }
+
+                @addTag("a")
+                @addTag("b")
+                class Tagged {}
+                const t = new Tagged() as any;
+                console.log("multi_dec:" + (t.tags.length === 2));
+
+                class StaticSvc {
+                  @log
+                  static greet() { return "hello"; }
+                }
+                console.log("static_dec:" + (StaticSvc.greet() === "logged:hello"));
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out35"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals(
+                """
+                class_dec:true
+                method_dec:true
+                prop_dec:true
+                multi_dec:true
+                static_dec:true
+                """,
+                stdout.toString(UTF_8)
+        );
     }
 
     @Test
@@ -4011,16 +5239,30 @@ class JvmBytecodeCompilerTest {
     }
 
     @Test
-    void failsAstOnlyPathWhenNormalizedProgramIsUnavailable() throws Exception {
+    void supportsAstOnlyPathForForAwaitOfWithAsyncGeneratorAndPromiseArray() throws Exception {
         final Path sourceFile = tempDir.resolve("ast-only-unsupported.ts");
         Files.writeString(
                 sourceFile,
                 """
-                async function run() {
-                  for await (const item of [1, 2, 3]) {
-                    console.log(item);
+                async function* range(n: number) {
+                  for (let i = 0; i < n; i++) {
+                    yield i;
                   }
                 }
+
+                async function run() {
+                  const values: number[] = [];
+                  for await (const item of range(3)) {
+                    values.push(item);
+                  }
+                  const promised = [Promise.resolve(4), Promise.resolve(5)];
+                  let sum = 0;
+                  for await (const value of promised) {
+                    sum = sum + value;
+                  }
+                  console.log("for-await=" + (values.length === 3 && values[2] === 2 && sum === 9));
+                }
+                run();
                 """,
                 UTF_8
         );
@@ -4031,12 +5273,11 @@ class JvmBytecodeCompilerTest {
             System.clearProperty(LEGACY_TOKENIZER_PROPERTY);
             System.setProperty(AST_NO_FALLBACK_PROPERTY, "true");
 
-            final JvmCompilationException exception = org.junit.jupiter.api.Assertions.assertThrows(
-                    JvmCompilationException.class,
-                    () -> new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out58f"))
-            );
+            final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out58f"));
+            final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+            new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
 
-            assertEquals("TSJ-BACKEND-AST-LOWERING", exception.code());
+            assertEquals("for-await=true\n", stdout.toString(UTF_8));
         } finally {
             restoreSystemProperty(LEGACY_TOKENIZER_PROPERTY, previousLegacyTokenizer);
             restoreSystemProperty(AST_NO_FALLBACK_PROPERTY, previousAstNoFallback);

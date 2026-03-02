@@ -125,6 +125,7 @@ Behavior:
      `--interop-audit-log`, `--interop-audit-aggregate`, `--interop-trace`.
 2. Reads generated artifact.
 3. Executes generated JVM class with artifact output classes plus configured interop classpath entries.
+   - Program argv passthrough is currently not supported; TSJ invokes generated `main` with empty args (`String[0]`).
    - Classloader isolation subset:
      `--classloader-isolation shared|app-isolated` (default `shared`).
    - App-isolated conflict/boundary diagnostics:

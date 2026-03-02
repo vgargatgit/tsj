@@ -283,25 +283,98 @@
     "statements" : [ {
       "column" : 1,
       "expression" : {
+        "arguments" : [ ],
+        "callee" : {
+          "async" : false,
+          "body" : [ {
+            "column" : 1,
+            "expression" : {
+              "column" : 1,
+              "kind" : "UndefinedLiteral",
+              "line" : 1
+            },
+            "kind" : "VariableDeclaration",
+            "line" : 1,
+            "name" : "N_ns_1"
+          }, {
+            "column" : 1,
+            "expression" : {
+              "column" : 1,
+              "entries" : [ {
+                "key" : "value",
+                "value" : {
+                  "column" : 24,
+                  "kind" : "NumberLiteral",
+                  "line" : 2,
+                  "text" : "1"
+                }
+              }, {
+                "key" : "Nested",
+                "value" : {
+                  "column" : 3,
+                  "entries" : [ {
+                    "key" : "pick",
+                    "value" : {
+                      "async" : false,
+                      "body" : [ {
+                        "column" : 7,
+                        "expression" : {
+                          "column" : 14,
+                          "kind" : "MemberAccessExpression",
+                          "line" : 6,
+                          "member" : "value",
+                          "receiver" : {
+                            "column" : 14,
+                            "kind" : "VariableExpression",
+                            "line" : 6,
+                            "name" : "N_ns_1"
+                          }
+                        },
+                        "kind" : "ReturnStatement",
+                        "line" : 6
+                      } ],
+                      "column" : 5,
+                      "kind" : "FunctionExpression",
+                      "line" : 5,
+                      "parameters" : [ ],
+                      "thisMode" : "DYNAMIC"
+                    }
+                  } ],
+                  "kind" : "ObjectLiteralExpression",
+                  "line" : 4
+                }
+              } ],
+              "kind" : "ObjectLiteralExpression",
+              "line" : 1
+            },
+            "kind" : "AssignmentStatement",
+            "line" : 1,
+            "target" : {
+              "column" : 1,
+              "kind" : "VariableExpression",
+              "line" : 1,
+              "name" : "N_ns_1"
+            }
+          }, {
+            "column" : 1,
+            "expression" : {
+              "column" : 1,
+              "kind" : "VariableExpression",
+              "line" : 1,
+              "name" : "N_ns_1"
+            },
+            "kind" : "ReturnStatement",
+            "line" : 1
+          } ],
+          "column" : 1,
+          "generator" : false,
+          "kind" : "FunctionExpression",
+          "line" : 1,
+          "parameters" : [ ],
+          "thisMode" : "LEXICAL"
+        },
         "column" : 1,
-        "entries" : [ {
-          "key" : "value",
-          "value" : {
-            "column" : 24,
-            "kind" : "NumberLiteral",
-            "line" : 2,
-            "text" : "1"
-          }
-        }, {
-          "key" : "Nested",
-          "value" : {
-            "column" : 3,
-            "entries" : [ ],
-            "kind" : "ObjectLiteralExpression",
-            "line" : 4
-          }
-        } ],
-        "kind" : "ObjectLiteralExpression",
+        "kind" : "CallExpression",
         "line" : 1
       },
       "kind" : "VariableDeclaration",

@@ -61,7 +61,8 @@ class TsjInvocationConversionCertificationTest {
                 .filter(result -> "reflective-nonpublic-diagnostic".equals(result.scenario()))
                 .toList();
         assertEquals(1, reflectiveFailure.size());
-        assertEquals("TSJ-RUN-006", reflectiveFailure.getFirst().diagnosticCode());
-        assertTrue(reflectiveFailure.getFirst().notes().contains("TSJ-INTEROP-REFLECTIVE"));
+        assertEquals("TSJ-INTEROP-INVALID", reflectiveFailure.getFirst().diagnosticCode());
+        assertTrue(reflectiveFailure.getFirst().notes().contains("hiddenStatic"));
+        assertTrue(reflectiveFailure.getFirst().notes().contains("not found or not static"));
     }
 }

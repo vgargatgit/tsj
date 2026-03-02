@@ -40,7 +40,7 @@ public final class JvmBytecodeCompiler {
             "^\\s*import\\s*\\{([^}]*)}\\s*from\\s*[\"']([^\"']+)[\"']\\s*;\\s*$"
     );
     private static final Pattern DEFAULT_IMPORT_PATTERN = Pattern.compile(
-            "^\\s*import\\s+([A-Za-z_$][A-Za-z0-9_$]*)(?:\\s*,\\s*\\{[^}]*})?\\s*from\\s*[\"']([^\"']+)[\"']\\s*;\\s*$"
+            "^\\s*import\\s+([A-Za-z_$][A-Za-z0-9_$]*)(?:\\s*,\\s*\\{([^}]*)})?\\s*from\\s*[\"']([^\"']+)[\"']\\s*;\\s*$"
     );
     private static final Pattern NAMESPACE_IMPORT_PATTERN = Pattern.compile(
             "^\\s*import\\s*\\*\\s*as\\s*([A-Za-z_$][A-Za-z0-9_$]*)\\s*from\\s*[\"']([^\"']+)[\"']\\s*;\\s*$"
@@ -55,7 +55,8 @@ public final class JvmBytecodeCompiler {
             "function", "const", "let", "var", "if", "else", "while", "return",
             "true", "false", "null", "for", "export", "import", "from",
             "class", "extends", "this", "super", "new", "undefined",
-            "async", "await", "throw", "delete", "break", "continue", "do"
+            "async", "await", "throw", "delete", "break", "continue", "do",
+            "typeof", "in", "instanceof"
     );
     private static final Set<String> IMPLICIT_GLOBAL_BUILTINS = Set.of(
             "Error",
@@ -84,9 +85,6 @@ public final class JvmBytecodeCompiler {
     private static final String FEATURE_DYNAMIC_IMPORT = "TSJ15-DYNAMIC-IMPORT";
     private static final String FEATURE_EVAL = "TSJ15-EVAL";
     private static final String FEATURE_FUNCTION_CONSTRUCTOR = "TSJ15-FUNCTION-CONSTRUCTOR";
-    private static final String FEATURE_PROXY = "TSJ15-PROXY";
-    private static final String FEATURE_IMPORT_DEFAULT = "TSJ22-IMPORT-DEFAULT";
-    private static final String FEATURE_IMPORT_NAMESPACE = "TSJ22-IMPORT-NAMESPACE";
     private static final String FEATURE_INTEROP_SYNTAX = "TSJ26-INTEROP-SYNTAX";
     private static final String FEATURE_INTEROP_MODULE_SPECIFIER = "TSJ26-INTEROP-MODULE-SPECIFIER";
     private static final String FEATURE_INTEROP_BINDING = "TSJ26-INTEROP-BINDING";
@@ -94,6 +92,31 @@ public final class JvmBytecodeCompiler {
     private static final String ASYNC_CONTINUE_SIGNAL_FIELD = "__TSJ_ASYNC_CONTINUE_SIGNAL";
     private static final String TOP_LEVEL_CLASS_MAP_FIELD = "__TSJ_TOP_LEVEL_CLASSES";
     private static final String BOOTSTRAP_GUARD_FIELD = "__TSJ_BOOTSTRAPPED";
+    private static final String ERROR_BUILTIN_CELL_FIELD = "ERROR_BUILTIN_CELL";
+    private static final String STRING_BUILTIN_CELL_FIELD = "STRING_BUILTIN_CELL";
+    private static final String JSON_BUILTIN_CELL_FIELD = "JSON_BUILTIN_CELL";
+    private static final String MATH_BUILTIN_CELL_FIELD = "MATH_BUILTIN_CELL";
+    private static final String NUMBER_BUILTIN_CELL_FIELD = "NUMBER_BUILTIN_CELL";
+    private static final String BIGINT_BUILTIN_CELL_FIELD = "BIGINT_BUILTIN_CELL";
+    private static final String SYMBOL_BUILTIN_CELL_FIELD = "SYMBOL_BUILTIN_CELL";
+    private static final String OBJECT_BUILTIN_CELL_FIELD = "OBJECT_BUILTIN_CELL";
+    private static final String REFLECT_BUILTIN_CELL_FIELD = "REFLECT_BUILTIN_CELL";
+    private static final String PROXY_BUILTIN_CELL_FIELD = "PROXY_BUILTIN_CELL";
+    private static final String ARRAY_BUILTIN_CELL_FIELD = "ARRAY_BUILTIN_CELL";
+    private static final String MAP_BUILTIN_CELL_FIELD = "MAP_BUILTIN_CELL";
+    private static final String SET_BUILTIN_CELL_FIELD = "SET_BUILTIN_CELL";
+    private static final String WEAK_MAP_BUILTIN_CELL_FIELD = "WEAK_MAP_BUILTIN_CELL";
+    private static final String WEAK_SET_BUILTIN_CELL_FIELD = "WEAK_SET_BUILTIN_CELL";
+    private static final String WEAK_REF_BUILTIN_CELL_FIELD = "WEAK_REF_BUILTIN_CELL";
+    private static final String DATE_BUILTIN_CELL_FIELD = "DATE_BUILTIN_CELL";
+    private static final String REGEXP_BUILTIN_CELL_FIELD = "REGEXP_BUILTIN_CELL";
+    private static final String AGGREGATE_ERROR_BUILTIN_CELL_FIELD = "AGGREGATE_ERROR_BUILTIN_CELL";
+    private static final String TYPE_ERROR_BUILTIN_CELL_FIELD = "TYPE_ERROR_BUILTIN_CELL";
+    private static final String RANGE_ERROR_BUILTIN_CELL_FIELD = "RANGE_ERROR_BUILTIN_CELL";
+    private static final String PARSE_INT_BUILTIN_CELL_FIELD = "PARSE_INT_BUILTIN_CELL";
+    private static final String PARSE_FLOAT_BUILTIN_CELL_FIELD = "PARSE_FLOAT_BUILTIN_CELL";
+    private static final String INFINITY_BUILTIN_CELL_FIELD = "INFINITY_BUILTIN_CELL";
+    private static final String NAN_BUILTIN_CELL_FIELD = "NAN_BUILTIN_CELL";
     private static final String UNDEFINED_BUILTIN_CELL_FIELD = "UNDEFINED_BUILTIN_CELL";
     private static final String GUIDANCE_DYNAMIC_IMPORT =
             "Use static relative imports (`import { x } from \"./m.ts\"`) in TSJ MVP.";
@@ -101,12 +124,6 @@ public final class JvmBytecodeCompiler {
             "Replace runtime code evaluation with explicit functions or precompiled modules.";
     private static final String GUIDANCE_FUNCTION_CONSTRUCTOR =
             "Replace runtime code evaluation with explicit functions or precompiled modules.";
-    private static final String GUIDANCE_PROXY =
-            "Proxy semantics are outside MVP; use explicit object wrappers for supported behavior.";
-    private static final String GUIDANCE_IMPORT_DEFAULT =
-            "Use named imports (`import { x } from \"./m.ts\"`) in current TSJ module subset.";
-    private static final String GUIDANCE_IMPORT_NAMESPACE =
-            "Use named imports (`import { x } from \"./m.ts\"`) in current TSJ module subset.";
     private static final String GUIDANCE_INTEROP_SYNTAX =
             "Use named imports with java modules, for example `import { max } from \"java:java.lang.Math\"`.";
     private static final String GUIDANCE_INTEROP_MODULE_SPECIFIER =
@@ -151,8 +168,7 @@ public final class JvmBytecodeCompiler {
             parseResult = new ParseResult(new Program(List.of()), Map.of());
         } else {
             final BundleResult bundleResult = bundleModules(normalizedSource);
-            final String sourceText = preprocessTsj34Decorators(bundleResult.sourceText());
-            parseResult = parseProgram(sourceText, normalizedSource, bundleResult);
+            parseResult = parseProgram(bundleResult.sourceText(), normalizedSource, bundleResult);
         }
         final Program parsedProgram = parseResult.program();
         final Map<Statement, SourceLocation> parsedStatementLocations = parseResult.statementLocations();
@@ -353,8 +369,11 @@ public final class JvmBytecodeCompiler {
             final ModuleSource module = modules.get(index);
             initFunctionByModule.put(module.sourceFile(), "__tsj_init_module_" + index);
             final Map<String, String> exportSymbols = new LinkedHashMap<>();
-            for (String exportName : module.exportNames()) {
-                exportSymbols.put(exportName, exportGlobalSymbol(index, exportName));
+            for (ExportBinding exportBinding : module.exportBindings()) {
+                exportSymbols.putIfAbsent(
+                        exportBinding.exportName(),
+                        exportGlobalSymbol(index, exportBinding.exportName())
+                );
             }
             exportSymbolsByModule.put(module.sourceFile(), exportSymbols);
         }
@@ -404,6 +423,18 @@ public final class JvmBytecodeCompiler {
                     }
                     continue;
                 }
+                if (moduleImport.kind() == ModuleImportKind.NAMESPACE) {
+                    final Map<String, String> dependencyExports = exportSymbolsByModule.get(moduleImport.dependency());
+                    appendBundledLine(
+                            builder,
+                            lineOrigins,
+                            "  const " + moduleImport.namespaceLocalName() + " = "
+                                    + buildNamespaceImportObjectLiteral(dependencyExports) + ";",
+                            module.sourceFile(),
+                            moduleImport.line()
+                    );
+                    continue;
+                }
                 final Map<String, String> dependencyExports = exportSymbolsByModule.get(moduleImport.dependency());
                 for (ImportBinding binding : moduleImport.bindings()) {
                     final String exportSymbol = dependencyExports.get(binding.importedName());
@@ -438,11 +469,12 @@ public final class JvmBytecodeCompiler {
             }
 
             final Map<String, String> moduleExports = exportSymbolsByModule.get(module.sourceFile());
-            for (String exportName : module.exportNames()) {
+            for (ExportBinding exportBinding : module.exportBindings()) {
                 appendBundledLine(
                         builder,
                         lineOrigins,
-                        "  " + moduleExports.get(exportName) + " = " + exportName + ";",
+                        "  " + moduleExports.get(exportBinding.exportName()) + " = "
+                                + exportBinding.localName() + ";",
                         null,
                         -1
                 );
@@ -488,7 +520,7 @@ public final class JvmBytecodeCompiler {
         final List<ModuleImport> imports = new ArrayList<>();
         final List<String> bodyLines = new ArrayList<>();
         final List<Integer> bodyLineNumbers = new ArrayList<>();
-        final LinkedHashSet<String> exportNames = new LinkedHashSet<>();
+        final Map<String, String> exportBindings = new LinkedHashMap<>();
         boolean requiresAsyncInit = false;
         final String[] lines = sourceText.replace("\r\n", "\n").split("\n", -1);
         for (int index = 0; index < lines.length; index++) {
@@ -547,12 +579,6 @@ public final class JvmBytecodeCompiler {
                     index = importEndIndex;
                     continue;
                 }
-                if (!importPath.startsWith(".")) {
-                    bodyLines.add(importCandidate);
-                    bodyLineNumbers.add(importStartLine);
-                    index = importEndIndex;
-                    continue;
-                }
                 final Path dependency = resolveImport(normalizedModule, importPath, importStartLine);
                 collectModule(dependency, orderedModules, visiting);
                 imports.add(
@@ -566,7 +592,9 @@ public final class JvmBytecodeCompiler {
                 continue;
             }
             if (defaultImportMatcher.matches()) {
-                final String importPath = defaultImportMatcher.group(2);
+                final String defaultBindingName = defaultImportMatcher.group(1);
+                final String namedBindings = defaultImportMatcher.group(2);
+                final String importPath = defaultImportMatcher.group(3);
                 if (isInteropImportPath(importPath)) {
                     throw unsupportedModuleFeature(
                             normalizedModule,
@@ -582,15 +610,25 @@ public final class JvmBytecodeCompiler {
                     index = importEndIndex;
                     continue;
                 }
-                throw unsupportedModuleFeature(
-                        normalizedModule,
-                        importStartLine,
-                        FEATURE_IMPORT_DEFAULT,
-                        "Default imports are unsupported in current TSJ module subset.",
-                        GUIDANCE_IMPORT_DEFAULT
+                final Path dependency = resolveImport(normalizedModule, importPath, importStartLine);
+                collectModule(dependency, orderedModules, visiting);
+                final List<ImportBinding> parsedBindings = new ArrayList<>();
+                parsedBindings.add(new ImportBinding("default", defaultBindingName));
+                if (namedBindings != null && !namedBindings.isBlank()) {
+                    parsedBindings.addAll(parseNamedImportBindings(namedBindings, normalizedModule, importStartLine));
+                }
+                imports.add(
+                        ModuleImport.named(
+                                dependency,
+                                List.copyOf(parsedBindings),
+                                importStartLine
+                        )
                 );
+                index = importEndIndex;
+                continue;
             }
             if (namespaceImportMatcher.matches()) {
+                final String localNamespaceName = namespaceImportMatcher.group(1);
                 final String importPath = namespaceImportMatcher.group(2);
                 if (isInteropImportPath(importPath)) {
                     throw unsupportedModuleFeature(
@@ -607,13 +645,17 @@ public final class JvmBytecodeCompiler {
                     index = importEndIndex;
                     continue;
                 }
-                throw unsupportedModuleFeature(
-                        normalizedModule,
-                        importStartLine,
-                        FEATURE_IMPORT_NAMESPACE,
-                        "Namespace imports are unsupported in current TSJ module subset.",
-                        GUIDANCE_IMPORT_NAMESPACE
+                final Path dependency = resolveImport(normalizedModule, importPath, importStartLine);
+                collectModule(dependency, orderedModules, visiting);
+                imports.add(
+                        ModuleImport.namespace(
+                                dependency,
+                                localNamespaceName,
+                                importStartLine
+                        )
                 );
+                index = importEndIndex;
+                continue;
             }
             if (sideEffectImportMatcher.matches()) {
                 final String importPath = sideEffectImportMatcher.group(1);
@@ -625,12 +667,6 @@ public final class JvmBytecodeCompiler {
                             "Java interop imports must declare named bindings in TSJ-26.",
                             GUIDANCE_INTEROP_SYNTAX
                     );
-                }
-                if (!importPath.startsWith(".")) {
-                    bodyLines.add(importCandidate);
-                    bodyLineNumbers.add(importStartLine);
-                    index = importEndIndex;
-                    continue;
                 }
                 final Path dependency = resolveImport(normalizedModule, importPath, importStartLine);
                 collectModule(dependency, orderedModules, visiting);
@@ -650,7 +686,9 @@ public final class JvmBytecodeCompiler {
             if (exportRewrite != null) {
                 bodyLines.add(exportRewrite.rewrittenLine());
                 bodyLineNumbers.add(index + 1);
-                exportNames.addAll(exportRewrite.exportedNames());
+                for (ExportBinding exportBinding : exportRewrite.exportedBindings()) {
+                    exportBindings.put(exportBinding.exportName(), exportBinding.localName());
+                }
                 requiresAsyncInit = requiresAsyncInit || lineContainsAwaitKeyword(exportRewrite.rewrittenLine());
                 continue;
             }
@@ -666,7 +704,10 @@ public final class JvmBytecodeCompiler {
                         List.copyOf(imports),
                         List.copyOf(bodyLines),
                         List.copyOf(bodyLineNumbers),
-                        List.copyOf(exportNames),
+                        exportBindings.entrySet()
+                                .stream()
+                                .map(entry -> new ExportBinding(entry.getKey(), entry.getValue()))
+                                .toList(),
                         requiresAsyncInit
                 )
         );
@@ -733,32 +774,92 @@ public final class JvmBytecodeCompiler {
         if (!trimmed.startsWith("export ")) {
             return null;
         }
-        final List<String> exportedNames = parseExportedNames(trimmed, lineNumber);
-        if (exportedNames.isEmpty()) {
+        final Matcher defaultNamedFunctionMatcher = Pattern.compile(
+                "^export\\s+default\\s+function\\s+([A-Za-z_$][A-Za-z0-9_$]*)\\b"
+        ).matcher(trimmed);
+        if (defaultNamedFunctionMatcher.find()) {
+            final String localName = defaultNamedFunctionMatcher.group(1);
+            return new ExportRewrite(
+                    line.replaceFirst("^(\\s*)export\\s+default\\s+", "$1"),
+                    List.of(new ExportBinding("default", localName))
+            );
+        }
+        final Matcher defaultNamedClassMatcher = Pattern.compile(
+                "^export\\s+default\\s+class\\s+([A-Za-z_$][A-Za-z0-9_$]*)\\b"
+        ).matcher(trimmed);
+        if (defaultNamedClassMatcher.find()) {
+            final String localName = defaultNamedClassMatcher.group(1);
+            return new ExportRewrite(
+                    line.replaceFirst("^(\\s*)export\\s+default\\s+", "$1"),
+                    List.of(new ExportBinding("default", localName))
+            );
+        }
+        final Matcher defaultAnonymousFunctionMatcher = Pattern.compile(
+                "^export\\s+default\\s+function\\s*\\("
+        ).matcher(trimmed);
+        if (defaultAnonymousFunctionMatcher.find()) {
+            final String localName = "__tsj_default_export_" + lineNumber;
+            return new ExportRewrite(
+                    line.replaceFirst(
+                            "^(\\s*)export\\s+default\\s+function\\s*\\(",
+                            "$1const " + localName + " = function("
+                    ),
+                    List.of(new ExportBinding("default", localName))
+            );
+        }
+        final Matcher defaultAnonymousClassMatcher = Pattern.compile(
+                "^export\\s+default\\s+class\\b"
+        ).matcher(trimmed);
+        if (defaultAnonymousClassMatcher.find()) {
+            final String localName = "__tsj_default_export_" + lineNumber;
+            return new ExportRewrite(
+                    line.replaceFirst(
+                            "^(\\s*)export\\s+default\\s+class\\b",
+                            "$1const " + localName + " = class"
+                    ),
+                    List.of(new ExportBinding("default", localName))
+            );
+        }
+        final Matcher defaultMatcher = Pattern.compile("^export\\s+default\\s+(.+?);?$").matcher(trimmed);
+        if (defaultMatcher.find()) {
+            final String expression = defaultMatcher.group(1).trim();
+            if (!expression.endsWith("{")) {
+                final String localName = "__tsj_default_export_" + lineNumber;
+                return new ExportRewrite(
+                        "const " + localName + " = " + expression + ";",
+                        List.of(new ExportBinding("default", localName))
+                );
+            }
+        }
+        final List<ExportBinding> exportedBindings = parseExportedBindings(trimmed);
+        if (exportedBindings.isEmpty()) {
             return new ExportRewrite(line, List.of());
         }
         final String rewrittenLine = line.replaceFirst("^(\\s*)export\\s+", "$1");
-        return new ExportRewrite(rewrittenLine, exportedNames);
+        return new ExportRewrite(rewrittenLine, exportedBindings);
     }
 
-    private static List<String> parseExportedNames(final String trimmedExportLine, final int lineNumber) {
+    private static List<ExportBinding> parseExportedBindings(final String trimmedExportLine) {
         final Matcher asyncFunctionMatcher = Pattern.compile(
                 "^export\\s+async\\s+function\\s+([A-Za-z_$][A-Za-z0-9_$]*)\\b"
         ).matcher(trimmedExportLine);
         if (asyncFunctionMatcher.find()) {
-            return List.of(asyncFunctionMatcher.group(1));
+            final String name = asyncFunctionMatcher.group(1);
+            return List.of(new ExportBinding(name, name));
         }
         final Matcher functionMatcher = Pattern.compile(
                 "^export\\s+function\\s+([A-Za-z_$][A-Za-z0-9_$]*)\\b"
         ).matcher(trimmedExportLine);
         if (functionMatcher.find()) {
-            return List.of(functionMatcher.group(1));
+            final String name = functionMatcher.group(1);
+            return List.of(new ExportBinding(name, name));
         }
         final Matcher classMatcher = Pattern.compile(
                 "^export\\s+class\\s+([A-Za-z_$][A-Za-z0-9_$]*)\\b"
         ).matcher(trimmedExportLine);
         if (classMatcher.find()) {
-            return List.of(classMatcher.group(1));
+            final String name = classMatcher.group(1);
+            return List.of(new ExportBinding(name, name));
         }
         final Matcher variableMatcher = Pattern.compile(
                 "^export\\s+(?:const|let|var)\\s+(.+?);?$"
@@ -779,7 +880,7 @@ public final class JvmBytecodeCompiler {
             if (!isValidTsIdentifier(declarationHead)) {
                 return List.of();
             }
-            return List.of(declarationHead);
+            return List.of(new ExportBinding(declarationHead, declarationHead));
         }
         return List.of();
     }
@@ -875,6 +976,26 @@ public final class JvmBytecodeCompiler {
         return value.replace("\\", "\\\\").replace("\"", "\\\"");
     }
 
+    private static String buildNamespaceImportObjectLiteral(final Map<String, String> dependencyExports) {
+        if (dependencyExports == null || dependencyExports.isEmpty()) {
+            return "{}";
+        }
+        final StringBuilder builder = new StringBuilder("{");
+        boolean first = true;
+        for (Map.Entry<String, String> entry : dependencyExports.entrySet()) {
+            if (!first) {
+                builder.append(", ");
+            }
+            first = false;
+            builder.append("\"")
+                    .append(escapeJavaLiteral(entry.getKey()))
+                    .append("\": ")
+                    .append(entry.getValue());
+        }
+        builder.append("}");
+        return builder.toString();
+    }
+
     private static void appendBundledLine(
             final StringBuilder builder,
             final List<SourceLineOrigin> lineOrigins,
@@ -891,7 +1012,7 @@ public final class JvmBytecodeCompiler {
             return false;
         }
         final ModuleSource module = modules.get(0);
-        return module.imports().isEmpty() && module.exportNames().isEmpty();
+        return module.imports().isEmpty() && module.exportBindings().isEmpty();
     }
 
     private static boolean isValidTsIdentifier(final String value) {
@@ -1398,6 +1519,19 @@ public final class JvmBytecodeCompiler {
                     bundleResult,
                     statementLocations
             );
+            case "LabeledStatement" -> locateStatementFromAst(
+                    new LabeledStatement(
+                            requiredText(statementNode, "label"),
+                            lowerStatementFromAst(
+                                    requiredNode(statementNode, "statement"),
+                                    bundleResult,
+                                    statementLocations
+                            )
+                    ),
+                    statementNode,
+                    bundleResult,
+                    statementLocations
+            );
             case "IfStatement" -> locateStatementFromAst(
                     new IfStatement(
                             lowerExpressionFromAst(requiredNode(statementNode, "condition"), bundleResult),
@@ -1428,9 +1562,14 @@ public final class JvmBytecodeCompiler {
                     bundleResult,
                     statementLocations
             );
-            case "BreakStatement" -> locateStatementFromAst(new BreakStatement(), statementNode, bundleResult, statementLocations);
+            case "BreakStatement" -> locateStatementFromAst(
+                    new BreakStatement(nullableText(statementNode, "label")),
+                    statementNode,
+                    bundleResult,
+                    statementLocations
+            );
             case "ContinueStatement" -> locateStatementFromAst(
-                    new ContinueStatement(),
+                    new ContinueStatement(nullableText(statementNode, "label")),
                     statementNode,
                     bundleResult,
                     statementLocations
@@ -1495,7 +1634,8 @@ public final class JvmBytecodeCompiler {
                 requiredText(declarationNode, "name"),
                 List.copyOf(parameters),
                 List.copyOf(body),
-                declarationNode.path("async").asBoolean(false)
+                declarationNode.path("async").asBoolean(false),
+                declarationNode.path("generator").asBoolean(false)
         );
     }
 
@@ -1594,6 +1734,10 @@ public final class JvmBytecodeCompiler {
                     requiredText(expressionNode, "operator"),
                     lowerExpressionFromAst(requiredNode(expressionNode, "expression"), bundleResult)
             );
+            case "YieldExpression" -> new YieldExpression(
+                    lowerExpressionFromAst(requiredNode(expressionNode, "expression"), bundleResult),
+                    expressionNode.path("delegate").asBoolean(false)
+            );
             case "AwaitExpression" -> new AwaitExpression(
                     lowerExpressionFromAst(requiredNode(expressionNode, "expression"), bundleResult)
             );
@@ -1650,15 +1794,6 @@ public final class JvmBytecodeCompiler {
             case "NewExpression" -> {
                 final Expression constructor = lowerExpressionFromAst(requiredNode(expressionNode, "constructor"), bundleResult);
                 final String constructorName = resolveGlobalConstructorNameFromAstExpression(constructor);
-                if ("Proxy".equals(constructorName)) {
-                    throw unsupportedFeatureFromAst(
-                            expressionNode,
-                            bundleResult,
-                            FEATURE_PROXY,
-                            "`new Proxy(...)` is unsupported in TSJ MVP.",
-                            GUIDANCE_PROXY
-                    );
-                }
                 if ("Function".equals(constructorName)) {
                     throw unsupportedFeatureFromAst(
                             expressionNode,
@@ -1680,6 +1815,7 @@ public final class JvmBytecodeCompiler {
                     lowerStringList(requiredArray(expressionNode, "parameters")),
                     lowerStatementListWithoutLocations(requiredArray(expressionNode, "body")),
                     expressionNode.path("async").asBoolean(false),
+                    expressionNode.path("generator").asBoolean(false),
                     parseFunctionThisMode(requiredText(expressionNode, "thisMode"))
             );
             default -> throw new AstLoweringUnsupportedException(
@@ -1932,7 +2068,8 @@ public final class JvmBytecodeCompiler {
             );
         }
         String value = rawLiteral.replace("_", "");
-        if (value.endsWith("n") || value.endsWith("N")) {
+        final boolean bigIntLiteral = value.endsWith("n") || value.endsWith("N");
+        if (bigIntLiteral) {
             value = value.substring(0, value.length() - 1);
         }
         if (value.isEmpty()) {
@@ -1948,19 +2085,26 @@ public final class JvmBytecodeCompiler {
         }
 
         try {
+            if (bigIntLiteral && (value.contains(".") || value.contains("e") || value.contains("E"))) {
+                throw new NumberFormatException("BigInt literals cannot include decimals or exponents.");
+            }
             if (value.startsWith("0x") || value.startsWith("0X")) {
-                return new BigInteger(value.substring(2), 16).toString();
+                final String normalized = new BigInteger(value.substring(2), 16).toString();
+                return bigIntLiteral ? normalized + "n" : normalized;
             }
             if (value.startsWith("0b") || value.startsWith("0B")) {
-                return new BigInteger(value.substring(2), 2).toString();
+                final String normalized = new BigInteger(value.substring(2), 2).toString();
+                return bigIntLiteral ? normalized + "n" : normalized;
             }
             if (value.startsWith("0o") || value.startsWith("0O")) {
-                return new BigInteger(value.substring(2), 8).toString();
+                final String normalized = new BigInteger(value.substring(2), 8).toString();
+                return bigIntLiteral ? normalized + "n" : normalized;
             }
             if (value.contains(".") || value.contains("e") || value.contains("E")) {
                 return Double.toString(Double.parseDouble(value));
             }
-            return new BigInteger(value, 10).toString();
+            final String normalized = new BigInteger(value, 10).toString();
+            return bigIntLiteral ? normalized + "n" : normalized;
         } catch (final NumberFormatException | ArithmeticException ex) {
             throw new JvmCompilationException(
                     "TSJ-BACKEND-PARSE",
@@ -2111,9 +2255,20 @@ public final class JvmBytecodeCompiler {
                 tokens.add(new Token(TokenType.STRING, value.toString(), line, startColumn));
                 continue;
             }
+            final String four = index + 4 <= source.length() ? source.substring(index, index + 4) : "";
+            if (">>>=".equals(four)) {
+                tokens.add(new Token(TokenType.SYMBOL, four, line, column));
+                index += 4;
+                column += 4;
+                continue;
+            }
             final String three = index + 3 <= source.length() ? source.substring(index, index + 3) : "";
             if ("===".equals(three)
                     || "!==".equals(three)
+                    || ">>>".equals(three)
+                    || "<<=".equals(three)
+                    || ">>=".equals(three)
+                    || "**=".equals(three)
                     || "&&=".equals(three)
                     || "||=".equals(three)
                     || "??=".equals(three)) {
@@ -2127,6 +2282,9 @@ public final class JvmBytecodeCompiler {
                     || "!=".equals(two)
                     || "<=".equals(two)
                     || ">=".equals(two)
+                    || "<<".equals(two)
+                    || ">>".equals(two)
+                    || "**".equals(two)
                     || "&&".equals(two)
                     || "||".equals(two)
                     || "??".equals(two)
@@ -2134,6 +2292,9 @@ public final class JvmBytecodeCompiler {
                     || "+=".equals(two)
                     || "-=".equals(two)
                     || "*=".equals(two)
+                    || "&=".equals(two)
+                    || "|=".equals(two)
+                    || "^=".equals(two)
                     || "/=".equals(two)
                     || "%=".equals(two)
                     || "=>".equals(two)) {
@@ -2143,7 +2304,7 @@ public final class JvmBytecodeCompiler {
                 continue;
             }
             final String one = Character.toString(current);
-            if ("(){}[];,.+-*/%<>!=:?".contains(one)) {
+            if ("(){}[];,.+-*/%<>!=:?&|^~".contains(one)) {
                 tokens.add(new Token(TokenType.SYMBOL, one, line, column));
                 index++;
                 column++;
@@ -2210,6 +2371,7 @@ public final class JvmBytecodeCompiler {
             AssignmentStatement,
             FunctionDeclarationStatement,
             ClassDeclarationStatement,
+            LabeledStatement,
             IfStatement,
             WhileStatement,
             TryStatement,
@@ -2234,6 +2396,9 @@ public final class JvmBytecodeCompiler {
     private record ClassDeclarationStatement(ClassDeclaration declaration) implements Statement {
     }
 
+    private record LabeledStatement(String label, Statement statement) implements Statement {
+    }
+
     private record IfStatement(Expression condition, List<Statement> thenBlock, List<Statement> elseBlock)
             implements Statement {
     }
@@ -2256,10 +2421,10 @@ public final class JvmBytecodeCompiler {
         }
     }
 
-    private record BreakStatement() implements Statement {
+    private record BreakStatement(String label) implements Statement {
     }
 
-    private record ContinueStatement() implements Statement {
+    private record ContinueStatement(String label) implements Statement {
     }
 
     private record SuperCallStatement(List<Expression> arguments) implements Statement {
@@ -2277,7 +2442,13 @@ public final class JvmBytecodeCompiler {
     private record ExpressionStatement(Expression expression) implements Statement {
     }
 
-    private record FunctionDeclaration(String name, List<String> parameters, List<Statement> body, boolean async) {
+    private record FunctionDeclaration(
+            String name,
+            List<String> parameters,
+            List<Statement> body,
+            boolean async,
+            boolean generator
+    ) {
     }
 
     private record ClassDeclaration(
@@ -2301,6 +2472,7 @@ public final class JvmBytecodeCompiler {
             VariableExpression,
             ThisExpression,
             UnaryExpression,
+            YieldExpression,
             AwaitExpression,
             FunctionExpression,
             BinaryExpression,
@@ -2339,6 +2511,9 @@ public final class JvmBytecodeCompiler {
     private record UnaryExpression(String operator, Expression expression) implements Expression {
     }
 
+    private record YieldExpression(Expression expression, boolean delegate) implements Expression {
+    }
+
     private record AwaitExpression(Expression expression) implements Expression {
     }
 
@@ -2347,7 +2522,13 @@ public final class JvmBytecodeCompiler {
         LEXICAL
     }
 
-    private record FunctionExpression(List<String> parameters, List<Statement> body, boolean async, FunctionThisMode thisMode)
+    private record FunctionExpression(
+            List<String> parameters,
+            List<Statement> body,
+            boolean async,
+            boolean generator,
+            FunctionThisMode thisMode
+    )
             implements Expression {
     }
 
@@ -2393,6 +2574,7 @@ public final class JvmBytecodeCompiler {
 
     private enum ModuleImportKind {
         NAMED,
+        NAMESPACE,
         INTEROP,
         SIDE_EFFECT
     }
@@ -2400,15 +2582,41 @@ public final class JvmBytecodeCompiler {
     private record ImportBinding(String importedName, String localName) {
     }
 
+    private record ExportBinding(String exportName, String localName) {
+    }
+
     private record ModuleImport(
             ModuleImportKind kind,
             Path dependency,
             String interopClassName,
+            String namespaceLocalName,
             List<ImportBinding> bindings,
             int line
     ) {
         private static ModuleImport named(final Path dependency, final List<ImportBinding> bindings, final int line) {
-            return new ModuleImport(ModuleImportKind.NAMED, dependency, null, List.copyOf(bindings), line);
+            return new ModuleImport(
+                    ModuleImportKind.NAMED,
+                    dependency,
+                    null,
+                    null,
+                    List.copyOf(bindings),
+                    line
+            );
+        }
+
+        private static ModuleImport namespace(
+                final Path dependency,
+                final String namespaceLocalName,
+                final int line
+        ) {
+            return new ModuleImport(
+                    ModuleImportKind.NAMESPACE,
+                    dependency,
+                    null,
+                    namespaceLocalName,
+                    List.of(),
+                    line
+            );
         }
 
         private static ModuleImport interop(
@@ -2416,15 +2624,29 @@ public final class JvmBytecodeCompiler {
                 final List<ImportBinding> bindings,
                 final int line
         ) {
-            return new ModuleImport(ModuleImportKind.INTEROP, null, interopClassName, List.copyOf(bindings), line);
+            return new ModuleImport(
+                    ModuleImportKind.INTEROP,
+                    null,
+                    interopClassName,
+                    null,
+                    List.copyOf(bindings),
+                    line
+            );
         }
 
         private static ModuleImport sideEffect(final Path dependency, final int line) {
-            return new ModuleImport(ModuleImportKind.SIDE_EFFECT, dependency, null, List.of(), line);
+            return new ModuleImport(
+                    ModuleImportKind.SIDE_EFFECT,
+                    dependency,
+                    null,
+                    null,
+                    List.of(),
+                    line
+            );
         }
     }
 
-    private record ExportRewrite(String rewrittenLine, List<String> exportedNames) {
+    private record ExportRewrite(String rewrittenLine, List<ExportBinding> exportedBindings) {
     }
 
     private record ModuleSource(
@@ -2432,7 +2654,7 @@ public final class JvmBytecodeCompiler {
             List<ModuleImport> imports,
             List<String> bodyLines,
             List<Integer> bodyLineNumbers,
-            List<String> exportNames,
+            List<ExportBinding> exportBindings,
             boolean requiresAsyncInit
     ) {
     }
@@ -2555,6 +2777,28 @@ public final class JvmBytecodeCompiler {
                 statement = parseVariableDeclaration();
                 return locate(statement, statementStart);
             }
+            if (matchKeyword("declare")) {
+                if (insideFunction) {
+                    final Token token = previous();
+                    throw new JvmCompilationException(
+                            "TSJ-BACKEND-UNSUPPORTED",
+                            "Block-scoped `declare` is unsupported in TSJ-9 subset.",
+                            token.line(),
+                            token.column()
+                    );
+                }
+                if (matchKeyword("const") || matchKeyword("let") || matchKeyword("var")) {
+                    statement = parseDeclareVariableDeclaration();
+                    return locate(statement, statementStart);
+                }
+                final Token token = current();
+                throw new JvmCompilationException(
+                        "TSJ-BACKEND-UNSUPPORTED",
+                        "Unsupported `declare` statement form in TSJ-9 subset.",
+                        token.line(),
+                        token.column()
+                );
+            }
             if (matchKeyword("async")) {
                 if (matchKeyword("function")) {
                     statement = new FunctionDeclarationStatement(parseFunctionDeclaration(true));
@@ -2667,6 +2911,7 @@ public final class JvmBytecodeCompiler {
         }
 
         private FunctionDeclaration parseFunctionDeclaration(final boolean asyncFunction) {
+            final boolean generatorFunction = matchSymbol("*");
             final Token nameToken = consumeIdentifier("Expected function name after `function`.");
             consumeSymbol("(", "Expected `(` after function name.");
             final List<String> parameters = new ArrayList<>();
@@ -2684,7 +2929,13 @@ public final class JvmBytecodeCompiler {
                 skipTypeAnnotation();
             }
             final List<Statement> body = parseBlock(true);
-            return new FunctionDeclaration(nameToken.text(), List.copyOf(parameters), List.copyOf(body), asyncFunction);
+            return new FunctionDeclaration(
+                    nameToken.text(),
+                    List.copyOf(parameters),
+                    List.copyOf(body),
+                    asyncFunction,
+                    generatorFunction
+            );
         }
 
         private ClassDeclaration parseClassDeclaration() {
@@ -2782,6 +3033,94 @@ public final class JvmBytecodeCompiler {
             return new VariableDeclaration(name.text(), expression);
         }
 
+        private VariableDeclaration parseDeclareVariableDeclaration() {
+            final Token name = consumeIdentifier("Expected variable name after `declare` declaration keyword.");
+            if (matchSymbol(":")) {
+                skipDeclareVariableTypeAnnotation();
+            }
+            final Expression expression;
+            if (matchSymbol("=")) {
+                expression = parseExpression();
+            } else {
+                expression = new UndefinedLiteral();
+            }
+            consumeSymbol(";", "Expected `;` after `declare` variable declaration.");
+            return new VariableDeclaration(name.text(), expression);
+        }
+
+        private void skipDeclareVariableTypeAnnotation() {
+            int parenDepth = 0;
+            int bracketDepth = 0;
+            int braceDepth = 0;
+            int angleDepth = 0;
+            while (!isAtEnd()) {
+                if (current().type() == TokenType.SYMBOL) {
+                    final String symbol = current().text();
+                    switch (symbol) {
+                        case "<" -> {
+                            angleDepth++;
+                            advance();
+                            continue;
+                        }
+                        case ">" -> {
+                            if (angleDepth > 0) {
+                                angleDepth--;
+                            }
+                            advance();
+                            continue;
+                        }
+                        case "(" -> {
+                            parenDepth++;
+                            advance();
+                            continue;
+                        }
+                        case ")" -> {
+                            if (parenDepth > 0) {
+                                parenDepth--;
+                            }
+                            advance();
+                            continue;
+                        }
+                        case "[" -> {
+                            bracketDepth++;
+                            advance();
+                            continue;
+                        }
+                        case "]" -> {
+                            if (bracketDepth > 0) {
+                                bracketDepth--;
+                            }
+                            advance();
+                            continue;
+                        }
+                        case "{" -> {
+                            braceDepth++;
+                            advance();
+                            continue;
+                        }
+                        case "}" -> {
+                            if (braceDepth > 0) {
+                                braceDepth--;
+                            }
+                            advance();
+                            continue;
+                        }
+                        case ",", "=", ";" -> {
+                            if (parenDepth == 0 && bracketDepth == 0 && braceDepth == 0 && angleDepth == 0) {
+                                return;
+                            }
+                            advance();
+                            continue;
+                        }
+                        default -> {
+                            // fall through
+                        }
+                    }
+                }
+                advance();
+            }
+        }
+
         private IfStatement parseIfStatement(final boolean insideFunction) {
             consumeSymbol("(", "Expected `(` after `if`.");
             final Expression condition = parseExpression();
@@ -2844,7 +3183,7 @@ public final class JvmBytecodeCompiler {
             loweredBody.add(
                     new IfStatement(
                             new UnaryExpression("!", condition),
-                            List.of(new BreakStatement()),
+                            List.of(new BreakStatement(null)),
                             List.of()
                     )
             );
@@ -2856,7 +3195,9 @@ public final class JvmBytecodeCompiler {
                 final int nestedLoopDepth
         ) {
             for (Statement statement : statements) {
-                if (statement instanceof ContinueStatement && nestedLoopDepth == 0) {
+                if (statement instanceof ContinueStatement continueStatement
+                        && continueStatement.label() == null
+                        && nestedLoopDepth == 0) {
                     return true;
                 }
                 if (statement instanceof WhileStatement whileStatement
@@ -2891,8 +3232,11 @@ public final class JvmBytecodeCompiler {
             String catchBinding = null;
             List<Statement> catchBlock = List.of();
             List<Statement> finallyBlock = List.of();
+            boolean hasCatchClause = false;
+            boolean hasFinallyClause = false;
 
             if (matchSoftKeyword("catch")) {
+                hasCatchClause = true;
                 if (matchSymbol("(")) {
                     catchBinding = consumeIdentifier("Expected catch binding name.").text();
                     if (matchSymbol(":")) {
@@ -2903,10 +3247,11 @@ public final class JvmBytecodeCompiler {
                 catchBlock = parseBlock(insideFunction);
             }
             if (matchSoftKeyword("finally")) {
+                hasFinallyClause = true;
                 finallyBlock = parseBlock(insideFunction);
             }
 
-            if (catchBlock.isEmpty() && finallyBlock.isEmpty()) {
+            if (!hasCatchClause && !hasFinallyClause) {
                 final Token token = current();
                 throw new JvmCompilationException(
                         "TSJ-BACKEND-PARSE",
@@ -2916,12 +3261,20 @@ public final class JvmBytecodeCompiler {
                 );
             }
 
+            if (hasCatchClause && catchBlock.isEmpty()) {
+                catchBlock = List.of(new ExpressionStatement(new UndefinedLiteral()));
+            }
+            if (hasFinallyClause && finallyBlock.isEmpty()) {
+                finallyBlock = List.of(new ExpressionStatement(new UndefinedLiteral()));
+            }
+
             return new TryStatement(List.copyOf(tryBlock), catchBinding, List.copyOf(catchBlock), List.copyOf(finallyBlock));
         }
 
         private BreakStatement parseBreakStatement() {
             final Token breakToken = previous();
-            if (loopDepth <= 0) {
+            final String label = matchType(TokenType.IDENTIFIER) ? previous().text() : null;
+            if (loopDepth <= 0 && label == null) {
                 throw new JvmCompilationException(
                         "TSJ-BACKEND-UNSUPPORTED",
                         "`break` is only supported inside loop bodies in TSJ-13 subset.",
@@ -2930,11 +3283,12 @@ public final class JvmBytecodeCompiler {
                 );
             }
             consumeSymbol(";", "Expected `;` after `break`.");
-            return new BreakStatement();
+            return new BreakStatement(label);
         }
 
         private ContinueStatement parseContinueStatement() {
             final Token continueToken = previous();
+            final String label = matchType(TokenType.IDENTIFIER) ? previous().text() : null;
             if (loopDepth <= 0) {
                 throw new JvmCompilationException(
                         "TSJ-BACKEND-UNSUPPORTED",
@@ -2944,7 +3298,7 @@ public final class JvmBytecodeCompiler {
                 );
             }
             consumeSymbol(";", "Expected `;` after `continue`.");
-            return new ContinueStatement();
+            return new ContinueStatement(label);
         }
 
         private SuperCallStatement parseSuperCallStatement() {
@@ -3055,8 +3409,38 @@ public final class JvmBytecodeCompiler {
         }
 
         private Expression parseLogicalAnd() {
-            Expression expression = parseEquality();
+            Expression expression = parseBitwiseOr();
             while (matchSymbol("&&")) {
+                final String operator = previous().text();
+                final Expression right = parseBitwiseOr();
+                expression = new BinaryExpression(expression, operator, right);
+            }
+            return expression;
+        }
+
+        private Expression parseBitwiseOr() {
+            Expression expression = parseBitwiseXor();
+            while (matchSymbol("|")) {
+                final String operator = previous().text();
+                final Expression right = parseBitwiseXor();
+                expression = new BinaryExpression(expression, operator, right);
+            }
+            return expression;
+        }
+
+        private Expression parseBitwiseXor() {
+            Expression expression = parseBitwiseAnd();
+            while (matchSymbol("^")) {
+                final String operator = previous().text();
+                final Expression right = parseBitwiseAnd();
+                expression = new BinaryExpression(expression, operator, right);
+            }
+            return expression;
+        }
+
+        private Expression parseBitwiseAnd() {
+            Expression expression = parseEquality();
+            while (matchSymbol("&")) {
                 final String operator = previous().text();
                 final Expression right = parseEquality();
                 expression = new BinaryExpression(expression, operator, right);
@@ -3075,16 +3459,51 @@ public final class JvmBytecodeCompiler {
         }
 
         private Expression parseComparison() {
-            Expression expression = parseTerm();
+            Expression expression = parseShift();
             while (matchSymbol("<")
                     || matchSymbol("<=")
                     || matchSymbol(">")
-                    || matchSymbol(">=")) {
+                    || matchSymbol(">=")
+                    || matchKeyword("instanceof")
+                    || matchKeyword("in")) {
                 final String operator = previous().text();
+                final Expression right = parseShift();
+                expression = new BinaryExpression(expression, operator, right);
+            }
+            return expression;
+        }
+
+        private Expression parseShift() {
+            Expression expression = parseTerm();
+            while (true) {
+                final String operator = matchShiftOperator();
+                if (operator == null) {
+                    break;
+                }
                 final Expression right = parseTerm();
                 expression = new BinaryExpression(expression, operator, right);
             }
             return expression;
+        }
+
+        private String matchShiftOperator() {
+            if (matchSymbol("<<") || matchSymbol(">>") || matchSymbol(">>>")) {
+                return previous().text();
+            }
+            if (checkSymbol(">")
+                    && lookAhead(1).type() == TokenType.SYMBOL
+                    && ">".equals(lookAhead(1).text())) {
+                if (lookAhead(2).type() == TokenType.SYMBOL && ">".equals(lookAhead(2).text())) {
+                    advance();
+                    advance();
+                    advance();
+                    return ">>>";
+                }
+                advance();
+                advance();
+                return ">>";
+            }
+            return null;
         }
 
         private Expression parseTerm() {
@@ -3098,22 +3517,35 @@ public final class JvmBytecodeCompiler {
         }
 
         private Expression parseFactor() {
-            Expression expression = parseUnary();
+            Expression expression = parseExponent();
             while (matchSymbol("*") || matchSymbol("/") || matchSymbol("%")) {
                 final String operator = previous().text();
-                final Expression right = parseUnary();
+                final Expression right = parseExponent();
+                expression = new BinaryExpression(expression, operator, right);
+            }
+            return expression;
+        }
+
+        private Expression parseExponent() {
+            Expression expression = parseUnary();
+            if (matchSymbol("**")) {
+                final String operator = previous().text();
+                final Expression right = parseExponent();
                 expression = new BinaryExpression(expression, operator, right);
             }
             return expression;
         }
 
         private Expression parseUnary() {
-            if (matchSymbol("-") || matchSymbol("!")) {
+            if (matchSymbol("+") || matchSymbol("-") || matchSymbol("!") || matchSymbol("~")) {
                 final String operator = previous().text();
                 return new UnaryExpression(operator, parseUnary());
             }
             if (matchKeyword("delete")) {
                 return new UnaryExpression("delete", parseUnary());
+            }
+            if (matchKeyword("typeof")) {
+                return new UnaryExpression("typeof", parseUnary());
             }
             if (matchKeyword("await")) {
                 return new AwaitExpression(parseUnary());
@@ -3135,14 +3567,6 @@ public final class JvmBytecodeCompiler {
                 constructor = new MemberAccessExpression(constructor, member.text());
             }
             final String constructorName = resolveGlobalConstructorName(constructor);
-            if ("Proxy".equals(constructorName)) {
-                throw unsupportedFeature(
-                        current(),
-                        FEATURE_PROXY,
-                        "`new Proxy(...)` is unsupported in TSJ MVP.",
-                        GUIDANCE_PROXY
-                );
-            }
             if ("Function".equals(constructorName)) {
                 throw unsupportedFeature(
                         current(),
@@ -3446,6 +3870,7 @@ public final class JvmBytecodeCompiler {
         }
 
         private FunctionExpression parseFunctionExpression(final boolean asyncFunction) {
+            final boolean generatorFunction = matchSymbol("*");
             if (current().type() == TokenType.IDENTIFIER
                     && lookAhead(1).type() == TokenType.SYMBOL
                     && "(".equals(lookAhead(1).text())) {
@@ -3471,6 +3896,7 @@ public final class JvmBytecodeCompiler {
                     List.copyOf(parameters),
                     List.copyOf(body),
                     asyncFunction,
+                    generatorFunction,
                     FunctionThisMode.DYNAMIC
             );
         }
@@ -3504,6 +3930,7 @@ public final class JvmBytecodeCompiler {
                     List.copyOf(parameters),
                     List.copyOf(body),
                     asyncFunction,
+                    false,
                     FunctionThisMode.LEXICAL
             );
         }
@@ -3536,6 +3963,7 @@ public final class JvmBytecodeCompiler {
                     List.copyOf(parameters),
                     List.copyOf(body),
                     asyncFunction,
+                    false,
                     FunctionThisMode.DYNAMIC
             );
         }
@@ -3585,7 +4013,8 @@ public final class JvmBytecodeCompiler {
                     || "this".equals(keyword)
                     || "new".equals(keyword)
                     || "await".equals(keyword)
-                    || "delete".equals(keyword);
+                    || "delete".equals(keyword)
+                    || "typeof".equals(keyword);
         }
 
         private void skipTypeAnnotation() {
@@ -3672,6 +4101,13 @@ public final class JvmBytecodeCompiler {
                     || matchSymbol("*=")
                     || matchSymbol("/=")
                     || matchSymbol("%=")
+                    || matchSymbol("&=")
+                    || matchSymbol("|=")
+                    || matchSymbol("^=")
+                    || matchSymbol("<<=")
+                    || matchSymbol(">>=")
+                    || matchSymbol(">>>=")
+                    || matchSymbol("**=")
                     || matchSymbol("&&=")
                     || matchSymbol("||=")
                     || matchSymbol("??=")) {
@@ -3681,7 +4117,20 @@ public final class JvmBytecodeCompiler {
         }
 
         private boolean isAssignmentTarget(final Expression expression) {
-            return expression instanceof VariableExpression || expression instanceof MemberAccessExpression;
+            if (expression instanceof VariableExpression || expression instanceof MemberAccessExpression) {
+                return true;
+            }
+            if (expression instanceof CallExpression callExpression) {
+                return isIndexReadAssignmentTarget(callExpression);
+            }
+            return false;
+        }
+
+        private boolean isIndexReadAssignmentTarget(final CallExpression callExpression) {
+            if (!(callExpression.callee() instanceof VariableExpression variableExpression)) {
+                return false;
+            }
+            return "__tsj_index_read".equals(variableExpression.name()) && callExpression.arguments().size() == 2;
         }
 
         private boolean matchSymbol(final String symbol) {
@@ -3812,7 +4261,8 @@ public final class JvmBytecodeCompiler {
                         declaration.name(),
                         declaration.parameters(),
                         optimizeStatementList(declaration.body()),
-                        declaration.async()
+                        declaration.async(),
+                        declaration.generator()
                 );
                 final FunctionDeclarationStatement rewritten = new FunctionDeclarationStatement(rewrittenDeclaration);
                 copySourceLocation(statement, rewritten);
@@ -3959,6 +4409,9 @@ public final class JvmBytecodeCompiler {
                 final UnaryExpression rewritten = new UnaryExpression(unaryExpression.operator(), operand);
                 return maybeFoldExpression(rewritten);
             }
+            if (expression instanceof YieldExpression yieldExpression) {
+                return new YieldExpression(optimizeExpression(yieldExpression.expression()), yieldExpression.delegate());
+            }
             if (expression instanceof AwaitExpression awaitExpression) {
                 return new AwaitExpression(optimizeExpression(awaitExpression.expression()));
             }
@@ -3967,6 +4420,7 @@ public final class JvmBytecodeCompiler {
                         functionExpression.parameters(),
                         optimizeStatementList(functionExpression.body()),
                         functionExpression.async(),
+                        functionExpression.generator(),
                         functionExpression.thisMode()
                 );
             }
@@ -4079,11 +4533,20 @@ public final class JvmBytecodeCompiler {
                 if (operand == null) {
                     return null;
                 }
+                if ("+".equals(unaryExpression.operator())) {
+                    return ConstantValue.number(toNumber(operand));
+                }
                 if ("-".equals(unaryExpression.operator())) {
                     return ConstantValue.number(-toNumber(operand));
                 }
                 if ("!".equals(unaryExpression.operator())) {
                     return ConstantValue.bool(!isTruthy(operand));
+                }
+                if ("~".equals(unaryExpression.operator())) {
+                    return ConstantValue.number((double) ~toInt32(operand));
+                }
+                if ("typeof".equals(unaryExpression.operator())) {
+                    return ConstantValue.string(typeOfConstant(operand));
                 }
                 return null;
             }
@@ -4098,6 +4561,16 @@ public final class JvmBytecodeCompiler {
                     case "-" -> ConstantValue.number(toNumber(left) - toNumber(right));
                     case "*" -> ConstantValue.number(toNumber(left) * toNumber(right));
                     case "/" -> ConstantValue.number(toNumber(left) / toNumber(right));
+                    case "%" -> ConstantValue.number(toNumber(left) % toNumber(right));
+                    case "**" -> ConstantValue.number(Math.pow(toNumber(left), toNumber(right)));
+                    case "<<" -> ConstantValue.number((double) (toInt32(left) << (toUint32(right) & 31)));
+                    case ">>" -> ConstantValue.number((double) (toInt32(left) >> (toUint32(right) & 31)));
+                    case ">>>" -> ConstantValue.number((double) Integer.toUnsignedLong(
+                            toInt32(left) >>> (toUint32(right) & 31)
+                    ));
+                    case "&" -> ConstantValue.number((double) (toInt32(left) & toInt32(right)));
+                    case "^" -> ConstantValue.number((double) (toInt32(left) ^ toInt32(right)));
+                    case "|" -> ConstantValue.number((double) (toInt32(left) | toInt32(right)));
                     case "<" -> ConstantValue.bool(lessThan(left, right));
                     case "<=" -> ConstantValue.bool(lessThanOrEqual(left, right));
                     case ">" -> ConstantValue.bool(greaterThan(left, right));
@@ -4193,6 +4666,16 @@ public final class JvmBytecodeCompiler {
             return false;
         }
 
+        private String typeOfConstant(final ConstantValue value) {
+            return switch (value.kind()) {
+                case NUMBER -> "number";
+                case STRING -> "string";
+                case BOOLEAN -> "boolean";
+                case NULL -> "object";
+                case UNDEFINED -> "undefined";
+            };
+        }
+
         private double toNumber(final ConstantValue value) {
             return switch (value.kind()) {
                 case NUMBER -> value.numberValue();
@@ -4201,6 +4684,20 @@ public final class JvmBytecodeCompiler {
                 case NULL -> 0d;
                 case UNDEFINED -> Double.NaN;
             };
+        }
+
+        private int toInt32(final ConstantValue value) {
+            return (int) toUint32(value);
+        }
+
+        private int toUint32(final ConstantValue value) {
+            final double number = toNumber(value);
+            if (!Double.isFinite(number) || number == 0d) {
+                return 0;
+            }
+            final long truncated = number < 0d ? (long) Math.ceil(number) : (long) Math.floor(number);
+            final long uint32 = truncated & 0xFFFF_FFFFL;
+            return (int) uint32;
         }
 
         private String toJsString(final ConstantValue value) {
@@ -4372,6 +4869,81 @@ public final class JvmBytecodeCompiler {
             builder.append("    private static final dev.tsj.runtime.TsjCell PROMISE_BUILTIN_CELL = ")
                     .append("new dev.tsj.runtime.TsjCell(dev.tsj.runtime.TsjRuntime.promiseBuiltin());\n");
             builder.append("    private static final dev.tsj.runtime.TsjCell ")
+                    .append(ERROR_BUILTIN_CELL_FIELD)
+                    .append(" = new dev.tsj.runtime.TsjCell(dev.tsj.runtime.TsjRuntime.errorBuiltin());\n");
+            builder.append("    private static final dev.tsj.runtime.TsjCell ")
+                    .append(STRING_BUILTIN_CELL_FIELD)
+                    .append(" = new dev.tsj.runtime.TsjCell(dev.tsj.runtime.TsjRuntime.stringBuiltin());\n");
+            builder.append("    private static final dev.tsj.runtime.TsjCell ")
+                    .append(JSON_BUILTIN_CELL_FIELD)
+                    .append(" = new dev.tsj.runtime.TsjCell(dev.tsj.runtime.TsjRuntime.jsonBuiltin());\n");
+            builder.append("    private static final dev.tsj.runtime.TsjCell ")
+                    .append(OBJECT_BUILTIN_CELL_FIELD)
+                    .append(" = new dev.tsj.runtime.TsjCell(dev.tsj.runtime.TsjRuntime.objectBuiltin());\n");
+            builder.append("    private static final dev.tsj.runtime.TsjCell ")
+                    .append(REFLECT_BUILTIN_CELL_FIELD)
+                    .append(" = new dev.tsj.runtime.TsjCell(dev.tsj.runtime.TsjRuntime.reflectBuiltin());\n");
+            builder.append("    private static final dev.tsj.runtime.TsjCell ")
+                    .append(PROXY_BUILTIN_CELL_FIELD)
+                    .append(" = new dev.tsj.runtime.TsjCell(dev.tsj.runtime.TsjRuntime.proxyBuiltin());\n");
+            builder.append("    private static final dev.tsj.runtime.TsjCell ")
+                    .append(ARRAY_BUILTIN_CELL_FIELD)
+                    .append(" = new dev.tsj.runtime.TsjCell(dev.tsj.runtime.TsjRuntime.arrayBuiltin());\n");
+            builder.append("    private static final dev.tsj.runtime.TsjCell ")
+                    .append(MAP_BUILTIN_CELL_FIELD)
+                    .append(" = new dev.tsj.runtime.TsjCell(dev.tsj.runtime.TsjRuntime.mapBuiltin());\n");
+            builder.append("    private static final dev.tsj.runtime.TsjCell ")
+                    .append(SET_BUILTIN_CELL_FIELD)
+                    .append(" = new dev.tsj.runtime.TsjCell(dev.tsj.runtime.TsjRuntime.setBuiltin());\n");
+            builder.append("    private static final dev.tsj.runtime.TsjCell ")
+                    .append(WEAK_MAP_BUILTIN_CELL_FIELD)
+                    .append(" = new dev.tsj.runtime.TsjCell(dev.tsj.runtime.TsjRuntime.weakMapBuiltin());\n");
+            builder.append("    private static final dev.tsj.runtime.TsjCell ")
+                    .append(WEAK_SET_BUILTIN_CELL_FIELD)
+                    .append(" = new dev.tsj.runtime.TsjCell(dev.tsj.runtime.TsjRuntime.weakSetBuiltin());\n");
+            builder.append("    private static final dev.tsj.runtime.TsjCell ")
+                    .append(WEAK_REF_BUILTIN_CELL_FIELD)
+                    .append(" = new dev.tsj.runtime.TsjCell(dev.tsj.runtime.TsjRuntime.weakRefBuiltin());\n");
+            builder.append("    private static final dev.tsj.runtime.TsjCell ")
+                    .append(DATE_BUILTIN_CELL_FIELD)
+                    .append(" = new dev.tsj.runtime.TsjCell(dev.tsj.runtime.TsjRuntime.dateBuiltin());\n");
+            builder.append("    private static final dev.tsj.runtime.TsjCell ")
+                    .append(REGEXP_BUILTIN_CELL_FIELD)
+                    .append(" = new dev.tsj.runtime.TsjCell(dev.tsj.runtime.TsjRuntime.regexpBuiltin());\n");
+            builder.append("    private static final dev.tsj.runtime.TsjCell ")
+                    .append(AGGREGATE_ERROR_BUILTIN_CELL_FIELD)
+                    .append(" = new dev.tsj.runtime.TsjCell(dev.tsj.runtime.TsjRuntime.aggregateErrorBuiltin());\n");
+            builder.append("    private static final dev.tsj.runtime.TsjCell ")
+                    .append(TYPE_ERROR_BUILTIN_CELL_FIELD)
+                    .append(" = new dev.tsj.runtime.TsjCell(dev.tsj.runtime.TsjRuntime.typeErrorBuiltin());\n");
+            builder.append("    private static final dev.tsj.runtime.TsjCell ")
+                    .append(RANGE_ERROR_BUILTIN_CELL_FIELD)
+                    .append(" = new dev.tsj.runtime.TsjCell(dev.tsj.runtime.TsjRuntime.rangeErrorBuiltin());\n");
+            builder.append("    private static final dev.tsj.runtime.TsjCell ")
+                    .append(MATH_BUILTIN_CELL_FIELD)
+                    .append(" = new dev.tsj.runtime.TsjCell(dev.tsj.runtime.TsjRuntime.mathBuiltin());\n");
+            builder.append("    private static final dev.tsj.runtime.TsjCell ")
+                    .append(NUMBER_BUILTIN_CELL_FIELD)
+                    .append(" = new dev.tsj.runtime.TsjCell(dev.tsj.runtime.TsjRuntime.numberBuiltin());\n");
+            builder.append("    private static final dev.tsj.runtime.TsjCell ")
+                    .append(BIGINT_BUILTIN_CELL_FIELD)
+                    .append(" = new dev.tsj.runtime.TsjCell(dev.tsj.runtime.TsjRuntime.bigIntBuiltin());\n");
+            builder.append("    private static final dev.tsj.runtime.TsjCell ")
+                    .append(SYMBOL_BUILTIN_CELL_FIELD)
+                    .append(" = new dev.tsj.runtime.TsjCell(dev.tsj.runtime.TsjRuntime.symbolBuiltin());\n");
+            builder.append("    private static final dev.tsj.runtime.TsjCell ")
+                    .append(PARSE_INT_BUILTIN_CELL_FIELD)
+                    .append(" = new dev.tsj.runtime.TsjCell(dev.tsj.runtime.TsjRuntime.parseIntBuiltin());\n");
+            builder.append("    private static final dev.tsj.runtime.TsjCell ")
+                    .append(PARSE_FLOAT_BUILTIN_CELL_FIELD)
+                    .append(" = new dev.tsj.runtime.TsjCell(dev.tsj.runtime.TsjRuntime.parseFloatBuiltin());\n");
+            builder.append("    private static final dev.tsj.runtime.TsjCell ")
+                    .append(INFINITY_BUILTIN_CELL_FIELD)
+                    .append(" = new dev.tsj.runtime.TsjCell(dev.tsj.runtime.TsjRuntime.infinity());\n");
+            builder.append("    private static final dev.tsj.runtime.TsjCell ")
+                    .append(NAN_BUILTIN_CELL_FIELD)
+                    .append(" = new dev.tsj.runtime.TsjCell(dev.tsj.runtime.TsjRuntime.nanValue());\n");
+            builder.append("    private static final dev.tsj.runtime.TsjCell ")
                     .append(UNDEFINED_BUILTIN_CELL_FIELD)
                     .append(" = new dev.tsj.runtime.TsjCell(null);\n");
             builder.append("    private static final Object ")
@@ -4480,6 +5052,10 @@ public final class JvmBytecodeCompiler {
                     emitClassDeclaration(builder, context, classDeclarationStatement.declaration(), indent);
                     continue;
                 }
+                if (statement instanceof LabeledStatement labeledStatement) {
+                    emitLabeledStatement(builder, context, labeledStatement, indent, insideFunction);
+                    continue;
+                }
                 if (statement instanceof VariableDeclaration declaration) {
                     final String cellName = context.declareBinding(declaration.name());
                     builder.append(indent)
@@ -4529,18 +5105,7 @@ public final class JvmBytecodeCompiler {
                     continue;
                 }
                 if (statement instanceof WhileStatement whileStatement) {
-                    builder.append(indent)
-                            .append("while (dev.tsj.runtime.TsjRuntime.truthy(")
-                            .append(emitExpression(context, whileStatement.condition()))
-                            .append(")) {\n");
-                    emitStatements(
-                            builder,
-                            new EmissionContext(context),
-                            whileStatement.body(),
-                            indent + "    ",
-                            insideFunction
-                    );
-                    builder.append(indent).append("}\n");
+                    emitWhileStatement(builder, context, whileStatement, indent, insideFunction, null);
                     continue;
                 }
                 if (statement instanceof TryStatement tryStatement) {
@@ -4587,12 +5152,12 @@ public final class JvmBytecodeCompiler {
                     builder.append("\n");
                     continue;
                 }
-                if (statement instanceof BreakStatement) {
-                    builder.append(indent).append("break;\n");
+                if (statement instanceof BreakStatement breakStatement) {
+                    emitBreakStatement(builder, context, breakStatement, indent);
                     continue;
                 }
-                if (statement instanceof ContinueStatement) {
-                    builder.append(indent).append("continue;\n");
+                if (statement instanceof ContinueStatement continueStatement) {
+                    emitContinueStatement(builder, context, continueStatement, indent);
                     continue;
                 }
                 if (statement instanceof SuperCallStatement superCallStatement) {
@@ -4630,6 +5195,85 @@ public final class JvmBytecodeCompiler {
                         "Unsupported statement node in code generation: " + statement.getClass().getSimpleName()
                 );
             }
+        }
+
+        private void emitLabeledStatement(
+                final StringBuilder builder,
+                final EmissionContext context,
+                final LabeledStatement labeledStatement,
+                final String indent,
+                final boolean insideFunction
+        ) {
+            final EmissionContext labelContext = new EmissionContext(context);
+            final String javaLabel = labelContext.declareLabel(labeledStatement.label());
+            final Statement body = labeledStatement.statement();
+            if (body instanceof WhileStatement whileStatement) {
+                emitWhileStatement(builder, labelContext, whileStatement, indent, insideFunction, javaLabel);
+                return;
+            }
+
+            builder.append(indent)
+                    .append(javaLabel)
+                    .append(": {\n");
+            emitStatements(
+                    builder,
+                    labelContext,
+                    List.of(body),
+                    indent + "    ",
+                    insideFunction
+            );
+            builder.append(indent).append("}\n");
+        }
+
+        private void emitWhileStatement(
+                final StringBuilder builder,
+                final EmissionContext context,
+                final WhileStatement whileStatement,
+                final String indent,
+                final boolean insideFunction,
+                final String label
+        ) {
+            builder.append(indent);
+            if (label != null) {
+                builder.append(label).append(": ");
+            }
+            builder.append("while (dev.tsj.runtime.TsjRuntime.truthy(")
+                    .append(emitExpression(context, whileStatement.condition()))
+                    .append(")) {\n");
+            emitStatements(
+                    builder,
+                    new EmissionContext(context),
+                    whileStatement.body(),
+                    indent + "    ",
+                    insideFunction
+            );
+            builder.append(indent).append("}\n");
+        }
+
+        private void emitBreakStatement(
+                final StringBuilder builder,
+                final EmissionContext context,
+                final BreakStatement breakStatement,
+                final String indent
+        ) {
+            builder.append(indent).append("break");
+            if (breakStatement.label() != null) {
+                builder.append(" ").append(context.resolveLabel(breakStatement.label()));
+            }
+            builder.append(";\n");
+        }
+
+        private void emitContinueStatement(
+                final StringBuilder builder,
+                final EmissionContext context,
+                final ContinueStatement continueStatement,
+                final String indent
+        ) {
+            builder.append(indent).append("continue");
+            if (continueStatement.label() != null) {
+                builder.append(" ").append(context.resolveLabel(continueStatement.label()));
+            }
+            builder.append(";\n");
         }
 
         private void emitSourceMarker(
@@ -4707,6 +5351,10 @@ public final class JvmBytecodeCompiler {
                 final FunctionDeclaration declaration,
                 final String indent
         ) {
+            if (declaration.generator()) {
+                emitGeneratorFunctionAssignment(builder, context, declaration, indent);
+                return;
+            }
             if (declaration.async()) {
                 emitAsyncFunctionAssignment(builder, context, declaration, indent);
                 return;
@@ -4733,6 +5381,50 @@ public final class JvmBytecodeCompiler {
                 builder.append(indent).append("    return null;\n");
             }
 
+            builder.append(indent).append("});\n");
+        }
+
+        private void emitGeneratorFunctionAssignment(
+                final StringBuilder builder,
+                final EmissionContext context,
+                final FunctionDeclaration declaration,
+                final String indent
+        ) {
+            final String cellName = context.resolveBinding(declaration.name());
+            final String thisVar = context.allocateGeneratedName("lambdaThis");
+            final String argsVar = context.allocateGeneratedName("lambdaArgs");
+            final String generatorThisVar = context.allocateGeneratedName("generatorThis");
+            final String generatorArgsVar = context.allocateGeneratedName("generatorArgs");
+
+            builder.append(indent)
+                    .append(cellName)
+                    .append(".set((dev.tsj.runtime.TsjCallableWithThis) (Object ")
+                    .append(thisVar)
+                    .append(", Object... ")
+                    .append(argsVar)
+                    .append(") -> {\n");
+            builder.append(indent)
+                    .append("    return dev.tsj.runtime.TsjRuntime.createGenerator(")
+                    .append("(dev.tsj.runtime.TsjCallableWithThis) (Object ")
+                    .append(generatorThisVar)
+                    .append(", Object... ")
+                    .append(generatorArgsVar)
+                    .append(") -> {\n");
+
+            final EmissionContext generatorContext =
+                    new EmissionContext(context, generatorThisVar, context.resolveSuperClassExpression(), false, generatorArgsVar);
+            emitParameterCells(builder, generatorContext, declaration.parameters(), generatorArgsVar, indent + "        ");
+            emitStatements(builder, generatorContext, declaration.body(), indent + "        ", true);
+            if (!blockAlwaysExits(declaration.body())) {
+                builder.append(indent).append("        return null;\n");
+            }
+
+            builder.append(indent)
+                    .append("    }, ")
+                    .append(thisVar)
+                    .append(", ")
+                    .append(argsVar)
+                    .append(");\n");
             builder.append(indent).append("});\n");
         }
 
@@ -4914,6 +5606,10 @@ public final class JvmBytecodeCompiler {
                 final EmissionContext context,
                 final FunctionExpression functionExpression
         ) {
+            if (functionExpression.generator()) {
+                return emitGeneratorFunctionExpression(context, functionExpression);
+            }
+
             final String argsVar = context.allocateGeneratedName("lambdaArgs");
             final StringBuilder functionBuilder = new StringBuilder();
             final EmissionContext functionContext;
@@ -4958,6 +5654,55 @@ public final class JvmBytecodeCompiler {
                 }
             }
 
+            functionBuilder.append("})");
+            return functionBuilder.toString();
+        }
+
+        private String emitGeneratorFunctionExpression(
+                final EmissionContext context,
+                final FunctionExpression functionExpression
+        ) {
+            final String argsVar = context.allocateGeneratedName("lambdaArgs");
+            final String generatorThisVar = context.allocateGeneratedName("generatorThis");
+            final String generatorArgsVar = context.allocateGeneratedName("generatorArgs");
+            final StringBuilder functionBuilder = new StringBuilder();
+
+            final String thisReferenceForGenerator;
+            if (functionExpression.thisMode() == FunctionThisMode.DYNAMIC) {
+                final String thisVar = context.allocateGeneratedName("lambdaThis");
+                thisReferenceForGenerator = thisVar;
+                functionBuilder.append("((dev.tsj.runtime.TsjCallableWithThis) (Object ")
+                        .append(thisVar)
+                        .append(", Object... ")
+                        .append(argsVar)
+                        .append(") -> {\n");
+            } else {
+                thisReferenceForGenerator = context.thisReference;
+                functionBuilder.append("((dev.tsj.runtime.TsjCallable) (Object... ")
+                        .append(argsVar)
+                        .append(") -> {\n");
+            }
+
+            functionBuilder.append("    return dev.tsj.runtime.TsjRuntime.createGenerator(")
+                    .append("(dev.tsj.runtime.TsjCallableWithThis) (Object ")
+                    .append(generatorThisVar)
+                    .append(", Object... ")
+                    .append(generatorArgsVar)
+                    .append(") -> {\n");
+
+            final EmissionContext generatorContext =
+                    new EmissionContext(context, generatorThisVar, context.resolveSuperClassExpression(), false, generatorArgsVar);
+            emitParameterCells(functionBuilder, generatorContext, functionExpression.parameters(), generatorArgsVar, "        ");
+            emitStatements(functionBuilder, generatorContext, functionExpression.body(), "        ", true);
+            if (!blockAlwaysExits(functionExpression.body())) {
+                functionBuilder.append("        return null;\n");
+            }
+
+            functionBuilder.append("    }, ")
+                    .append(thisReferenceForGenerator)
+                    .append(", ")
+                    .append(argsVar)
+                    .append(");\n");
             functionBuilder.append("})");
             return functionBuilder.toString();
         }
@@ -5099,7 +5844,7 @@ public final class JvmBytecodeCompiler {
                 final List<Statement> rewrittenBody =
                         normalizeAsyncStatementsForAwaitExpressions(bodyContext, whileStatement.body());
                 final List<Statement> normalizedBody = new ArrayList<>(rewrittenCondition.hoistedStatements());
-                final BreakStatement breakStatement = new BreakStatement();
+                final BreakStatement breakStatement = new BreakStatement(null);
                 copySourceLocation(statement, breakStatement);
                 final IfStatement breakIfStatement = new IfStatement(
                         new UnaryExpression("!", rewrittenCondition.expression()),
@@ -6048,19 +6793,37 @@ public final class JvmBytecodeCompiler {
                         .append(");\n");
                 return;
             }
-            if (statement instanceof BreakStatement) {
+            if (statement instanceof BreakStatement breakStatement) {
+                if (breakStatement.label() != null) {
+                    throw new JvmCompilationException(
+                            "TSJ-BACKEND-UNSUPPORTED",
+                            "Labeled `break` is unsupported inside async-lowered control flow in TSJ-13 subset."
+                    );
+                }
                 builder.append(indent)
                         .append("return dev.tsj.runtime.TsjRuntime.promiseResolve(")
                         .append(ASYNC_BREAK_SIGNAL_FIELD)
                         .append(");\n");
                 return;
             }
-            if (statement instanceof ContinueStatement) {
+            if (statement instanceof ContinueStatement continueStatement) {
+                if (continueStatement.label() != null) {
+                    throw new JvmCompilationException(
+                            "TSJ-BACKEND-UNSUPPORTED",
+                            "Labeled `continue` is unsupported inside async-lowered control flow in TSJ-13 subset."
+                    );
+                }
                 builder.append(indent)
                         .append("return dev.tsj.runtime.TsjRuntime.promiseResolve(")
                         .append(ASYNC_CONTINUE_SIGNAL_FIELD)
                         .append(");\n");
                 return;
+            }
+            if (statement instanceof LabeledStatement) {
+                throw new JvmCompilationException(
+                        "TSJ-BACKEND-UNSUPPORTED",
+                        "Labeled statements are unsupported inside async-lowered control flow in TSJ-13 subset."
+                );
             }
             throw new JvmCompilationException(
                     "TSJ-BACKEND-UNSUPPORTED",
@@ -6321,6 +7084,24 @@ public final class JvmBytecodeCompiler {
                 }
                 return;
             }
+            if (assignment.target() instanceof CallExpression callExpression
+                    && isIndexReadFactoryCall(callExpression)) {
+                if (callExpression.arguments().size() != 2) {
+                    throw new JvmCompilationException(
+                            "TSJ-BACKEND-UNSUPPORTED",
+                            "__tsj_index_read assignment target requires receiver and key arguments."
+                    );
+                }
+                builder.append(indent)
+                        .append("dev.tsj.runtime.TsjRuntime.setPropertyDynamic(")
+                        .append(emitExpression(context, callExpression.arguments().get(0)))
+                        .append(", ")
+                        .append(emitExpression(context, callExpression.arguments().get(1)))
+                        .append(", ")
+                        .append(valueExpression)
+                        .append(");\n");
+                return;
+            }
             throw new JvmCompilationException(
                     "TSJ-BACKEND-UNSUPPORTED",
                     "Unsupported assignment target in TSJ-9 subset: "
@@ -6360,6 +7141,17 @@ public final class JvmBytecodeCompiler {
                 }
                 return emitMemberAssignmentExpression(receiverExpression, memberName, operator, valueExpression);
             }
+            if (target instanceof CallExpression callExpression && isIndexReadFactoryCall(callExpression)) {
+                if (callExpression.arguments().size() != 2) {
+                    throw new JvmCompilationException(
+                            "TSJ-BACKEND-UNSUPPORTED",
+                            "__tsj_index_read assignment target requires receiver and key arguments."
+                    );
+                }
+                final String receiverExpression = emitExpression(context, callExpression.arguments().get(0));
+                final String keyExpression = emitExpression(context, callExpression.arguments().get(1));
+                return emitDynamicIndexAssignmentExpression(receiverExpression, keyExpression, operator, valueExpression);
+            }
             throw new JvmCompilationException(
                     "TSJ-BACKEND-UNSUPPORTED",
                     "Unsupported assignment target in TSJ assignment expression subset: "
@@ -6373,13 +7165,16 @@ public final class JvmBytecodeCompiler {
                 final String valueExpression
         ) {
             final String currentValue = cellName + ".get()";
-            return switch (operator) {
-                case "=" -> "dev.tsj.runtime.TsjRuntime.assignCell(" + cellName + ", " + valueExpression + ")";
-                case "+=", "-=", "*=", "/=", "%=" -> "dev.tsj.runtime.TsjRuntime.assignCell("
+            final String compoundOperator = compoundBinaryOperator(operator);
+            if (compoundOperator != null) {
+                return "dev.tsj.runtime.TsjRuntime.assignCell("
                         + cellName
                         + ", "
-                        + emitBinaryOperatorExpression(operator.substring(0, 1), currentValue, valueExpression)
+                        + emitBinaryOperatorExpression(compoundOperator, currentValue, valueExpression)
                         + ")";
+            }
+            return switch (operator) {
+                case "=" -> "dev.tsj.runtime.TsjRuntime.assignCell(" + cellName + ", " + valueExpression + ")";
                 case "&&=" -> "dev.tsj.runtime.TsjRuntime.assignLogicalAnd(" + cellName + ", () -> " + valueExpression + ")";
                 case "||=" -> "dev.tsj.runtime.TsjRuntime.assignLogicalOr(" + cellName + ", () -> " + valueExpression + ")";
                 case "??=" -> "dev.tsj.runtime.TsjRuntime.assignNullish(" + cellName + ", () -> " + valueExpression + ")";
@@ -6399,6 +7194,16 @@ public final class JvmBytecodeCompiler {
             final String memberLiteral = "\"" + memberName + "\"";
             final String currentValue =
                     "dev.tsj.runtime.TsjRuntime.getProperty(" + receiverExpression + ", " + memberLiteral + ")";
+            final String compoundOperator = compoundBinaryOperator(operator);
+            if (compoundOperator != null) {
+                return "dev.tsj.runtime.TsjRuntime.setProperty("
+                        + receiverExpression
+                        + ", "
+                        + memberLiteral
+                        + ", "
+                        + emitBinaryOperatorExpression(compoundOperator, currentValue, valueExpression)
+                        + ")";
+            }
             return switch (operator) {
                 case "=" -> "dev.tsj.runtime.TsjRuntime.setProperty("
                         + receiverExpression
@@ -6406,13 +7211,6 @@ public final class JvmBytecodeCompiler {
                         + memberLiteral
                         + ", "
                         + valueExpression
-                        + ")";
-                case "+=", "-=", "*=", "/=", "%=" -> "dev.tsj.runtime.TsjRuntime.setProperty("
-                        + receiverExpression
-                        + ", "
-                        + memberLiteral
-                        + ", "
-                        + emitBinaryOperatorExpression(operator.substring(0, 1), currentValue, valueExpression)
                         + ")";
                 case "&&=" -> "dev.tsj.runtime.TsjRuntime.assignPropertyLogicalAnd("
                         + receiverExpression
@@ -6442,6 +7240,95 @@ public final class JvmBytecodeCompiler {
             };
         }
 
+        private String emitDynamicIndexAssignmentExpression(
+                final String receiverExpression,
+                final String keyExpression,
+                final String operator,
+                final String valueExpression
+        ) {
+            final String currentValue =
+                    "dev.tsj.runtime.TsjRuntime.indexRead(" + receiverExpression + ", " + keyExpression + ")";
+            final String compoundOperator = compoundBinaryOperator(operator);
+            if (compoundOperator != null) {
+                return "dev.tsj.runtime.TsjRuntime.setPropertyDynamic("
+                        + receiverExpression
+                        + ", "
+                        + keyExpression
+                        + ", "
+                        + emitBinaryOperatorExpression(compoundOperator, currentValue, valueExpression)
+                        + ")";
+            }
+            return switch (operator) {
+                case "=" -> "dev.tsj.runtime.TsjRuntime.setPropertyDynamic("
+                        + receiverExpression
+                        + ", "
+                        + keyExpression
+                        + ", "
+                        + valueExpression
+                        + ")";
+                case "&&=" -> "dev.tsj.runtime.TsjRuntime.assignPropertyDynamicLogicalAnd("
+                        + receiverExpression
+                        + ", "
+                        + keyExpression
+                        + ", () -> "
+                        + valueExpression
+                        + ")";
+                case "||=" -> "dev.tsj.runtime.TsjRuntime.assignPropertyDynamicLogicalOr("
+                        + receiverExpression
+                        + ", "
+                        + keyExpression
+                        + ", () -> "
+                        + valueExpression
+                        + ")";
+                case "??=" -> "dev.tsj.runtime.TsjRuntime.assignPropertyDynamicNullish("
+                        + receiverExpression
+                        + ", "
+                        + keyExpression
+                        + ", () -> "
+                        + valueExpression
+                        + ")";
+                default -> throw new JvmCompilationException(
+                        "TSJ-BACKEND-UNSUPPORTED",
+                        "Unsupported assignment operator: " + operator
+                );
+            };
+        }
+
+        private String compoundBinaryOperator(final String assignmentOperator) {
+            return switch (assignmentOperator) {
+                case "+=" -> "+";
+                case "-=" -> "-";
+                case "*=" -> "*";
+                case "/=" -> "/";
+                case "%=" -> "%";
+                case "**=" -> "**";
+                case "&=" -> "&";
+                case "|=" -> "|";
+                case "^=" -> "^";
+                case "<<=" -> "<<";
+                case ">>=" -> ">>";
+                case ">>>=" -> ">>>";
+                default -> null;
+            };
+        }
+
+        private String emitTypeofOperandExpression(
+                final EmissionContext context,
+                final Expression expression
+        ) {
+            if (!(expression instanceof VariableExpression variableExpression)) {
+                return emitExpression(context, expression);
+            }
+            try {
+                return context.resolveBinding(variableExpression.name()) + ".get()";
+            } catch (final JvmCompilationException exception) {
+                if ("TSJ-BACKEND-UNSUPPORTED".equals(exception.code())) {
+                    return "dev.tsj.runtime.TsjRuntime.undefined()";
+                }
+                throw exception;
+            }
+        }
+
         private String emitBinaryOperatorExpression(
                 final String operator,
                 final String left,
@@ -6453,6 +7340,13 @@ public final class JvmBytecodeCompiler {
                 case "*" -> "dev.tsj.runtime.TsjRuntime.multiply(" + left + ", " + right + ")";
                 case "/" -> "dev.tsj.runtime.TsjRuntime.divide(" + left + ", " + right + ")";
                 case "%" -> "dev.tsj.runtime.TsjRuntime.modulo(" + left + ", " + right + ")";
+                case "**" -> "dev.tsj.runtime.TsjRuntime.power(" + left + ", " + right + ")";
+                case "&" -> "dev.tsj.runtime.TsjRuntime.bitwiseAnd(" + left + ", " + right + ")";
+                case "|" -> "dev.tsj.runtime.TsjRuntime.bitwiseOr(" + left + ", " + right + ")";
+                case "^" -> "dev.tsj.runtime.TsjRuntime.bitwiseXor(" + left + ", " + right + ")";
+                case "<<" -> "dev.tsj.runtime.TsjRuntime.shiftLeft(" + left + ", " + right + ")";
+                case ">>" -> "dev.tsj.runtime.TsjRuntime.shiftRight(" + left + ", " + right + ")";
+                case ">>>" -> "dev.tsj.runtime.TsjRuntime.shiftRightUnsigned(" + left + ", " + right + ")";
                 default -> throw new JvmCompilationException(
                         "TSJ-BACKEND-UNSUPPORTED",
                         "Unsupported binary operator in assignment lowering: " + operator
@@ -6501,7 +7395,7 @@ public final class JvmBytecodeCompiler {
                 return booleanLiteral.value() ? "Boolean.TRUE" : "Boolean.FALSE";
             }
             if (expression instanceof NullLiteral) {
-                return "null";
+                return "((Object) null)";
             }
             if (expression instanceof UndefinedLiteral) {
                 return "dev.tsj.runtime.TsjRuntime.undefined()";
@@ -6513,6 +7407,11 @@ public final class JvmBytecodeCompiler {
                 return context.resolveThisReference();
             }
             if (expression instanceof UnaryExpression unaryExpression) {
+                if ("+".equals(unaryExpression.operator())) {
+                    return "dev.tsj.runtime.TsjRuntime.unaryPlus("
+                            + emitExpression(context, unaryExpression.expression())
+                            + ")";
+                }
                 if ("-".equals(unaryExpression.operator())) {
                     return "dev.tsj.runtime.TsjRuntime.negate("
                             + emitExpression(context, unaryExpression.expression())
@@ -6531,10 +7430,27 @@ public final class JvmBytecodeCompiler {
                                 + escapeJava(memberAccessExpression.member())
                                 + "\"))";
                     }
+                    if (unaryExpression.expression() instanceof OptionalMemberAccessExpression optionalMemberAccessExpression) {
+                        return "Boolean.valueOf(dev.tsj.runtime.TsjRuntime.optionalDeleteProperty("
+                                + emitExpression(context, optionalMemberAccessExpression.receiver())
+                                + ", \""
+                                + escapeJava(optionalMemberAccessExpression.member())
+                                + "\"))";
+                    }
                     throw new JvmCompilationException(
                             "TSJ-BACKEND-UNSUPPORTED",
                             "`delete` supports only member access targets in TSJ-21 subset."
                     );
+                }
+                if ("~".equals(unaryExpression.operator())) {
+                    return "dev.tsj.runtime.TsjRuntime.bitwiseNot("
+                            + emitExpression(context, unaryExpression.expression())
+                            + ")";
+                }
+                if ("typeof".equals(unaryExpression.operator())) {
+                    return "dev.tsj.runtime.TsjRuntime.typeOf("
+                            + emitTypeofOperandExpression(context, unaryExpression.expression())
+                            + ")";
                 }
                 throw new JvmCompilationException(
                         "TSJ-BACKEND-UNSUPPORTED",
@@ -6543,6 +7459,16 @@ public final class JvmBytecodeCompiler {
             }
             if (expression instanceof FunctionExpression functionExpression) {
                 return emitFunctionExpression(context, functionExpression);
+            }
+            if (expression instanceof YieldExpression yieldExpression) {
+                if (yieldExpression.delegate()) {
+                    return "dev.tsj.runtime.TsjRuntime.generatorYieldStar("
+                            + emitExpression(context, yieldExpression.expression())
+                            + ")";
+                }
+                return "dev.tsj.runtime.TsjRuntime.generatorYield("
+                        + emitExpression(context, yieldExpression.expression())
+                        + ")";
             }
             if (expression instanceof AwaitExpression) {
                 throw new JvmCompilationException(
@@ -6554,12 +7480,17 @@ public final class JvmBytecodeCompiler {
                 final String left = emitExpression(context, binaryExpression.left());
                 final String right = emitExpression(context, binaryExpression.right());
                 return switch (binaryExpression.operator()) {
-                    case "+", "-", "*", "/", "%" -> emitBinaryOperatorExpression(binaryExpression.operator(), left, right);
+                    case "+", "-", "*", "/", "%", "**", "&", "|", "^", "<<", ">>", ">>>"
+                            -> emitBinaryOperatorExpression(binaryExpression.operator(), left, right);
+                    case "," -> "dev.tsj.runtime.TsjRuntime.comma(" + left + ", " + right + ")";
                     case "<" -> "Boolean.valueOf(dev.tsj.runtime.TsjRuntime.lessThan(" + left + ", " + right + "))";
                     case "<=" -> "Boolean.valueOf(dev.tsj.runtime.TsjRuntime.lessThanOrEqual("
                             + left + ", " + right + "))";
                     case ">" -> "Boolean.valueOf(dev.tsj.runtime.TsjRuntime.greaterThan(" + left + ", " + right + "))";
                     case ">=" -> "Boolean.valueOf(dev.tsj.runtime.TsjRuntime.greaterThanOrEqual("
+                            + left + ", " + right + "))";
+                    case "in" -> "Boolean.valueOf(dev.tsj.runtime.TsjRuntime.inOperator(" + left + ", " + right + "))";
+                    case "instanceof" -> "Boolean.valueOf(dev.tsj.runtime.TsjRuntime.instanceOf("
                             + left + ", " + right + "))";
                     case "==" -> "Boolean.valueOf(dev.tsj.runtime.TsjRuntime.abstractEquals("
                             + left + ", " + right + "))";
@@ -6671,6 +7602,9 @@ public final class JvmBytecodeCompiler {
                 if (isRestArgsFactoryCall(callExpression)) {
                     return emitRestArgsRuntimeCall(context, callExpression);
                 }
+                if (isArrayRestFactoryCall(callExpression)) {
+                    return emitArrayRestRuntimeCall(context, callExpression);
+                }
                 if (isForOfValuesFactoryCall(callExpression)) {
                     return emitSingleArgumentRuntimeCall(context, callExpression, "forOfValues", "__tsj_for_of_values");
                 }
@@ -6680,8 +7614,17 @@ public final class JvmBytecodeCompiler {
                 if (isIndexReadFactoryCall(callExpression)) {
                     return emitIndexReadRuntimeCall(context, callExpression);
                 }
+                if (isOptionalIndexReadFactoryCall(callExpression)) {
+                    return emitOptionalIndexReadRuntimeCall(context, callExpression);
+                }
+                if (isSuperInvokeFactoryCall(callExpression)) {
+                    return emitSuperInvokeRuntimeCall(context, callExpression);
+                }
                 if (isSetDynamicKeyFactoryCall(callExpression)) {
                     return emitSetDynamicKeyRuntimeCall(context, callExpression);
+                }
+                if (isDefineAccessorFactoryCall(callExpression)) {
+                    return emitDefineAccessorRuntimeCall(context, callExpression);
                 }
                 if (isCallSpreadFactoryCall(callExpression)) {
                     if (callExpression.arguments().isEmpty()) {
@@ -6721,6 +7664,20 @@ public final class JvmBytecodeCompiler {
                 final List<String> renderedArgs = new ArrayList<>();
                 for (Expression argument : callExpression.arguments()) {
                     renderedArgs.add(emitExpression(context, argument));
+                }
+                if (callExpression.callee() instanceof OptionalMemberAccessExpression optionalMemberAccessExpression) {
+                    final String receiver = emitExpression(context, optionalMemberAccessExpression.receiver());
+                    final String methodName = "\"" + escapeJava(optionalMemberAccessExpression.member()) + "\"";
+                    final String argsSupplier = renderedArgs.isEmpty()
+                            ? "() -> new Object[0]"
+                            : "() -> new Object[]{" + String.join(", ", renderedArgs) + "}";
+                    return "dev.tsj.runtime.TsjRuntime.optionalInvokeMember("
+                            + receiver
+                            + ", "
+                            + methodName
+                            + ", "
+                            + argsSupplier
+                            + ")";
                 }
                 if (callExpression.callee() instanceof MemberAccessExpression memberAccessExpression) {
                     final String receiver = emitExpression(context, memberAccessExpression.receiver());
@@ -6763,6 +7720,10 @@ public final class JvmBytecodeCompiler {
         }
 
         private String emitNumberLiteral(final String normalizedLiteral) {
+            if (normalizedLiteral.endsWith("n") || normalizedLiteral.endsWith("N")) {
+                final String decimalText = normalizedLiteral.substring(0, normalizedLiteral.length() - 1);
+                return "dev.tsj.runtime.TsjRuntime.bigIntLiteral(\"" + escapeJava(decimalText) + "\")";
+            }
             if (normalizedLiteral.contains(".")
                     || normalizedLiteral.contains("e")
                     || normalizedLiteral.contains("E")) {
@@ -6885,6 +7846,71 @@ public final class JvmBytecodeCompiler {
                     + ")";
         }
 
+        private String emitOptionalIndexReadRuntimeCall(
+                final EmissionContext context,
+                final CallExpression callExpression
+        ) {
+            if (callExpression.arguments().size() != 2) {
+                throw new JvmCompilationException(
+                        "TSJ-BACKEND-UNSUPPORTED",
+                        "__tsj_optional_index_read requires exactly two arguments."
+                );
+            }
+            return "dev.tsj.runtime.TsjRuntime.optionalIndexRead("
+                    + emitExpression(context, callExpression.arguments().get(0))
+                    + ", "
+                    + emitExpression(context, callExpression.arguments().get(1))
+                    + ")";
+        }
+
+        private String emitSuperInvokeRuntimeCall(
+                final EmissionContext context,
+                final CallExpression callExpression
+        ) {
+            if (callExpression.arguments().isEmpty()) {
+                throw new JvmCompilationException(
+                        "TSJ-BACKEND-UNSUPPORTED",
+                        "__tsj_super_invoke requires at least a method name argument."
+                );
+            }
+            if (!(callExpression.arguments().get(0) instanceof StringLiteral methodNameLiteral)) {
+                throw new JvmCompilationException(
+                        "TSJ-BACKEND-UNSUPPORTED",
+                        "__tsj_super_invoke requires a string method name argument."
+                );
+            }
+            final String superClassExpression = context.resolveSuperClassExpression();
+            if (superClassExpression == null) {
+                throw new JvmCompilationException(
+                        "TSJ-BACKEND-UNSUPPORTED",
+                        "`super.member(...)` is only valid in derived class methods."
+                );
+            }
+            final String methodName = "\"" + escapeJava(methodNameLiteral.value()) + "\"";
+            final List<String> renderedArgs = new ArrayList<>();
+            for (int index = 1; index < callExpression.arguments().size(); index++) {
+                renderedArgs.add(emitExpression(context, callExpression.arguments().get(index)));
+            }
+            if (renderedArgs.isEmpty()) {
+                return "dev.tsj.runtime.TsjRuntime.superInvokeMember("
+                        + superClassExpression
+                        + ", "
+                        + context.resolveThisReference()
+                        + ", "
+                        + methodName
+                        + ")";
+            }
+            return "dev.tsj.runtime.TsjRuntime.superInvokeMember("
+                    + superClassExpression
+                    + ", "
+                    + context.resolveThisReference()
+                    + ", "
+                    + methodName
+                    + ", "
+                    + String.join(", ", renderedArgs)
+                    + ")";
+        }
+
         private String emitSetDynamicKeyRuntimeCall(
                 final EmissionContext context,
                 final CallExpression callExpression
@@ -6900,7 +7926,28 @@ public final class JvmBytecodeCompiler {
                     + ", "
                     + emitExpression(context, callExpression.arguments().get(1))
                     + ", "
+                            + emitExpression(context, callExpression.arguments().get(2))
+                            + ")";
+        }
+
+        private String emitDefineAccessorRuntimeCall(
+                final EmissionContext context,
+                final CallExpression callExpression
+        ) {
+            if (callExpression.arguments().size() != 4) {
+                throw new JvmCompilationException(
+                        "TSJ-BACKEND-UNSUPPORTED",
+                        "__tsj_define_accessor requires exactly four arguments."
+                );
+            }
+            return "dev.tsj.runtime.TsjRuntime.defineAccessorProperty("
+                    + emitExpression(context, callExpression.arguments().get(0))
+                    + ", "
+                    + emitExpression(context, callExpression.arguments().get(1))
+                    + ", "
                     + emitExpression(context, callExpression.arguments().get(2))
+                    + ", "
+                    + emitExpression(context, callExpression.arguments().get(3))
                     + ")";
         }
 
@@ -6937,6 +7984,39 @@ public final class JvmBytecodeCompiler {
                     + ")";
         }
 
+        private String emitArrayRestRuntimeCall(
+                final EmissionContext context,
+                final CallExpression callExpression
+        ) {
+            if (callExpression.arguments().size() != 2
+                    || !(callExpression.arguments().get(1) instanceof NumberLiteral numberLiteral)) {
+                throw new JvmCompilationException(
+                        "TSJ-BACKEND-UNSUPPORTED",
+                        "__tsj_array_rest requires source expression and numeric start index."
+                );
+            }
+            final int startIndex;
+            try {
+                startIndex = Integer.parseInt(numberLiteral.value());
+            } catch (NumberFormatException numberFormatException) {
+                throw new JvmCompilationException(
+                        "TSJ-BACKEND-UNSUPPORTED",
+                        "__tsj_array_rest start index must be an integer literal."
+                );
+            }
+            if (startIndex < 0) {
+                throw new JvmCompilationException(
+                        "TSJ-BACKEND-UNSUPPORTED",
+                        "__tsj_array_rest start index must be non-negative."
+                );
+            }
+            return "dev.tsj.runtime.TsjRuntime.arrayRest("
+                    + emitExpression(context, callExpression.arguments().get(0))
+                    + ", "
+                    + startIndex
+                    + ")";
+        }
+
         private boolean isArraySpreadFactoryCall(final CallExpression callExpression) {
             if (!(callExpression.callee() instanceof VariableExpression variableExpression)) {
                 return false;
@@ -6965,6 +8045,13 @@ public final class JvmBytecodeCompiler {
             return "__tsj_rest_args".equals(variableExpression.name());
         }
 
+        private boolean isArrayRestFactoryCall(final CallExpression callExpression) {
+            if (!(callExpression.callee() instanceof VariableExpression variableExpression)) {
+                return false;
+            }
+            return "__tsj_array_rest".equals(variableExpression.name());
+        }
+
         private boolean isForOfValuesFactoryCall(final CallExpression callExpression) {
             if (!(callExpression.callee() instanceof VariableExpression variableExpression)) {
                 return false;
@@ -6986,11 +8073,32 @@ public final class JvmBytecodeCompiler {
             return "__tsj_index_read".equals(variableExpression.name());
         }
 
+        private boolean isOptionalIndexReadFactoryCall(final CallExpression callExpression) {
+            if (!(callExpression.callee() instanceof VariableExpression variableExpression)) {
+                return false;
+            }
+            return "__tsj_optional_index_read".equals(variableExpression.name());
+        }
+
+        private boolean isSuperInvokeFactoryCall(final CallExpression callExpression) {
+            if (!(callExpression.callee() instanceof VariableExpression variableExpression)) {
+                return false;
+            }
+            return "__tsj_super_invoke".equals(variableExpression.name());
+        }
+
         private boolean isSetDynamicKeyFactoryCall(final CallExpression callExpression) {
             if (!(callExpression.callee() instanceof VariableExpression variableExpression)) {
                 return false;
             }
             return "__tsj_set_dynamic_key".equals(variableExpression.name());
+        }
+
+        private boolean isDefineAccessorFactoryCall(final CallExpression callExpression) {
+            if (!(callExpression.callee() instanceof VariableExpression variableExpression)) {
+                return false;
+            }
+            return "__tsj_define_accessor".equals(variableExpression.name());
         }
 
         private String sanitizeIdentifier(final String identifier) {
@@ -7017,7 +8125,14 @@ public final class JvmBytecodeCompiler {
         }
 
         private String escapeJava(final String value) {
-            return value.replace("\\", "\\\\").replace("\"", "\\\"");
+            return value
+                    .replace("\\", "\\\\")
+                    .replace("\"", "\\\"")
+                    .replace("\n", "\\n")
+                    .replace("\r", "\\r")
+                    .replace("\t", "\\t")
+                    .replace("\b", "\\b")
+                    .replace("\f", "\\f");
         }
 
         private String allocatePropertyCacheField(final String propertyName) {
@@ -7058,6 +8173,7 @@ public final class JvmBytecodeCompiler {
         private final class EmissionContext {
             private final EmissionContext parent;
             private final Map<String, String> bindings;
+            private final Map<String, String> labels;
             private final Set<String> generatedNames;
             private final String thisReference;
             private final String superClassExpression;
@@ -7098,6 +8214,7 @@ public final class JvmBytecodeCompiler {
             ) {
                 this.parent = parent;
                 this.bindings = new LinkedHashMap<>();
+                this.labels = new LinkedHashMap<>();
                 this.generatedNames = new LinkedHashSet<>();
                 this.thisReference = thisReference;
                 this.superClassExpression = superClassExpression;
@@ -7136,6 +8253,81 @@ public final class JvmBytecodeCompiler {
                 if (parent != null) {
                     return parent.resolveBinding(sourceName);
                 }
+                if ("Error".equals(sourceName)) {
+                    return ERROR_BUILTIN_CELL_FIELD;
+                }
+                if ("String".equals(sourceName)) {
+                    return STRING_BUILTIN_CELL_FIELD;
+                }
+                if ("JSON".equals(sourceName)) {
+                    return JSON_BUILTIN_CELL_FIELD;
+                }
+                if ("Object".equals(sourceName)) {
+                    return OBJECT_BUILTIN_CELL_FIELD;
+                }
+                if ("Reflect".equals(sourceName)) {
+                    return REFLECT_BUILTIN_CELL_FIELD;
+                }
+                if ("Proxy".equals(sourceName)) {
+                    return PROXY_BUILTIN_CELL_FIELD;
+                }
+                if ("Array".equals(sourceName)) {
+                    return ARRAY_BUILTIN_CELL_FIELD;
+                }
+                if ("Map".equals(sourceName)) {
+                    return MAP_BUILTIN_CELL_FIELD;
+                }
+                if ("Set".equals(sourceName)) {
+                    return SET_BUILTIN_CELL_FIELD;
+                }
+                if ("WeakMap".equals(sourceName)) {
+                    return WEAK_MAP_BUILTIN_CELL_FIELD;
+                }
+                if ("WeakSet".equals(sourceName)) {
+                    return WEAK_SET_BUILTIN_CELL_FIELD;
+                }
+                if ("WeakRef".equals(sourceName)) {
+                    return WEAK_REF_BUILTIN_CELL_FIELD;
+                }
+                if ("Date".equals(sourceName)) {
+                    return DATE_BUILTIN_CELL_FIELD;
+                }
+                if ("RegExp".equals(sourceName)) {
+                    return REGEXP_BUILTIN_CELL_FIELD;
+                }
+                if ("AggregateError".equals(sourceName)) {
+                    return AGGREGATE_ERROR_BUILTIN_CELL_FIELD;
+                }
+                if ("TypeError".equals(sourceName)) {
+                    return TYPE_ERROR_BUILTIN_CELL_FIELD;
+                }
+                if ("RangeError".equals(sourceName)) {
+                    return RANGE_ERROR_BUILTIN_CELL_FIELD;
+                }
+                if ("Math".equals(sourceName)) {
+                    return MATH_BUILTIN_CELL_FIELD;
+                }
+                if ("Number".equals(sourceName)) {
+                    return NUMBER_BUILTIN_CELL_FIELD;
+                }
+                if ("BigInt".equals(sourceName)) {
+                    return BIGINT_BUILTIN_CELL_FIELD;
+                }
+                if ("Symbol".equals(sourceName)) {
+                    return SYMBOL_BUILTIN_CELL_FIELD;
+                }
+                if ("parseInt".equals(sourceName)) {
+                    return PARSE_INT_BUILTIN_CELL_FIELD;
+                }
+                if ("parseFloat".equals(sourceName)) {
+                    return PARSE_FLOAT_BUILTIN_CELL_FIELD;
+                }
+                if ("Infinity".equals(sourceName)) {
+                    return INFINITY_BUILTIN_CELL_FIELD;
+                }
+                if ("NaN".equals(sourceName)) {
+                    return NAN_BUILTIN_CELL_FIELD;
+                }
                 if ("Promise".equals(sourceName)) {
                     return "PROMISE_BUILTIN_CELL";
                 }
@@ -7155,6 +8347,31 @@ public final class JvmBytecodeCompiler {
                 return allocated;
             }
 
+            private String declareLabel(final String sourceLabel) {
+                if (labels.containsKey(sourceLabel)) {
+                    throw new JvmCompilationException(
+                            "TSJ-BACKEND-UNSUPPORTED",
+                            "Duplicate label in scope: " + sourceLabel
+                    );
+                }
+                final String labelName = allocateUniqueName("__tsj_label_" + sanitizeIdentifier(sourceLabel));
+                labels.put(sourceLabel, labelName);
+                return labelName;
+            }
+
+            private String resolveLabel(final String sourceLabel) {
+                if (labels.containsKey(sourceLabel)) {
+                    return labels.get(sourceLabel);
+                }
+                if (parent != null) {
+                    return parent.resolveLabel(sourceLabel);
+                }
+                throw new JvmCompilationException(
+                        "TSJ-BACKEND-UNSUPPORTED",
+                        "Unresolved loop label in TSJ-59 subset: " + sourceLabel
+                );
+            }
+
             private String allocateUniqueName(final String baseName) {
                 String candidate = baseName;
                 int counter = 1;
@@ -7166,7 +8383,7 @@ public final class JvmBytecodeCompiler {
             }
 
             private boolean isNameUsed(final String value) {
-                if (bindings.containsValue(value) || generatedNames.contains(value)) {
+                if (bindings.containsValue(value) || labels.containsValue(value) || generatedNames.contains(value)) {
                     return true;
                 }
                 if (parent != null) {

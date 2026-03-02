@@ -47,7 +47,7 @@ This creates:
 Current TSJ CLI equivalent:
 
 ```bash
-mvn -B -ntp -pl cli -am exec:java \
+mvn -B -ntp -f cli/pom.xml exec:java \
   -Dexec.mainClass=dev.tsj.cli.TsjCli \
   -Dexec.args="run examples/tita/src/main.ts --out examples/tita/.out/shared --classpath examples/tita/deps/tita-fixtures-1.0.jar:examples/tita/deps/tita-duplicates-1.0.jar:jrt:/java.base/java/util --interop-policy broad --ack-interop-risk --classloader-isolation shared"
 ```
@@ -72,7 +72,7 @@ Produced artifacts:
 Current TSJ CLI equivalent:
 
 ```bash
-mvn -B -ntp -pl cli -am exec:java \
+mvn -B -ntp -f cli/pom.xml exec:java \
   -Dexec.mainClass=dev.tsj.cli.TsjCli \
   -Dexec.args="run examples/tita/src/main.ts --out examples/tita/.out/isolated --classpath examples/tita/deps/tita-fixtures-1.0.jar:examples/tita/deps/tita-app-conflict-1.0.jar --interop-policy broad --ack-interop-risk --classloader-isolation app-isolated"
 ```

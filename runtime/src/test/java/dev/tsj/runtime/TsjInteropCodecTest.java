@@ -47,6 +47,11 @@ class TsjInteropCodecTest {
     }
 
     @Test
+    void toJavaReturnsNullForNullWhenTargetIsStringReferenceType() {
+        assertNull(TsjInteropCodec.toJava(null, String.class));
+    }
+
+    @Test
     void toJavaKeepsAssignableObjectReference() {
         final TsjObject object = new TsjObject(null);
         assertSame(object, TsjInteropCodec.toJava(object, TsjObject.class));
@@ -282,13 +287,30 @@ class TsjInteropCodecTest {
         assertEquals(1, TsjRuntime.getProperty(mapValue, "x"));
         assertEquals(2, TsjRuntime.getProperty(mapValue, "y"));
 
-        assertEquals("BETA", TsjInteropCodec.fromJava(InteropMode.BETA));
+        assertSame(InteropMode.BETA, TsjInteropCodec.fromJava(InteropMode.BETA));
 
         final CompletableFuture<String> completed = CompletableFuture.completedFuture("ok");
         final Object promiseValue = TsjInteropCodec.fromJava(completed);
         assertInstanceOf(TsjPromise.class, promiseValue);
         TsjRuntime.flushMicrotasks();
         assertEquals("ok", capturePromiseValue((TsjPromise) promiseValue));
+    }
+
+    @Test
+    void invokeBindingPreservesEnumInstanceIdentityAcrossInteropBoundaries() {
+        final Object monday = TsjJavaInterop.invokeBinding("java.time.DayOfWeek", "valueOf", "MONDAY");
+        assertEquals("MONDAY", TsjJavaInterop.invokeBinding("java.time.DayOfWeek", "$instance$name", monday));
+        assertEquals(1, TsjJavaInterop.invokeBinding("java.time.DayOfWeek", "$instance$getValue", monday));
+    }
+
+    @Test
+    void invokeBindingPreservesOptionalWrapperAcrossInteropBoundaries() {
+        final Object present = TsjJavaInterop.invokeBinding("java.util.Optional", "of", 41);
+        assertTrue((Boolean) TsjJavaInterop.invokeBinding("java.util.Optional", "$instance$isPresent", present));
+        assertEquals(41, TsjJavaInterop.invokeBinding("java.util.Optional", "$instance$get", present));
+
+        final Object empty = TsjJavaInterop.invokeBinding("java.util.Optional", "empty");
+        assertFalse((Boolean) TsjJavaInterop.invokeBinding("java.util.Optional", "$instance$isPresent", empty));
     }
 
     @Test

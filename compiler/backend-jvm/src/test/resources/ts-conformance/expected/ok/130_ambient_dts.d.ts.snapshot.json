@@ -395,7 +395,7 @@
   "normalizedProgram" : {
     "kind" : "Program",
     "statements" : [ {
-      "column" : 1,
+      "column" : 15,
       "expression" : {
         "column" : 15,
         "kind" : "UndefinedLiteral",

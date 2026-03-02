@@ -1097,7 +1097,7 @@
   "normalizedProgram" : {
     "kind" : "Program",
     "statements" : [ {
-      "column" : 1,
+      "column" : 7,
       "expression" : {
         "column" : 20,
         "kind" : "NumberLiteral",
@@ -1108,7 +1108,7 @@
       "line" : 1,
       "name" : "café"
     }, {
-      "column" : 1,
+      "column" : 7,
       "expression" : {
         "column" : 22,
         "kind" : "NumberLiteral",
@@ -1119,7 +1119,7 @@
       "line" : 2,
       "name" : "greek_Ω"
     }, {
-      "column" : 1,
+      "column" : 7,
       "expression" : {
         "column" : 17,
         "kind" : "NumberLiteral",
@@ -1130,7 +1130,7 @@
       "line" : 4,
       "name" : "million"
     }, {
-      "column" : 1,
+      "column" : 7,
       "expression" : {
         "column" : 14,
         "kind" : "NumberLiteral",
@@ -1141,7 +1141,7 @@
       "line" : 5,
       "name" : "mask"
     }, {
-      "column" : 1,
+      "column" : 7,
       "expression" : {
         "column" : 13,
         "kind" : "NumberLiteral",
@@ -1152,7 +1152,7 @@
       "line" : 6,
       "name" : "hex"
     }, {
-      "column" : 1,
+      "column" : 7,
       "expression" : {
         "column" : 13,
         "kind" : "NumberLiteral",
@@ -1163,7 +1163,7 @@
       "line" : 7,
       "name" : "big"
     }, {
-      "column" : 1,
+      "column" : 7,
       "expression" : {
         "column" : 16,
         "kind" : "StringLiteral",
@@ -1174,7 +1174,7 @@
       "line" : 9,
       "name" : "single"
     }, {
-      "column" : 1,
+      "column" : 7,
       "expression" : {
         "column" : 13,
         "kind" : "StringLiteral",
@@ -1185,7 +1185,7 @@
       "line" : 10,
       "name" : "dbl"
     }, {
-      "column" : 1,
+      "column" : 7,
       "expression" : {
         "column" : 29,
         "kind" : "BinaryExpression",
@@ -1272,13 +1272,14 @@
           "kind" : "ReturnStatement",
           "line" : 14
         } ],
+        "generator" : false,
         "name" : "tag",
         "parameters" : [ "parts" ]
       },
       "kind" : "FunctionDeclarationStatement",
       "line" : 13
     }, {
-      "column" : 1,
+      "column" : 7,
       "expression" : {
         "arguments" : [ {
           "column" : 16,
@@ -1325,7 +1326,7 @@
       "line" : 17,
       "name" : "tagged"
     }, {
-      "column" : 1,
+      "column" : 7,
       "expression" : {
         "column" : 25,
         "condition" : {
@@ -1405,13 +1406,14 @@
           "kind" : "ExpressionStatement",
           "line" : 26
         } ],
+        "generator" : false,
         "name" : "asiReturnTrap",
         "parameters" : [ ]
       },
       "kind" : "FunctionDeclarationStatement",
       "line" : 24
     }, {
-      "column" : 1,
+      "column" : 5,
       "expression" : {
         "column" : 15,
         "kind" : "NumberLiteral",
@@ -1422,7 +1424,7 @@
       "line" : 29,
       "name" : "counter"
     }, {
-      "column" : 1,
+      "column" : 5,
       "expression" : {
         "column" : 13,
         "kind" : "NumberLiteral",
@@ -1479,34 +1481,69 @@
     }, {
       "column" : 1,
       "expression" : {
-        "column" : 1,
-        "expression" : {
+        "arguments" : [ ],
+        "callee" : {
+          "async" : false,
+          "body" : [ {
+            "column" : 1,
+            "expression" : {
+              "column" : 1,
+              "kind" : "VariableExpression",
+              "line" : 33,
+              "name" : "counter"
+            },
+            "kind" : "VariableDeclaration",
+            "line" : 33,
+            "name" : "postfix_1"
+          }, {
+            "column" : 1,
+            "expression" : {
+              "column" : 1,
+              "kind" : "BinaryExpression",
+              "left" : {
+                "column" : 1,
+                "kind" : "VariableExpression",
+                "line" : 33,
+                "name" : "counter"
+              },
+              "line" : 33,
+              "operator" : "-",
+              "right" : {
+                "column" : 1,
+                "kind" : "NumberLiteral",
+                "line" : 33,
+                "text" : "1"
+              }
+            },
+            "kind" : "AssignmentStatement",
+            "line" : 33,
+            "target" : {
+              "column" : 1,
+              "kind" : "VariableExpression",
+              "line" : 33,
+              "name" : "counter"
+            }
+          }, {
+            "column" : 1,
+            "expression" : {
+              "column" : 1,
+              "kind" : "VariableExpression",
+              "line" : 33,
+              "name" : "postfix_1"
+            },
+            "kind" : "ReturnStatement",
+            "line" : 33
+          } ],
           "column" : 1,
-          "kind" : "BinaryExpression",
-          "left" : {
-            "column" : 1,
-            "kind" : "VariableExpression",
-            "line" : 33,
-            "name" : "counter"
-          },
+          "generator" : false,
+          "kind" : "FunctionExpression",
           "line" : 33,
-          "operator" : "-",
-          "right" : {
-            "column" : 1,
-            "kind" : "NumberLiteral",
-            "line" : 33,
-            "text" : "1"
-          }
+          "parameters" : [ ],
+          "thisMode" : "LEXICAL"
         },
-        "kind" : "AssignmentExpression",
-        "line" : 33,
-        "operator" : "=",
-        "target" : {
-          "column" : 1,
-          "kind" : "VariableExpression",
-          "line" : 33,
-          "name" : "counter"
-        }
+        "column" : 1,
+        "kind" : "CallExpression",
+        "line" : 33
       },
       "kind" : "ExpressionStatement",
       "line" : 33
@@ -1518,7 +1555,13 @@
           "column" : 3,
           "expression" : {
             "column" : 3,
-            "kind" : "UndefinedLiteral",
+            "delegate" : false,
+            "expression" : {
+              "column" : 3,
+              "kind" : "UndefinedLiteral",
+              "line" : 36
+            },
+            "kind" : "YieldExpression",
             "line" : 36
           },
           "kind" : "ExpressionStatement",
@@ -1534,6 +1577,7 @@
           "kind" : "ExpressionStatement",
           "line" : 37
         } ],
+        "generator" : true,
         "name" : "lexicalGenerator",
         "parameters" : [ ]
       },
@@ -1588,6 +1632,7 @@
           "kind" : "ReturnStatement",
           "line" : 41
         } ],
+        "generator" : false,
         "name" : "lexicalAsync",
         "parameters" : [ ]
       },

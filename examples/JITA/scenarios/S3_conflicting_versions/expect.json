@@ -1,0 +1,10 @@
+{
+  "scenario": "S3_conflicting_versions",
+  "description": "Include dupe-lib-1.0.jar and dupe-lib-2.0.jar on classpath. Tests version conflict detection.",
+  "expectCompile": {
+    "result": "fail",
+    "diagnosticCode": "TSJ-CLASSPATH-CONFLICT",
+    "contains": ["Classpath version conflict"]
+  },
+  "expectRun": null
+}

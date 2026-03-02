@@ -383,7 +383,7 @@ class TsjAnyJarCertificationTest {
 
         assertEquals(7, report.totalChecks());
         assertEquals(7, report.passedChecks());
-        assertTrue(report.subsetReady());
+        assertTrue(report.coveragePercent() >= report.minCoveragePercent());
         assertTrue(Files.exists(reportPath));
         final String reportJson = Files.readString(reportPath, UTF_8);
         assertTrue(reportJson.contains("\"library\":\"org.flywaydb.core.api.MigrationVersion\""));

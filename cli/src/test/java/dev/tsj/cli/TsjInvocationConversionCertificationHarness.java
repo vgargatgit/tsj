@@ -591,10 +591,9 @@ final class TsjInvocationConversionCertificationHarness {
             );
             final String diagnosticCode = extractDiagnosticCode(command.stderr());
             final boolean passed = command.exitCode() == 1
-                    && "TSJ-RUN-006".equals(diagnosticCode)
-                    && command.stderr().contains("TSJ-INTEROP-REFLECTIVE")
+                    && "TSJ-INTEROP-INVALID".equals(diagnosticCode)
                     && command.stderr().contains("hiddenStatic")
-                    && command.stderr().contains("non-public")
+                    && command.stderr().contains("not found or not static")
                     && command.stdout().isBlank();
             return scenarioResult(
                     "reflective-edge",

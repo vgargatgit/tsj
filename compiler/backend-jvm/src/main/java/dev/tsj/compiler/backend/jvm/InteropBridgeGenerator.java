@@ -1273,7 +1273,17 @@ public final class InteropBridgeGenerator {
                 JavaOverloadResolver.InvokeKind.STATIC_METHOD,
                 methodNullabilityByKey
         );
-        return resolveSelectedCallableIdentity(target, bindingArgs, overloadResolver, specFile, candidates);
+        if (!candidates.isEmpty()) {
+            return resolveSelectedCallableIdentity(target, bindingArgs, overloadResolver, specFile, candidates);
+        }
+        return resolveSelectedFieldIdentity(
+                targetClass,
+                target,
+                bindingName,
+                JavaOverloadResolver.InvokeKind.STATIC_FIELD_GET,
+                true,
+                specFile
+        );
     }
 
     private static Map<String, List<JavaNullabilityAnalyzer.NullabilityState>> resolveParameterNullabilityByMethodKey(
@@ -1533,6 +1543,14 @@ public final class InteropBridgeGenerator {
             if (Modifier.isStatic(method.getModifiers())) {
                 return;
             }
+        }
+        try {
+            final Field field = targetClass.getField(bindingName);
+            if (Modifier.isStatic(field.getModifiers())) {
+                return;
+            }
+        } catch (NoSuchFieldException ignored) {
+            // No static field with that name; report invalid bare binding.
         }
         throw invalidTarget(
                 specFile,

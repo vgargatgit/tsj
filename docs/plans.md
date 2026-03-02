@@ -1,5 +1,148 @@
 # Plans
 
+## 2026-03-01 UTTA Final Grammar Closure (`001_for_await_of`, `006_proxy_reflect`)
+
+- [x] `Red`: add/adjust regression tests to assert successful compile/run for:
+  - `for await...of` (including async-generator source and promise-array source),
+  - `Proxy` traps (`get`, `set`, `has`) and `Reflect` APIs used by UTTA fixture.
+- [x] `Green` (bridge/backend/runtime):
+  - lower `for await...of` in normalized AST with awaited iteration values,
+  - allow async generator *functions* (keep async generator method guardrails unchanged),
+  - remove `new Proxy(...)` hard-reject path and wire `Proxy`/`Reflect` global bindings.
+- [x] `Green` (runtime):
+  - implement minimal `Proxy` + `Proxy.revocable` behavior required by UTTA fixture,
+  - implement `Reflect.ownKeys`, `Reflect.has`, `Reflect.get`, `Reflect.set`.
+- [x] Verify:
+  - targeted backend/bridge/cli/runtime regressions pass,
+  - `bash examples/UTTA/scripts/run.sh` reaches `TOTAL: 30 | PASS: 30 | FAIL: 0 | CRASH: 0`,
+  - regression tail fixed and validated (`compiler-backend-jvm` full suite + `mvn -B -ntp -rf :cli test` green after patching the flaky AnyJar readiness assertion).
+
+## 2026-03-01 UTTA Next Slice (BigInt + Symbol Runtime/Compiler Closure)
+
+- [x] `Red`: run focused backend/runtime tests that currently fail for BigInt/Symbol callable/global semantics.
+- [x] `Green` (compiler): wire `BigInt`/`Symbol` global bindings in JVM backend bootstrap/binding resolution and preserve bigint literal emission (`123n` -> runtime bigint literal path).
+- [x] `Green` (runtime): complete BigInt/Symbol coercion/property-key semantics (`[Symbol.toPrimitive]`, symbol-keyed iterator lookup, callable builtins behavior) required by UTTA grammar fixtures.
+- [x] Verify targeted tests:
+  - `JvmBytecodeCompilerTest#supportsBigIntLiteralTypeofAndConstructorInTsjRuntime`
+  - `JvmBytecodeCompilerTest#supportsSymbolCreationRegistryAndSymbolPropertyKeys`
+- [x] Re-run `bash examples/UTTA/scripts/run.sh` and record monotonic progression in `docs/todo.md`.
+
+## 2026-03-01 UTTA Next Slice (`typeof` undeclared + fixture parity)
+
+- [x] `Red`: add backend regression coverage for `typeof <undeclaredIdentifier>` to ensure compile succeeds and runtime returns `"undefined"`.
+- [x] `Green`: update backend unary `typeof` emission to treat unresolved bare identifiers as `undefined` only in `typeof` context.
+- [x] Validate `examples/UTTA/src/grammar/012_deep_nesting.ts` nested spread expectation against Node baseline and correct fixture assertion.
+- [x] Re-run `bash examples/UTTA/scripts/run.sh` and record progression in `docs/todo.md`.
+
+## 2026-03-01 UTTA Next Slice (Class Expression Mixin Closure)
+
+- [x] `Red`: add backend regression for class expressions returned from mixin factories (`return class extends Base { ... }`).
+- [x] `Green`: implement bridge normalization for `ClassExpression` via local IIFE lowering that emits class statements and returns the synthesized class value.
+- [x] Verify targeted backend test and rerun UTTA progression harness.
+
+## 2026-03-01 UTTA Next Slice (`grammar/011_decorators`)
+
+- [x] `Red`: add focused backend/CLI regression coverage for decorator runtime behavior in UTTA fixture shapes (class, method, property, stacked class decorators).
+- [x] `Green`: fix normalized bridge/backend lowering so decorator callbacks are invoked with expected targets/descriptor semantics for currently in-scope UTTA forms.
+- [x] Verify:
+  - targeted regression tests pass,
+  - `mvn -B -ntp -q -f cli/pom.xml exec:java -Dexec.mainClass=dev.tsj.cli.TsjCli -Dexec.args='run examples/UTTA/src/grammar/011_decorators.ts'` returns all checks true,
+  - UTTA progression remains monotonic.
+
+## 2026-03-01 UTTA Next Slice (`grammar/008_error_cause`)
+
+- [x] `Red`: add focused backend/runtime regression coverage for `Error(message, { cause })` and `new AggregateError(errors, message[, { cause }])`.
+- [x] `Green`: add runtime `AggregateError` builtin support, wire backend global binding emission/resolution, and propagate `cause` option in error constructors.
+- [x] Verify:
+  - targeted runtime/backend tests pass,
+  - `mvn -B -ntp -q -f cli/pom.xml exec:java -Dexec.mainClass=dev.tsj.cli.TsjCli -Dexec.args='run examples/UTTA/src/grammar/008_error_cause.ts'` returns all checks true,
+  - UTTA progression remains monotonic.
+
+## 2026-03-01 XTTA Next TODO Slice (JSON + Builtins + Regression)
+
+- [x] `Red`: add/extend runtime+backend tests that reproduce XTTA regressions for builtins/object invocation/control semantics.
+- [x] `Green`: complete runtime builtin coverage and backend global bindings for `JSON`, `Object`, `Array`, `Map`, `Set`, `Math/Number`, `RegExp`, `Date`, and native error subtypes.
+- [x] `Green`: close XTTA parser/normalization crashes for `010_rest_default_computed` and `011_getters_setters_misc` (dynamic object keys + object/class accessors).
+- [x] `Green`: close XTTA normalization/runtime gaps for `006_class_features`, `013_async_edge`, and `014_enum_namespace`.
+- [x] Verify targeted runtime/backend regressions plus repeated XTTA harness runs after each slice.
+- [x] `Green`: implement generator semantics required by `examples/XTTA/src/grammar/005_generators.ts` (`yield`, `yield*`, `next(arg)`, iterator behavior).
+- [x] Verify full XTTA reaches `TOTAL: 30 | PASS: 30 | FAIL: 0 | CRASH: 0`.
+- [x] Run full Maven regression and fix any regressions introduced by the generator slice.
+- [x] Update `docs/todo.md` review section with final command transcripts/outcomes and residual gaps (if any).
+
+## 2026-03-01 UTTA Issue Triage + Fix Plan (`examples/UTTA`)
+
+- [x] Re-run UTTA harness and capture baseline from implementation:
+  `bash examples/UTTA/scripts/run.sh` -> `TOTAL: 30 | PASS: 11 | FAIL: 19 | CRASH: 17`.
+- [x] Reproduce failing UTTA files with direct compile/run probes and map each failure to concrete frontend/backend/runtime/interop code paths.
+- [x] Validate normalization-vs-parser split with no-fallback probes (`-Dtsj.backend.astNoFallback=true`) and bridge instrumentation for hidden normalization errors.
+- [ ] `Red`: add targeted regression tests (backend/runtime/interop + CLI where needed) for each UTTA failure family before fixes.
+- [ ] `Green` (bridge/lowering):
+  - support element-access assignment targets so `obj[key] = v` lowers without `CallExpression` assignment targets;
+  - support compound bitwise/shift assignment operators in normalized AST (`&=`, `|=`, `^=`, `<<=`, `>>=`, `>>>=`);
+  - support `DeleteExpression` in normalized AST (`delete obj.x`, `delete obj?.a?.b`);
+  - support optional element access normalization (`arr?.[i]`);
+  - support `super.member(...)` call shape in normalized AST (currently trips on `SuperKeyword`);
+  - support multi-declarator for-loop initializers (`for (let i = 0, j = 10; ...)`) to avoid fallback churn.
+- [ ] `Green` (backend/runtime semantics):
+  - fix postfix update semantics for non-identifier targets (`this.nextId++` should return pre-increment value);
+  - add BigInt global binding/runtime callable semantics required by UTTA BigInt fixture.
+- [ ] `Green` (feature coverage currently hard-blocked):
+  - implement or explicitly re-scope with deterministic diagnostics for `async function*` / `for await...of`, `Proxy`/`Reflect`, `WeakMap`/`WeakSet`/`WeakRef`, and `AggregateError`.
+- [ ] `Green` (interop):
+  - preserve Java enum object identity across interop boundaries (do not coerce enum instances to string on `fromJava`);
+  - preserve `java.util.Optional` wrapper identity when returned to TSJ (do not eagerly unwrap to raw value);
+  - support bare static field imports (`import { VERSION } from "java:..."`) or auto-normalize to static-field getter bindings.
+- [x] Validate UTTA fixture expectations against Node baseline and correct known false negatives (`grammar/012_deep_nesting nested_spread` now aligned with JS length `6`).
+- [x] Verify monotonic UTTA progression after each slice (`PASS` non-decreasing, `FAIL/CRASH` non-increasing) and finish at `PASS: 30`.
+- [x] Run full regression (`mvn -B -ntp test`) after UTTA closure and document outcomes in `docs/todo.md`.
+
+## 2026-02-28 Full Regression Follow-up: Obsolete Code/Test Audit
+
+- [x] Re-run full Maven regression and capture final module-level pass/fail status.
+- [x] Re-run TGTA non-TSX compile sweep directly to validate current per-fixture diagnostic reality.
+- [x] Make TGTA compile-gate exclusions explicit with stable-diagnostic assertions (avoid hidden stale assumptions).
+- [x] Reconcile docs that overstated TGTA closure or carried stale progression summaries.
+- [x] Verify targeted gate checks and unsupported progression counts after updates.
+
+## 2026-02-28 TSJ-44d Governance Hardening (Executable Matrix Gate)
+
+- [x] `Red`: capture current governance weakness (matrix gate only checks classpath resolution, not executable interop).
+- [x] `Green`: replace matrix gate with executable TSJ `run` scenarios across certified any-jar subset libraries.
+- [x] `Green`: derive certified-subset manifest entries from executed scenario results instead of hardcoded triples.
+- [x] Verify targeted governance certification tests pass and report remains deterministic.
+- [x] Update `docs/todo.md` to close the TSJ-44d governance-hardening TODO with verification notes.
+
+## 2026-02-28 TNTA Spec Validation + Implementation (`examples/tnta/TNTA_SPEC.md`)
+
+- [ ] Validate TNTA spec assumptions against current TSJ runtime/parser/CLI behavior and document concrete mismatches.
+- [ ] Align TNTA execution commands with current tooling (`node --experimental-strip-types` for TS baseline tooling; `tsj run` without unsupported arg passthrough).
+- [ ] `Red`: add deterministic TNTA harness tests for report shape and baseline comparison behavior.
+- [ ] `Green`: implement TNTA TypeScript app scaffold (`src/main.ts`, harness modules, suites, config, expected baseline module).
+- [ ] `Green`: represent unsupported TSJ grammar/operator coverage as explicit skipped TNTA cases with stable reasons.
+- [ ] Verify end-to-end:
+  - baseline generation command succeeds deterministically,
+  - TNTA Node compare mode passes against generated baseline,
+  - TNTA TSJ run returns `TSJ-RUN-SUCCESS`.
+- [ ] Update `docs/todo.md` review notes with delivered scope, known skips, and verification commands.
+
+## 2026-02-28 Root Unsupported Grammar Progression Suite (`unsupported/`)
+
+- [x] Validate unsupported grammar/operators from parser/runtime code paths and direct compile/run probes (not docs-only).
+- [x] Add root-level unsupported fixtures under `unsupported/grammar` for currently failing grammar/operator parity cases.
+- [x] Add runnable progression harness (`unsupported/run_progress.sh`) that compares Node baseline output vs TSJ output per fixture.
+- [x] Emit deterministic summary counts (`total`, `passed`, `failed`) and non-zero exit when failures remain, so count reduction is trackable over time.
+- [x] Verify the new progression suite runs end-to-end and reports current failing count.
+
+## 2026-02-28 Docs Validation + Consolidation (`docs/`)
+
+- [x] Audit current docs for correctness against current code/tests (focus: CLI commands, supported/unsupported grammar, runtime behavior claims).
+- [x] Build a simpler docs entry path for non-compiler engineers (`docs/README.md` with “start here” flow + short map to deeper docs).
+- [x] Consolidate overlapping docs by merging small topic-fragment files into fewer canonical guides and deleting redundant originals.
+- [x] Update remaining docs to remove stale or misleading claims found during audit.
+- [x] Verify referenced CLI commands/options in canonical docs against current `TsjCli` implementation.
+- [x] Add review notes to `docs/todo.md` with what was validated, consolidated, and removed.
+
 ## 2026-02-22 TGTA Spec Implementation (`examples/tgta/spec.md`)
 
 - [x] Define standalone scope (TypeScript-only app, no TSJ internals) and create TGTA skeleton under `examples/tgta`.
@@ -193,3 +336,139 @@
 - [x] Add a CI step that explicitly runs grammar gates across parser conformance snapshots, backend syntax bridge tests, and CLI grammar differential fixtures.
 - [x] Verify the new CI grammar gate command succeeds locally.
 - [x] Update `docs/todo.md` to close the CI-gate TODO with command references.
+
+## 2026-02-22 JVM Backend Regression Recovery (Failing `JvmBytecodeCompilerTest`)
+
+- [x] Reproduce the 11 failing/erroring `JvmBytecodeCompilerTest` cases and group them by root-cause surface (syntax bridge lowering, unsupported-feature diagnostics, runtime semantics).
+- [x] `Red`: lock in any missing regression expectations only if needed (prefer existing failing tests as the red state).
+- [x] `Green`: restore object/class method lowering so method calls keep correct callable binding (`this`, async object method init, arrow lexical `this`).
+- [x] `Green`: restore targeted compile-time rejections for unsupported async getter/setter/object-generator variants and import restrictions (non-relative + dynamic import diagnostics).
+- [x] `Green`: fix runtime semantic regressions surfaced by the suite (abstract equality object-to-primitive coercion and thenable assimilation/reject-first-settle semantics).
+- [x] Verify by running targeted failing tests, then full `JvmBytecodeCompilerTest`.
+- [x] Update `docs/todo.md` review section with root causes, fixes, and verification commands/outcomes.
+
+## 2026-02-22 README Quickstart Revamp (Compile/Run + Extra JARs)
+
+- [x] Replace root `README.md` with a minimal user quickstart focused only on compile/run workflows.
+- [x] Include explicit commands for `compile` and `run` with additional JARs (`--jar`) and classpath entries (`--classpath`).
+- [x] Keep content concise and remove unrelated architecture/status details from README.
+- [x] Verify command syntax against current CLI contract and ensure examples are copy-paste ready.
+
+## 2026-02-28 Unsupported Jar-Interop Progression Suite
+
+- [x] Validate unsupported jar-interop behaviors from implementation/tests (not docs) and list concrete unsupported/rejected categories.
+- [x] Add `unsupported/jarinterop` fixtures covering stable unsupported/rejected jar-interop scenarios.
+- [x] Add a jar-interop progression runner that executes fixtures, builds required test jars, and checks deterministic diagnostic codes.
+- [x] Wire `unsupported/run_progress.sh` to run grammar + jarinterop suites with a combined summary.
+- [x] Run the progression suite locally and record outcomes in `docs/todo.md` review notes.
+
+## 2026-02-28 Unsupported Grammar Operator + Unary Parity Slice
+
+- [x] `Red`: add backend/runtime regression coverage for unary plus, exponentiation, shift/bitwise operators, `typeof`, `in`, and `instanceof`.
+- [x] `Green`: implement parser/tokenizer/runtime/codegen support for the above operators with deterministic behavior.
+- [x] Verify targeted backend tests pass.
+- [x] Verify `unsupported/run_progress.sh` shows reduced grammar failures from the current baseline.
+- [x] Record outcomes in `docs/todo.md` review notes.
+
+## 2026-02-28 TSJ-22 Default + Namespace Import Support Slice
+
+- [x] `Red`: convert existing TSJ-22 default/namespace rejection tests into positive compile/run assertions in backend + CLI suites.
+- [x] `Green`: implement relative default import support (including default+named form) in module bundling.
+- [x] `Green`: implement relative namespace import support in module bundling.
+- [x] Verify targeted backend + CLI tests pass.
+- [x] Verify `unsupported/run_progress.sh` failure count decreases accordingly.
+- [x] Record outcomes in `docs/todo.md` review notes and refresh `docs/unsupported-feature-matrix.md`.
+
+## 2026-02-28 TGTA Non-TSX 15/15 Closure + Fallback Reduction
+
+- [x] `Red`: remove TGTA known-failing exclusions so gate requires `TSJ-COMPILE-SUCCESS` for all non-TSX `ok` fixtures.
+- [x] `Green`: implement normalized-AST handling for remaining `020_expressions.ts` blocker (dynamic import expression in compile path) while keeping existing relative dynamic-import guardrail diagnostics intact.
+- [x] Verify targeted gates:
+  `mvn -B -ntp -pl cli -am -Dsurefire.failIfNoSpecifiedTests=false -Dtest=TsjTgtaCompileGateTest test`
+- [x] Verify broader guardrails/regressions still hold:
+  `mvn -B -ntp -pl compiler/backend-jvm -am -Dsurefire.failIfNoSpecifiedTests=false -Dtest=JvmBytecodeCompilerTest#rejectsDynamicImportWithFeatureDiagnosticMetadata test`
+  `mvn -B -ntp -pl cli -am -Dsurefire.failIfNoSpecifiedTests=false -Dtest=TsjCliTest#compileUnsupportedSyntaxReturnsBackendDiagnostic,TsjCliTest#compileDynamicImportIncludesUnsupportedFeatureContext test`
+- [x] Run full regression (`mvn -B -ntp test`) and resolve surfaced regressions (conformance snapshot drift + fixture-harness mismatch fixture).
+- [x] Update `docs/todo.md` status/review entries for TGTA closure progress and fallback-removal progress.
+
+## 2026-02-28 XTTA Baseline + TODO Plan (`examples/XTTA/README.md`)
+
+- [x] Re-run XTTA harness to validate current baseline from implementation (not docs-only):
+  `bash examples/XTTA/scripts/run.sh`
+- [x] Capture observed baseline:
+  `TOTAL: 30 | PASS: 1 | FAIL: 29 | CRASH: 29`
+  with dominant categories
+  `TSJ-BACKEND-PARSE`, `TSJ-BACKEND-UNSUPPORTED`, `TSJ-RUN-006`, `TSJ-BACKEND-JAVAC`, `TSJ-INTEROP-INPUT`.
+- [ ] `Red`: add targeted regression tests for each XTTA failure family (one focused backend/cli/runtime test per family) so fixes are tracked outside XTTA script output.
+- [ ] `Green`: parser slice for XTTA grammar blockers:
+  object/array destructuring declarations, template literal expressions, rest parameters/default-computed parameters, object-literal getters/setters, labeled statements, comma operator.
+- [ ] `Green`: backend lowering slice for XTTA grammar/runtime blockers:
+  catch-without-binding lowering correctness, generator `.next()` object shape, closure-returned callables, enum reverse lookup behavior.
+- [ ] `Green`: runtime semantics slice:
+  `for...of` string iteration parity, optional chaining on primitives/boxed values, `typeof` narrowing property access parity where already expected by TSJ runtime model.
+- [ ] `Green`: JS built-ins slice:
+  register missing globals (`JSON`, `Map`, `Set`, `NaN`, `Infinity`, `TypeError`, `RangeError`, `Date`) and implement/high-confidence bridge coverage for XTTA-called methods (`Array`, `String`, `Object`, `RegExp`, `Date.now`).
+- [x] `Green`: interop infrastructure unblocker:
+  fix `TSJ-INTEROP-INPUT: package dev.tsj.runtime does not exist` for XTTA interop fixtures and verify jar-enabled `tsj run` path.
+- [ ] Verification gate:
+  rerun `bash examples/XTTA/scripts/run.sh` after each slice; require monotonic progression (`PASS` non-decreasing, `CRASH` non-increasing).
+- [ ] Final gate for this story:
+  full regression remains green (`mvn -B -ntp test`) and XTTA README baseline section updated to match measured current state.
+
+Progress updates:
+- [x] XTTA rerun after interop classpath + null conversion + throwable property fixes:
+  `TOTAL: 30 | PASS: 6 | FAIL: 24 | CRASH: 24`.
+- [x] XTTA rerun after normalized-AST destructuring/default/rest + multi-declaration normalization:
+  `TOTAL: 30 | PASS: 7 | FAIL: 23 | CRASH: 23`.
+- [x] XTTA rerun after runtime string iteration parity for `for...of`:
+  `TOTAL: 30 | PASS: 8 | FAIL: 22 | CRASH: 22`.
+- [x] XTTA rerun after optional primitive member-call fix:
+  `TOTAL: 30 | PASS: 9 | FAIL: 21 | CRASH: 21`.
+- [x] XTTA rerun after exception-clause + template-literal/runtime String fixes:
+  `TOTAL: 30 | PASS: 11 | FAIL: 19 | CRASH: 19`.
+- [x] XTTA rerun after control-flow label/comma lowering + array `push` fallback:
+  `TOTAL: 30 | PASS: 11 | FAIL: 19 | CRASH: 17`.
+- [x] XTTA rerun after switch fallthrough/default-in-middle lowering fix:
+  `TOTAL: 30 | PASS: 12 | FAIL: 18 | CRASH: 17`.
+
+## 2026-02-28 XTTA Next Slice: `grammar/004_optional_nullish`
+
+- [x] `Red`: add regression coverage for optional member call on primitive receiver (`str?.toUpperCase()`) to lock current crash.
+- [x] `Green`: preserve receiver-aware optional member-call lowering (`CallExpression` over `OptionalMemberAccessExpression`) with lazy argument evaluation.
+- [x] Verify:
+  - targeted tests for new optional-member-call behavior pass,
+  - `examples/XTTA/src/grammar/004_optional_nullish.ts` runs without crash,
+  - XTTA progression is monotonic (`PASS` non-decreasing, `CRASH` non-increasing).
+
+Progress update:
+- [x] XTTA rerun after optional primitive member-call fix:
+  `TOTAL: 30 | PASS: 9 | FAIL: 21 | CRASH: 21`.
+
+## 2026-02-28 XTTA Next Slice: `grammar/015_exceptions`
+
+- [x] `Red`: add regression coverage for `try/finally` and `try/catch` forms with empty clauses (`finally {}` / `catch {}`) that currently trigger javac malformed-try output.
+- [x] `Green`: preserve catch/finally clause presence through bridge normalization and backend try-statement lowering/emission, even when clause bodies are empty.
+- [x] Verify:
+  - targeted backend regression passes,
+  - `examples/XTTA/src/grammar/015_exceptions.ts` runs with `TSJ-RUN-SUCCESS`,
+  - XTTA progression remains monotonic (`PASS` non-decreasing, `CRASH` non-increasing).
+
+## 2026-02-28 XTTA Next Slice: `grammar/005_generators`
+
+- [ ] `Red`: add regression coverage for generator `next()` behavior where yielded iterator object currently resolves to null in runtime invocation path.
+- [ ] `Green`: fix backend/runtime lowering so generator factory invocation returns a callable iterator with `next` bound correctly.
+- [ ] Verify:
+  - targeted backend/runtime regression tests pass,
+  - `examples/XTTA/src/grammar/005_generators.ts` runs with `TSJ-RUN-SUCCESS`,
+  - XTTA progression is monotonic (`PASS` non-decreasing, `CRASH` non-increasing).
+
+## 2026-02-28 XTTA Next Slice: `grammar/009_control_flow`
+
+- [x] `Red`: add focused regressions for labeled `break`/`continue` and comma-operator evaluation order/result.
+- [x] `Green`: implement normalized-AST + backend lowering/emission support for labeled statements and labeled break/continue.
+- [x] `Green`: add comma-operator support through parsing/lowering/emission so `(a, b, c)` evaluates left-to-right and returns the final value.
+- [x] Verify:
+  - targeted backend regressions pass,
+  - `examples/XTTA/src/grammar/009_control_flow.ts` runs with `TSJ-RUN-SUCCESS`,
+  - XTTA progression remains monotonic (`PASS` non-decreasing, `CRASH` non-increasing).
+- [x] Follow-up semantic parity: fix `switch` fallthrough behavior (`switch_fall`) so `grammar/009_control_flow` reaches 9/9 checks.

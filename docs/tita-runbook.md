@@ -22,7 +22,7 @@ Note: commands below use `:` classpath separators (Unix/macOS). On Windows use `
 ## 1) Shared Mode Must Succeed
 
 ```bash
-mvn -B -ntp -pl cli -am exec:java \
+mvn -B -ntp -f cli/pom.xml exec:java \
   -Dexec.mainClass=dev.tsj.cli.TsjCli \
   -Dexec.args="run examples/tita/src/main.ts --out examples/tita/.out/shared --classpath examples/tita/deps/tita-fixtures-1.0.jar:examples/tita/deps/tita-duplicates-1.0.jar:jrt:/java.base/java/util --interop-policy broad --ack-interop-risk --classloader-isolation shared"
 ```
@@ -60,7 +60,7 @@ rg '"internalName":"java/util/Optional"' "$CLASS_INDEX"
 ## 2) App-Isolated Mode Must Fail with Conflict Code
 
 ```bash
-mvn -B -ntp -pl cli -am exec:java \
+mvn -B -ntp -f cli/pom.xml exec:java \
   -Dexec.mainClass=dev.tsj.cli.TsjCli \
   -Dexec.args="run examples/tita/src/main.ts --out examples/tita/.out/isolated --classpath examples/tita/deps/tita-fixtures-1.0.jar:examples/tita/deps/tita-app-conflict-1.0.jar --interop-policy broad --ack-interop-risk --classloader-isolation app-isolated"
 ```
@@ -75,7 +75,7 @@ Expected:
 ## 3) Missing Fixture Jar Must Fail with Missing-Class Code
 
 ```bash
-mvn -B -ntp -pl cli -am exec:java \
+mvn -B -ntp -f cli/pom.xml exec:java \
   -Dexec.mainClass=dev.tsj.cli.TsjCli \
   -Dexec.args="run examples/tita/src/main.ts --out examples/tita/.out/missing-jar --classpath jrt:/java.base/java/util --interop-policy broad --ack-interop-risk"
 ```

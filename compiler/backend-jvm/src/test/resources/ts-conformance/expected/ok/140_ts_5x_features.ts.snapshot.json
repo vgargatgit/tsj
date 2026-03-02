@@ -777,7 +777,7 @@
       "line" : 1,
       "name" : "jsonData"
     }, {
-      "column" : 1,
+      "column" : 7,
       "expression" : {
         "column" : 18,
         "entries" : [ {
@@ -810,17 +810,88 @@
           "kind" : "ReturnStatement",
           "line" : 6
         } ],
+        "generator" : false,
         "name" : "identity",
         "parameters" : [ "value" ]
       },
       "kind" : "FunctionDeclarationStatement",
       "line" : 5
     }, {
-      "column" : 1,
+      "column" : 7,
       "expression" : {
+        "arguments" : [ ],
+        "callee" : {
+          "async" : false,
+          "body" : [ {
+            "column" : 22,
+            "expression" : {
+              "column" : 22,
+              "entries" : [ ],
+              "kind" : "ObjectLiteralExpression",
+              "line" : 13
+            },
+            "kind" : "VariableDeclaration",
+            "line" : 13,
+            "name" : "objLit_1"
+          }, {
+            "column" : 3,
+            "expression" : {
+              "arguments" : [ {
+                "column" : 22,
+                "kind" : "VariableExpression",
+                "line" : 13,
+                "name" : "objLit_1"
+              }, {
+                "column" : 4,
+                "kind" : "MemberAccessExpression",
+                "line" : 14,
+                "member" : "dispose",
+                "receiver" : {
+                  "column" : 4,
+                  "kind" : "VariableExpression",
+                  "line" : 14,
+                  "name" : "Symbol"
+                }
+              }, {
+                "async" : false,
+                "body" : [ ],
+                "column" : 3,
+                "kind" : "FunctionExpression",
+                "line" : 14,
+                "parameters" : [ ],
+                "thisMode" : "DYNAMIC"
+              } ],
+              "callee" : {
+                "column" : 3,
+                "kind" : "VariableExpression",
+                "line" : 14,
+                "name" : "__tsj_set_dynamic_key"
+              },
+              "column" : 3,
+              "kind" : "CallExpression",
+              "line" : 14
+            },
+            "kind" : "ExpressionStatement",
+            "line" : 14
+          }, {
+            "column" : 22,
+            "expression" : {
+              "column" : 22,
+              "kind" : "VariableExpression",
+              "line" : 13,
+              "name" : "objLit_1"
+            },
+            "kind" : "ReturnStatement",
+            "line" : 13
+          } ],
+          "column" : 22,
+          "kind" : "FunctionExpression",
+          "line" : 13,
+          "parameters" : [ ],
+          "thisMode" : "LEXICAL"
+        },
         "column" : 22,
-        "entries" : [ ],
-        "kind" : "ObjectLiteralExpression",
+        "kind" : "CallExpression",
         "line" : 13
       },
       "kind" : "VariableDeclaration",
@@ -831,7 +902,7 @@
       "declaration" : {
         "async" : true,
         "body" : [ {
-          "column" : 3,
+          "column" : 15,
           "expression" : {
             "column" : 31,
             "expression" : {
@@ -874,6 +945,7 @@
           "kind" : "ReturnStatement",
           "line" : 21
         } ],
+        "generator" : false,
         "name" : "consume",
         "parameters" : [ "factory" ]
       },

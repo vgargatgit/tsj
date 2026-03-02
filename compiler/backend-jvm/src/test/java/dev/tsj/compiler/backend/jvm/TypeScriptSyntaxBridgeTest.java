@@ -215,7 +215,7 @@ class TypeScriptSyntaxBridgeTest {
     }
 
     @Test
-    void leavesNormalizedProgramNullForUnsupportedSourceShape() throws Exception {
+    void emitsNormalizedProgramForForAwaitOfShape() throws Exception {
         final Path sourceFile = tempDir.resolve("unsupported-normalized.ts");
         Files.writeString(
                 sourceFile,
@@ -235,7 +235,23 @@ class TypeScriptSyntaxBridgeTest {
         );
 
         assertTrue(result.diagnostics().isEmpty());
-        assertTrue(result.normalizedProgram() == null || result.normalizedProgram().isNull());
+        assertTrue(result.normalizedProgram() != null && !result.normalizedProgram().isNull());
+        assertEquals(
+                "AwaitExpression",
+                result.normalizedProgram()
+                        .path("statements")
+                        .get(0)
+                        .path("declaration")
+                        .path("body")
+                        .get(0)
+                        .path("thenBlock")
+                        .get(2)
+                        .path("body")
+                        .get(0)
+                        .path("expression")
+                        .path("kind")
+                        .asText()
+        );
     }
 
     @Test
@@ -592,6 +608,34 @@ class TypeScriptSyntaxBridgeTest {
     }
 
     @Test
+    void normalizesForLoopInitializersWithMultipleDeclarations() throws Exception {
+        final Path sourceFile = tempDir.resolve("for-init-multi-decl-normalized.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                let total = 0;
+                for (let i = 0, j = 10; i < 5; i++, j--) {
+                  total = total + i + j;
+                }
+                console.log(total);
+                """,
+                UTF_8
+        );
+
+        final TypeScriptSyntaxBridge.BridgeResult result = new TypeScriptSyntaxBridge().tokenize(
+                Files.readString(sourceFile, UTF_8),
+                sourceFile
+        );
+
+        assertTrue(result.diagnostics().isEmpty());
+        assertTrue(result.normalizedProgram() != null && !result.normalizedProgram().isNull());
+        final String normalized = result.normalizedProgram().toString();
+        assertTrue(normalized.contains("\"name\":\"i\""));
+        assertTrue(normalized.contains("\"name\":\"j\""));
+        assertTrue(normalized.contains("\"operator\":\",\""));
+    }
+
+    @Test
     void normalizesClassFieldsPrivateNamesComputedKeysAndStaticBlocks() throws Exception {
         final Path sourceFile = tempDir.resolve("class-extended-normalized.ts");
         Files.writeString(
@@ -729,8 +773,72 @@ class TypeScriptSyntaxBridgeTest {
                         .get(4)
                         .path("expression")
                         .path("name")
-                        .asText()
+                .asText()
         );
+    }
+
+    @Test
+    void normalizesOptionalElementAccessAndDeleteExpressions() throws Exception {
+        final Path sourceFile = tempDir.resolve("optional-element-delete-normalized.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                const arr = [10, 20, 30];
+                const maybe: any = arr;
+                const none: any = null;
+                const idx = 1;
+                const hit = maybe?.[idx];
+                const miss = none?.[idx];
+                const mutable: any = { a: { b: 1 } };
+                delete mutable?.a?.b;
+                """,
+                UTF_8
+        );
+
+        final TypeScriptSyntaxBridge.BridgeResult result = new TypeScriptSyntaxBridge().tokenize(
+                Files.readString(sourceFile, UTF_8),
+                sourceFile
+        );
+
+        assertTrue(result.diagnostics().isEmpty());
+        assertTrue(result.normalizedProgram() != null && !result.normalizedProgram().isNull());
+        final String normalized = result.normalizedProgram().toString();
+        assertTrue(normalized.contains("\"name\":\"__tsj_optional_index_read\""));
+        assertTrue(normalized.contains("\"operator\":\"delete\""));
+        assertTrue(normalized.contains("\"kind\":\"OptionalMemberAccessExpression\""));
+    }
+
+    @Test
+    void normalizesSuperMemberCallsIntoHelperExpression() throws Exception {
+        final Path sourceFile = tempDir.resolve("super-member-call-normalized.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                class A {
+                  greet(): string {
+                    return "A";
+                  }
+                }
+
+                class B extends A {
+                  greet(): string {
+                    return super.greet() + "B";
+                  }
+                }
+                """,
+                UTF_8
+        );
+
+        final TypeScriptSyntaxBridge.BridgeResult result = new TypeScriptSyntaxBridge().tokenize(
+                Files.readString(sourceFile, UTF_8),
+                sourceFile
+        );
+
+        assertTrue(result.diagnostics().isEmpty());
+        assertTrue(result.normalizedProgram() != null && !result.normalizedProgram().isNull());
+        final String normalized = result.normalizedProgram().toString();
+        assertTrue(normalized.contains("\"name\":\"__tsj_super_invoke\""));
+        assertTrue(normalized.contains("\"text\":\"greet\""));
     }
 
     @Test

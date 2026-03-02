@@ -410,6 +410,7 @@
               "line" : 3
             } ],
             "column" : 10,
+            "generator" : false,
             "kind" : "FunctionExpression",
             "line" : 2,
             "parameters" : [ ],
@@ -418,6 +419,7 @@
           "kind" : "ReturnStatement",
           "line" : 2
         } ],
+        "generator" : false,
         "name" : "dec",
         "parameters" : [ ]
       },
@@ -492,6 +494,631 @@
       },
       "kind" : "ClassDeclarationStatement",
       "line" : 7
+    }, {
+      "column" : 3,
+      "expression" : {
+        "column" : 1,
+        "kind" : "MemberAccessExpression",
+        "line" : 7,
+        "member" : "prototype",
+        "receiver" : {
+          "column" : 1,
+          "kind" : "VariableExpression",
+          "line" : 7,
+          "name" : "DecoratedClass"
+        }
+      },
+      "kind" : "VariableDeclaration",
+      "line" : 9,
+      "name" : "decoratorTarget_1"
+    }, {
+      "column" : 3,
+      "expression" : {
+        "column" : 12,
+        "kind" : "StringLiteral",
+        "line" : 10,
+        "text" : "value"
+      },
+      "kind" : "VariableDeclaration",
+      "line" : 9,
+      "name" : "decoratorKey_2"
+    }, {
+      "column" : 3,
+      "expression" : {
+        "arguments" : [ ],
+        "callee" : {
+          "async" : false,
+          "body" : [ {
+            "column" : 3,
+            "expression" : {
+              "column" : 4,
+              "kind" : "VariableExpression",
+              "line" : 9,
+              "name" : "dec"
+            },
+            "kind" : "VariableDeclaration",
+            "line" : 9,
+            "name" : "decoratorFactory_4"
+          }, {
+            "column" : 3,
+            "condition" : {
+              "column" : 3,
+              "kind" : "BinaryExpression",
+              "left" : {
+                "column" : 3,
+                "expression" : {
+                  "column" : 3,
+                  "kind" : "VariableExpression",
+                  "line" : 9,
+                  "name" : "decoratorFactory_4"
+                },
+                "kind" : "UnaryExpression",
+                "line" : 9,
+                "operator" : "typeof"
+              },
+              "line" : 9,
+              "operator" : "===",
+              "right" : {
+                "column" : 3,
+                "kind" : "StringLiteral",
+                "line" : 9,
+                "text" : "function"
+              }
+            },
+            "elseBlock" : [ {
+              "column" : 3,
+              "expression" : {
+                "column" : 3,
+                "kind" : "UndefinedLiteral",
+                "line" : 9
+              },
+              "kind" : "ReturnStatement",
+              "line" : 9
+            } ],
+            "kind" : "IfStatement",
+            "line" : 9,
+            "thenBlock" : [ {
+              "column" : 3,
+              "expression" : {
+                "arguments" : [ ],
+                "callee" : {
+                  "column" : 3,
+                  "kind" : "VariableExpression",
+                  "line" : 9,
+                  "name" : "decoratorFactory_4"
+                },
+                "column" : 3,
+                "kind" : "CallExpression",
+                "line" : 9
+              },
+              "kind" : "ReturnStatement",
+              "line" : 9
+            } ]
+          } ],
+          "column" : 3,
+          "generator" : false,
+          "kind" : "FunctionExpression",
+          "line" : 9,
+          "parameters" : [ ],
+          "thisMode" : "LEXICAL"
+        },
+        "column" : 3,
+        "kind" : "CallExpression",
+        "line" : 9
+      },
+      "kind" : "VariableDeclaration",
+      "line" : 9,
+      "name" : "propertyDecorator_3"
+    }, {
+      "column" : 3,
+      "condition" : {
+        "column" : 3,
+        "kind" : "BinaryExpression",
+        "left" : {
+          "column" : 3,
+          "expression" : {
+            "column" : 3,
+            "kind" : "VariableExpression",
+            "line" : 9,
+            "name" : "propertyDecorator_3"
+          },
+          "kind" : "UnaryExpression",
+          "line" : 9,
+          "operator" : "typeof"
+        },
+        "line" : 9,
+        "operator" : "===",
+        "right" : {
+          "column" : 3,
+          "kind" : "StringLiteral",
+          "line" : 9,
+          "text" : "function"
+        }
+      },
+      "elseBlock" : [ ],
+      "kind" : "IfStatement",
+      "line" : 9,
+      "thenBlock" : [ {
+        "column" : 3,
+        "expression" : {
+          "arguments" : [ {
+            "column" : 3,
+            "kind" : "VariableExpression",
+            "line" : 9,
+            "name" : "decoratorTarget_1"
+          }, {
+            "column" : 3,
+            "kind" : "VariableExpression",
+            "line" : 9,
+            "name" : "decoratorKey_2"
+          } ],
+          "callee" : {
+            "column" : 3,
+            "kind" : "VariableExpression",
+            "line" : 9,
+            "name" : "propertyDecorator_3"
+          },
+          "column" : 3,
+          "kind" : "CallExpression",
+          "line" : 9
+        },
+        "kind" : "ExpressionStatement",
+        "line" : 9
+      } ]
+    }, {
+      "column" : 3,
+      "expression" : {
+        "column" : 1,
+        "kind" : "MemberAccessExpression",
+        "line" : 7,
+        "member" : "prototype",
+        "receiver" : {
+          "column" : 1,
+          "kind" : "VariableExpression",
+          "line" : 7,
+          "name" : "DecoratedClass"
+        }
+      },
+      "kind" : "VariableDeclaration",
+      "line" : 12,
+      "name" : "decoratorTarget_5"
+    }, {
+      "column" : 3,
+      "expression" : {
+        "column" : 3,
+        "kind" : "StringLiteral",
+        "line" : 13,
+        "text" : "method"
+      },
+      "kind" : "VariableDeclaration",
+      "line" : 12,
+      "name" : "decoratorKey_6"
+    }, {
+      "column" : 3,
+      "expression" : {
+        "arguments" : [ {
+          "column" : 3,
+          "kind" : "VariableExpression",
+          "line" : 12,
+          "name" : "decoratorTarget_5"
+        }, {
+          "column" : 3,
+          "kind" : "VariableExpression",
+          "line" : 12,
+          "name" : "decoratorKey_6"
+        } ],
+        "callee" : {
+          "column" : 3,
+          "kind" : "MemberAccessExpression",
+          "line" : 12,
+          "member" : "getOwnPropertyDescriptor",
+          "receiver" : {
+            "column" : 3,
+            "kind" : "VariableExpression",
+            "line" : 12,
+            "name" : "Object"
+          }
+        },
+        "column" : 3,
+        "kind" : "CallExpression",
+        "line" : 12
+      },
+      "kind" : "VariableDeclaration",
+      "line" : 12,
+      "name" : "decoratorDescriptor_7"
+    }, {
+      "column" : 3,
+      "expression" : {
+        "arguments" : [ ],
+        "callee" : {
+          "async" : false,
+          "body" : [ {
+            "column" : 3,
+            "expression" : {
+              "column" : 4,
+              "kind" : "VariableExpression",
+              "line" : 12,
+              "name" : "dec"
+            },
+            "kind" : "VariableDeclaration",
+            "line" : 12,
+            "name" : "decoratorFactory_10"
+          }, {
+            "column" : 3,
+            "condition" : {
+              "column" : 3,
+              "kind" : "BinaryExpression",
+              "left" : {
+                "column" : 3,
+                "expression" : {
+                  "column" : 3,
+                  "kind" : "VariableExpression",
+                  "line" : 12,
+                  "name" : "decoratorFactory_10"
+                },
+                "kind" : "UnaryExpression",
+                "line" : 12,
+                "operator" : "typeof"
+              },
+              "line" : 12,
+              "operator" : "===",
+              "right" : {
+                "column" : 3,
+                "kind" : "StringLiteral",
+                "line" : 12,
+                "text" : "function"
+              }
+            },
+            "elseBlock" : [ {
+              "column" : 3,
+              "expression" : {
+                "column" : 3,
+                "kind" : "UndefinedLiteral",
+                "line" : 12
+              },
+              "kind" : "ReturnStatement",
+              "line" : 12
+            } ],
+            "kind" : "IfStatement",
+            "line" : 12,
+            "thenBlock" : [ {
+              "column" : 3,
+              "expression" : {
+                "arguments" : [ ],
+                "callee" : {
+                  "column" : 3,
+                  "kind" : "VariableExpression",
+                  "line" : 12,
+                  "name" : "decoratorFactory_10"
+                },
+                "column" : 3,
+                "kind" : "CallExpression",
+                "line" : 12
+              },
+              "kind" : "ReturnStatement",
+              "line" : 12
+            } ]
+          } ],
+          "column" : 3,
+          "generator" : false,
+          "kind" : "FunctionExpression",
+          "line" : 12,
+          "parameters" : [ ],
+          "thisMode" : "LEXICAL"
+        },
+        "column" : 3,
+        "kind" : "CallExpression",
+        "line" : 12
+      },
+      "kind" : "VariableDeclaration",
+      "line" : 12,
+      "name" : "methodDecorator_8"
+    }, {
+      "column" : 3,
+      "condition" : {
+        "column" : 3,
+        "kind" : "BinaryExpression",
+        "left" : {
+          "column" : 3,
+          "expression" : {
+            "column" : 3,
+            "kind" : "VariableExpression",
+            "line" : 12,
+            "name" : "methodDecorator_8"
+          },
+          "kind" : "UnaryExpression",
+          "line" : 12,
+          "operator" : "typeof"
+        },
+        "line" : 12,
+        "operator" : "===",
+        "right" : {
+          "column" : 3,
+          "kind" : "StringLiteral",
+          "line" : 12,
+          "text" : "function"
+        }
+      },
+      "elseBlock" : [ ],
+      "kind" : "IfStatement",
+      "line" : 12,
+      "thenBlock" : [ {
+        "column" : 3,
+        "expression" : {
+          "arguments" : [ {
+            "column" : 3,
+            "kind" : "VariableExpression",
+            "line" : 12,
+            "name" : "decoratorTarget_5"
+          }, {
+            "column" : 3,
+            "kind" : "VariableExpression",
+            "line" : 12,
+            "name" : "decoratorKey_6"
+          }, {
+            "column" : 3,
+            "kind" : "VariableExpression",
+            "line" : 12,
+            "name" : "decoratorDescriptor_7"
+          } ],
+          "callee" : {
+            "column" : 3,
+            "kind" : "VariableExpression",
+            "line" : 12,
+            "name" : "methodDecorator_8"
+          },
+          "column" : 3,
+          "kind" : "CallExpression",
+          "line" : 12
+        },
+        "kind" : "VariableDeclaration",
+        "line" : 12,
+        "name" : "methodDecoratorResult_9"
+      }, {
+        "column" : 3,
+        "expression" : {
+          "column" : 3,
+          "kind" : "BinaryExpression",
+          "left" : {
+            "column" : 3,
+            "kind" : "VariableExpression",
+            "line" : 12,
+            "name" : "methodDecoratorResult_9"
+          },
+          "line" : 12,
+          "operator" : "||",
+          "right" : {
+            "column" : 3,
+            "kind" : "VariableExpression",
+            "line" : 12,
+            "name" : "decoratorDescriptor_7"
+          }
+        },
+        "kind" : "AssignmentStatement",
+        "line" : 12,
+        "target" : {
+          "column" : 3,
+          "kind" : "VariableExpression",
+          "line" : 12,
+          "name" : "decoratorDescriptor_7"
+        }
+      } ]
+    }, {
+      "column" : 3,
+      "condition" : {
+        "column" : 3,
+        "kind" : "VariableExpression",
+        "line" : 12,
+        "name" : "decoratorDescriptor_7"
+      },
+      "elseBlock" : [ ],
+      "kind" : "IfStatement",
+      "line" : 12,
+      "thenBlock" : [ {
+        "column" : 3,
+        "expression" : {
+          "arguments" : [ {
+            "column" : 3,
+            "kind" : "VariableExpression",
+            "line" : 12,
+            "name" : "decoratorTarget_5"
+          }, {
+            "column" : 3,
+            "kind" : "VariableExpression",
+            "line" : 12,
+            "name" : "decoratorKey_6"
+          }, {
+            "column" : 3,
+            "kind" : "VariableExpression",
+            "line" : 12,
+            "name" : "decoratorDescriptor_7"
+          } ],
+          "callee" : {
+            "column" : 3,
+            "kind" : "MemberAccessExpression",
+            "line" : 12,
+            "member" : "defineProperty",
+            "receiver" : {
+              "column" : 3,
+              "kind" : "VariableExpression",
+              "line" : 12,
+              "name" : "Object"
+            }
+          },
+          "column" : 3,
+          "kind" : "CallExpression",
+          "line" : 12
+        },
+        "kind" : "ExpressionStatement",
+        "line" : 12
+      } ]
+    }, {
+      "column" : 1,
+      "expression" : {
+        "arguments" : [ ],
+        "callee" : {
+          "async" : false,
+          "body" : [ {
+            "column" : 1,
+            "expression" : {
+              "column" : 2,
+              "kind" : "VariableExpression",
+              "line" : 7,
+              "name" : "dec"
+            },
+            "kind" : "VariableDeclaration",
+            "line" : 7,
+            "name" : "decoratorFactory_13"
+          }, {
+            "column" : 1,
+            "condition" : {
+              "column" : 1,
+              "kind" : "BinaryExpression",
+              "left" : {
+                "column" : 1,
+                "expression" : {
+                  "column" : 1,
+                  "kind" : "VariableExpression",
+                  "line" : 7,
+                  "name" : "decoratorFactory_13"
+                },
+                "kind" : "UnaryExpression",
+                "line" : 7,
+                "operator" : "typeof"
+              },
+              "line" : 7,
+              "operator" : "===",
+              "right" : {
+                "column" : 1,
+                "kind" : "StringLiteral",
+                "line" : 7,
+                "text" : "function"
+              }
+            },
+            "elseBlock" : [ {
+              "column" : 1,
+              "expression" : {
+                "column" : 1,
+                "kind" : "UndefinedLiteral",
+                "line" : 7
+              },
+              "kind" : "ReturnStatement",
+              "line" : 7
+            } ],
+            "kind" : "IfStatement",
+            "line" : 7,
+            "thenBlock" : [ {
+              "column" : 1,
+              "expression" : {
+                "arguments" : [ ],
+                "callee" : {
+                  "column" : 1,
+                  "kind" : "VariableExpression",
+                  "line" : 7,
+                  "name" : "decoratorFactory_13"
+                },
+                "column" : 1,
+                "kind" : "CallExpression",
+                "line" : 7
+              },
+              "kind" : "ReturnStatement",
+              "line" : 7
+            } ]
+          } ],
+          "column" : 1,
+          "generator" : false,
+          "kind" : "FunctionExpression",
+          "line" : 7,
+          "parameters" : [ ],
+          "thisMode" : "LEXICAL"
+        },
+        "column" : 1,
+        "kind" : "CallExpression",
+        "line" : 7
+      },
+      "kind" : "VariableDeclaration",
+      "line" : 7,
+      "name" : "classDecorator_11"
+    }, {
+      "column" : 1,
+      "condition" : {
+        "column" : 1,
+        "kind" : "BinaryExpression",
+        "left" : {
+          "column" : 1,
+          "expression" : {
+            "column" : 1,
+            "kind" : "VariableExpression",
+            "line" : 7,
+            "name" : "classDecorator_11"
+          },
+          "kind" : "UnaryExpression",
+          "line" : 7,
+          "operator" : "typeof"
+        },
+        "line" : 7,
+        "operator" : "===",
+        "right" : {
+          "column" : 1,
+          "kind" : "StringLiteral",
+          "line" : 7,
+          "text" : "function"
+        }
+      },
+      "elseBlock" : [ ],
+      "kind" : "IfStatement",
+      "line" : 7,
+      "thenBlock" : [ {
+        "column" : 1,
+        "expression" : {
+          "arguments" : [ {
+            "column" : 1,
+            "kind" : "VariableExpression",
+            "line" : 7,
+            "name" : "DecoratedClass"
+          } ],
+          "callee" : {
+            "column" : 1,
+            "kind" : "VariableExpression",
+            "line" : 7,
+            "name" : "classDecorator_11"
+          },
+          "column" : 1,
+          "kind" : "CallExpression",
+          "line" : 7
+        },
+        "kind" : "VariableDeclaration",
+        "line" : 7,
+        "name" : "classDecoratorResult_12"
+      }, {
+        "column" : 1,
+        "condition" : {
+          "column" : 1,
+          "kind" : "VariableExpression",
+          "line" : 7,
+          "name" : "classDecoratorResult_12"
+        },
+        "elseBlock" : [ ],
+        "kind" : "IfStatement",
+        "line" : 7,
+        "thenBlock" : [ {
+          "column" : 1,
+          "expression" : {
+            "column" : 1,
+            "kind" : "VariableExpression",
+            "line" : 7,
+            "name" : "classDecoratorResult_12"
+          },
+          "kind" : "AssignmentStatement",
+          "line" : 7,
+          "target" : {
+            "column" : 1,
+            "kind" : "VariableExpression",
+            "line" : 7,
+            "name" : "DecoratedClass"
+          }
+        } ]
+      } ]
     }, {
       "column" : 1,
       "expression" : {

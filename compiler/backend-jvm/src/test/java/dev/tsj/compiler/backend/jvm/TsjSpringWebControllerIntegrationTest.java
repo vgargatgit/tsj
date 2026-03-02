@@ -138,7 +138,7 @@ class TsjSpringWebControllerIntegrationTest {
                   }
 
                   @ExceptionHandler({ value: [classOf("dev.tsj.runtime.TsjThrownException"), classOf("java.lang.IllegalArgumentException")] })
-                  @ResponseStatus({ value: enum("org.springframework.http.HttpStatus.BAD_REQUEST") })
+                  @ResponseStatus({ value: 400 })
                   onThrown(error: any) {
                     return "mapped";
                   }
@@ -1311,7 +1311,7 @@ class TsjSpringWebControllerIntegrationTest {
     }
 
     @Configuration
-    static class WebControllerDependencyConfig {
+    public static class WebControllerDependencyConfig {
         @Bean
         public String prefixBean() {
             return "prefix-";
@@ -1747,11 +1747,12 @@ class TsjSpringWebControllerIntegrationTest {
                 }
                 final RequestBody requestBody = parameter.getAnnotation(RequestBody.class);
                 if (requestBody != null) {
+                    final String parameterDisplayName = "arg" + index;
                     if (request.body() == null) {
                         throw bindingFailure(
                                 routeHandler.httpMethod(),
                                 endpointTemplate,
-                                parameter.getName(),
+                                parameterDisplayName,
                                 "request body"
                         );
                     }
@@ -1760,7 +1761,7 @@ class TsjSpringWebControllerIntegrationTest {
                             request.headers(),
                             routeHandler.httpMethod(),
                             endpointTemplate,
-                            parameter.getName()
+                            parameterDisplayName
                     );
                     continue;
                 }
