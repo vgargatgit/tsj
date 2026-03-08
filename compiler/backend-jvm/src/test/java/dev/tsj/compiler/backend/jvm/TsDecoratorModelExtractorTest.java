@@ -152,11 +152,14 @@ class TsDecoratorModelExtractorTest {
         assertEquals("query", method.parameters().get(0).name());
         assertEquals("RequestParam", method.parameters().get(0).decorators().getFirst().name());
         assertEquals("\"q\"", method.parameters().get(0).decorators().getFirst().rawArgs());
+        assertEquals("string", method.parameters().get(0).typeAnnotation());
         assertEquals("tenant", method.parameters().get(1).name());
         assertEquals("RequestHeader", method.parameters().get(1).decorators().getFirst().name());
         assertTrue(method.parameters().get(1).decorators().getFirst().rawArgs().contains("X-Tenant"));
+        assertEquals("string", method.parameters().get(1).typeAnnotation());
         assertEquals("payload", method.parameters().get(2).name());
         assertEquals("RequestBody", method.parameters().get(2).decorators().getFirst().name());
+        assertEquals("any", method.parameters().get(2).typeAnnotation());
     }
 
     @Test
@@ -184,6 +187,39 @@ class TsDecoratorModelExtractorTest {
         assertEquals("TSJ-DECORATOR-PARAM", exception.code());
         assertEquals("TSJ32C-PARAM-ANNOTATIONS", exception.featureId());
         assertTrue(exception.getMessage().contains("@MagicParam"));
+    }
+
+    @Test
+    void keepsRecordGenericRequestBodyAsSingleDecoratedParameter() throws Exception {
+        final Path entryFile = tempDir.resolve("record-generic-parameter.ts");
+        Files.writeString(
+                entryFile,
+                """
+                @RestController
+                class EchoController {
+                  @PostMapping("/echo")
+                  echo(@RequestBody payload: Record<string, OwnerPayload>) {
+                    return payload;
+                  }
+                }
+                """,
+                UTF_8
+        );
+
+        final TsDecoratorModel model = new TsDecoratorModelExtractor().extract(entryFile);
+        final TsDecoratedClass controller = model.classes().stream()
+                .filter(value -> "EchoController".equals(value.className()))
+                .findFirst()
+                .orElseThrow();
+        final TsDecoratedMethod method = controller.methods().stream()
+                .filter(value -> "echo".equals(value.methodName()))
+                .findFirst()
+                .orElseThrow();
+
+        assertEquals(1, method.parameters().size());
+        assertEquals("payload", method.parameters().getFirst().name());
+        assertEquals("RequestBody", method.parameters().getFirst().decorators().getFirst().name());
+        assertEquals("Record<string, OwnerPayload>", method.parameters().getFirst().typeAnnotation());
     }
 
     @Test

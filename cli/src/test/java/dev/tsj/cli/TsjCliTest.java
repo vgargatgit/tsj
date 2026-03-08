@@ -44,7 +44,12 @@ class TsjCliTest {
         final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
 
         final int exitCode = TsjCli.execute(
-                new String[]{"compile", entryFile.toString(), "--out", outDir.toString()},
+                new String[]{
+                        "compile",
+                        entryFile.toString(),
+                        "--out",
+                        outDir.toString()
+                },
                 new PrintStream(stdout),
                 new PrintStream(stderr)
         );
@@ -54,6 +59,964 @@ class TsjCliTest {
         assertTrue(Files.exists(outDir.resolve("classes")));
         assertTrue(stdout.toString(UTF_8).contains("\"code\":\"TSJ-COMPILE-SUCCESS\""));
         assertEquals("", stderr.toString(UTF_8));
+    }
+
+    @Test
+    void compileAcceptsJvmStrictModeAndPersistsArtifactMetadata() throws Exception {
+        final Path entryFile = tempDir.resolve("strict-compile.ts");
+        Files.writeString(entryFile, "const answer = 42;\nconsole.log(answer);\n", UTF_8);
+        final Path outDir = tempDir.resolve("strict-compile-out");
+
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+
+        final int exitCode = TsjCli.execute(
+                new String[]{
+                        "compile",
+                        entryFile.toString(),
+                        "--out",
+                        outDir.toString(),
+                        "--mode",
+                        "jvm-strict"
+                },
+                new PrintStream(stdout),
+                new PrintStream(stderr)
+        );
+
+        assertEquals(0, exitCode);
+        assertEquals("", stderr.toString(UTF_8));
+        final String stdoutText = stdout.toString(UTF_8);
+        assertTrue(stdoutText.contains("\"code\":\"TSJ-COMPILE-SUCCESS\""));
+        assertTrue(stdoutText.contains("\"compilerMode\":\"jvm-strict\""));
+        assertTrue(stdoutText.contains("\"strictLoweringPath\":\"runtime-carrier\""));
+        final Properties artifact = loadArtifactProperties(outDir.resolve("program.tsj.properties"));
+        assertEquals("jvm-strict", artifact.getProperty("compiler.mode"));
+        assertEquals("passed", artifact.getProperty("strict.eligibility"));
+        assertEquals("runtime-carrier", artifact.getProperty("strict.loweringPath"));
+    }
+
+    @Test
+    void compileJvmStrictPromotesLoweringPathForNativeClassSubset() throws Exception {
+        final Path entryFile = tempDir.resolve("strict-native-class.ts");
+        Files.writeString(
+                entryFile,
+                """
+                class Counter {
+                  value: number;
+
+                  constructor(initial: number) {
+                    this.value = initial;
+                  }
+
+                  getValue() {
+                    return this.value;
+                  }
+                }
+                """,
+                UTF_8
+        );
+        final Path outDir = tempDir.resolve("strict-native-class-out");
+
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+
+        final int exitCode = TsjCli.execute(
+                new String[]{
+                        "compile",
+                        entryFile.toString(),
+                        "--out",
+                        outDir.toString(),
+                        "--mode",
+                        "jvm-strict"
+                },
+                new PrintStream(stdout),
+                new PrintStream(stderr)
+        );
+
+        assertEquals(0, exitCode);
+        assertEquals("", stderr.toString(UTF_8));
+        final String stdoutText = stdout.toString(UTF_8);
+        assertTrue(stdoutText.contains("\"code\":\"TSJ-COMPILE-SUCCESS\""));
+        assertTrue(stdoutText.contains("\"compilerMode\":\"jvm-strict\""));
+        assertTrue(stdoutText.contains("\"strictLoweringPath\":\"jvm-native-class-subset\""));
+        final Properties artifact = loadArtifactProperties(outDir.resolve("program.tsj.properties"));
+        assertEquals("jvm-strict", artifact.getProperty("compiler.mode"));
+        assertEquals("passed", artifact.getProperty("strict.eligibility"));
+        assertEquals("jvm-native-class-subset", artifact.getProperty("strict.loweringPath"));
+    }
+
+    @Test
+    void compileJvmStrictRejectsRuntimeCarrierClassFallbackWithDeterministicBridgeDiagnostic() throws Exception {
+        final Path entryFile = tempDir.resolve("strict-bridge-unsupported.ts");
+        Files.writeString(
+                entryFile,
+                """
+                class Counter {
+                  value: number;
+
+                  constructor(initial: number) {
+                    this.value = initial;
+                  }
+
+                  update(transform: any) {
+                    this.value = transform(this.value);
+                    return this.value;
+                  }
+                }
+                """,
+                UTF_8
+        );
+
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+
+        final int exitCode = TsjCli.execute(
+                new String[]{
+                        "compile",
+                        entryFile.toString(),
+                        "--out",
+                        tempDir.resolve("strict-bridge-unsupported-out").toString(),
+                        "--mode",
+                        "jvm-strict"
+                },
+                new PrintStream(stdout),
+                new PrintStream(stderr)
+        );
+
+        assertEquals(1, exitCode);
+        assertEquals("", stdout.toString(UTF_8));
+        final String stderrText = stderr.toString(UTF_8);
+        assertTrue(stderrText.contains("\"code\":\"TSJ-STRICT-BRIDGE\""));
+        assertTrue(stderrText.contains("\"featureId\":\"TSJ80-STRICT-BRIDGE\""));
+        assertTrue(stderrText.contains("\"line\":\""));
+        assertTrue(stderrText.contains("\"column\":\""));
+    }
+
+    @Test
+    void runAcceptsJvmStrictModeAndPersistsArtifactMetadata() throws Exception {
+        final Path entryFile = tempDir.resolve("strict-run.ts");
+        Files.writeString(entryFile, "console.log(\"strict-run-ok\");\n", UTF_8);
+        final Path outDir = tempDir.resolve("strict-run-out");
+
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+
+        final int exitCode = TsjCli.execute(
+                new String[]{
+                        "run",
+                        entryFile.toString(),
+                        "--out",
+                        outDir.toString(),
+                        "--mode",
+                        "jvm-strict"
+                },
+                new PrintStream(stdout),
+                new PrintStream(stderr)
+        );
+
+        assertEquals(0, exitCode);
+        assertEquals("", stderr.toString(UTF_8));
+        assertTrue(stdout.toString(UTF_8).contains("strict-run-ok"));
+        final Properties artifact = loadArtifactProperties(outDir.resolve("program.tsj.properties"));
+        assertEquals("jvm-strict", artifact.getProperty("compiler.mode"));
+    }
+
+    @Test
+    void compileRejectsUnknownCompilerModeValue() throws Exception {
+        final Path entryFile = tempDir.resolve("invalid-mode-compile.ts");
+        Files.writeString(entryFile, "console.log('x');\n", UTF_8);
+
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+
+        final int exitCode = TsjCli.execute(
+                new String[]{
+                        "compile",
+                        entryFile.toString(),
+                        "--out",
+                        tempDir.resolve("invalid-mode-compile-out").toString(),
+                        "--mode",
+                        "not-a-mode"
+                },
+                new PrintStream(stdout),
+                new PrintStream(stderr)
+        );
+
+        assertEquals(2, exitCode);
+        assertEquals("", stdout.toString(UTF_8));
+        final String stderrText = stderr.toString(UTF_8);
+        assertTrue(stderrText.contains("\"code\":\"TSJ-CLI-018\""));
+        assertTrue(stderrText.contains("--mode"));
+    }
+
+    @Test
+    void runRejectsUnknownCompilerModeValue() throws Exception {
+        final Path entryFile = tempDir.resolve("invalid-mode-run.ts");
+        Files.writeString(entryFile, "console.log('x');\n", UTF_8);
+
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+
+        final int exitCode = TsjCli.execute(
+                new String[]{
+                        "run",
+                        entryFile.toString(),
+                        "--out",
+                        tempDir.resolve("invalid-mode-run-out").toString(),
+                        "--mode",
+                        "not-a-mode"
+                },
+                new PrintStream(stdout),
+                new PrintStream(stderr)
+        );
+
+        assertEquals(2, exitCode);
+        assertEquals("", stdout.toString(UTF_8));
+        final String stderrText = stderr.toString(UTF_8);
+        assertTrue(stderrText.contains("\"code\":\"TSJ-CLI-018\""));
+        assertTrue(stderrText.contains("--mode"));
+    }
+
+    @Test
+    void compileJvmStrictRejectsEvalWithStableStrictDiagnostic() throws Exception {
+        final Path entryFile = tempDir.resolve("strict-eval.ts");
+        Files.writeString(entryFile, "const x = eval(\"1 + 2\");\nconsole.log(x);\n", UTF_8);
+
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+
+        final int exitCode = TsjCli.execute(
+                new String[]{
+                        "compile",
+                        entryFile.toString(),
+                        "--out",
+                        tempDir.resolve("strict-eval-out").toString(),
+                        "--mode",
+                        "jvm-strict"
+                },
+                new PrintStream(stdout),
+                new PrintStream(stderr)
+        );
+
+        assertEquals(1, exitCode);
+        assertEquals("", stdout.toString(UTF_8));
+        final String stderrText = stderr.toString(UTF_8);
+        assertTrue(stderrText.contains("\"code\":\"TSJ-STRICT-UNSUPPORTED\""));
+        assertTrue(stderrText.contains("\"featureId\":\"TSJ-STRICT-EVAL\""));
+        assertTrue(stderrText.contains("\"file\":\"" + entryFile.toAbsolutePath().normalize() + "\""));
+        assertTrue(stderrText.contains("\"line\":\"1\""));
+        assertTrue(stderrText.contains("\"column\":\""));
+    }
+
+    @Test
+    void compileJvmStrictRejectsDynamicImportWithStrictDiagnostic() throws Exception {
+        final Path entryFile = tempDir.resolve("strict-dynamic-import.ts");
+        Files.writeString(
+                entryFile,
+                """
+                const specifier = "./dep.ts";
+                const x = import(specifier);
+                console.log(x);
+                """,
+                UTF_8
+        );
+
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+
+        final int exitCode = TsjCli.execute(
+                new String[]{
+                        "compile",
+                        entryFile.toString(),
+                        "--out",
+                        tempDir.resolve("strict-dynamic-import-out").toString(),
+                        "--mode",
+                        "jvm-strict"
+                },
+                new PrintStream(stdout),
+                new PrintStream(stderr)
+        );
+
+        assertEquals(1, exitCode);
+        assertEquals("", stdout.toString(UTF_8));
+        final String stderrText = stderr.toString(UTF_8);
+        assertTrue(stderrText.contains("\"code\":\"TSJ-STRICT-UNSUPPORTED\""));
+        assertTrue(stderrText.contains("\"featureId\":\"TSJ-STRICT-DYNAMIC-IMPORT\""));
+        assertTrue(stderrText.contains("\"line\":\"2\""));
+    }
+
+    @Test
+    void compileJvmStrictRejectsDeleteOperatorWithStrictDiagnostic() throws Exception {
+        final Path entryFile = tempDir.resolve("strict-delete.ts");
+        Files.writeString(
+                entryFile,
+                """
+                const record: any = { a: 1 };
+                delete record.a;
+                console.log(record);
+                """,
+                UTF_8
+        );
+
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+
+        final int exitCode = TsjCli.execute(
+                new String[]{
+                        "compile",
+                        entryFile.toString(),
+                        "--out",
+                        tempDir.resolve("strict-delete-out").toString(),
+                        "--mode",
+                        "jvm-strict"
+                },
+                new PrintStream(stdout),
+                new PrintStream(stderr)
+        );
+
+        assertEquals(1, exitCode);
+        assertEquals("", stdout.toString(UTF_8));
+        final String stderrText = stderr.toString(UTF_8);
+        assertTrue(stderrText.contains("\"code\":\"TSJ-STRICT-UNSUPPORTED\""));
+        assertTrue(stderrText.contains("\"featureId\":\"TSJ-STRICT-DELETE\""));
+        assertTrue(stderrText.contains("\"line\":\"2\""));
+    }
+
+    @Test
+    void compileJvmStrictRejectsProxyWithStrictDiagnostic() throws Exception {
+        final Path entryFile = tempDir.resolve("strict-proxy.ts");
+        Files.writeString(
+                entryFile,
+                """
+                const handler = {};
+                const wrapped = new Proxy({}, handler);
+                console.log(wrapped);
+                """,
+                UTF_8
+        );
+
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+
+        final int exitCode = TsjCli.execute(
+                new String[]{
+                        "compile",
+                        entryFile.toString(),
+                        "--out",
+                        tempDir.resolve("strict-proxy-out").toString(),
+                        "--mode",
+                        "jvm-strict"
+                },
+                new PrintStream(stdout),
+                new PrintStream(stderr)
+        );
+
+        assertEquals(1, exitCode);
+        assertEquals("", stdout.toString(UTF_8));
+        final String stderrText = stderr.toString(UTF_8);
+        assertTrue(stderrText.contains("\"code\":\"TSJ-STRICT-UNSUPPORTED\""));
+        assertTrue(stderrText.contains("\"featureId\":\"TSJ-STRICT-PROXY\""));
+        assertTrue(stderrText.contains("\"line\":\"2\""));
+    }
+
+    @Test
+    void compileJvmStrictRejectsUncheckedAnyMemberInvocation() throws Exception {
+        final Path entryFile = tempDir.resolve("strict-any-member.ts");
+        Files.writeString(
+                entryFile,
+                """
+                const dynamicValue: any = { make: () => 41 };
+                console.log(dynamicValue.make());
+                """,
+                UTF_8
+        );
+
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+
+        final int exitCode = TsjCli.execute(
+                new String[]{
+                        "compile",
+                        entryFile.toString(),
+                        "--out",
+                        tempDir.resolve("strict-any-member-out").toString(),
+                        "--mode",
+                        "jvm-strict"
+                },
+                new PrintStream(stdout),
+                new PrintStream(stderr)
+        );
+
+        assertEquals(1, exitCode);
+        assertEquals("", stdout.toString(UTF_8));
+        final String stderrText = stderr.toString(UTF_8);
+        assertTrue(stderrText.contains("\"code\":\"TSJ-STRICT-UNSUPPORTED\""));
+        assertTrue(stderrText.contains("\"featureId\":\"TSJ-STRICT-UNCHECKED-ANY-MEMBER-INVOKE\""));
+        assertTrue(stderrText.contains("\"line\":\"2\""));
+    }
+
+    @Test
+    void compileJvmStrictRejectsUncheckedAnyMemberInvocationFromTypedParameter() throws Exception {
+        final Path entryFile = tempDir.resolve("strict-any-param-member.ts");
+        Files.writeString(
+                entryFile,
+                """
+                function callDynamic(target: any) {
+                  return target.make();
+                }
+                console.log(callDynamic({ make: () => 1 }));
+                """,
+                UTF_8
+        );
+
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+
+        final int exitCode = TsjCli.execute(
+                new String[]{
+                        "compile",
+                        entryFile.toString(),
+                        "--out",
+                        tempDir.resolve("strict-any-param-member-out").toString(),
+                        "--mode",
+                        "jvm-strict"
+                },
+                new PrintStream(stdout),
+                new PrintStream(stderr)
+        );
+
+        assertEquals(1, exitCode);
+        assertEquals("", stdout.toString(UTF_8));
+        final String stderrText = stderr.toString(UTF_8);
+        assertTrue(stderrText.contains("\"code\":\"TSJ-STRICT-UNSUPPORTED\""));
+        assertTrue(stderrText.contains("\"featureId\":\"TSJ-STRICT-UNCHECKED-ANY-MEMBER-INVOKE\""));
+        assertTrue(stderrText.contains("\"line\":\"2\""));
+    }
+
+    @Test
+    void compileJvmStrictRejectsDynamicComputedPropertyWrite() throws Exception {
+        final Path entryFile = tempDir.resolve("strict-dynamic-property.ts");
+        Files.writeString(
+                entryFile,
+                """
+                const target: any = {};
+                const key = "x";
+                target[key] = 1;
+                console.log(target);
+                """,
+                UTF_8
+        );
+
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+
+        final int exitCode = TsjCli.execute(
+                new String[]{
+                        "compile",
+                        entryFile.toString(),
+                        "--out",
+                        tempDir.resolve("strict-dynamic-property-out").toString(),
+                        "--mode",
+                        "jvm-strict"
+                },
+                new PrintStream(stdout),
+                new PrintStream(stderr)
+        );
+
+        assertEquals(1, exitCode);
+        assertEquals("", stdout.toString(UTF_8));
+        final String stderrText = stderr.toString(UTF_8);
+        assertTrue(stderrText.contains("\"code\":\"TSJ-STRICT-UNSUPPORTED\""));
+        assertTrue(stderrText.contains("\"featureId\":\"TSJ-STRICT-DYNAMIC-PROPERTY-ADD\""));
+        assertTrue(stderrText.contains("\"line\":\"3\""));
+    }
+
+    @Test
+    void compileJvmStrictRejectsPrototypeMutationInImportedModule() throws Exception {
+        final Path entryFile = tempDir.resolve("strict-entry.ts");
+        final Path dependencyFile = tempDir.resolve("strict-dep.ts");
+        Files.writeString(
+                dependencyFile,
+                """
+                class Service {}
+                Service.prototype.extra = () => 1;
+                export const result = new Service();
+                """,
+                UTF_8
+        );
+        Files.writeString(
+                entryFile,
+                """
+                import { result } from "./strict-dep.ts";
+                console.log(result);
+                """,
+                UTF_8
+        );
+
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+
+        final int exitCode = TsjCli.execute(
+                new String[]{
+                        "compile",
+                        entryFile.toString(),
+                        "--out",
+                        tempDir.resolve("strict-imported-prototype-out").toString(),
+                        "--mode",
+                        "jvm-strict"
+                },
+                new PrintStream(stdout),
+                new PrintStream(stderr)
+        );
+
+        assertEquals(1, exitCode);
+        assertEquals("", stdout.toString(UTF_8));
+        final String stderrText = stderr.toString(UTF_8);
+        assertTrue(stderrText.contains("\"code\":\"TSJ-STRICT-UNSUPPORTED\""));
+        assertTrue(stderrText.contains("\"featureId\":\"TSJ-STRICT-PROTOTYPE-MUTATION\""));
+        assertTrue(stderrText.contains("\"file\":\"" + dependencyFile.toAbsolutePath().normalize() + "\""));
+        assertTrue(stderrText.contains("\"line\":\"2\""));
+    }
+
+    @Test
+    void compileJvmStrictIgnoresStrictMarkersInsideCommentsAndStrings() throws Exception {
+        final Path entryFile = tempDir.resolve("strict-comment-string-safe.ts");
+        Files.writeString(
+                entryFile,
+                """
+                // new Proxy({}, {});
+                const text = "Object.setPrototypeOf(value, null)";
+                console.log(text);
+                """,
+                UTF_8
+        );
+        final Path outDir = tempDir.resolve("strict-comment-string-safe-out");
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+
+        final int exitCode = TsjCli.execute(
+                new String[]{
+                        "compile",
+                        entryFile.toString(),
+                        "--out",
+                        outDir.toString(),
+                        "--mode",
+                        "jvm-strict"
+                },
+                new PrintStream(stdout),
+                new PrintStream(stderr)
+        );
+
+        assertEquals(0, exitCode);
+        assertEquals("", stderr.toString(UTF_8));
+        assertTrue(stdout.toString(UTF_8).contains("\"code\":\"TSJ-COMPILE-SUCCESS\""));
+    }
+
+    @Test
+    void compileJvmStrictRejectsObjectSetPrototypeOfWithStrictDiagnostic() throws Exception {
+        final Path entryFile = tempDir.resolve("strict-object-set-prototype.ts");
+        Files.writeString(
+                entryFile,
+                """
+                const value = {};
+                Object.setPrototypeOf(value, null);
+                console.log(value);
+                """,
+                UTF_8
+        );
+
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+
+        final int exitCode = TsjCli.execute(
+                new String[]{
+                        "compile",
+                        entryFile.toString(),
+                        "--out",
+                        tempDir.resolve("strict-object-set-prototype-out").toString(),
+                        "--mode",
+                        "jvm-strict"
+                },
+                new PrintStream(stdout),
+                new PrintStream(stderr)
+        );
+
+        assertEquals(1, exitCode);
+        assertEquals("", stdout.toString(UTF_8));
+        final String stderrText = stderr.toString(UTF_8);
+        assertTrue(stderrText.contains("\"code\":\"TSJ-STRICT-UNSUPPORTED\""));
+        assertTrue(stderrText.contains("\"featureId\":\"TSJ-STRICT-PROTOTYPE-MUTATION\""));
+        assertTrue(stderrText.contains("\"line\":\"2\""));
+    }
+
+    @Test
+    void compileJvmStrictAllowsArrayIndexAssignment() throws Exception {
+        final Path entryFile = tempDir.resolve("strict-array-index-write.ts");
+        Files.writeString(
+                entryFile,
+                """
+                const arr = [0];
+                arr[0] = 1;
+                console.log(arr[0]);
+                """,
+                UTF_8
+        );
+        final Path outDir = tempDir.resolve("strict-array-index-write-out");
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+
+        final int exitCode = TsjCli.execute(
+                new String[]{
+                        "compile",
+                        entryFile.toString(),
+                        "--out",
+                        outDir.toString(),
+                        "--mode",
+                        "jvm-strict"
+                },
+                new PrintStream(stdout),
+                new PrintStream(stderr)
+        );
+
+        assertEquals(0, exitCode);
+        assertEquals("", stderr.toString(UTF_8));
+        assertTrue(stdout.toString(UTF_8).contains("\"code\":\"TSJ-COMPILE-SUCCESS\""));
+    }
+
+    @Test
+    void compileJvmStrictDiagnosticsRemainDeterministicAcrossIncrementalModes() throws Exception {
+        final String previousIncrementalCache = System.getProperty("tsj.backend.incrementalCache");
+        try {
+            final Path entryFile = tempDir.resolve("strict-deterministic-entry.ts");
+            final Path dependencyFile = tempDir.resolve("strict-deterministic-dep.ts");
+            Files.writeString(
+                    dependencyFile,
+                    """
+                    const target: any = {};
+                    const key = "stable";
+                    target[key] = 1;
+                    export const value = target;
+                    """,
+                    UTF_8
+            );
+            Files.writeString(
+                    entryFile,
+                    """
+                    import { value } from "./strict-deterministic-dep.ts";
+                    console.log(value);
+                    """,
+                    UTF_8
+            );
+
+            System.clearProperty("tsj.backend.incrementalCache");
+            final ByteArrayOutputStream firstStdout = new ByteArrayOutputStream();
+            final ByteArrayOutputStream firstStderr = new ByteArrayOutputStream();
+            final int firstExit = TsjCli.execute(
+                    new String[]{
+                            "compile",
+                            entryFile.toString(),
+                            "--out",
+                            tempDir.resolve("strict-deterministic-out-1").toString(),
+                            "--mode",
+                            "jvm-strict"
+                    },
+                    new PrintStream(firstStdout),
+                    new PrintStream(firstStderr)
+            );
+
+            System.setProperty("tsj.backend.incrementalCache", "true");
+            final ByteArrayOutputStream secondStdout = new ByteArrayOutputStream();
+            final ByteArrayOutputStream secondStderr = new ByteArrayOutputStream();
+            final int secondExit = TsjCli.execute(
+                    new String[]{
+                            "compile",
+                            entryFile.toString(),
+                            "--out",
+                            tempDir.resolve("strict-deterministic-out-2").toString(),
+                            "--mode",
+                            "jvm-strict"
+                    },
+                    new PrintStream(secondStdout),
+                    new PrintStream(secondStderr)
+            );
+
+            assertEquals(1, firstExit);
+            assertEquals(1, secondExit);
+            assertEquals("", firstStdout.toString(UTF_8));
+            assertEquals("", secondStdout.toString(UTF_8));
+            final String firstText = firstStderr.toString(UTF_8);
+            final String secondText = secondStderr.toString(UTF_8);
+
+            assertEquals(
+                    extractDiagnosticField(firstText, "featureId"),
+                    extractDiagnosticField(secondText, "featureId")
+            );
+            assertEquals(
+                    extractDiagnosticField(firstText, "file"),
+                    extractDiagnosticField(secondText, "file")
+            );
+            assertEquals(
+                    extractDiagnosticField(firstText, "line"),
+                    extractDiagnosticField(secondText, "line")
+            );
+            assertEquals(
+                    extractDiagnosticField(firstText, "column"),
+                    extractDiagnosticField(secondText, "column")
+            );
+        } finally {
+            if (previousIncrementalCache == null) {
+                System.clearProperty("tsj.backend.incrementalCache");
+            } else {
+                System.setProperty("tsj.backend.incrementalCache", previousIncrementalCache);
+            }
+        }
+    }
+
+    @Test
+    void compileJvmStrictSupportsClassObjectFunctionAndModuleSurfacesWhenStatic() throws Exception {
+        final Path entryFile = tempDir.resolve("strict-surfaces-entry.ts");
+        final Path moduleFile = tempDir.resolve("strict-surfaces-module.ts");
+        Files.writeString(
+                moduleFile,
+                """
+                export interface Owner {
+                  id: number;
+                  name: string;
+                }
+
+                export function buildOwner(id: number, name: string): Owner {
+                  return { id, name };
+                }
+                """,
+                UTF_8
+        );
+        Files.writeString(
+                entryFile,
+                """
+                import { buildOwner } from "./strict-surfaces-module.ts";
+
+                class OwnerService {
+                  describe(id: number, name: string): string {
+                    const owner = buildOwner(id, name);
+                    return owner.id + ":" + owner.name;
+                  }
+                }
+
+                const service = new OwnerService();
+                console.log(service.describe(7, "Ada"));
+                """,
+                UTF_8
+        );
+        final Path outDir = tempDir.resolve("strict-surfaces-out");
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+
+        final int exitCode = TsjCli.execute(
+                new String[]{
+                        "compile",
+                        entryFile.toString(),
+                        "--out",
+                        outDir.toString(),
+                        "--mode",
+                        "jvm-strict"
+                },
+                new PrintStream(stdout),
+                new PrintStream(stderr)
+        );
+
+        assertEquals(0, exitCode);
+        assertEquals("", stderr.toString(UTF_8));
+        assertTrue(stdout.toString(UTF_8).contains("\"code\":\"TSJ-COMPILE-SUCCESS\""));
+    }
+
+    @Test
+    void compileJvmStrictRejectsEvalInClassMethod() throws Exception {
+        final Path entryFile = tempDir.resolve("strict-class-eval.ts");
+        Files.writeString(
+                entryFile,
+                """
+                class Calculator {
+                  compute() {
+                    return eval("1 + 2");
+                  }
+                }
+                console.log(new Calculator().compute());
+                """,
+                UTF_8
+        );
+
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+        final int exitCode = TsjCli.execute(
+                new String[]{
+                        "compile",
+                        entryFile.toString(),
+                        "--out",
+                        tempDir.resolve("strict-class-eval-out").toString(),
+                        "--mode",
+                        "jvm-strict"
+                },
+                new PrintStream(stdout),
+                new PrintStream(stderr)
+        );
+
+        assertEquals(1, exitCode);
+        assertEquals("", stdout.toString(UTF_8));
+        final String stderrText = stderr.toString(UTF_8);
+        assertTrue(stderrText.contains("\"code\":\"TSJ-STRICT-UNSUPPORTED\""));
+        assertTrue(stderrText.contains("\"featureId\":\"TSJ-STRICT-EVAL\""));
+    }
+
+    @Test
+    void compileJvmStrictRejectsFunctionConstructorInFunctionBody() throws Exception {
+        final Path entryFile = tempDir.resolve("strict-function-constructor.ts");
+        Files.writeString(
+                entryFile,
+                """
+                function build() {
+                  const make = new Function("return 41;");
+                  return make();
+                }
+                console.log(build());
+                """,
+                UTF_8
+        );
+
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+        final int exitCode = TsjCli.execute(
+                new String[]{
+                        "compile",
+                        entryFile.toString(),
+                        "--out",
+                        tempDir.resolve("strict-function-constructor-out").toString(),
+                        "--mode",
+                        "jvm-strict"
+                },
+                new PrintStream(stdout),
+                new PrintStream(stderr)
+        );
+
+        assertEquals(1, exitCode);
+        assertEquals("", stdout.toString(UTF_8));
+        final String stderrText = stderr.toString(UTF_8);
+        assertTrue(stderrText.contains("\"code\":\"TSJ-STRICT-UNSUPPORTED\""));
+        assertTrue(stderrText.contains("\"featureId\":\"TSJ-STRICT-FUNCTION-CONSTRUCTOR\""));
+    }
+
+    @Test
+    void compileTsxInputReturnsTsj67UnsupportedDiagnosticMetadata() throws Exception {
+        final Path entryFile = tempDir.resolve("view.tsx");
+        Files.writeString(entryFile, "export const View = <div>tsx</div>;\n", UTF_8);
+        final Path outDir = tempDir.resolve("tsx-out");
+
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+        final int exitCode = TsjCli.execute(
+                new String[]{
+                        "compile",
+                        entryFile.toString(),
+                        "--out",
+                        outDir.toString()
+                },
+                new PrintStream(stdout),
+                new PrintStream(stderr)
+        );
+
+        assertEquals(1, exitCode);
+        assertEquals("", stdout.toString(UTF_8));
+        final String stderrText = stderr.toString(UTF_8);
+        assertTrue(stderrText.contains("\"code\":\"TSJ-BACKEND-UNSUPPORTED\""));
+        assertTrue(stderrText.contains("\"featureId\":\"TSJ67-TSX-OUT-OF-SCOPE\""));
+        assertTrue(stderrText.contains("\"guidance\":\"TSX/JSX is not in scope."));
+    }
+
+    @Test
+    void compileExposesIncrementalStageTelemetryAcrossMissHitAndInvalidation() throws Exception {
+        final String previousIncrementalCache = System.getProperty("tsj.backend.incrementalCache");
+        try {
+            System.setProperty("tsj.backend.incrementalCache", "true");
+            final Path dependency = tempDir.resolve("dep.ts");
+            Files.writeString(dependency, "export let value = 1;\n", UTF_8);
+            final Path entryFile = tempDir.resolve("incremental.ts");
+            Files.writeString(
+                    entryFile,
+                    """
+                    import { value } from "./dep.ts";
+                    console.log("value=" + value);
+                    """,
+                    UTF_8
+            );
+
+            final ByteArrayOutputStream firstStdout = new ByteArrayOutputStream();
+            final ByteArrayOutputStream firstStderr = new ByteArrayOutputStream();
+            final int firstExit = TsjCli.execute(
+                    new String[]{
+                            "compile",
+                            entryFile.toString(),
+                            "--out",
+                            tempDir.resolve("inc-out-1").toString()
+                    },
+                    new PrintStream(firstStdout),
+                    new PrintStream(firstStderr)
+            );
+            assertEquals(0, firstExit);
+            assertEquals("", firstStderr.toString(UTF_8));
+            final String firstStdoutText = firstStdout.toString(UTF_8);
+            assertTrue(firstStdoutText.contains("\"incrementalFrontendStage\":\"miss\""));
+            assertTrue(firstStdoutText.contains("\"incrementalLoweringStage\":\"miss\""));
+            assertTrue(firstStdoutText.contains("\"incrementalBackendStage\":\"miss\""));
+
+            final Path out2 = tempDir.resolve("inc-out-2");
+            final ByteArrayOutputStream secondStdout = new ByteArrayOutputStream();
+            final ByteArrayOutputStream secondStderr = new ByteArrayOutputStream();
+            final int secondExit = TsjCli.execute(
+                    new String[]{
+                            "compile",
+                            entryFile.toString(),
+                            "--out",
+                            out2.toString()
+                    },
+                    new PrintStream(secondStdout),
+                    new PrintStream(secondStderr)
+            );
+            assertEquals(0, secondExit);
+            assertEquals("", secondStderr.toString(UTF_8));
+            final String secondStdoutText = secondStdout.toString(UTF_8);
+            assertTrue(secondStdoutText.contains("\"incrementalFrontendStage\":\"hit\""));
+            assertTrue(secondStdoutText.contains("\"incrementalLoweringStage\":\"hit\""));
+            assertTrue(secondStdoutText.contains("\"incrementalBackendStage\":\"miss\""));
+            final Properties secondArtifact = loadArtifactProperties(out2.resolve("program.tsj.properties"));
+            assertEquals("hit", secondArtifact.getProperty("incremental.frontend"));
+            assertEquals("hit", secondArtifact.getProperty("incremental.lowering"));
+            assertEquals("miss", secondArtifact.getProperty("incremental.backend"));
+
+            Files.writeString(dependency, "export let value = 2;\n", UTF_8);
+            final ByteArrayOutputStream thirdStdout = new ByteArrayOutputStream();
+            final ByteArrayOutputStream thirdStderr = new ByteArrayOutputStream();
+            final int thirdExit = TsjCli.execute(
+                    new String[]{
+                            "compile",
+                            entryFile.toString(),
+                            "--out",
+                            tempDir.resolve("inc-out-3").toString()
+                    },
+                    new PrintStream(thirdStdout),
+                    new PrintStream(thirdStderr)
+            );
+            assertEquals(0, thirdExit);
+            assertEquals("", thirdStderr.toString(UTF_8));
+            final String thirdStdoutText = thirdStdout.toString(UTF_8);
+            assertTrue(thirdStdoutText.contains("\"incrementalFrontendStage\":\"invalidated\""));
+            assertTrue(thirdStdoutText.contains("\"incrementalLoweringStage\":\"invalidated\""));
+            assertTrue(thirdStdoutText.contains("\"incrementalBackendStage\":\"miss\""));
+        } finally {
+            if (previousIncrementalCache == null) {
+                System.clearProperty("tsj.backend.incrementalCache");
+            } else {
+                System.setProperty("tsj.backend.incrementalCache", previousIncrementalCache);
+            }
+        }
     }
 
     @Test
@@ -6932,12 +7895,41 @@ class TsjCliTest {
     }
 
     @Test
+    void compileSyntaxErrorReturnsFrontendTypeScriptDiagnosticCode() throws Exception {
+        final Path entryFile = tempDir.resolve("syntax-error.ts");
+        Files.writeString(
+                entryFile,
+                """
+                const value = ;
+                """,
+                UTF_8
+        );
+
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+
+        final int exitCode = TsjCli.execute(
+                new String[]{"compile", entryFile.toString(), "--out", tempDir.resolve("syntax-error-out").toString()},
+                new PrintStream(stdout),
+                new PrintStream(stderr)
+        );
+
+        final String stderrText = stderr.toString(UTF_8);
+        assertEquals(1, exitCode);
+        assertTrue(stderrText.contains("\"code\":\"TS"));
+        assertFalse(stderrText.contains("\"code\":\"TSJ-BACKEND-"));
+        assertTrue(stderrText.contains("\"file\":\"" + entryFile.toAbsolutePath().normalize() + "\""));
+        assertEquals("", stdout.toString(UTF_8));
+    }
+
+    @Test
     void compileUnsupportedSyntaxReturnsBackendDiagnostic() throws Exception {
         final Path entryFile = tempDir.resolve("unsupported.ts");
         Files.writeString(
                 entryFile,
                 """
-                const loader = import("./dep.ts");
+                const specifier = "./dep.ts";
+                const loader = import(specifier);
                 console.log(loader);
                 """,
                 UTF_8
@@ -6965,7 +7957,8 @@ class TsjCliTest {
         Files.writeString(
                 entryFile,
                 """
-                const loader = import("./dep.ts");
+                const specifier = "./dep.ts";
+                const loader = import(specifier);
                 console.log(loader);
                 """,
                 UTF_8
@@ -6985,9 +7978,201 @@ class TsjCliTest {
         assertTrue(stderrText.contains("\"code\":\"TSJ-BACKEND-UNSUPPORTED\""));
         assertTrue(stderrText.contains("\"featureId\":\"TSJ15-DYNAMIC-IMPORT\""));
         assertTrue(stderrText.contains("\"file\":\"" + entryFile.toAbsolutePath().normalize() + "\""));
-        assertTrue(stderrText.contains("\"line\":\"1\""));
-        assertTrue(stderrText.contains("\"column\":\"16\""));
+        assertTrue(stderrText.contains("\"line\":\"2\""));
+        assertTrue(stderrText.contains("\"column\":\""));
         assertTrue(stderrText.contains("Use static relative imports"));
+        assertEquals("", stdout.toString(UTF_8));
+    }
+
+    @Test
+    void compileDecoratedPrivateMemberIncludesTsj66FeatureContext() throws Exception {
+        final Path entryFile = tempDir.resolve("decorated-private-member.ts");
+        Files.writeString(
+                entryFile,
+                """
+                function mark(value: any, _context: any) {
+                  return value;
+                }
+
+                class Demo {
+                  @mark
+                  #secret() {
+                    return 1;
+                  }
+                }
+                """,
+                UTF_8
+        );
+
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+
+        final int exitCode = TsjCli.execute(
+                new String[]{"compile", entryFile.toString(), "--out", tempDir.resolve("decorated-private-out").toString()},
+                new PrintStream(stdout),
+                new PrintStream(stderr)
+        );
+
+        final String stderrText = stderr.toString(UTF_8);
+        assertEquals(1, exitCode);
+        assertTrue(stderrText.contains("\"code\":\"TSJ-BACKEND-UNSUPPORTED\""));
+        assertTrue(stderrText.contains("\"featureId\":\"TSJ66-DECORATOR-PRIVATE-ELEMENT\""));
+        assertTrue(stderrText.contains("non-private class elements"));
+        assertTrue(stderrText.contains("\"file\":\"" + entryFile.toAbsolutePath().normalize() + "\""));
+        assertTrue(stderrText.contains("\"line\":\"7\""));
+        assertEquals("", stdout.toString(UTF_8));
+    }
+
+    @Test
+    void compileStage3AccessorDecoratorIncludesTsj66FeatureContext() throws Exception {
+        final Path entryFile = tempDir.resolve("stage3-accessor.ts");
+        Files.writeString(
+                entryFile,
+                """
+                function mark(value: any, _context: any) {
+                  return value;
+                }
+
+                class Demo {
+                  @mark
+                  accessor value = 1;
+                }
+                """,
+                UTF_8
+        );
+
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+
+        final int exitCode = TsjCli.execute(
+                new String[]{"compile", entryFile.toString(), "--out", tempDir.resolve("stage3-accessor-out").toString()},
+                new PrintStream(stdout),
+                new PrintStream(stderr)
+        );
+
+        final String stderrText = stderr.toString(UTF_8);
+        assertEquals(1, exitCode);
+        assertTrue(stderrText.contains("\"code\":\"TSJ-BACKEND-UNSUPPORTED\""));
+        assertTrue(stderrText.contains("\"featureId\":\"TSJ66-DECORATOR-STAGE3-ACCESSOR\""));
+        assertTrue(stderrText.contains("field or method decorators"));
+        assertTrue(stderrText.contains("\"file\":\"" + entryFile.toAbsolutePath().normalize() + "\""));
+        assertTrue(stderrText.contains("\"line\":\"7\""));
+        assertEquals("", stdout.toString(UTF_8));
+    }
+
+    @Test
+    void compileStage3GetterDecoratorIncludesTsj66FeatureContext() throws Exception {
+        final Path entryFile = tempDir.resolve("stage3-getter.ts");
+        Files.writeString(
+                entryFile,
+                """
+                function mark(value: any, _context: any) {
+                  return value;
+                }
+
+                class Demo {
+                  @mark
+                  get value() {
+                    return 1;
+                  }
+                }
+                """,
+                UTF_8
+        );
+
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+
+        final int exitCode = TsjCli.execute(
+                new String[]{"compile", entryFile.toString(), "--out", tempDir.resolve("stage3-getter-out").toString()},
+                new PrintStream(stdout),
+                new PrintStream(stderr)
+        );
+
+        final String stderrText = stderr.toString(UTF_8);
+        assertEquals(1, exitCode);
+        assertTrue(stderrText.contains("\"code\":\"TSJ-BACKEND-UNSUPPORTED\""));
+        assertTrue(stderrText.contains("\"featureId\":\"TSJ66-DECORATOR-STAGE3-ACCESSOR\""));
+        assertTrue(stderrText.contains("field or method decorators"));
+        assertTrue(stderrText.contains("\"file\":\"" + entryFile.toAbsolutePath().normalize() + "\""));
+        assertTrue(stderrText.contains("\"line\":\"7\""));
+        assertEquals("", stdout.toString(UTF_8));
+    }
+
+    @Test
+    void compileStage3SetterDecoratorIncludesTsj66FeatureContext() throws Exception {
+        final Path entryFile = tempDir.resolve("stage3-setter.ts");
+        Files.writeString(
+                entryFile,
+                """
+                function mark(value: any, _context: any) {
+                  return value;
+                }
+
+                class Demo {
+                  @mark
+                  set value(next: number) {
+                    console.log(next);
+                  }
+                }
+                """,
+                UTF_8
+        );
+
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+
+        final int exitCode = TsjCli.execute(
+                new String[]{"compile", entryFile.toString(), "--out", tempDir.resolve("stage3-setter-out").toString()},
+                new PrintStream(stdout),
+                new PrintStream(stderr)
+        );
+
+        final String stderrText = stderr.toString(UTF_8);
+        assertEquals(1, exitCode);
+        assertTrue(stderrText.contains("\"code\":\"TSJ-BACKEND-UNSUPPORTED\""));
+        assertTrue(stderrText.contains("\"featureId\":\"TSJ66-DECORATOR-STAGE3-ACCESSOR\""));
+        assertTrue(stderrText.contains("field or method decorators"));
+        assertTrue(stderrText.contains("\"file\":\"" + entryFile.toAbsolutePath().normalize() + "\""));
+        assertTrue(stderrText.contains("\"line\":\"7\""));
+        assertEquals("", stdout.toString(UTF_8));
+    }
+
+    @Test
+    void compileStage3ParameterDecoratorIncludesTsj66FeatureContext() throws Exception {
+        final Path entryFile = tempDir.resolve("stage3-parameter.ts");
+        Files.writeString(
+                entryFile,
+                """
+                function mark(value: any, _context: any) {
+                  return value;
+                }
+
+                class Demo {
+                  method(@mark value: number) {
+                    return value;
+                  }
+                }
+                """,
+                UTF_8
+        );
+
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+
+        final int exitCode = TsjCli.execute(
+                new String[]{"compile", entryFile.toString(), "--out", tempDir.resolve("stage3-parameter-out").toString()},
+                new PrintStream(stdout),
+                new PrintStream(stderr)
+        );
+
+        final String stderrText = stderr.toString(UTF_8);
+        assertEquals(1, exitCode);
+        assertTrue(stderrText.contains("\"code\":\"TSJ-BACKEND-UNSUPPORTED\""));
+        assertTrue(stderrText.contains("\"featureId\":\"TSJ66-DECORATOR-STAGE3-PARAMETER\""));
+        assertTrue(stderrText.contains("legacy parameter decorator factories"));
+        assertTrue(stderrText.contains("\"file\":\"" + entryFile.toAbsolutePath().normalize() + "\""));
+        assertTrue(stderrText.contains("\"line\":\"6\""));
         assertEquals("", stdout.toString(UTF_8));
     }
 
@@ -7252,6 +8437,92 @@ class TsjCliTest {
     }
 
     @Test
+    void compileDoesNotGenerateSpringAdaptersByDefault() throws Exception {
+        final Path entryFile = tempDir.resolve("tsj75-default-compile.ts");
+        Files.writeString(
+                entryFile,
+                """
+                @RestController
+                @RequestMapping("/api")
+                class EchoController {
+                  @GetMapping("/echo")
+                  echo(value: string) {
+                    return "echo:" + value;
+                  }
+                }
+
+                console.log("ready");
+                """,
+                UTF_8
+        );
+        final Path outDir = tempDir.resolve("tsj75-default-compile-out");
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+
+        final int exitCode = TsjCli.execute(
+                new String[]{
+                        "compile",
+                        entryFile.toString(),
+                        "--out",
+                        outDir.toString()
+                },
+                new PrintStream(stdout),
+                new PrintStream(stderr)
+        );
+
+        assertEquals(0, exitCode);
+        assertEquals("", stderr.toString(UTF_8));
+        assertFalse(Files.exists(outDir.resolve("generated-web")));
+        assertFalse(Files.exists(outDir.resolve("generated-components")));
+        final Properties artifact = loadArtifactProperties(outDir.resolve("program.tsj.properties"));
+        assertEquals("0", artifact.getProperty("tsjWebControllers.controllerCount"));
+        assertEquals("0", artifact.getProperty("tsjWebControllers.generatedSourceCount"));
+        assertEquals("0", artifact.getProperty("tsjSpringComponents.componentCount"));
+        assertEquals("0", artifact.getProperty("tsjSpringComponents.generatedSourceCount"));
+    }
+
+    @Test
+    void runDoesNotGenerateSpringAdaptersByDefault() throws Exception {
+        final Path entryFile = tempDir.resolve("tsj75-default-run.ts");
+        Files.writeString(
+                entryFile,
+                """
+                @Service
+                class GreetingService {
+                  greet(name: string) {
+                    return "hi:" + name;
+                  }
+                }
+
+                console.log(new GreetingService().greet("tsj"));
+                """,
+                UTF_8
+        );
+        final Path outDir = tempDir.resolve("tsj75-default-run-out");
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+
+        final int exitCode = TsjCli.execute(
+                new String[]{"run", entryFile.toString(), "--out", outDir.toString()},
+                new PrintStream(stdout),
+                new PrintStream(stderr)
+        );
+
+        final String stdoutText = stdout.toString(UTF_8);
+        assertEquals(0, exitCode);
+        assertTrue(stdoutText.startsWith("hi:tsj\n"));
+        assertTrue(stdoutText.contains("\"code\":\"TSJ-RUN-SUCCESS\""));
+        assertEquals("", stderr.toString(UTF_8));
+        assertFalse(Files.exists(outDir.resolve("generated-web")));
+        assertFalse(Files.exists(outDir.resolve("generated-components")));
+        final Properties artifact = loadArtifactProperties(outDir.resolve("program.tsj.properties"));
+        assertEquals("0", artifact.getProperty("tsjWebControllers.controllerCount"));
+        assertEquals("0", artifact.getProperty("tsjWebControllers.generatedSourceCount"));
+        assertEquals("0", artifact.getProperty("tsjSpringComponents.componentCount"));
+        assertEquals("0", artifact.getProperty("tsjSpringComponents.generatedSourceCount"));
+    }
+
+    @Test
     void compileGeneratesTsDecoratedSpringWebControllerAdapters() throws Exception {
         final Path entryFile = tempDir.resolve("tsj34-controller.ts");
         Files.writeString(
@@ -7275,7 +8546,13 @@ class TsjCliTest {
         final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
 
         final int exitCode = TsjCli.execute(
-                new String[]{"compile", entryFile.toString(), "--out", outDir.toString()},
+                new String[]{
+                        "compile",
+                        entryFile.toString(),
+                        "--out",
+                        outDir.toString(),
+                        "--legacy-spring-adapters"
+                },
                 new PrintStream(stdout),
                 new PrintStream(stderr)
         );
@@ -7317,7 +8594,13 @@ class TsjCliTest {
         final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
 
         final int exitCode = TsjCli.execute(
-                new String[]{"compile", entryFile.toString(), "--out", outDir.toString()},
+                new String[]{
+                        "compile",
+                        entryFile.toString(),
+                        "--out",
+                        outDir.toString(),
+                        "--legacy-spring-adapters"
+                },
                 new PrintStream(stdout),
                 new PrintStream(stderr)
         );
@@ -7361,7 +8644,13 @@ class TsjCliTest {
         final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
 
         final int exitCode = TsjCli.execute(
-                new String[]{"compile", entryFile.toString(), "--out", outDir.toString()},
+                new String[]{
+                        "compile",
+                        entryFile.toString(),
+                        "--out",
+                        outDir.toString(),
+                        "--legacy-spring-adapters"
+                },
                 new PrintStream(stdout),
                 new PrintStream(stderr)
         );
@@ -7457,6 +8746,56 @@ class TsjCliTest {
         final ProcessResult jarRun = runJarAndCaptureOutput(bootJar);
         assertEquals(0, jarRun.exitCode());
         assertTrue(jarRun.output().contains("custom-jar"));
+    }
+
+    @Test
+    void springPackageMergesSpringFactoriesFromDependencyJars() throws Exception {
+        final Path entryFile = tempDir.resolve("tsj36d-merge-main.ts");
+        Files.writeString(entryFile, "console.log('merge-check');\n", UTF_8);
+        final Path firstJar = createMetadataJar(
+                "tsj36d-first.jar",
+                "META-INF/spring.factories",
+                "org.springframework.context.ApplicationContextInitializer=a.b.InitOne\n"
+        );
+        final Path secondJar = createMetadataJar(
+                "tsj36d-second.jar",
+                "META-INF/spring.factories",
+                """
+                org.springframework.context.ApplicationContextInitializer=a.b.InitTwo
+                org.springframework.boot.env.EnvironmentPostProcessor=a.b.EnvPost
+                """
+        );
+        final Path outDir = tempDir.resolve("tsj36d-merge-out");
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+
+        final int exitCode = TsjCli.execute(
+                new String[]{
+                        "spring-package",
+                        entryFile.toString(),
+                        "--out",
+                        outDir.toString(),
+                        "--classpath",
+                        firstJar + File.pathSeparator + secondJar
+                },
+                new PrintStream(stdout),
+                new PrintStream(stderr)
+        );
+
+        assertEquals(0, exitCode, "stderr=" + stderr.toString(UTF_8) + "\nstdout=" + stdout.toString(UTF_8));
+        assertEquals("", stderr.toString(UTF_8));
+
+        try (JarFile jarFile = new JarFile(outDir.resolve("tsj-spring-app.jar").toFile())) {
+            final JarEntry springFactoriesEntry = jarFile.getJarEntry("META-INF/spring.factories");
+            assertNotNull(springFactoriesEntry);
+            final String springFactoriesContent;
+            try (InputStream inputStream = jarFile.getInputStream(springFactoriesEntry)) {
+                springFactoriesContent = new String(inputStream.readAllBytes(), UTF_8);
+            }
+            assertTrue(springFactoriesContent.contains("a.b.InitOne"), springFactoriesContent);
+            assertTrue(springFactoriesContent.contains("a.b.InitTwo"), springFactoriesContent);
+            assertTrue(springFactoriesContent.contains("a.b.EnvPost"), springFactoriesContent);
+        }
     }
 
     @Test
@@ -7852,6 +9191,21 @@ class TsjCliTest {
         );
     }
 
+    private Path createMetadataJar(
+            final String jarFileName,
+            final String entryName,
+            final String content
+    ) throws Exception {
+        final Path jarFile = tempDir.resolve(jarFileName);
+        try (JarOutputStream jarOutputStream = new JarOutputStream(Files.newOutputStream(jarFile))) {
+            final JarEntry jarEntry = new JarEntry(entryName);
+            jarOutputStream.putNextEntry(jarEntry);
+            jarOutputStream.write(content.getBytes(UTF_8));
+            jarOutputStream.closeEntry();
+        }
+        return jarFile.toAbsolutePath().normalize();
+    }
+
     private Path buildInteropJar(
             final String className,
             final String sourceText,
@@ -8164,6 +9518,14 @@ class TsjCliTest {
                 System.setProperty(key, previous);
             }
         }
+    }
+
+    private static String extractDiagnosticField(final String diagnosticText, final String key) {
+        final java.util.regex.Matcher matcher = java.util.regex.Pattern
+                .compile("\"" + java.util.regex.Pattern.quote(key) + "\":\"([^\"]*)\"")
+                .matcher(diagnosticText);
+        assertTrue(matcher.find(), "Missing diagnostic key `" + key + "` in: " + diagnosticText);
+        return matcher.group(1);
     }
 
     @FunctionalInterface

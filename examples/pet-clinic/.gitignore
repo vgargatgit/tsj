@@ -1,0 +1,3 @@
+.build/
+deps/*.jar
+deps/lib/

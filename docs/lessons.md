@@ -22,3 +22,38 @@
 - Pattern: I scoped unsupported-grammar fixtures under `examples/tnta` instead of using the repository-wide `unsupported/` root requested by the user.
 - Rule: When a shared root path is specified (for example `unsupported/`), place fixtures/tests there unless explicitly asked to use an example-local folder.
 - Guardrail: Before creating new fixture directories, verify whether a requested root folder already exists and target it first.
+
+## 2026-03-02
+- Pattern: I began execution for a major architecture request before first formalizing the story breakdown.
+- Rule: For major cross-module overhauls, create/update `docs/stories.md` and `docs/plans.md` before implementation starts.
+- Guardrail: Before first code change on a major feature, ensure story IDs, acceptance criteria, and red/green checkpoints are documented and linked.
+- Pattern: I allowed a replan that still implied framework-specific framing (`Spring-like`) when the user required out-of-the-box any-jar behavior.
+- Rule: When user goal is framework-agnostic any-jar support, remove framework-specific special casing from acceptance criteria and implementation plan.
+- Guardrail: For each story in the track, include an explicit "no framework hardcoding in default path" check.
+
+## 2026-03-06
+- Pattern: I used `mvn ... -rf :cli` for CLI validation after backend/frontend changes, which can exercise stale local snapshot jars and create false failures.
+- Rule: For cross-module validation, run CLI tests through reactor (`-pl cli -am`) so backend/frontend/runtime sources are rebuilt in the same invocation.
+- Guardrail: Use `-rf` only for same-module retries; for dependency-sensitive suites, always prefer reactor module selection.
+- Pattern: I tried to optimize with `-pl cli` (without `-am`) while upstream modules were dirty, and readiness results diverged because CLI linked against stale installed artifacts.
+- Rule: Only use `-pl cli` without `-am` when upstream dependencies are unchanged and local snapshots are known current; otherwise keep `-am`.
+- Guardrail: If a targeted `-pl cli` run disagrees with reactor results, treat it as stale-artifact risk and re-run with `-pl cli -am` before changing code/tests.
+- Pattern: I ran broad regressions for small deltas instead of narrowing to impacted tests first, causing slow iteration loops.
+- Rule: For inner-loop debugging, run targeted tests with `-Dtest=...` and skip non-critical lint gates (`-Dcheckstyle.skip=true`), then run broader gates once green.
+- Guardrail: Before running Maven, choose one of two modes explicitly: `targeted-fast` (`-pl ... -am -Dcheckstyle.skip=true -Dtest=...`) or `full-regression`.
+- Pattern: I started a Spring-style example flow without explicitly pinning decorator sources to `java:` imports after the user clarified no inbuilt TSJ Spring annotations.
+- Rule: For Spring annotation examples meant to validate jar interop, always import decorators from `java:org.springframework...` modules and avoid relying on TSJ built-in/global decorator mappings.
+- Guardrail: Before writing controllers/services, add and verify explicit `java:` annotation imports in each TS file that uses decorators.
+- Pattern: I left `run.sh` behavior ambiguous in the Pet Clinic example, so users expected a live HTTP server from a verification-only script.
+- Rule: For example scripts, separate verification and long-running server modes with explicit script names and README guidance.
+- Guardrail: Any script that does not start a listener must state that clearly and point to the server-start command.
+
+## 2026-03-07
+- Pattern: I introduced Java fixture implementation code for pet-clinic after the user required a TS-only implementation compiled by TSJ.
+- Rule: When user says implementation ownership must stay in TS, do not add custom Java fixture application logic (controllers/repositories/entities/bootstraps); only use dependency jars and TSJ-generated outputs.
+- Guardrail: Before adding any new Java source under `examples/*/fixtures-src`, validate that the user explicitly asked for Java fixture code; if not explicit, block and keep logic in TS.
+
+## 2026-03-08
+- Pattern: I kept pushing feature work while the user wanted the dirty worktree problem addressed first.
+- Rule: When the user redirects to worktree hygiene, pause feature execution and fix generated-output tracking/noise before resuming implementation.
+- Guardrail: Before the next code feature change, re-run `git status --short` and separate generated dirt from authored changes so cleanup work does not trample in-flight source edits.

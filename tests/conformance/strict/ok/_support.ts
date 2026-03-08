@@ -1,0 +1,5 @@
+export const baseValue = 21;
+
+export function twice(value: number): number {
+  return value * 2;
+}

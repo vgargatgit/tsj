@@ -56,20 +56,48 @@ jobs:
       - name: TGTA Non-TSX Compile Gate
         run: >
           mvn -B -ntp -pl cli -am
+          -Dcheckstyle.skip=true
           -Dsurefire.failIfNoSpecifiedTests=false
-          -Dtest=TsjTgtaCompileGateTest#tgtaNonTsxFixturesCompileWithTsjCompileSuccess+tgtaKnownFailingFixturesEmitStableDiagnosticCodes
+          -Dtest=TsjTgtaCompileGateTest#tgtaNonTsxFixturesCompileWithTsjCompileSuccess+tgtaKnownFailingFixturesEmitStableDiagnosticCodes,TsjSyntaxConformanceReadinessGateTest#readinessGateGeneratesSyntaxCategoryReportAndEnforcesThresholds
+          test
+
+      - name: TSJ-69 Incremental Readiness Gate
+        run: >
+          mvn -B -ntp -pl cli -am
+          -Dcheckstyle.skip=true
+          -Dsurefire.failIfNoSpecifiedTests=false
+          -Dtest=TsjSyntaxIncrementalReadinessGateTest#readinessGateRequiresWarmReuseAndInvalidationSignals
+          test
+
+      - name: TSJ-70 Syntax GA Readiness Signoff
+        run: >
+          mvn -B -ntp -pl cli -am
+          -Dcheckstyle.skip=true
+          -Dsurefire.failIfNoSpecifiedTests=false
+          -Dtest=TsjSyntaxGaReadinessGateTest#readinessGateRequiresCertifiedCorpusAndMandatorySuiteSignals
           test
 
       - name: Grammar Feature Gate (Parser/Backend/CLI)
         run: >
           mvn -B -ntp -pl compiler/backend-jvm,cli -am
+          -Dcheckstyle.skip=true
           -Dsurefire.failIfNoSpecifiedTests=false
           -Dtest=TypeScriptSyntaxBridgeTest,TypeScriptSyntaxBridgeConformanceSnapshotTest,JvmBytecodeCompilerTest#supportsNamespaceValueExportsInTsjGrammarPath,FixtureHarnessTest#harnessSupportsLogicalChainsDifferentialFixture,FixtureHarnessTest#harnessSupportsOptionalChainingDifferentialFixture,FixtureHarnessTest#harnessSupportsDestructuringDifferentialFixture,FixtureHarnessTest#harnessSupportsTemplateLiteralDifferentialFixture
+          test
+
+      - name: TSJ-58c No-Fallback Gate
+        run: >
+          mvn -B -ntp -pl compiler/backend-jvm,cli -am
+          -Dcheckstyle.skip=true
+          -Dtsj.backend.astNoFallback=true
+          -Dsurefire.failIfNoSpecifiedTests=false
+          -Dtest=TypeScriptSyntaxBridgeConformanceSnapshotTest,JvmBytecodeCompilerTest#supportsAsyncClassMethodWithAwaitInReturnExpression+rejectsDynamicImportWithFeatureDiagnosticMetadata,FixtureHarnessTest#harnessSupportsLogicalChainsDifferentialFixture+harnessSupportsTemplateLiteralDifferentialFixture,TsjTgtaCompileGateTest#tgtaNonTsxFixturesCompileWithTsjCompileSuccess
           test
 
       - name: TSJ-36 Spring Package Smoke
         run: >
           mvn -B -ntp -pl cli -am
+          -Dcheckstyle.skip=true
           -Dsurefire.failIfNoSpecifiedTests=false
           -Dtest=TsjCliTest#springPackageBuildsRunnableJarAndIncludesResourceFiles
           test
@@ -77,13 +105,39 @@ jobs:
       - name: TSJ-36b Spring Endpoint Smoke
         run: >
           mvn -B -ntp -pl cli -am
+          -Dcheckstyle.skip=true
           -Dsurefire.failIfNoSpecifiedTests=false
           -Dtest=TsjCliTest#springPackageSmokeRunVerifiesEmbeddedEndpointAvailability
+          test
+
+      - name: TSJ-76 Legacy Core-Path Guard
+        run: >
+          mvn -B -ntp -pl cli -am
+          -Dcheckstyle.skip=true
+          -Dsurefire.failIfNoSpecifiedTests=false
+          -Dtest=TsjCliTest#compileDoesNotGenerateSpringAdaptersByDefault+runDoesNotGenerateSpringAdaptersByDefault+compileGeneratesTsDecoratedSpringWebControllerAdapters
+          test
+
+      - name: TSJ-77 Docs Drift Guard
+        run: >
+          mvn -B -ntp -pl cli -am
+          -Dcheckstyle.skip=true
+          -Dsurefire.failIfNoSpecifiedTests=false
+          -Dtest=TsjDocsDriftGuardTest
+          test
+
+      - name: TSJ-75 Any-JAR Annotation Survival Certification
+        run: >
+          mvn -B -ntp -pl compiler/backend-jvm -am
+          -Dcheckstyle.skip=true
+          -Dsurefire.failIfNoSpecifiedTests=false
+          -Dtest=TsjAnyJarAnnotationSurvivalCertificationTest#certificationGateRequiresResolutionEmissionAndReflectionConsumerParity
           test
 
       - name: TSJ-34f Packaged Web Conformance
         run: >
           mvn -B -ntp -pl cli -am
+          -Dcheckstyle.skip=true
           -Dsurefire.failIfNoSpecifiedTests=false
           -Dtest=TsjSpringPackagedWebConformanceTest#packagedWebConformanceGateProducesTsJavaKotlinReport
           test
@@ -91,6 +145,7 @@ jobs:
       - name: TSJ-40d Dependency Mediation Certification
         run: >
           mvn -B -ntp -pl cli -am
+          -Dcheckstyle.skip=true
           -Dsurefire.failIfNoSpecifiedTests=false
           -Dtest=TsjDependencyMediationCertificationTest#certificationGateRequiresGraphScopeAndIsolationParity
           test
@@ -98,6 +153,7 @@ jobs:
       - name: TSJ-41d Invocation Conversion Certification
         run: >
           mvn -B -ntp -pl cli -am
+          -Dcheckstyle.skip=true
           -Dsurefire.failIfNoSpecifiedTests=false
           -Dtest=TsjInvocationConversionCertificationTest#certificationGateRequiresAllFamilySuitesToPass
           test
@@ -105,6 +161,7 @@ jobs:
       - name: TSJ-43d Guardrail Certification
         run: >
           mvn -B -ntp -pl cli -am
+          -Dcheckstyle.skip=true
           -Dsurefire.failIfNoSpecifiedTests=false
           -Dtest=TsjGuardrailCertificationTest#certificationGateRequiresAllGuardrailFamiliesToPass
           test
@@ -112,6 +169,7 @@ jobs:
       - name: TSJ-37b Data JDBC Matrix Baseline
         run: >
           mvn -B -ntp -pl compiler/backend-jvm -am
+          -Dcheckstyle.skip=true
           -Dsurefire.failIfNoSpecifiedTests=false
           -Dtest=TsjSpringIntegrationMatrixTest#springModuleMatrixDataJdbcModuleRunsCrudAndQueryParityWithUnsupportedQueryGate
           test
@@ -119,6 +177,7 @@ jobs:
       - name: TSJ-37d Security Matrix Baseline
         run: >
           mvn -B -ntp -pl compiler/backend-jvm -am
+          -Dcheckstyle.skip=true
           -Dsurefire.failIfNoSpecifiedTests=false
           -Dtest=TsjSpringIntegrationMatrixTest#springModuleMatrixSecurityModuleRunsBaselineParityAndUnsupportedExpressionGate
           test
@@ -126,6 +185,7 @@ jobs:
       - name: TSJ-44b Version-Range Certification
         run: >
           mvn -B -ntp -pl cli -am
+          -Dcheckstyle.skip=true
           -Dsurefire.failIfNoSpecifiedTests=false
           -Dtest=TsjVersionRangeCertificationTest#certificationGatePassesWhenCertifiedVersionRangesAreGreen
           test
@@ -133,6 +193,7 @@ jobs:
       - name: TSJ-44c Real-App Certification
         run: >
           mvn -B -ntp -pl cli -am
+          -Dcheckstyle.skip=true
           -Dsurefire.failIfNoSpecifiedTests=false
           -Dtest=TsjRealAppCertificationTest#realAppGateRequiresReliabilityAndPerformanceBudgets
           test
@@ -140,6 +201,7 @@ jobs:
       - name: TSJ-44d Any-JAR Governance Signoff
         run: >
           mvn -B -ntp -pl cli -am
+          -Dcheckstyle.skip=true
           -Dsurefire.failIfNoSpecifiedTests=false
           -Dtest=TsjAnyJarGovernanceCertificationTest#governanceGateRequiresMatrixVersionAndWorkloadSignoffCriteria
           test
@@ -147,6 +209,7 @@ jobs:
       - name: TSJ-42a JPA Real-DB Parity
         run: >
           mvn -B -ntp -pl cli -am
+          -Dcheckstyle.skip=true
           -Dsurefire.failIfNoSpecifiedTests=false
           -Dtest=TsjJpaRealDatabaseParityTest#parityGateRequiresCrudAndQueryParityAcrossRealDbBackends
           test
@@ -154,6 +217,7 @@ jobs:
       - name: TSJ-42b JPA Lazy/Proxy Parity
         run: >
           mvn -B -ntp -pl cli -am
+          -Dcheckstyle.skip=true
           -Dsurefire.failIfNoSpecifiedTests=false
           -Dtest=TsjJpaLazyProxyParityTest#parityGateRequiresSupportedLazyProxyScenariosToPass
           test
@@ -161,6 +225,7 @@ jobs:
       - name: TSJ-42c JPA Lifecycle/Transaction Parity
         run: >
           mvn -B -ntp -pl cli -am
+          -Dcheckstyle.skip=true
           -Dsurefire.failIfNoSpecifiedTests=false
           -Dtest=TsjJpaLifecycleParityTest#parityGateRequiresLifecycleAndTransactionScenariosToPass
           test
@@ -168,6 +233,7 @@ jobs:
       - name: TSJ-42d JPA Certification Closure
         run: >
           mvn -B -ntp -pl cli -am
+          -Dcheckstyle.skip=true
           -Dsurefire.failIfNoSpecifiedTests=false
           -Dtest=TsjJpaCertificationClosureTest#certificationGateRequiresAllOrmFamilySuitesToPass
           test
@@ -175,6 +241,7 @@ jobs:
       - name: TSJ-38a DB-Backed Reference Parity
         run: >
           mvn -B -ntp -pl compiler/backend-jvm -am
+          -Dcheckstyle.skip=true
           -Dsurefire.failIfNoSpecifiedTests=false
           -Dtest=TsjKotlinDbParityTest#dbParityGateRequiresTsAndKotlinDifferentialMatchAcrossBackends
           test
@@ -182,6 +249,7 @@ jobs:
       - name: TSJ-38b Security Reference Parity
         run: >
           mvn -B -ntp -pl compiler/backend-jvm -am
+          -Dcheckstyle.skip=true
           -Dsurefire.failIfNoSpecifiedTests=false
           -Dtest=TsjKotlinSecurityParityTest#securityParityGateRequiresAuthenticatedAndRoleBasedParityScenarios
           test
@@ -189,6 +257,7 @@ jobs:
       - name: TSJ-38c Kotlin Parity Certification
         run: >
           mvn -B -ntp -pl compiler/backend-jvm -am
+          -Dcheckstyle.skip=true
           -Dsurefire.failIfNoSpecifiedTests=false
           -Dtest=TsjKotlinParityCertificationTest#certificationGateRequiresAllDimensionThresholdsAndParitySignalsToPass
           test
@@ -196,6 +265,7 @@ jobs:
       - name: TSJ-37e Spring Module Certification
         run: >
           mvn -B -ntp -pl compiler/backend-jvm -am
+          -Dcheckstyle.skip=true
           -Dsurefire.failIfNoSpecifiedTests=false
           -Dtest=TsjSpringModuleCertificationTest#certificationGateRequiresAllModuleParityScenariosToPass
           test
@@ -203,6 +273,7 @@ jobs:
       - name: TSJ-36c Dev-Loop Parity
         run: >
           mvn -B -ntp -pl cli -am
+          -Dcheckstyle.skip=true
           -Dsurefire.failIfNoSpecifiedTests=false
           -Dtest=TsjDevLoopParityTest#parityGateRequiresAllDevLoopScenariosToPass
           test
@@ -213,6 +284,38 @@ jobs:
         with:
           name: fixture-coverage-report
           path: tests/fixtures/tsj-fixture-coverage.json
+          if-no-files-found: warn
+
+      - name: Upload TS syntax readiness report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tsj-syntax-readiness-report
+          path: tests/conformance/tsj-syntax-readiness.json
+          if-no-files-found: warn
+
+      - name: Upload TSJ-69 incremental readiness report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tsj69-incremental-readiness-report
+          path: cli/target/tsj69-incremental-readiness.json
+          if-no-files-found: warn
+
+      - name: Upload TSJ-70 syntax GA signoff report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tsj70-syntax-ga-signoff-report
+          path: cli/target/tsj70-syntax-ga-signoff.json
+          if-no-files-found: warn
+
+      - name: Upload TSJ-70 syntax compatibility manifest
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tsj70-syntax-compatibility-manifest
+          path: tests/conformance/tsj70-syntax-compatibility-manifest.json
           if-no-files-found: warn
 
       - name: Upload benchmark baseline report
@@ -277,6 +380,14 @@ jobs:
         with:
           name: tsj38-kotlin-parity-readiness-report
           path: compiler/backend-jvm/target/tsj38-kotlin-parity-readiness.json
+          if-no-files-found: warn
+
+      - name: Upload TSJ-75 any-jar annotation survival certification report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tsj75-anyjar-annotation-survival-certification-report
+          path: compiler/backend-jvm/target/tsj75-anyjar-annotation-survival-certification.json
           if-no-files-found: warn
 
       - name: Upload TSJ-39 metadata conformance report

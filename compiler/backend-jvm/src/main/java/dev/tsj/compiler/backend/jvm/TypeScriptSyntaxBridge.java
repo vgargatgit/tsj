@@ -181,7 +181,21 @@ final class TypeScriptSyntaxBridge {
                     diagnosticNode.path("code").asText("TSJ-BACKEND-PARSE"),
                     diagnosticNode.path("message").asText("TypeScript parse diagnostic."),
                     nullableInt(diagnosticNode, "line"),
-                    nullableInt(diagnosticNode, "column")
+                    nullableInt(diagnosticNode, "column"),
+                    nullableText(diagnosticNode, "featureId"),
+                    nullableText(diagnosticNode, "guidance")
+            ));
+        }
+
+        final List<BridgeDiagnostic> normalizationDiagnostics = new ArrayList<>();
+        for (JsonNode diagnosticNode : root.path("normalizationDiagnostics")) {
+            normalizationDiagnostics.add(new BridgeDiagnostic(
+                    diagnosticNode.path("code").asText("TSJ-BACKEND-AST-LOWERING"),
+                    diagnosticNode.path("message").asText("Normalized AST lowering is unavailable."),
+                    nullableInt(diagnosticNode, "line"),
+                    nullableInt(diagnosticNode, "column"),
+                    nullableText(diagnosticNode, "featureId"),
+                    nullableText(diagnosticNode, "guidance")
             ));
         }
 
@@ -226,6 +240,7 @@ final class TypeScriptSyntaxBridge {
         return new BridgeResult(
                 List.copyOf(tokens),
                 List.copyOf(diagnostics),
+                List.copyOf(normalizationDiagnostics),
                 List.copyOf(astNodes),
                 normalizedProgram
         );
@@ -238,9 +253,18 @@ final class TypeScriptSyntaxBridge {
         return node.path(key).asInt();
     }
 
+    private static String nullableText(final JsonNode node, final String key) {
+        if (!node.hasNonNull(key)) {
+            return null;
+        }
+        final String value = node.path(key).asText("");
+        return value.isBlank() ? null : value;
+    }
+
     record BridgeResult(
             List<BridgeToken> tokens,
             List<BridgeDiagnostic> diagnostics,
+            List<BridgeDiagnostic> normalizationDiagnostics,
             List<BridgeAstNode> astNodes,
             JsonNode normalizedProgram
     ) {
@@ -258,7 +282,9 @@ final class TypeScriptSyntaxBridge {
             String code,
             String message,
             Integer line,
-            Integer column
+            Integer column,
+            String featureId,
+            String guidance
     ) {
     }
 

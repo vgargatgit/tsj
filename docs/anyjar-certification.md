@@ -9,6 +9,40 @@ This guide is the single source for TSJ any-jar compatibility certification.
 3. `TSJ-44b`: certified version-range drift checks
 4. `TSJ-44c`: real-app workload gate
 5. `TSJ-44d`: governance/signoff gate
+6. `TSJ-75`: annotation-survival certification gate (framework-agnostic metadata path)
+
+## TSJ-75 Annotation Survival Certification
+
+Gate suite:
+
+1. `TSJ-75-anyjar-annotation-survival-certification`
+2. report artifact: `compiler/backend-jvm/target/tsj75-anyjar-annotation-survival-certification.json`
+
+Required dimensions:
+
+1. `annotation-resolution`: `java:` imported decorators resolve via classpath and unresolved imports emit stable `TSJ-DECORATOR-RESOLUTION`.
+2. `annotation-emission`: runtime-visible annotations and supported attribute values survive on generated TS metadata carriers (class/field/constructor/method/parameter).
+3. `reflection-consumer-parity`: external jar reflection consumers (DI-style + metadata scanner) read annotations deterministically from generated carriers.
+
+Supported subset (TSJ-75 gate scope):
+
+1. Decorator imports from `java:<fully.qualified.AnnotationType>`.
+2. Runtime-retained Java annotation types with supported target usage.
+3. Metadata-carrier reflection path for TS-authored classes in the current carrier subset.
+4. Generic annotation path shared across libraries (no framework-specific mapping in default `compile`/`run`).
+
+Non-goals (outside TSJ-75 certification scope):
+
+1. Stage-3/legacy decorator forms outside current extractor/backend supported subset.
+2. JVM metadata on runtime `TsjObject` instances directly (metadata is exposed via generated carrier classes).
+3. Framework-internal behavior not represented by generic reflection-consumer fixtures.
+4. Automatic Spring adapter generation in default `compile`/`run`.
+
+Migration from legacy Spring-specific paths:
+
+1. Use default `tsj compile`/`tsj run` for generic any-jar annotation/reflection flow.
+2. Use `--legacy-spring-adapters` only for legacy compatibility scenarios that still require generated Spring adapters.
+3. Use `tsj spring-package` when packaging legacy Spring adapter outputs into runnable jars.
 
 ## TSJ-44 Baseline Matrix
 

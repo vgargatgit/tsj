@@ -222,6 +222,119 @@ class TsjSpringWebControllerGeneratorTest {
     }
 
     @Test
+    void wrapsTypedRequestBodyArgumentsWithStrictDtoCoercionHook() throws Exception {
+        final Path entryFile = tempDir.resolve("typed-request-body.ts");
+        Files.writeString(
+                entryFile,
+                """
+                class OwnerPayload {
+                  id: string;
+                }
+
+                @RestController
+                @RequestMapping("/api")
+                class ParamController {
+                  @PostMapping("/owners")
+                  create(@RequestBody payload: OwnerPayload, @RequestBody loose: any) {
+                    return payload;
+                  }
+                }
+                """,
+                UTF_8
+        );
+
+        final JvmCompilationException exception = assertThrows(
+                JvmCompilationException.class,
+                () -> new TsjSpringWebControllerGenerator().generate(
+                        entryFile,
+                        "dev.tsj.generated.MainProgram",
+                        tempDir.resolve("generated-web")
+                )
+        );
+        assertEquals("TSJ-WEB-BINDING", exception.code());
+
+        Files.writeString(
+                entryFile,
+                """
+                class OwnerPayload {
+                  id: string;
+                }
+
+                @RestController
+                @RequestMapping("/api")
+                class ParamController {
+                  @PostMapping("/owners")
+                  create(@RequestBody payload: OwnerPayload, @RequestParam("q") q: string) {
+                    return payload;
+                  }
+                }
+                """,
+                UTF_8
+        );
+        final TsjSpringWebControllerArtifact artifact = new TsjSpringWebControllerGenerator().generate(
+                entryFile,
+                "dev.tsj.generated.MainProgram",
+                tempDir.resolve("generated-web-typed")
+        );
+        final String source = Files.readString(artifact.sourceFiles().getFirst(), UTF_8);
+        assertTrue(source.contains("@org.springframework.web.bind.annotation.RequestBody Object payload"));
+        assertTrue(source.contains(
+                "dev.tsj.generated.MainProgram.__tsjCoerceControllerRequestBody(\"OwnerPayload\", payload)"
+        ));
+    }
+
+    @Test
+    void emitsParameterizedJavaTypesForStrictRequestBodyCollectionShapes() throws Exception {
+        final Path entryFile = tempDir.resolve("typed-request-body-collections.ts");
+        Files.writeString(
+                entryFile,
+                """
+                class OwnerPayload {
+                  id: string;
+                }
+
+                @RestController
+                @RequestMapping("/api")
+                class ParamController {
+                  @PostMapping("/list")
+                  list(@RequestBody payload: OwnerPayload[]) {
+                    return payload;
+                  }
+
+                  @PostMapping("/record")
+                  byId(@RequestBody payload: Record<string, OwnerPayload>) {
+                    return payload;
+                  }
+
+                  @PostMapping("/nested")
+                  nested(@RequestBody payload: Record<string, OwnerPayload[]>) {
+                    return payload;
+                  }
+                }
+                """,
+                UTF_8
+        );
+
+        final TsjSpringWebControllerArtifact artifact = new TsjSpringWebControllerGenerator().generate(
+                entryFile,
+                "dev.tsj.generated.MainProgram",
+                tempDir.resolve("generated-web-typed-collections")
+        );
+        final String source = Files.readString(artifact.sourceFiles().getFirst(), UTF_8);
+        assertTrue(source.contains(
+                "@org.springframework.web.bind.annotation.RequestBody java.util.List<Object> payload"
+        ));
+        assertTrue(source.contains(
+                "@org.springframework.web.bind.annotation.RequestBody "
+                        + "java.util.Map<String, Object> payload"
+        ));
+        assertTrue(source.contains(
+                "@org.springframework.web.bind.annotation.RequestBody "
+                        + "java.util.Map<String, java.util.List<Object>> payload"
+        ));
+    }
+
+    @Test
     void rejectsMultipleParameterDecoratorsOnSingleParameterWithTargetedDiagnostic() throws Exception {
         final Path entryFile = tempDir.resolve("invalid-parameter-decorators.ts");
         Files.writeString(

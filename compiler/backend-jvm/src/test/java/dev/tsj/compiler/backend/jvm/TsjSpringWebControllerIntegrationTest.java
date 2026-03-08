@@ -1,5 +1,6 @@
 package dev.tsj.compiler.backend.jvm;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
 import dev.tsj.runtime.TsjObject;
@@ -63,6 +64,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 class TsjSpringWebControllerIntegrationTest {
     @TempDir
     Path tempDir;
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     @Test
     void tsDecoratedControllerDispatchesRequestAndMappedErrors() throws Exception {
@@ -434,6 +436,393 @@ class TsjSpringWebControllerIntegrationTest {
             );
             assertTrue(exception.getMessage().contains("TSJ-WEB-RESPONSE"));
             assertTrue(exception.getMessage().contains("GET /api/callable"));
+        }
+    }
+
+    @Test
+    void strictModeControllerAdapterReturnsJacksonSerializableNativeDto() throws Exception {
+        final Path entryFile = tempDir.resolve("strict-controller-dto.ts");
+        Files.writeString(
+                entryFile,
+                """
+                @RestController
+                @RequestMapping("/api")
+                class StrictOwnerController {
+                  id: string;
+                  name: string;
+
+                  constructor() {
+                    this.id = "42";
+                    this.name = "Ada";
+                  }
+
+                  @GetMapping("/owner")
+                  owner() {
+                    return this;
+                  }
+                }
+                """,
+                UTF_8
+        );
+
+        try (LoadedController controller = compileAndLoadController(
+                entryFile,
+                "dev.tsj.generated.web.StrictOwnerControllerTsjController",
+                JvmBytecodeCompiler.BackendMode.JVM_STRICT
+        )) {
+            final Method ownerMethod = controller.instance().getClass().getMethod("owner");
+            final Object dto = ownerMethod.invoke(controller.instance());
+            final String serialized = OBJECT_MAPPER.writeValueAsString(dto);
+            assertTrue(serialized.contains("\"id\":\"42\""));
+            assertTrue(serialized.contains("\"name\":\"Ada\""));
+
+            @SuppressWarnings("unchecked")
+            final Class<Object> dtoClass = (Class<Object>) dto.getClass();
+            final Object rebound = OBJECT_MAPPER.readValue(serialized, dtoClass);
+            final Method getId = dtoClass.getDeclaredMethod("getId");
+            final Method getName = dtoClass.getDeclaredMethod("getName");
+            assertEquals("42", getId.invoke(rebound));
+            assertEquals("Ada", getName.invoke(rebound));
+        }
+    }
+
+    @Test
+    void strictModeRequestBodyBindsIntoGeneratedNativeDtoForControllerMethod() throws Exception {
+        final Path entryFile = tempDir.resolve("strict-controller-request-body.ts");
+        Files.writeString(
+                entryFile,
+                """
+                class OwnerPayload {
+                  id: string;
+                  name: string;
+
+                  constructor() {
+                    this.id = "";
+                    this.name = "";
+                  }
+                }
+
+                @RestController
+                @RequestMapping("/api")
+                class StrictBindingController {
+                  @PostMapping("/owners")
+                  create(@RequestBody payload: OwnerPayload) {
+                    return payload;
+                  }
+                }
+                """,
+                UTF_8
+        );
+
+        try (LoadedController controller = compileAndLoadController(
+                entryFile,
+                "dev.tsj.generated.web.StrictBindingControllerTsjController",
+                JvmBytecodeCompiler.BackendMode.JVM_STRICT
+        )) {
+            final Method createMethod = controller.instance().getClass().getMethod("create", Object.class);
+            final Object dto = createMethod.invoke(
+                    controller.instance(),
+                    Map.of("id", "7", "name", "Lin")
+            );
+            assertTrue(!(dto instanceof Map<?, ?>), "Expected strict native DTO, got Map fallback.");
+            final Method getId = dto.getClass().getDeclaredMethod("getId");
+            final Method getName = dto.getClass().getDeclaredMethod("getName");
+            assertEquals("7", getId.invoke(dto));
+            assertEquals("Lin", getName.invoke(dto));
+        }
+    }
+
+    @Test
+    void strictModeDispatcherSupportsJsonRequestAndResponseForTypedDtoBinding() throws Exception {
+        final Path entryFile = tempDir.resolve("strict-controller-http-json.ts");
+        Files.writeString(
+                entryFile,
+                """
+                class OwnerPayload {
+                  id: string;
+                  name: string;
+
+                  constructor() {
+                    this.id = "";
+                    this.name = "";
+                  }
+                }
+
+                @RestController
+                @RequestMapping("/api")
+                class StrictHttpController {
+                  @PostMapping("/owners")
+                  create(@RequestBody payload: OwnerPayload) {
+                    return payload;
+                  }
+                }
+                """,
+                UTF_8
+        );
+
+        try (LoadedController controller = compileAndLoadController(
+                entryFile,
+                "dev.tsj.generated.web.StrictHttpControllerTsjController",
+                JvmBytecodeCompiler.BackendMode.JVM_STRICT
+        )) {
+            final MockWebDispatcher dispatcher = new MockWebDispatcher(controller.instance());
+            final MockResponse response = dispatcher.dispatchHttp(
+                    new MockRequest(
+                            "POST",
+                            "/api/owners",
+                            Map.of(),
+                            Map.of("Content-Type", "application/json", "Accept", "application/json"),
+                            "{\"id\":\"7\",\"name\":\"Lin\"}"
+                    )
+            );
+            assertEquals(200, response.status());
+            assertTrue(response.body().contains("\"id\":\"7\""));
+            assertTrue(response.body().contains("\"name\":\"Lin\""));
+        }
+    }
+
+    @Test
+    void strictModeRequestBodySupportsArrayAndRecordStrictDtoMapping() throws Exception {
+        final Path entryFile = tempDir.resolve("strict-controller-collection-mapping.ts");
+        Files.writeString(
+                entryFile,
+                """
+                class OwnerPayload {
+                  id: string;
+                  name: string;
+
+                  constructor() {
+                    this.id = "";
+                    this.name = "";
+                  }
+                }
+
+                @RestController
+                @RequestMapping("/api")
+                class StrictCollectionController {
+                  @PostMapping("/owners/list")
+                  list(@RequestBody payload: OwnerPayload[]) {
+                    return payload;
+                  }
+
+                  @PostMapping("/owners/record")
+                  byId(@RequestBody payload: Record<string, OwnerPayload>) {
+                    return payload;
+                  }
+
+                  @PostMapping("/owners/nested")
+                  nested(@RequestBody payload: Record<string, OwnerPayload[]>) {
+                    return payload;
+                  }
+                }
+                """,
+                UTF_8
+        );
+
+        try (LoadedController controller = compileAndLoadController(
+                entryFile,
+                "dev.tsj.generated.web.StrictCollectionControllerTsjController",
+                JvmBytecodeCompiler.BackendMode.JVM_STRICT
+        )) {
+            Method listMethod = null;
+            for (Method candidate : controller.instance().getClass().getMethods()) {
+                if (!"list".equals(candidate.getName()) || candidate.getParameterCount() != 1) {
+                    continue;
+                }
+                listMethod = candidate;
+                break;
+            }
+            assertTrue(listMethod != null, "Missing list route method.");
+            final Object listResult = listMethod.invoke(
+                    controller.instance(),
+                    List.of(
+                            Map.of("id", "1", "name", "A"),
+                            Map.of("id", "2", "name", "B")
+                    )
+            );
+            assertTrue(listResult instanceof List<?>);
+            final List<?> listValues = (List<?>) listResult;
+            assertEquals(2, listValues.size());
+            final Object first = listValues.getFirst();
+            assertTrue(!(first instanceof Map<?, ?>), "Expected strict DTO element in list.");
+            assertEquals("1", first.getClass().getDeclaredMethod("getId").invoke(first));
+
+            Method recordMethod = null;
+            for (Method candidate : controller.instance().getClass().getMethods()) {
+                final PostMapping mapping = candidate.getAnnotation(PostMapping.class);
+                if (mapping == null
+                        || !"/owners/record".equals(mapping.value())
+                        || candidate.getParameterCount() != 1) {
+                    continue;
+                }
+                recordMethod = candidate;
+                break;
+            }
+            assertTrue(recordMethod != null, "Missing /owners/record route method.");
+            final Object recordResult = recordMethod.invoke(
+                    controller.instance(),
+                    Map.of(
+                            "a", Map.of("id", "7", "name", "Lin"),
+                            "b", Map.of("id", "8", "name", "Ada")
+                    )
+            );
+            assertTrue(recordResult instanceof Map<?, ?>);
+            final Map<?, ?> recordValues = (Map<?, ?>) recordResult;
+            final Object mapped = recordValues.get("a");
+            assertTrue(!(mapped instanceof Map<?, ?>), "Expected strict DTO value in record map.");
+            assertEquals("7", mapped.getClass().getDeclaredMethod("getId").invoke(mapped));
+
+            Method nestedMethod = null;
+            for (Method candidate : controller.instance().getClass().getMethods()) {
+                final PostMapping mapping = candidate.getAnnotation(PostMapping.class);
+                if (mapping == null
+                        || !"/owners/nested".equals(mapping.value())
+                        || candidate.getParameterCount() != 1) {
+                    continue;
+                }
+                nestedMethod = candidate;
+                break;
+            }
+            assertTrue(nestedMethod != null, "Missing /owners/nested route method.");
+            final Object nestedResult = nestedMethod.invoke(
+                    controller.instance(),
+                    Map.of(
+                            "x",
+                            List.of(
+                                    Map.of("id", "11", "name", "Neo"),
+                                    Map.of("id", "12", "name", "Trin")
+                            )
+                    )
+            );
+            assertTrue(nestedResult instanceof Map<?, ?>);
+            final Object nestedList = ((Map<?, ?>) nestedResult).get("x");
+            assertTrue(nestedList instanceof List<?>);
+            final Object nestedFirst = ((List<?>) nestedList).getFirst();
+            assertTrue(!(nestedFirst instanceof Map<?, ?>), "Expected strict DTO in nested collection.");
+            assertEquals("11", nestedFirst.getClass().getDeclaredMethod("getId").invoke(nestedFirst));
+        }
+    }
+
+    @Test
+    void strictModeRequestBodyCollectionBindingsExposeParameterizedGenericSignatures() throws Exception {
+        final Path entryFile = tempDir.resolve("strict-controller-collection-signatures.ts");
+        Files.writeString(
+                entryFile,
+                """
+                class OwnerPayload {
+                  id: string;
+
+                  constructor() {
+                    this.id = "";
+                  }
+                }
+
+                @RestController
+                @RequestMapping("/api")
+                class StrictCollectionController {
+                  @PostMapping("/owners/list")
+                  list(@RequestBody payload: OwnerPayload[]) {
+                    return payload;
+                  }
+
+                  @PostMapping("/owners/record")
+                  byId(@RequestBody payload: Record<string, OwnerPayload>) {
+                    return payload;
+                  }
+
+                  @PostMapping("/owners/nested")
+                  nested(@RequestBody payload: Record<string, OwnerPayload[]>) {
+                    return payload;
+                  }
+                }
+                """,
+                UTF_8
+        );
+
+        try (LoadedController controller = compileAndLoadController(
+                entryFile,
+                "dev.tsj.generated.web.StrictCollectionControllerTsjController",
+                JvmBytecodeCompiler.BackendMode.JVM_STRICT
+        )) {
+            final Class<?> adapterClass = controller.instance().getClass();
+            final Method list = adapterClass.getMethod("list", java.util.List.class);
+            final Method byId = adapterClass.getMethod("byId", java.util.Map.class);
+            final Method nested = adapterClass.getMethod("nested", java.util.Map.class);
+
+            assertEquals("java.util.List<java.lang.Object>", list.getGenericParameterTypes()[0].getTypeName());
+            assertEquals(
+                    "java.util.Map<java.lang.String, java.lang.Object>",
+                    byId.getGenericParameterTypes()[0].getTypeName()
+            );
+            assertEquals(
+                    "java.util.Map<java.lang.String, java.util.List<java.lang.Object>>",
+                    nested.getGenericParameterTypes()[0].getTypeName()
+            );
+        }
+    }
+
+    @Test
+    void strictModeRequestBodyNullabilityAndUnsupportedUnionDiagnosticsAreDeterministic() throws Exception {
+        final Path entryFile = tempDir.resolve("strict-controller-nullability.ts");
+        Files.writeString(
+                entryFile,
+                """
+                class OwnerPayload {
+                  id: string;
+
+                  constructor() {
+                    this.id = "";
+                  }
+                }
+
+                @RestController
+                @RequestMapping("/api")
+                class StrictNullabilityController {
+                  @PostMapping("/owners/nullable")
+                  nullable(@RequestBody payload: OwnerPayload | null) {
+                    return payload;
+                  }
+
+                  @PostMapping("/owners/required")
+                  required(@RequestBody payload: OwnerPayload) {
+                    return payload;
+                  }
+
+                  @PostMapping("/owners/unsupported")
+                  unsupported(@RequestBody payload: OwnerPayload | string) {
+                    return payload;
+                  }
+                }
+                """,
+                UTF_8
+        );
+
+        try (LoadedController controller = compileAndLoadController(
+                entryFile,
+                "dev.tsj.generated.web.StrictNullabilityControllerTsjController",
+                JvmBytecodeCompiler.BackendMode.JVM_STRICT
+        )) {
+            final Method nullableMethod = controller.instance().getClass().getMethod("nullable", Object.class);
+            assertEquals(null, nullableMethod.invoke(controller.instance(), (Object) null));
+
+            final Method requiredMethod = controller.instance().getClass().getMethod("required", Object.class);
+            final InvocationTargetException requiredFailure = assertThrows(
+                    InvocationTargetException.class,
+                    () -> requiredMethod.invoke(controller.instance(), (Object) null)
+            );
+            assertTrue(requiredFailure.getTargetException().getMessage().contains("TSJ-WEB-BINDING"));
+            assertTrue(requiredFailure.getTargetException().getMessage().contains("null request-body"));
+
+            final Method unsupportedMethod = controller.instance().getClass().getMethod("unsupported", Object.class);
+            final InvocationTargetException unsupportedFailure = assertThrows(
+                    InvocationTargetException.class,
+                    () -> unsupportedMethod.invoke(
+                            controller.instance(),
+                            Map.of("id", "7")
+                    )
+            );
+            assertTrue(unsupportedFailure.getTargetException().getMessage().contains("TSJ-WEB-BINDING"));
+            assertTrue(unsupportedFailure.getTargetException().getMessage().contains("unsupported union"));
         }
     }
 
@@ -1170,10 +1559,20 @@ class TsjSpringWebControllerIntegrationTest {
             final Path entryFile,
             final String generatedClassName
     ) throws Exception {
+        return compileAndLoadController(entryFile, generatedClassName, JvmBytecodeCompiler.BackendMode.DEFAULT);
+    }
+
+    private LoadedController compileAndLoadController(
+            final Path entryFile,
+            final String generatedClassName,
+            final JvmBytecodeCompiler.BackendMode backendMode
+    ) throws Exception {
         final String stem = generatedClassName.replace('.', '-');
         final JvmCompiledArtifact compiledArtifact = new JvmBytecodeCompiler().compile(
                 entryFile,
-                tempDir.resolve("out-" + stem)
+                tempDir.resolve("out-" + stem),
+                JvmOptimizationOptions.defaults(),
+                backendMode
         );
         final TsjSpringWebControllerArtifact controllerArtifact = new TsjSpringWebControllerGenerator().generate(
                 entryFile,
@@ -2226,6 +2625,16 @@ class TsjSpringWebControllerIntegrationTest {
                     values.add(toJson(Array.get(value, index)));
                 }
                 return "[" + String.join(",", values) + "]";
+            }
+            if (value.getClass().getSimpleName().contains("__TsjStrictNative")) {
+                try {
+                    return OBJECT_MAPPER.writeValueAsString(value);
+                } catch (final Exception exception) {
+                    throw new IllegalArgumentException(
+                            "unsupported response type " + value.getClass().getName(),
+                            exception
+                    );
+                }
             }
             throw new IllegalArgumentException("unsupported response type " + value.getClass().getName());
         }

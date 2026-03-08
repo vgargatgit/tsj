@@ -309,6 +309,52 @@ class FixtureHarnessTest {
     }
 
     @Test
+    void harnessSupportsModuleReExportAndDynamicImportFixture() throws Exception {
+        final Path fixtureDir = writeModuleReExportAndDynamicImportFixture("module-reexport-dynamic-import");
+        final FixtureSpec fixture = FixtureLoader.loadFixture(fixtureDir);
+
+        final FixtureRunResult result = new FixtureHarness().runFixture(fixture);
+
+        final String failureDetails = List.of(
+                "nodeDiff=" + result.nodeResult().diff(),
+                "tsjDiff=" + result.tsjResult().diff(),
+                "nodeToTsjDiff=" + result.nodeToTsjDiff(),
+                "nodeStdout=" + result.nodeResult().stdout(),
+                "nodeStderr=" + result.nodeResult().stderr(),
+                "tsjStdout=" + result.tsjResult().stdout(),
+                "tsjStderr=" + result.tsjResult().stderr()
+        ).stream().collect(Collectors.joining(" | "));
+
+        assertTrue(result.passed(), "module-reexport-dynamic-import should pass: " + failureDetails);
+        assertTrue(result.nodeToTsjMatched(), "module-reexport-dynamic-import should match node: " + failureDetails);
+        assertEquals("", result.nodeResult().diff());
+        assertEquals("", result.tsjResult().diff());
+    }
+
+    @Test
+    void harnessSupportsModuleLiveBindingFixtureInTsj65Subset() throws Exception {
+        final Path fixtureDir = writeModuleLiveBindingFixture("module-live-binding");
+        final FixtureSpec fixture = FixtureLoader.loadFixture(fixtureDir);
+
+        final FixtureRunResult result = new FixtureHarness().runFixture(fixture);
+
+        final String failureDetails = List.of(
+                "nodeDiff=" + result.nodeResult().diff(),
+                "tsjDiff=" + result.tsjResult().diff(),
+                "nodeToTsjDiff=" + result.nodeToTsjDiff(),
+                "nodeStdout=" + result.nodeResult().stdout(),
+                "nodeStderr=" + result.nodeResult().stderr(),
+                "tsjStdout=" + result.tsjResult().stdout(),
+                "tsjStderr=" + result.tsjResult().stderr()
+        ).stream().collect(Collectors.joining(" | "));
+
+        assertTrue(result.passed(), "module-live-binding should pass: " + failureDetails);
+        assertTrue(result.nodeToTsjMatched(), "module-live-binding should match node: " + failureDetails);
+        assertEquals("", result.nodeResult().diff());
+        assertEquals("", result.tsjResult().diff());
+    }
+
+    @Test
     void harnessSupportsLogicalChainsDifferentialFixture() throws Exception {
         final Path fixtureDir = writeLogicalChainsFixture("logical-chains");
         final FixtureSpec fixture = FixtureLoader.loadFixture(fixtureDir);
@@ -348,8 +394,73 @@ class FixtureHarnessTest {
     }
 
     @Test
+    void harnessSupportsDestructuringDefaultsAndRestDifferentialFixture() throws Exception {
+        final Path fixtureDir = writeDestructuringDefaultsAndRestFixture("destructuring-defaults-rest");
+        final FixtureSpec fixture = FixtureLoader.loadFixture(fixtureDir);
+
+        final FixtureRunResult result = new FixtureHarness().runFixture(fixture);
+
+        assertTrue(result.passed());
+        assertTrue(result.nodeToTsjMatched());
+        assertEquals("", result.nodeResult().diff());
+        assertEquals("", result.tsjResult().diff());
+    }
+
+    @Test
     void harnessSupportsTemplateLiteralDifferentialFixture() throws Exception {
         final Path fixtureDir = writeTemplateLiteralFixture("template-literals");
+        final FixtureSpec fixture = FixtureLoader.loadFixture(fixtureDir);
+
+        final FixtureRunResult result = new FixtureHarness().runFixture(fixture);
+
+        assertTrue(result.passed());
+        assertTrue(result.nodeToTsjMatched());
+        assertEquals("", result.nodeResult().diff());
+        assertEquals("", result.tsjResult().diff());
+    }
+
+    @Test
+    void harnessSupportsOperatorPrecedenceDifferentialFixture() throws Exception {
+        final Path fixtureDir = writeOperatorPrecedenceFixture("operator-precedence");
+        final FixtureSpec fixture = FixtureLoader.loadFixture(fixtureDir);
+
+        final FixtureRunResult result = new FixtureHarness().runFixture(fixture);
+
+        assertTrue(result.passed());
+        assertTrue(result.nodeToTsjMatched());
+        assertEquals("", result.nodeResult().diff());
+        assertEquals("", result.tsjResult().diff());
+    }
+
+    @Test
+    void harnessSupportsIterationLabelsAndSwitchFallthroughDifferentialFixture() throws Exception {
+        final Path fixtureDir = writeIterationLabelSwitchFixture("iteration-label-switch");
+        final FixtureSpec fixture = FixtureLoader.loadFixture(fixtureDir);
+
+        final FixtureRunResult result = new FixtureHarness().runFixture(fixture);
+
+        assertTrue(result.passed());
+        assertTrue(result.nodeToTsjMatched());
+        assertEquals("", result.nodeResult().diff());
+        assertEquals("", result.tsjResult().diff());
+    }
+
+    @Test
+    void harnessSupportsClassObjectConformanceDifferentialFixture() throws Exception {
+        final Path fixtureDir = writeClassObjectConformanceFixture("class-object-conformance");
+        final FixtureSpec fixture = FixtureLoader.loadFixture(fixtureDir);
+
+        final FixtureRunResult result = new FixtureHarness().runFixture(fixture);
+
+        assertTrue(result.passed());
+        assertTrue(result.nodeToTsjMatched());
+        assertEquals("", result.nodeResult().diff());
+        assertEquals("", result.tsjResult().diff());
+    }
+
+    @Test
+    void harnessSupportsAsyncGeneratorControlFlowDifferentialFixture() throws Exception {
+        final Path fixtureDir = writeAsyncGeneratorControlFlowFixture("async-generator-control-flow");
         final FixtureSpec fixture = FixtureLoader.loadFixture(fixtureDir);
 
         final FixtureRunResult result = new FixtureHarness().runFixture(fixture);
@@ -810,7 +921,8 @@ class FixtureHarnessTest {
         Files.writeString(
                 entryFile,
                 """
-                const loader = import("./dep.ts");
+                const specifier = "./dep.ts";
+                const loader = import(specifier);
                 console.log("node-ok");
                 void loader;
                 """,
@@ -929,6 +1041,53 @@ class FixtureHarnessTest {
         );
     }
 
+    private Path writeDestructuringDefaultsAndRestFixture(final String name) throws IOException {
+        return writeStrictParityFixture(
+                name,
+                """
+                function summarize({ a = 1, b = 2, ...rest }) {
+                  return `${a}|${b}|${rest.c}|${rest.d}`;
+                }
+
+                function pairScore([head = 0, ...tail]) {
+                  return head + tail[0] + tail[1];
+                }
+
+                const { x = 10, y, ...others } = { y: 20, z: 30, w: 40 };
+
+                let first = 0;
+                let tail = [];
+                [first, ...tail] = [5, 6, 7];
+
+                let picked = 0;
+                let remaining = {};
+                ({ z: picked, ...remaining } = { z: 9, q: 8, r: 7 });
+
+                let loopTotal = 0;
+                for (const [left, right = 0] of [[1, 2], [3]]) {
+                  loopTotal += left + right;
+                }
+
+                console.log("destructure-advanced=" + [
+                  summarize({ b: 5, c: 6, d: 7 }),
+                  pairScore([1, 2, 3]),
+                  x,
+                  y,
+                  others.z,
+                  others.w,
+                  first,
+                  tail[0],
+                  tail[1],
+                  picked,
+                  remaining.q,
+                  remaining.r,
+                  loopTotal
+                ].join("|"));
+                """,
+                "destructure-advanced=1|5|6|7|6|10|20|30|40|5|6|7|9|8|7|6\n"
+        );
+    }
+
     private Path writeTemplateLiteralFixture(final String name) throws IOException {
         return writeStrictParityFixture(
                 name,
@@ -939,6 +1098,181 @@ class FixtureHarnessTest {
                 console.log("template=" + message);
                 """,
                 "template=hello TSJ #4\n"
+        );
+    }
+
+    private Path writeOperatorPrecedenceFixture(final String name) throws IOException {
+        return writeStrictParityFixture(
+                name,
+                """
+                class Box {}
+
+                const expAssoc = 2 ** 3 ** 2;
+                const bitwisePrec = 1 | 2 & 6;
+                const sequence = (1, 2, 3);
+                const arithmetic = 1 + 2 * 3 ** 2;
+                const has = "x" in { x: 1 };
+                const isBox = new Box() instanceof Box;
+                const coalesce = null ?? ("a" + "b");
+                let value = 0;
+                value += 2;
+                value *= 5;
+
+                console.log("ops=" + [
+                  expAssoc,
+                  bitwisePrec,
+                  sequence,
+                  arithmetic,
+                  has,
+                  isBox,
+                  coalesce,
+                  value
+                ].join("|"));
+                """,
+                "ops=512|3|3|19|true|true|ab|10\n"
+        );
+    }
+
+    private Path writeIterationLabelSwitchFixture(final String name) throws IOException {
+        return writeStrictParityFixture(
+                name,
+                """
+                const groups = [[1, 2, 3], [4, 5]];
+                const weights = { a: 10, b: 20 };
+                let total = 0;
+
+                outer: for (const group of groups) {
+                  inner: for (const value of group) {
+                    if (value === 5) {
+                      break outer;
+                    }
+                    switch (value) {
+                      case 1:
+                        total += value;
+                        break;
+                      case 2:
+                        total += value;
+                      case 3:
+                        total += value;
+                        break;
+                      default:
+                        total += value;
+                        break;
+                    }
+                    if (value === 1) {
+                      continue inner;
+                    }
+                    if (value === 3) {
+                      continue outer;
+                    }
+                    total += 100;
+                  }
+                }
+
+                let keys = "";
+                for (const key in weights) {
+                  keys += key;
+                }
+                console.log("mix=" + total + ":" + keys);
+                """,
+                "mix=212:ab\n"
+        );
+    }
+
+    private Path writeClassObjectConformanceFixture(final String name) throws IOException {
+        return writeStrictParityFixture(
+                name,
+                """
+                class Counter {
+                  value = 1;
+                  static seed = 2;
+
+                  get doubled() {
+                    return this.value * 2;
+                  }
+
+                  set doubled(next) {
+                    this.value = next / 2;
+                  }
+
+                  ["inc"](step) {
+                    this.value += step;
+                    return this.value;
+                  }
+                }
+
+                const counter = new Counter();
+                counter.inc(3);
+                const before = counter.doubled;
+                counter.doubled = 20;
+
+                const dynamicKey = "score";
+                const base = { label: "ok" };
+                const extra = { [dynamicKey]: counter.value, before };
+                const merged = { ...base, ...extra, value: counter.value };
+                const objectValue = {
+                  short: merged.label,
+                  [dynamicKey]: merged.score,
+                  method() {
+                    return this.short + ":" + this[dynamicKey];
+                  }
+                };
+
+                console.log(
+                  "classobj="
+                  + Counter.seed
+                  + "|"
+                  + before
+                  + "|"
+                  + counter.value
+                  + "|"
+                  + objectValue.method()
+                );
+                """,
+                "classobj=2|8|10|ok:10\n"
+        );
+    }
+
+    private Path writeAsyncGeneratorControlFlowFixture(final String name) throws IOException {
+        return writeStrictParityFixture(
+                name,
+                """
+                function* make(limit) {
+                  let i = 0;
+                  while (i < limit) {
+                    if (i === 1) {
+                      i += 1;
+                      continue;
+                    }
+                    const incoming = yield i;
+                    if (incoming === 99) {
+                      break;
+                    }
+                    i += 1;
+                  }
+                  return 42;
+                }
+
+                async function run() {
+                  const iterator = make(4);
+                  let acc = 0;
+                  let step = iterator.next();
+                  while (!step.done) {
+                    acc += step.value;
+                    step = iterator.next(step.value === 2 ? 99 : undefined);
+                  }
+                  return await Promise.resolve(acc + step.value);
+                }
+
+                function onDone(value) {
+                  console.log("asyncgen=" + value);
+                  return value;
+                }
+
+                run().then(onDone);
+                console.log("sync");
+                """,
+                "sync\nasyncgen=44\n"
         );
     }
 
@@ -1182,6 +1516,128 @@ class FixtureHarnessTest {
         );
 
         final String expectedOutput = "counter-init\nformat-init\ncount=0\ncount=1\n";
+        Files.writeString(expectedDir.resolve("node.stdout"), expectedOutput, UTF_8);
+        Files.writeString(expectedDir.resolve("node.stderr"), "", UTF_8);
+        Files.writeString(expectedDir.resolve("tsj.stdout"), expectedOutput, UTF_8);
+        Files.writeString(expectedDir.resolve("tsj.stderr"), "", UTF_8);
+
+        final String properties = String.join(
+                "\n",
+                "name=" + name,
+                "entry=input/main.ts",
+                "expected.node.exitCode=0",
+                "expected.node.stdout=expected/node.stdout",
+                "expected.node.stderr=expected/node.stderr",
+                "expected.node.stdoutMode=exact",
+                "expected.node.stderrMode=exact",
+                "expected.tsj.exitCode=0",
+                "expected.tsj.stdout=expected/tsj.stdout",
+                "expected.tsj.stderr=expected/tsj.stderr",
+                "expected.tsj.stdoutMode=contains",
+                "expected.tsj.stderrMode=exact",
+                "assert.nodeMatchesTsj=true",
+                ""
+        );
+        Files.writeString(fixtureDir.resolve("fixture.properties"), properties, UTF_8);
+        return fixtureDir;
+    }
+
+    private Path writeModuleReExportAndDynamicImportFixture(final String name) throws IOException {
+        final Path fixtureDir = tempDir.resolve(name);
+        final Path inputDir = fixtureDir.resolve("input");
+        final Path expectedDir = fixtureDir.resolve("expected");
+        Files.createDirectories(inputDir);
+        Files.createDirectories(expectedDir);
+
+        Files.writeString(
+                inputDir.resolve("dep.ts"),
+                """
+                const defaultValue = 41;
+                export default defaultValue;
+                export const value = 7;
+                export function double(n: number) {
+                  return n * 2;
+                }
+                """,
+                UTF_8
+        );
+        Files.writeString(
+                inputDir.resolve("barrel.ts"),
+                """
+                export * from "./dep.ts";
+                export { value as renamedValue } from "./dep.ts";
+                """,
+                UTF_8
+        );
+        Files.writeString(
+                inputDir.resolve("main.ts"),
+                """
+                import { renamedValue, double } from "./barrel.ts";
+                const loaded = await import("./dep.ts");
+                console.log("reexport=" + renamedValue);
+                console.log("double=" + double(3));
+                console.log("default=" + loaded.default);
+                console.log("value=" + loaded.value);
+                """,
+                UTF_8
+        );
+
+        final String expectedOutput = "reexport=7\ndouble=6\ndefault=41\nvalue=7\n";
+        Files.writeString(expectedDir.resolve("node.stdout"), expectedOutput, UTF_8);
+        Files.writeString(expectedDir.resolve("node.stderr"), "", UTF_8);
+        Files.writeString(expectedDir.resolve("tsj.stdout"), expectedOutput, UTF_8);
+        Files.writeString(expectedDir.resolve("tsj.stderr"), "", UTF_8);
+
+        final String properties = String.join(
+                "\n",
+                "name=" + name,
+                "entry=input/main.ts",
+                "expected.node.exitCode=0",
+                "expected.node.stdout=expected/node.stdout",
+                "expected.node.stderr=expected/node.stderr",
+                "expected.node.stdoutMode=exact",
+                "expected.node.stderrMode=exact",
+                "expected.tsj.exitCode=0",
+                "expected.tsj.stdout=expected/tsj.stdout",
+                "expected.tsj.stderr=expected/tsj.stderr",
+                "expected.tsj.stdoutMode=contains",
+                "expected.tsj.stderrMode=exact",
+                "assert.nodeMatchesTsj=true",
+                ""
+        );
+        Files.writeString(fixtureDir.resolve("fixture.properties"), properties, UTF_8);
+        return fixtureDir;
+    }
+
+    private Path writeModuleLiveBindingFixture(final String name) throws IOException {
+        final Path fixtureDir = tempDir.resolve(name);
+        final Path inputDir = fixtureDir.resolve("input");
+        final Path expectedDir = fixtureDir.resolve("expected");
+        Files.createDirectories(inputDir);
+        Files.createDirectories(expectedDir);
+
+        Files.writeString(
+                inputDir.resolve("dep.ts"),
+                """
+                export let count = 1;
+                export function inc() {
+                  count = count + 1;
+                }
+                """,
+                UTF_8
+        );
+        Files.writeString(
+                inputDir.resolve("main.ts"),
+                """
+                import { count, inc } from "./dep.ts";
+                console.log("before=" + count);
+                inc();
+                console.log("after=" + count);
+                """,
+                UTF_8
+        );
+
+        final String expectedOutput = "before=1\nafter=2\n";
         Files.writeString(expectedDir.resolve("node.stdout"), expectedOutput, UTF_8);
         Files.writeString(expectedDir.resolve("node.stderr"), "", UTF_8);
         Files.writeString(expectedDir.resolve("tsj.stdout"), expectedOutput, UTF_8);

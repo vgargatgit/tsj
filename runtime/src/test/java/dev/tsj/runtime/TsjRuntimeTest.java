@@ -279,6 +279,37 @@ class TsjRuntimeTest {
     }
 
     @Test
+    void objectRestBuildsObjectWithoutExcludedKeys() {
+        final Object fromObject = TsjRuntime.objectRest(
+                TsjRuntime.objectLiteral("a", 1, "b", 2, "c", 3),
+                "a",
+                "c"
+        );
+        final Object keys = TsjRuntime.forInKeys(fromObject);
+        assertEquals(1, TsjRuntime.getProperty(keys, "length"));
+        assertEquals("b", TsjRuntime.getProperty(keys, "0"));
+        assertEquals(TsjRuntime.undefined(), TsjRuntime.getProperty(fromObject, "a"));
+        assertEquals(2, TsjRuntime.getProperty(fromObject, "b"));
+        assertEquals(TsjRuntime.undefined(), TsjRuntime.getProperty(fromObject, "c"));
+
+        final java.util.Map<String, Object> mapSource = new java.util.LinkedHashMap<>();
+        mapSource.put("x", 10);
+        mapSource.put("y", 20);
+        final Object fromMap = TsjRuntime.objectRest(mapSource, "x");
+        assertEquals(TsjRuntime.undefined(), TsjRuntime.getProperty(fromMap, "x"));
+        assertEquals(20, TsjRuntime.getProperty(fromMap, "y"));
+    }
+
+    @Test
+    void objectRestRejectsNullishInputs() {
+        final IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> TsjRuntime.objectRest(null, "a")
+        );
+        assertTrue(exception.getMessage().contains("nullish"));
+    }
+
+    @Test
     void forLoopHelpersCollectValuesKeysAndIndexReads() {
         final Object ofValues = TsjRuntime.forOfValues(TsjRuntime.arrayLiteral(4, 5, 6));
         assertEquals(3, TsjRuntime.getProperty(ofValues, "length"));

@@ -18,6 +18,7 @@ import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -29,6 +30,8 @@ import java.util.Set;
 import java.util.stream.Stream;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
@@ -47,6 +50,15 @@ public final class JvmBytecodeCompiler {
     );
     private static final Pattern SIDE_EFFECT_IMPORT_PATTERN = Pattern.compile(
             "^\\s*import\\s*[\"']([^\"']+)[\"']\\s*;\\s*$"
+    );
+    private static final Pattern EXPORT_ALL_FROM_PATTERN = Pattern.compile(
+            "^\\s*export\\s*\\*\\s*from\\s*[\"']([^\"']+)[\"']\\s*;\\s*$"
+    );
+    private static final Pattern EXPORT_NAMED_FROM_PATTERN = Pattern.compile(
+            "^\\s*export\\s*\\{([^}]*)}\\s*from\\s*[\"']([^\"']+)['\"]\\s*;\\s*$"
+    );
+    private static final Pattern DYNAMIC_IMPORT_CALL_PATTERN = Pattern.compile(
+            "\\bimport\\s*\\(([^)]*)\\)"
     );
     private static final Pattern INTEROP_MODULE_PATTERN = Pattern.compile(
             "^java:([A-Za-z_$][A-Za-z0-9_$]*(?:\\.[A-Za-z_$][A-Za-z0-9_$]*)*)$"
@@ -88,6 +100,8 @@ public final class JvmBytecodeCompiler {
     private static final String FEATURE_INTEROP_SYNTAX = "TSJ26-INTEROP-SYNTAX";
     private static final String FEATURE_INTEROP_MODULE_SPECIFIER = "TSJ26-INTEROP-MODULE-SPECIFIER";
     private static final String FEATURE_INTEROP_BINDING = "TSJ26-INTEROP-BINDING";
+    private static final String FEATURE_TSX_OUT_OF_SCOPE = "TSJ67-TSX-OUT-OF-SCOPE";
+    private static final String FEATURE_STRICT_BRIDGE = "TSJ80-STRICT-BRIDGE";
     private static final String ASYNC_BREAK_SIGNAL_FIELD = "__TSJ_ASYNC_BREAK_SIGNAL";
     private static final String ASYNC_CONTINUE_SIGNAL_FIELD = "__TSJ_ASYNC_CONTINUE_SIGNAL";
     private static final String TOP_LEVEL_CLASS_MAP_FIELD = "__TSJ_TOP_LEVEL_CLASSES";
@@ -130,13 +144,121 @@ public final class JvmBytecodeCompiler {
             "Use `java:<fully.qualified.ClassName>` (without method names in the module specifier).";
     private static final String GUIDANCE_INTEROP_BINDING =
             "Interop bindings must be valid identifiers, for example `{ max, min as minimum }`.";
+    private static final String GUIDANCE_TSX_OUT_OF_SCOPE =
+            "TSX/JSX is not in scope. Use .ts/.d.ts inputs or remove JSX syntax.";
+    private static final String GUIDANCE_STRICT_BRIDGE =
+            "Rewrite class members to strict-native subset (field assignment, return values, direct `this.method(...)` calls) or compile in `default` mode.";
     private static final String LEGACY_TOKENIZER_PROPERTY = "tsj.backend.legacyTokenizer";
     private static final String AST_NO_FALLBACK_PROPERTY = "tsj.backend.astNoFallback";
+    private static final String ADDITIONAL_CLASSPATH_PROPERTY = "tsj.backend.additionalClasspath";
+    private static final String INCREMENTAL_CACHE_PROPERTY = "tsj.backend.incrementalCache";
+    private static final String INCREMENTAL_CACHE_VERSION = "tsj69-v1";
+    private static final int INCREMENTAL_PARSE_CACHE_MAX_ENTRIES = 256;
+    private static final int INCREMENTAL_FINGERPRINT_HISTORY_MAX_ENTRIES = 1024;
+    private static final Set<String> STRICT_NATIVE_SUPPORTED_UNARY_OPERATORS = Set.of("+", "-", "!", "~");
+    private static final Set<String> STRICT_NATIVE_SUPPORTED_BINARY_OPERATORS = Set.of(
+            "+",
+            "-",
+            "*",
+            "/",
+            "%",
+            "**",
+            "&",
+            "|",
+            "^",
+            "<<",
+            ">>",
+            ">>>",
+            ",",
+            "<",
+            "<=",
+            ">",
+            ">=",
+            "==",
+            "===",
+            "!=",
+            "!==",
+            "&&",
+            "||",
+            "??"
+    );
 
     private static final String OUTPUT_PACKAGE = "dev.tsj.generated";
+    private static final String METADATA_CARRIER_PACKAGE = OUTPUT_PACKAGE + ".metadata";
+    private static final String METADATA_CARRIER_SUFFIX = "TsjCarrier";
+    private static final Map<IncrementalParseCacheKey, ParseResult> INCREMENTAL_PARSE_CACHE =
+            newLruMap(INCREMENTAL_PARSE_CACHE_MAX_ENTRIES);
+    private static final Map<Path, String> LAST_SOURCE_GRAPH_FINGERPRINT =
+            newLruMap(INCREMENTAL_FINGERPRINT_HISTORY_MAX_ENTRIES);
+    private IncrementalCompilationReport lastIncrementalCompilationReport = IncrementalCompilationReport.disabled();
+    private StrictLoweringPath lastStrictLoweringPath = StrictLoweringPath.RUNTIME_CARRIER;
+
+    public enum BackendMode {
+        DEFAULT,
+        JVM_STRICT
+    }
+
+    public enum StrictLoweringPath {
+        RUNTIME_CARRIER("runtime-carrier"),
+        JVM_NATIVE_CLASS_SUBSET("jvm-native-class-subset");
+
+        private final String metadataValue;
+
+        StrictLoweringPath(final String metadataValue) {
+            this.metadataValue = metadataValue;
+        }
+
+        public String metadataValue() {
+            return metadataValue;
+        }
+    }
+
+    public enum IncrementalStageState {
+        HIT,
+        MISS,
+        INVALIDATED,
+        DISABLED
+    }
+
+    public record IncrementalCompilationReport(
+            boolean cacheEnabled,
+            String compilerVersion,
+            String sourceGraphFingerprint,
+            IncrementalStageState frontend,
+            IncrementalStageState lowering,
+            IncrementalStageState backend
+    ) {
+        public static IncrementalCompilationReport disabled() {
+            return new IncrementalCompilationReport(
+                    false,
+                    "",
+                    "",
+                    IncrementalStageState.DISABLED,
+                    IncrementalStageState.DISABLED,
+                    IncrementalStageState.DISABLED
+            );
+        }
+    }
+
+    private record ParseWithIncrementalResult(ParseResult parseResult, IncrementalCompilationReport report) {
+    }
+
+    private record IncrementalParseCacheKey(
+            String sourceGraphFingerprint,
+            String compilerVersion
+    ) {
+    }
 
     public JvmCompiledArtifact compile(final Path sourceFile, final Path outputDir) {
-        return compile(sourceFile, outputDir, JvmOptimizationOptions.defaults());
+        return compile(sourceFile, outputDir, JvmOptimizationOptions.defaults(), BackendMode.DEFAULT);
+    }
+
+    public IncrementalCompilationReport lastIncrementalCompilationReport() {
+        return lastIncrementalCompilationReport;
+    }
+
+    public StrictLoweringPath lastStrictLoweringPath() {
+        return lastStrictLoweringPath;
     }
 
     public JvmCompiledArtifact compile(
@@ -144,16 +266,40 @@ public final class JvmBytecodeCompiler {
             final Path outputDir,
             final JvmOptimizationOptions optimizationOptions
     ) {
+        return compile(sourceFile, outputDir, optimizationOptions, BackendMode.DEFAULT);
+    }
+
+    public JvmCompiledArtifact compile(
+            final Path sourceFile,
+            final Path outputDir,
+            final JvmOptimizationOptions optimizationOptions,
+            final BackendMode backendMode
+    ) {
         Objects.requireNonNull(sourceFile, "sourceFile");
         Objects.requireNonNull(outputDir, "outputDir");
         Objects.requireNonNull(optimizationOptions, "optimizationOptions");
+        Objects.requireNonNull(backendMode, "backendMode");
 
         final Path normalizedSource = sourceFile.toAbsolutePath().normalize();
         final String fileName = normalizedSource.getFileName().toString();
+        lastIncrementalCompilationReport = IncrementalCompilationReport.disabled();
+        lastStrictLoweringPath = StrictLoweringPath.RUNTIME_CARRIER;
         if (!fileName.endsWith(".ts") && !fileName.endsWith(".tsx")) {
             throw new JvmCompilationException(
                     "TSJ-BACKEND-INPUT",
                     "Unsupported input extension for backend compile: " + normalizedSource
+            );
+        }
+        if (fileName.endsWith(".tsx")) {
+            throw new JvmCompilationException(
+                    "TSJ-BACKEND-UNSUPPORTED",
+                    "TSX/JSX input is out of scope for current TSJ syntax support."
+                            + " [featureId=" + FEATURE_TSX_OUT_OF_SCOPE + "]. Guidance: " + GUIDANCE_TSX_OUT_OF_SCOPE,
+                    1,
+                    1,
+                    normalizedSource.toString(),
+                    FEATURE_TSX_OUT_OF_SCOPE,
+                    GUIDANCE_TSX_OUT_OF_SCOPE
             );
         }
         if (!Files.exists(normalizedSource) || !Files.isRegularFile(normalizedSource)) {
@@ -168,7 +314,13 @@ public final class JvmBytecodeCompiler {
             parseResult = new ParseResult(new Program(List.of()), Map.of());
         } else {
             final BundleResult bundleResult = bundleModules(normalizedSource);
-            parseResult = parseProgram(bundleResult.sourceText(), normalizedSource, bundleResult);
+            final ParseWithIncrementalResult parseWithIncrementalResult = parseProgramWithIncrementalCache(
+                    bundleResult.sourceText(),
+                    normalizedSource,
+                    bundleResult
+            );
+            parseResult = parseWithIncrementalResult.parseResult();
+            lastIncrementalCompilationReport = parseWithIncrementalResult.report();
         }
         final Program parsedProgram = parseResult.program();
         final Map<Statement, SourceLocation> parsedStatementLocations = parseResult.statementLocations();
@@ -177,28 +329,46 @@ public final class JvmBytecodeCompiler {
                 parsedStatementLocations
         ).optimize(parsedProgram);
         final Program program = optimizationResult.program();
+        final StrictNativeClassLoweringPlan strictLoweringPlan = resolveStrictNativeClassLoweringPlan(
+                program,
+                optimizationResult.statementLocations(),
+                normalizedSource,
+                backendMode
+        );
+        lastStrictLoweringPath = strictLoweringPlan.loweringPath();
         final String classSimpleName = toPascalCase(stripExtension(fileName)) + "Program";
         final String className = OUTPUT_PACKAGE + "." + classSimpleName;
         final String javaSource = new JavaSourceGenerator(
                 OUTPUT_PACKAGE,
                 classSimpleName,
                 program,
-                optimizationResult.statementLocations()
+                optimizationResult.statementLocations(),
+                strictLoweringPlan
         ).generate();
+        final List<TopLevelClassDeclaration> topLevelClassDeclarations = collectTopLevelClassDeclarations(
+                parsedProgram,
+                parsedStatementLocations
+        );
+        final List<MetadataCarrierDeclaration> metadataCarrierDeclarations =
+                resolveMetadataCarrierDeclarations(normalizedSource, topLevelClassDeclarations);
 
         final Path normalizedOutput = outputDir.toAbsolutePath().normalize();
         final Path classesDir = normalizedOutput.resolve("classes");
-        final Path generatedSource = normalizedOutput.resolve("generated-src")
+        final Path generatedSourceRoot = normalizedOutput.resolve("generated-src");
+        final Path generatedSource = generatedSourceRoot
                 .resolve(OUTPUT_PACKAGE.replace('.', '/'))
                 .resolve(classSimpleName + ".java");
         final Path sourceMapFile = classesDir.resolve(OUTPUT_PACKAGE.replace('.', '/'))
                 .resolve(classSimpleName + ".tsj.map");
+        final List<Path> generatedSources = new ArrayList<>();
         try {
             Files.createDirectories(classesDir);
             Files.createDirectories(generatedSource.getParent());
             Files.writeString(generatedSource, javaSource, UTF_8);
             Files.createDirectories(sourceMapFile.getParent());
             writeSourceMapFile(sourceMapFile, parseSourceMapEntries(javaSource));
+            generatedSources.add(generatedSource);
+            generatedSources.addAll(writeMetadataCarrierSources(generatedSourceRoot, metadataCarrierDeclarations));
         } catch (final IOException ioException) {
             throw new JvmCompilationException(
                     "TSJ-BACKEND-IO",
@@ -209,7 +379,7 @@ public final class JvmBytecodeCompiler {
             );
         }
 
-        compileJava(generatedSource, classesDir);
+        compileJava(generatedSources, classesDir);
 
         final Path classFile = classesDir.resolve(OUTPUT_PACKAGE.replace('.', '/'))
                 .resolve(classSimpleName + ".class")
@@ -221,7 +391,1149 @@ public final class JvmBytecodeCompiler {
                     "Compiled class file not found after javac: " + classFile
             );
         }
-        return new JvmCompiledArtifact(normalizedSource, classesDir, className, classFile, sourceMapFile);
+        return new JvmCompiledArtifact(
+                normalizedSource,
+                classesDir,
+                className,
+                classFile,
+                sourceMapFile,
+                strictLoweringPlan.loweringPath().metadataValue()
+        );
+    }
+
+    private static List<TopLevelClassDeclaration> collectTopLevelClassDeclarations(
+            final Program program,
+            final Map<Statement, SourceLocation> statementLocations
+    ) {
+        final List<TopLevelClassDeclaration> declarations = new ArrayList<>();
+        for (Statement statement : program.statements()) {
+            collectTopLevelClassDeclarationsFromStatement(statement, statementLocations, declarations);
+        }
+        return List.copyOf(declarations);
+    }
+
+    private static void collectTopLevelClassDeclarationsFromStatement(
+            final Statement statement,
+            final Map<Statement, SourceLocation> statementLocations,
+            final List<TopLevelClassDeclaration> declarations
+    ) {
+        if (statement instanceof ClassDeclarationStatement classDeclarationStatement) {
+            declarations.add(new TopLevelClassDeclaration(
+                    classDeclarationStatement.declaration(),
+                    statementLocations.get(statement)
+            ));
+            return;
+        }
+        if (statement instanceof FunctionDeclarationStatement functionDeclarationStatement
+                && functionDeclarationStatement.declaration().name().startsWith("__tsj_init_module_")) {
+            for (Statement moduleTopLevelStatement : functionDeclarationStatement.declaration().body()) {
+                if (moduleTopLevelStatement instanceof ClassDeclarationStatement classDeclarationStatement) {
+                    declarations.add(new TopLevelClassDeclaration(
+                            classDeclarationStatement.declaration(),
+                            statementLocations.get(moduleTopLevelStatement)
+                    ));
+                }
+            }
+        }
+    }
+
+    private record StrictNativeClassLoweringPlan(
+            StrictLoweringPath loweringPath,
+            List<ClassDeclaration> nativeClasses
+    ) {
+        private StrictNativeClassLoweringPlan {
+            loweringPath = Objects.requireNonNull(loweringPath, "loweringPath");
+            nativeClasses = List.copyOf(Objects.requireNonNull(nativeClasses, "nativeClasses"));
+        }
+
+        private static StrictNativeClassLoweringPlan runtimeCarrier() {
+            return new StrictNativeClassLoweringPlan(StrictLoweringPath.RUNTIME_CARRIER, List.of());
+        }
+    }
+
+    private static StrictNativeClassLoweringPlan resolveStrictNativeClassLoweringPlan(
+            final Program program,
+            final Map<Statement, SourceLocation> statementLocations,
+            final Path entryFile,
+            final BackendMode backendMode
+    ) {
+        if (backendMode != BackendMode.JVM_STRICT) {
+            return StrictNativeClassLoweringPlan.runtimeCarrier();
+        }
+        final List<ClassDeclaration> nativeClasses = new ArrayList<>();
+        for (Statement statement : program.statements()) {
+            if (!(statement instanceof ClassDeclarationStatement classDeclarationStatement)) {
+                continue;
+            }
+            final SourceLocation location = statementLocations.get(statement);
+            final ClassDeclaration declaration = classDeclarationStatement.declaration();
+            validateStrictNativeClassDeclaration(declaration, location, entryFile);
+            nativeClasses.add(declaration);
+        }
+        if (nativeClasses.isEmpty()) {
+            return StrictNativeClassLoweringPlan.runtimeCarrier();
+        }
+        return new StrictNativeClassLoweringPlan(
+                StrictLoweringPath.JVM_NATIVE_CLASS_SUBSET,
+                List.copyOf(nativeClasses)
+        );
+    }
+
+    private static void validateStrictNativeClassDeclaration(
+            final ClassDeclaration declaration,
+            final SourceLocation location,
+            final Path entryFile
+    ) {
+        if (declaration.superClassName() != null) {
+            throw strictBridgeFailure(
+                    "Class extends is not supported in strict native subset (`" + declaration.name() + "`).",
+                    location,
+                    entryFile
+            );
+        }
+        final Set<String> fieldNames = new LinkedHashSet<>(declaration.fieldNames());
+        final Set<String> methodNames = new LinkedHashSet<>();
+        for (ClassMethod method : declaration.methods()) {
+            methodNames.add(method.name());
+        }
+        if (declaration.constructorMethod() != null) {
+            validateStrictNativeMethod(
+                    declaration.constructorMethod(),
+                    true,
+                    fieldNames,
+                    methodNames,
+                    location,
+                    entryFile
+            );
+        }
+        for (ClassMethod method : declaration.methods()) {
+            validateStrictNativeMethod(method, false, fieldNames, methodNames, location, entryFile);
+        }
+    }
+
+    private static void validateStrictNativeMethod(
+            final ClassMethod method,
+            final boolean constructor,
+            final Set<String> fieldNames,
+            final Set<String> methodNames,
+            final SourceLocation location,
+            final Path entryFile
+    ) {
+        if (method.async()) {
+            throw strictBridgeFailure(
+                    "Async class members are not supported in strict native subset (`" + method.name() + "`).",
+                    location,
+                    entryFile
+            );
+        }
+        final Set<String> bindings = new LinkedHashSet<>(method.parameters());
+        for (Statement statement : method.body()) {
+            validateStrictNativeStatement(
+                    statement,
+                    constructor,
+                    fieldNames,
+                    methodNames,
+                    bindings,
+                    location,
+                    entryFile
+            );
+        }
+    }
+
+    private static void validateStrictNativeStatement(
+            final Statement statement,
+            final boolean constructor,
+            final Set<String> fieldNames,
+            final Set<String> methodNames,
+            final Set<String> bindings,
+            final SourceLocation location,
+            final Path entryFile
+    ) {
+        if (statement instanceof VariableDeclaration variableDeclaration) {
+            bindings.add(variableDeclaration.name());
+            validateStrictNativeExpression(
+                    variableDeclaration.expression(),
+                    constructor,
+                    fieldNames,
+                    methodNames,
+                    bindings,
+                    location,
+                    entryFile
+            );
+            return;
+        }
+        if (statement instanceof AssignmentStatement assignmentStatement) {
+            final Expression target = assignmentStatement.target();
+            if (target instanceof VariableExpression variableExpression) {
+                if (!bindings.contains(variableExpression.name())) {
+                    throw strictBridgeFailure(
+                            "Unknown local binding assignment `" + variableExpression.name()
+                                    + "` in strict native subset.",
+                            location,
+                            entryFile
+                    );
+                }
+            } else if (target instanceof MemberAccessExpression memberAccessExpression) {
+                if (!(memberAccessExpression.receiver() instanceof ThisExpression)
+                        || !fieldNames.contains(memberAccessExpression.member())) {
+                    throw strictBridgeFailure(
+                            "Only `this.<field>` assignments are supported in strict native subset.",
+                            location,
+                            entryFile
+                    );
+                }
+            } else {
+                throw strictBridgeFailure(
+                        "Unsupported assignment target in strict native subset.",
+                        location,
+                        entryFile
+                );
+            }
+            validateStrictNativeExpression(
+                    assignmentStatement.expression(),
+                    constructor,
+                    fieldNames,
+                    methodNames,
+                    bindings,
+                    location,
+                    entryFile
+            );
+            return;
+        }
+        if (statement instanceof ReturnStatement returnStatement) {
+            validateStrictNativeExpression(
+                    returnStatement.expression(),
+                    constructor,
+                    fieldNames,
+                    methodNames,
+                    bindings,
+                    location,
+                    entryFile
+            );
+            return;
+        }
+        if (statement instanceof ExpressionStatement expressionStatement) {
+            validateStrictNativeExpression(
+                    expressionStatement.expression(),
+                    constructor,
+                    fieldNames,
+                    methodNames,
+                    bindings,
+                    location,
+                    entryFile
+            );
+            return;
+        }
+        if (statement instanceof IfStatement ifStatement) {
+            validateStrictNativeExpression(
+                    ifStatement.condition(),
+                    constructor,
+                    fieldNames,
+                    methodNames,
+                    bindings,
+                    location,
+                    entryFile
+            );
+            final Set<String> thenBindings = new LinkedHashSet<>(bindings);
+            for (Statement branchStatement : ifStatement.thenBlock()) {
+                validateStrictNativeStatement(
+                        branchStatement,
+                        constructor,
+                        fieldNames,
+                        methodNames,
+                        thenBindings,
+                        location,
+                        entryFile
+                );
+            }
+            final Set<String> elseBindings = new LinkedHashSet<>(bindings);
+            for (Statement branchStatement : ifStatement.elseBlock()) {
+                validateStrictNativeStatement(
+                        branchStatement,
+                        constructor,
+                        fieldNames,
+                        methodNames,
+                        elseBindings,
+                        location,
+                        entryFile
+                );
+            }
+            return;
+        }
+        if (statement instanceof SuperCallStatement) {
+            throw strictBridgeFailure(
+                    "`super(...)` is not supported in strict native subset.",
+                    location,
+                    entryFile
+            );
+        }
+        throw strictBridgeFailure(
+                "Unsupported class statement in strict native subset: " + statement.getClass().getSimpleName(),
+                location,
+                entryFile
+        );
+    }
+
+    private static void validateStrictNativeExpression(
+            final Expression expression,
+            final boolean constructor,
+            final Set<String> fieldNames,
+            final Set<String> methodNames,
+            final Set<String> bindings,
+            final SourceLocation location,
+            final Path entryFile
+    ) {
+        if (expression instanceof NumberLiteral
+                || expression instanceof StringLiteral
+                || expression instanceof BooleanLiteral
+                || expression instanceof NullLiteral
+                || expression instanceof UndefinedLiteral
+                || expression instanceof ThisExpression) {
+            return;
+        }
+        if (expression instanceof VariableExpression variableExpression) {
+            if (!bindings.contains(variableExpression.name())) {
+                throw strictBridgeFailure(
+                        "Unknown identifier `" + variableExpression.name() + "` in strict native subset.",
+                        location,
+                        entryFile
+                );
+            }
+            return;
+        }
+        if (expression instanceof MemberAccessExpression memberAccessExpression) {
+            if (!(memberAccessExpression.receiver() instanceof ThisExpression)) {
+                throw strictBridgeFailure(
+                        "Only `this.<field>` property access is supported in strict native subset.",
+                        location,
+                        entryFile
+                );
+            }
+            if (!fieldNames.contains(memberAccessExpression.member())) {
+                throw strictBridgeFailure(
+                        "Unknown class field `" + memberAccessExpression.member() + "` in strict native subset.",
+                        location,
+                        entryFile
+                );
+            }
+            return;
+        }
+        if (expression instanceof UnaryExpression unaryExpression) {
+            if (!STRICT_NATIVE_SUPPORTED_UNARY_OPERATORS.contains(unaryExpression.operator())) {
+                throw strictBridgeFailure(
+                        "Unsupported unary operator `" + unaryExpression.operator()
+                                + "` in strict native subset.",
+                        location,
+                        entryFile
+                );
+            }
+            validateStrictNativeExpression(
+                    unaryExpression.expression(),
+                    constructor,
+                    fieldNames,
+                    methodNames,
+                    bindings,
+                    location,
+                    entryFile
+            );
+            return;
+        }
+        if (expression instanceof BinaryExpression binaryExpression) {
+            if (!STRICT_NATIVE_SUPPORTED_BINARY_OPERATORS.contains(binaryExpression.operator())) {
+                throw strictBridgeFailure(
+                        "Unsupported binary operator `" + binaryExpression.operator()
+                                + "` in strict native subset.",
+                        location,
+                        entryFile
+                );
+            }
+            validateStrictNativeExpression(
+                    binaryExpression.left(),
+                    constructor,
+                    fieldNames,
+                    methodNames,
+                    bindings,
+                    location,
+                    entryFile
+            );
+            validateStrictNativeExpression(
+                    binaryExpression.right(),
+                    constructor,
+                    fieldNames,
+                    methodNames,
+                    bindings,
+                    location,
+                    entryFile
+            );
+            return;
+        }
+        if (expression instanceof ConditionalExpression conditionalExpression) {
+            validateStrictNativeExpression(
+                    conditionalExpression.condition(),
+                    constructor,
+                    fieldNames,
+                    methodNames,
+                    bindings,
+                    location,
+                    entryFile
+            );
+            validateStrictNativeExpression(
+                    conditionalExpression.whenTrue(),
+                    constructor,
+                    fieldNames,
+                    methodNames,
+                    bindings,
+                    location,
+                    entryFile
+            );
+            validateStrictNativeExpression(
+                    conditionalExpression.whenFalse(),
+                    constructor,
+                    fieldNames,
+                    methodNames,
+                    bindings,
+                    location,
+                    entryFile
+            );
+            return;
+        }
+        if (expression instanceof CallExpression callExpression) {
+            if (!(callExpression.callee() instanceof MemberAccessExpression memberAccessExpression)) {
+                throw strictBridgeFailure(
+                        "Only member call expressions are supported in strict native subset.",
+                        location,
+                        entryFile
+                );
+            }
+            final boolean directThisMethodCall = memberAccessExpression.receiver() instanceof ThisExpression
+                    && methodNames.contains(memberAccessExpression.member());
+            if (!directThisMethodCall) {
+                validateStrictNativeExpression(
+                        memberAccessExpression.receiver(),
+                        constructor,
+                        fieldNames,
+                        methodNames,
+                        bindings,
+                        location,
+                        entryFile
+                );
+            }
+            for (Expression argument : callExpression.arguments()) {
+                validateStrictNativeExpression(
+                        argument,
+                        constructor,
+                        fieldNames,
+                        methodNames,
+                        bindings,
+                        location,
+                        entryFile
+                );
+            }
+            return;
+        }
+        throw strictBridgeFailure(
+                "Unsupported class expression in strict native subset: " + expression.getClass().getSimpleName(),
+                location,
+                entryFile
+        );
+    }
+
+    private static JvmCompilationException strictBridgeFailure(
+            final String detail,
+            final SourceLocation location,
+            final Path entryFile
+    ) {
+        final Path sourcePath = location == null
+                ? entryFile.toAbsolutePath().normalize()
+                : location.sourceFile().toAbsolutePath().normalize();
+        final int line = location == null ? 1 : location.line();
+        final int column = location == null ? 1 : location.column();
+        return new JvmCompilationException(
+                "TSJ-STRICT-BRIDGE",
+                "Strict mode cannot lower class member to JVM-native subset: "
+                        + detail
+                        + " [featureId="
+                        + FEATURE_STRICT_BRIDGE
+                        + "]. Guidance: "
+                        + GUIDANCE_STRICT_BRIDGE,
+                line,
+                column,
+                sourcePath.toString(),
+                FEATURE_STRICT_BRIDGE,
+                GUIDANCE_STRICT_BRIDGE
+        );
+    }
+
+    private static List<MetadataCarrierDeclaration> resolveMetadataCarrierDeclarations(
+            final Path entryFile,
+            final List<TopLevelClassDeclaration> topLevelClassDeclarations
+    ) {
+        if (topLevelClassDeclarations.isEmpty()) {
+            return List.of();
+        }
+
+        final TsDecoratorModelExtractor.ExtractionResult extractionResult;
+        try {
+            final String classpath = buildJavacClasspath();
+            final TsDecoratorClasspathResolver classpathResolver = new TsDecoratorClasspathResolver(
+                    new JavaSymbolTable(parseClasspathEntries(classpath), classpath)
+            );
+            final TsDecoratorModelExtractor extractor = new TsDecoratorModelExtractor(
+                    TsDecoratorAnnotationMapping.empty(),
+                    classpathResolver,
+                    false
+            );
+            extractionResult = extractor.extractWithImportedDecoratorBindings(entryFile);
+        } catch (final JvmCompilationException exception) {
+            if (TsDecoratorClasspathResolver.FEATURE_ID.equals(exception.featureId())) {
+                throw exception;
+            }
+            return topLevelClassDeclarations.stream()
+                    .map(value -> new MetadataCarrierDeclaration(
+                            value.declaration(),
+                            null,
+                            Map.of()
+                    ))
+                    .toList();
+        }
+
+        final Map<Path, Map<String, String>> importedBindingsByFile = extractionResult.importedDecoratorBindingsByFile();
+        final List<TsDecoratedClass> decoratedClasses = extractionResult.model().classes();
+        final Map<ClassLookupKey, List<TsDecoratedClass>> decoratedByKey = new LinkedHashMap<>();
+        final Map<String, List<TsDecoratedClass>> decoratedByName = new LinkedHashMap<>();
+        for (TsDecoratedClass decoratedClass : decoratedClasses) {
+            decoratedByKey.computeIfAbsent(
+                    new ClassLookupKey(decoratedClass.sourceFile(), decoratedClass.className()),
+                    ignored -> new ArrayList<>()
+            ).add(decoratedClass);
+            decoratedByName.computeIfAbsent(decoratedClass.className(), ignored -> new ArrayList<>()).add(decoratedClass);
+        }
+
+        final IdentityHashMap<TsDecoratedClass, Boolean> consumed = new IdentityHashMap<>();
+        final List<MetadataCarrierDeclaration> declarations = new ArrayList<>();
+        for (TopLevelClassDeclaration topLevelClass : topLevelClassDeclarations) {
+            final Path sourcePath = topLevelClass.sourceLocation() == null
+                    ? entryFile
+                    : topLevelClass.sourceLocation().sourceFile().toAbsolutePath().normalize();
+            final ClassLookupKey key = new ClassLookupKey(sourcePath, topLevelClass.declaration().name());
+            TsDecoratedClass decoratedClass = selectDecoratedClass(
+                    decoratedByKey.get(key),
+                    topLevelClass.sourceLocation(),
+                    consumed
+            );
+            if (decoratedClass == null) {
+                decoratedClass = selectDecoratedClass(
+                        decoratedByName.get(topLevelClass.declaration().name()),
+                        topLevelClass.sourceLocation(),
+                        consumed
+                );
+            }
+            declarations.add(new MetadataCarrierDeclaration(
+                    topLevelClass.declaration(),
+                    decoratedClass,
+                    importedBindingsByFile.getOrDefault(sourcePath, Map.of())
+            ));
+        }
+        return List.copyOf(declarations);
+    }
+
+    private static TsDecoratedClass selectDecoratedClass(
+            final List<TsDecoratedClass> candidates,
+            final SourceLocation sourceLocation,
+            final IdentityHashMap<TsDecoratedClass, Boolean> consumed
+    ) {
+        if (candidates == null || candidates.isEmpty()) {
+            return null;
+        }
+        final Integer targetLine = sourceLocation == null ? null : sourceLocation.line();
+        TsDecoratedClass selected = null;
+        int bestDistance = Integer.MAX_VALUE;
+        for (TsDecoratedClass candidate : candidates) {
+            if (consumed.containsKey(candidate)) {
+                continue;
+            }
+            if (targetLine == null) {
+                selected = candidate;
+                break;
+            }
+            final int distance = Math.abs(candidate.line() - targetLine);
+            if (selected == null || distance < bestDistance) {
+                selected = candidate;
+                bestDistance = distance;
+            }
+        }
+        if (selected != null) {
+            consumed.put(selected, Boolean.TRUE);
+        }
+        return selected;
+    }
+
+    private static List<Path> parseClasspathEntries(final String classpath) {
+        if (classpath == null || classpath.isBlank()) {
+            return List.of();
+        }
+        final List<Path> entries = new ArrayList<>();
+        final String[] parts = classpath.split(Pattern.quote(File.pathSeparator));
+        for (String part : parts) {
+            if (part != null && !part.isBlank()) {
+                entries.add(Path.of(part));
+            }
+        }
+        return List.copyOf(entries);
+    }
+
+    private static List<Path> writeMetadataCarrierSources(
+            final Path generatedSourceRoot,
+            final List<MetadataCarrierDeclaration> classDeclarations
+    ) throws IOException {
+        if (classDeclarations.isEmpty()) {
+            return List.of();
+        }
+        final Path metadataSourceDir = generatedSourceRoot.resolve(METADATA_CARRIER_PACKAGE.replace('.', '/'));
+        Files.createDirectories(metadataSourceDir);
+
+        final Map<String, Integer> carrierNameCounts = new LinkedHashMap<>();
+        final List<Path> sourceFiles = new ArrayList<>();
+        for (MetadataCarrierDeclaration declaration : classDeclarations) {
+            final String baseName = sanitizeJavaIdentifier(declaration.classDeclaration().name()) + METADATA_CARRIER_SUFFIX;
+            final String carrierSimpleName = allocateUniqueName(carrierNameCounts, baseName);
+            final Path sourceFile = metadataSourceDir.resolve(carrierSimpleName + ".java");
+            Files.writeString(sourceFile, renderMetadataCarrierSource(carrierSimpleName, declaration), UTF_8);
+            sourceFiles.add(sourceFile);
+        }
+        return List.copyOf(sourceFiles);
+    }
+
+    private static String renderMetadataCarrierSource(
+            final String carrierSimpleName,
+            final MetadataCarrierDeclaration declaration
+    ) {
+        final StringBuilder builder = new StringBuilder();
+        final ClassDeclaration classDeclaration = declaration.classDeclaration();
+        final TsDecoratedClass decoratedClass = declaration.decoratedClass();
+        final Map<String, String> importedDecoratorBindings = declaration.importedDecoratorBindings();
+
+        builder.append("package ").append(METADATA_CARRIER_PACKAGE).append(";\n\n");
+        appendAnnotationLines(builder, "", decoratedClass == null ? List.of() : decoratedClass.decorators(), importedDecoratorBindings);
+        builder.append("public final class ").append(carrierSimpleName).append(" {\n");
+
+        final Map<String, List<TsDecoratedField>> decoratedFieldsByName = new LinkedHashMap<>();
+        if (decoratedClass != null) {
+            for (TsDecoratedField field : decoratedClass.fields()) {
+                decoratedFieldsByName.computeIfAbsent(field.fieldName(), ignored -> new ArrayList<>()).add(field);
+            }
+        }
+        final Map<String, Integer> fieldNameCounts = new LinkedHashMap<>();
+        for (String fieldName : classDeclaration.fieldNames()) {
+            appendAnnotationLines(
+                    builder,
+                    "  ",
+                    resolveFieldDecorators(decoratedFieldsByName.get(fieldName)),
+                    importedDecoratorBindings
+            );
+            final String memberName = allocateUniqueName(fieldNameCounts, sanitizeJavaIdentifier(fieldName));
+            builder.append("  public Object ").append(memberName).append(";\n");
+        }
+        if (!classDeclaration.fieldNames().isEmpty()) {
+            builder.append('\n');
+        }
+
+        final ClassMethod constructorMethod = classDeclaration.constructorMethod();
+        final TsDecoratedMethod decoratedConstructor = constructorMethod == null
+                ? null
+                : findDecoratedMethod(
+                decoratedClass == null ? List.of() : decoratedClass.methods(),
+                true,
+                constructorMethod.name(),
+                constructorMethod.parameters().size(),
+                null
+        );
+        if (constructorMethod == null) {
+            builder.append("  public ").append(carrierSimpleName).append("() {\n");
+            builder.append("  }\n\n");
+        } else {
+            appendAnnotationLines(
+                    builder,
+                    "  ",
+                    decoratedConstructor == null ? List.of() : decoratedConstructor.decorators(),
+                    importedDecoratorBindings
+            );
+            builder.append("  public ").append(carrierSimpleName).append("(");
+            builder.append(renderParameters(
+                    constructorMethod.parameters(),
+                    decoratedConstructor == null ? List.of() : decoratedConstructor.parameters(),
+                    importedDecoratorBindings
+            ));
+            builder.append(") {\n");
+            builder.append("  }\n\n");
+        }
+
+        final IdentityHashMap<TsDecoratedMethod, Boolean> consumedMethods = new IdentityHashMap<>();
+        if (decoratedConstructor != null) {
+            consumedMethods.put(decoratedConstructor, Boolean.TRUE);
+        }
+        final Map<String, Integer> methodNameCounts = new LinkedHashMap<>();
+        for (ClassMethod method : classDeclaration.methods()) {
+            final TsDecoratedMethod decoratedMethod = findDecoratedMethod(
+                    decoratedClass == null ? List.of() : decoratedClass.methods(),
+                    false,
+                    method.name(),
+                    method.parameters().size(),
+                    consumedMethods
+            );
+            appendAnnotationLines(
+                    builder,
+                    "  ",
+                    decoratedMethod == null ? List.of() : decoratedMethod.decorators(),
+                    importedDecoratorBindings
+            );
+            String methodName = sanitizeJavaIdentifier(method.name());
+            methodName = allocateUniqueName(methodNameCounts, methodName);
+            builder.append("  public Object ").append(methodName).append("(");
+            builder.append(renderParameters(
+                    method.parameters(),
+                    decoratedMethod == null ? List.of() : decoratedMethod.parameters(),
+                    importedDecoratorBindings
+            ));
+            builder.append(") {\n");
+            builder.append("    return null;\n");
+            builder.append("  }\n\n");
+        }
+
+        builder.append("}\n");
+        return builder.toString();
+    }
+
+    private static List<TsDecoratorUse> resolveFieldDecorators(final List<TsDecoratedField> candidates) {
+        if (candidates == null || candidates.isEmpty()) {
+            return List.of();
+        }
+        return candidates.getFirst().decorators();
+    }
+
+    private static TsDecoratedMethod findDecoratedMethod(
+            final List<TsDecoratedMethod> candidates,
+            final boolean constructor,
+            final String methodName,
+            final int parameterCount,
+            final IdentityHashMap<TsDecoratedMethod, Boolean> consumed
+    ) {
+        for (TsDecoratedMethod candidate : candidates) {
+            if (candidate.constructor() != constructor) {
+                continue;
+            }
+            if (consumed != null && consumed.containsKey(candidate)) {
+                continue;
+            }
+            if (!candidate.methodName().equals(methodName) || candidate.parameterCount() != parameterCount) {
+                continue;
+            }
+            if (consumed != null) {
+                consumed.put(candidate, Boolean.TRUE);
+            }
+            return candidate;
+        }
+        return null;
+    }
+
+    private static String renderParameters(
+            final List<String> parameterNames,
+            final List<TsDecoratedParameter> decoratedParameters,
+            final Map<String, String> importedDecoratorBindings
+    ) {
+        if (parameterNames.isEmpty()) {
+            return "";
+        }
+        final Map<Integer, List<TsDecoratorUse>> decoratorsByParameterIndex = new LinkedHashMap<>();
+        for (TsDecoratedParameter decoratedParameter : decoratedParameters) {
+            decoratorsByParameterIndex.put(decoratedParameter.index(), decoratedParameter.decorators());
+        }
+        final StringBuilder builder = new StringBuilder();
+        final Map<String, Integer> parameterNameCounts = new LinkedHashMap<>();
+        for (int index = 0; index < parameterNames.size(); index++) {
+            if (index > 0) {
+                builder.append(", ");
+            }
+            final String inlineAnnotations = renderInlineAnnotations(
+                    decoratorsByParameterIndex.getOrDefault(index, List.of()),
+                    importedDecoratorBindings
+            );
+            if (!inlineAnnotations.isBlank()) {
+                builder.append(inlineAnnotations).append(' ');
+            }
+            final String parameterName = allocateUniqueName(
+                    parameterNameCounts,
+                    sanitizeJavaIdentifier(parameterNames.get(index))
+            );
+            builder.append("Object ").append(parameterName);
+        }
+        return builder.toString();
+    }
+
+    private static String renderInlineAnnotations(
+            final List<TsDecoratorUse> decorators,
+            final Map<String, String> importedDecoratorBindings
+    ) {
+        final StringBuilder builder = new StringBuilder();
+        for (TsDecoratorUse decorator : decorators) {
+            final String annotationClassName = importedDecoratorBindings.get(decorator.name());
+            if (annotationClassName == null) {
+                continue;
+            }
+            if (!builder.isEmpty()) {
+                builder.append(' ');
+            }
+            builder.append(renderResolvedAnnotation(annotationClassName, decorator.rawArgs()));
+        }
+        return builder.toString();
+    }
+
+    private static void appendAnnotationLines(
+            final StringBuilder builder,
+            final String indent,
+            final List<TsDecoratorUse> decorators,
+            final Map<String, String> importedDecoratorBindings
+    ) {
+        for (TsDecoratorUse decorator : decorators) {
+            final String annotationClassName = importedDecoratorBindings.get(decorator.name());
+            if (annotationClassName == null) {
+                continue;
+            }
+            builder.append(indent)
+                    .append(renderResolvedAnnotation(annotationClassName, decorator.rawArgs()))
+                    .append('\n');
+        }
+    }
+
+    private static String renderResolvedAnnotation(
+            final String annotationClassName,
+            final String rawArgs
+    ) {
+        final String renderedArgs = renderAnnotationArguments(rawArgs);
+        if (renderedArgs.isEmpty()) {
+            return "@" + annotationClassName;
+        }
+        return "@" + annotationClassName + "(" + renderedArgs + ")";
+    }
+
+    private static String renderAnnotationArguments(final String rawArgs) {
+        if (rawArgs == null || rawArgs.isBlank()) {
+            return "";
+        }
+        final List<String> segments = splitTopLevelSegments(rawArgs, ',');
+        if (segments.isEmpty()) {
+            return "";
+        }
+        if (segments.size() == 1) {
+            final String single = segments.getFirst().trim();
+            final String objectAssignments = renderObjectLiteralAssignments(single);
+            if (!objectAssignments.isEmpty()) {
+                return objectAssignments;
+            }
+        }
+
+        final List<AnnotationAssignment> namedAssignments = new ArrayList<>();
+        boolean sawNamed = false;
+        for (String segment : segments) {
+            final AnnotationAssignment assignment = parseAnnotationAssignment(segment);
+            if (assignment == null) {
+                continue;
+            }
+            sawNamed = true;
+            final String renderedValue = renderAnnotationValue(assignment.value());
+            if (renderedValue.isEmpty()) {
+                return "";
+            }
+            namedAssignments.add(new AnnotationAssignment(assignment.name(), renderedValue));
+        }
+        if (sawNamed) {
+            if (namedAssignments.size() != segments.size()) {
+                return "";
+            }
+            final StringBuilder builder = new StringBuilder();
+            for (int index = 0; index < namedAssignments.size(); index++) {
+                if (index > 0) {
+                    builder.append(", ");
+                }
+                final AnnotationAssignment assignment = namedAssignments.get(index);
+                builder.append(assignment.name()).append(" = ").append(assignment.value());
+            }
+            return builder.toString();
+        }
+
+        if (segments.size() == 1) {
+            return renderAnnotationValue(segments.getFirst());
+        }
+        final List<String> renderedValues = new ArrayList<>();
+        for (String segment : segments) {
+            final String renderedValue = renderAnnotationValue(segment);
+            if (renderedValue.isEmpty()) {
+                return "";
+            }
+            renderedValues.add(renderedValue);
+        }
+        return "{" + String.join(", ", renderedValues) + "}";
+    }
+
+    private static String renderObjectLiteralAssignments(final String candidate) {
+        final String trimmed = candidate.trim();
+        if (!trimmed.startsWith("{") || !trimmed.endsWith("}")) {
+            return "";
+        }
+        final String body = trimmed.substring(1, trimmed.length() - 1).trim();
+        if (body.isEmpty()) {
+            return "";
+        }
+        final List<String> entries = splitTopLevelSegments(body, ',');
+        if (entries.isEmpty()) {
+            return "";
+        }
+        final List<AnnotationAssignment> assignments = new ArrayList<>();
+        for (String entry : entries) {
+            final AnnotationAssignment assignment = parseAnnotationAssignment(entry);
+            if (assignment == null) {
+                return "";
+            }
+            final String renderedValue = renderAnnotationValue(assignment.value());
+            if (renderedValue.isEmpty()) {
+                return "";
+            }
+            assignments.add(new AnnotationAssignment(assignment.name(), renderedValue));
+        }
+        final StringBuilder builder = new StringBuilder();
+        for (int index = 0; index < assignments.size(); index++) {
+            if (index > 0) {
+                builder.append(", ");
+            }
+            final AnnotationAssignment assignment = assignments.get(index);
+            builder.append(assignment.name()).append(" = ").append(assignment.value());
+        }
+        return builder.toString();
+    }
+
+    private static AnnotationAssignment parseAnnotationAssignment(final String rawSegment) {
+        final String segment = rawSegment == null ? "" : rawSegment.trim();
+        if (segment.isEmpty()) {
+            return null;
+        }
+        int parenDepth = 0;
+        int bracketDepth = 0;
+        int braceDepth = 0;
+        boolean inString = false;
+        char quote = 0;
+        for (int index = 0; index < segment.length(); index++) {
+            final char value = segment.charAt(index);
+            if (inString) {
+                if (value == '\\') {
+                    index++;
+                    continue;
+                }
+                if (value == quote) {
+                    inString = false;
+                }
+                continue;
+            }
+            if (value == '\'' || value == '"' || value == '`') {
+                inString = true;
+                quote = value;
+                continue;
+            }
+            if (value == '(') {
+                parenDepth++;
+                continue;
+            }
+            if (value == ')') {
+                parenDepth--;
+                continue;
+            }
+            if (value == '[') {
+                bracketDepth++;
+                continue;
+            }
+            if (value == ']') {
+                bracketDepth--;
+                continue;
+            }
+            if (value == '{') {
+                braceDepth++;
+                continue;
+            }
+            if (value == '}') {
+                braceDepth--;
+                continue;
+            }
+            if ((value == ':' || value == '=')
+                    && parenDepth == 0
+                    && bracketDepth == 0
+                    && braceDepth == 0) {
+                final String name = segment.substring(0, index).trim();
+                final String rawValue = segment.substring(index + 1).trim();
+                if (!isValidTsIdentifier(name) || rawValue.isEmpty()) {
+                    return null;
+                }
+                return new AnnotationAssignment(name, rawValue);
+            }
+        }
+        return null;
+    }
+
+    private static String renderAnnotationValue(final String rawValue) {
+        if (rawValue == null) {
+            return "";
+        }
+        final String trimmed = rawValue.trim();
+        if (trimmed.isEmpty()) {
+            return "";
+        }
+        if (trimmed.startsWith("'") && trimmed.endsWith("'") && trimmed.length() >= 2) {
+            return convertSingleQuotedString(trimmed);
+        }
+        if (trimmed.startsWith("\"") && trimmed.endsWith("\"") && trimmed.length() >= 2) {
+            return trimmed;
+        }
+        if (trimmed.startsWith("[") && trimmed.endsWith("]")) {
+            final String inner = trimmed.substring(1, trimmed.length() - 1).trim();
+            if (inner.isEmpty()) {
+                return "{}";
+            }
+            final List<String> values = splitTopLevelSegments(inner, ',');
+            final List<String> rendered = new ArrayList<>();
+            for (String value : values) {
+                final String renderedValue = renderAnnotationValue(value);
+                if (renderedValue.isEmpty()) {
+                    return "";
+                }
+                rendered.add(renderedValue);
+            }
+            return "{" + String.join(", ", rendered) + "}";
+        }
+        if ("undefined".equals(trimmed)) {
+            return "null";
+        }
+        if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
+            return "";
+        }
+        return trimmed;
+    }
+
+    private static String convertSingleQuotedString(final String raw) {
+        final String body = raw.substring(1, raw.length() - 1);
+        final StringBuilder builder = new StringBuilder();
+        builder.append('"');
+        boolean escaping = false;
+        for (int index = 0; index < body.length(); index++) {
+            final char value = body.charAt(index);
+            if (escaping) {
+                if (value == '\'' || value == '"' || value == '\\') {
+                    if (value == '"') {
+                        builder.append("\\\"");
+                    } else {
+                        builder.append(value);
+                    }
+                } else {
+                    builder.append('\\').append(value);
+                }
+                escaping = false;
+                continue;
+            }
+            if (value == '\\') {
+                escaping = true;
+                continue;
+            }
+            if (value == '"') {
+                builder.append("\\\"");
+            } else {
+                builder.append(value);
+            }
+        }
+        if (escaping) {
+            builder.append("\\\\");
+        }
+        builder.append('"');
+        return builder.toString();
+    }
+
+    private static List<String> splitTopLevelSegments(final String text, final char separator) {
+        final List<String> segments = new ArrayList<>();
+        int start = 0;
+        int parenDepth = 0;
+        int bracketDepth = 0;
+        int braceDepth = 0;
+        boolean inString = false;
+        char quote = 0;
+        for (int index = 0; index < text.length(); index++) {
+            final char value = text.charAt(index);
+            if (inString) {
+                if (value == '\\') {
+                    index++;
+                    continue;
+                }
+                if (value == quote) {
+                    inString = false;
+                }
+                continue;
+            }
+            if (value == '\'' || value == '"' || value == '`') {
+                inString = true;
+                quote = value;
+                continue;
+            }
+            if (value == '(') {
+                parenDepth++;
+                continue;
+            }
+            if (value == ')') {
+                parenDepth--;
+                continue;
+            }
+            if (value == '[') {
+                bracketDepth++;
+                continue;
+            }
+            if (value == ']') {
+                bracketDepth--;
+                continue;
+            }
+            if (value == '{') {
+                braceDepth++;
+                continue;
+            }
+            if (value == '}') {
+                braceDepth--;
+                continue;
+            }
+            if (value == separator
+                    && parenDepth == 0
+                    && bracketDepth == 0
+                    && braceDepth == 0) {
+                final String segment = text.substring(start, index).trim();
+                if (!segment.isEmpty()) {
+                    segments.add(segment);
+                }
+                start = index + 1;
+            }
+        }
+        final String trailing = text.substring(start).trim();
+        if (!trailing.isEmpty()) {
+            segments.add(trailing);
+        }
+        return List.copyOf(segments);
+    }
+
+    private static String sanitizeJavaIdentifier(final String identifier) {
+        String sanitized = sanitizeGeneratedIdentifier(identifier);
+        if (JAVA_KEYWORDS.contains(sanitized)) {
+            sanitized = sanitized + "_ts";
+        }
+        return sanitized;
+    }
+
+    private static String allocateUniqueName(final Map<String, Integer> counts, final String baseName) {
+        final int next = counts.merge(baseName, 1, Integer::sum);
+        if (next == 1) {
+            return baseName;
+        }
+        return baseName + "_" + next;
     }
 
     private static String preprocessTsj34Decorators(final String sourceText) {
@@ -363,11 +1675,13 @@ public final class JvmBytecodeCompiler {
             return new BundleResult(passthroughBuilder.toString(), List.copyOf(passthroughOrigins));
         }
         final Map<Path, String> initFunctionByModule = new LinkedHashMap<>();
+        final Map<Path, Integer> moduleIndexBySource = new LinkedHashMap<>();
         final Map<Path, Map<String, String>> exportSymbolsByModule = new LinkedHashMap<>();
 
         for (int index = 0; index < modules.size(); index++) {
             final ModuleSource module = modules.get(index);
             initFunctionByModule.put(module.sourceFile(), "__tsj_init_module_" + index);
+            moduleIndexBySource.put(module.sourceFile(), index);
             final Map<String, String> exportSymbols = new LinkedHashMap<>();
             for (ExportBinding exportBinding : module.exportBindings()) {
                 exportSymbols.putIfAbsent(
@@ -376,6 +1690,33 @@ public final class JvmBytecodeCompiler {
                 );
             }
             exportSymbolsByModule.put(module.sourceFile(), exportSymbols);
+        }
+        for (ModuleSource module : modules) {
+            final Map<String, String> moduleExports = exportSymbolsByModule.get(module.sourceFile());
+            for (ModuleReExport reExport : module.reExports()) {
+                final Map<String, String> dependencyExports = exportSymbolsByModule.get(reExport.dependency());
+                if (dependencyExports == null) {
+                    continue;
+                }
+                if (reExport.kind() == ModuleReExportKind.ALL) {
+                    for (String exportName : dependencyExports.keySet()) {
+                        if ("default".equals(exportName)) {
+                            continue;
+                        }
+                        moduleExports.putIfAbsent(
+                                exportName,
+                                exportGlobalSymbol(moduleIndexBySource.get(module.sourceFile()), exportName)
+                        );
+                    }
+                    continue;
+                }
+                for (ReExportBinding binding : reExport.bindings()) {
+                    moduleExports.putIfAbsent(
+                            binding.exportName(),
+                            exportGlobalSymbol(moduleIndexBySource.get(module.sourceFile()), binding.exportName())
+                    );
+                }
+            }
         }
 
         final StringBuilder builder = new StringBuilder();
@@ -390,10 +1731,48 @@ public final class JvmBytecodeCompiler {
         if (!modules.isEmpty()) {
             appendBundledLine(builder, lineOrigins, "", null, -1);
         }
+        final Set<Path> dynamicImportTargets = new LinkedHashSet<>();
+        for (ModuleSource module : modules) {
+            dynamicImportTargets.addAll(module.dynamicImportDependencies());
+        }
+        if (!dynamicImportTargets.isEmpty()) {
+            appendBundledLine(builder, lineOrigins, "function __tsj_dynamic_import(specifier) {", null, -1);
+            appendBundledLine(builder, lineOrigins, "  switch (specifier) {", null, -1);
+            final List<Path> sortedTargets = new ArrayList<>(dynamicImportTargets);
+            sortedTargets.sort(Path::compareTo);
+            for (Path target : sortedTargets) {
+                final Map<String, String> dependencyExports = exportSymbolsByModule.getOrDefault(target, Map.of());
+                appendBundledLine(
+                        builder,
+                        lineOrigins,
+                        "    case \"" + escapeJavaLiteral(target.toString()) + "\":",
+                        null,
+                        -1
+                );
+                appendBundledLine(
+                        builder,
+                        lineOrigins,
+                        "      return Promise.resolve(" + buildNamespaceImportObjectLiteral(dependencyExports) + ");",
+                        null,
+                        -1
+                );
+            }
+            appendBundledLine(
+                    builder,
+                    lineOrigins,
+                    "    default: return Promise.reject(new Error(\"Unsupported dynamic import specifier in TSJ-65 subset: \" + specifier));",
+                    null,
+                    -1
+            );
+            appendBundledLine(builder, lineOrigins, "  }", null, -1);
+            appendBundledLine(builder, lineOrigins, "}", null, -1);
+            appendBundledLine(builder, lineOrigins, "", null, -1);
+        }
 
         for (ModuleSource module : modules) {
             final String initFunctionName = initFunctionByModule.get(module.sourceFile());
             final boolean asyncInit = module.requiresAsyncInit();
+            final List<ImportRefreshBinding> importRefreshBindings = new ArrayList<>();
             appendBundledLine(builder, lineOrigins, "// module: " + module.sourceFile(), null, -1);
             appendBundledLine(
                     builder,
@@ -451,14 +1830,27 @@ public final class JvmBytecodeCompiler {
                     appendBundledLine(
                             builder,
                             lineOrigins,
-                            "  const " + binding.localName() + " = " + exportSymbol + ";",
+                            "  let " + binding.localName() + " = " + exportSymbol + ";",
                             module.sourceFile(),
                             moduleImport.line()
                     );
+                    importRefreshBindings.add(new ImportRefreshBinding(binding.localName(), exportSymbol));
                 }
             }
 
             for (int index = 0; index < module.bodyLines().size(); index++) {
+                if (isTopLevelModuleLine(module.bodyLines().get(index))
+                        && shouldRefreshImportBindingsBeforeLine(module.bodyLines(), index)) {
+                    for (ImportRefreshBinding refreshBinding : importRefreshBindings) {
+                        appendBundledLine(
+                                builder,
+                                lineOrigins,
+                                "  " + refreshBinding.localName() + " = " + refreshBinding.exportSymbol() + ";",
+                                null,
+                                -1
+                        );
+                    }
+                }
                 appendBundledLine(
                         builder,
                         lineOrigins,
@@ -469,15 +1861,121 @@ public final class JvmBytecodeCompiler {
             }
 
             final Map<String, String> moduleExports = exportSymbolsByModule.get(module.sourceFile());
+            final Set<String> mutableExportLocals = detectMutableExportLocalNames(module);
+            final Set<String> functionExportLocals = detectFunctionDeclarationLocalNames(module);
+            final Map<String, List<String>> exportSymbolsByLocal = exportSymbolsByLocalName(module, moduleExports);
+            final Set<String> localExportNames = new LinkedHashSet<>();
             for (ExportBinding exportBinding : module.exportBindings()) {
+                localExportNames.add(exportBinding.exportName());
                 appendBundledLine(
                         builder,
                         lineOrigins,
                         "  " + moduleExports.get(exportBinding.exportName()) + " = "
                                 + exportBinding.localName() + ";",
                         null,
-                        -1
-                );
+                                -1
+                        );
+            }
+            if (!mutableExportLocals.isEmpty()) {
+                for (ExportBinding exportBinding : module.exportBindings()) {
+                    if (!functionExportLocals.contains(exportBinding.localName())) {
+                        continue;
+                    }
+                    final String exportSymbol = moduleExports.get(exportBinding.exportName());
+                    if (exportSymbol == null) {
+                        continue;
+                    }
+                    appendBundledLine(
+                            builder,
+                            lineOrigins,
+                            "  " + exportSymbol + " = function(...__tsj_live_args) {",
+                            null,
+                            -1
+                    );
+                    appendBundledLine(
+                            builder,
+                            lineOrigins,
+                            "    const __tsj_live_result = " + exportBinding.localName() + ".apply(this, __tsj_live_args);",
+                            null,
+                            -1
+                    );
+                    for (String mutableLocal : mutableExportLocals) {
+                        final List<String> symbols = exportSymbolsByLocal.get(mutableLocal);
+                        if (symbols == null) {
+                            continue;
+                        }
+                        for (String symbol : symbols) {
+                            appendBundledLine(
+                                    builder,
+                                    lineOrigins,
+                                    "    " + symbol + " = " + mutableLocal + ";",
+                                    null,
+                                    -1
+                            );
+                        }
+                    }
+                    appendBundledLine(builder, lineOrigins, "    return __tsj_live_result;", null, -1);
+                    appendBundledLine(builder, lineOrigins, "  };", null, -1);
+                }
+            }
+            final Set<String> assignedReExportNames = new LinkedHashSet<>();
+            for (ModuleReExport reExport : module.reExports()) {
+                final Map<String, String> dependencyExports = exportSymbolsByModule.get(reExport.dependency());
+                if (dependencyExports == null) {
+                    continue;
+                }
+                if (reExport.kind() == ModuleReExportKind.ALL) {
+                    for (Map.Entry<String, String> entry : dependencyExports.entrySet()) {
+                        final String exportName = entry.getKey();
+                        if ("default".equals(exportName)
+                                || localExportNames.contains(exportName)
+                                || assignedReExportNames.contains(exportName)) {
+                            continue;
+                        }
+                        final String targetExportSymbol = moduleExports.get(exportName);
+                        if (targetExportSymbol == null) {
+                            continue;
+                        }
+                        appendBundledLine(
+                                builder,
+                                lineOrigins,
+                                "  " + targetExportSymbol + " = " + entry.getValue() + ";",
+                                null,
+                                -1
+                        );
+                        assignedReExportNames.add(exportName);
+                    }
+                    continue;
+                }
+                for (ReExportBinding binding : reExport.bindings()) {
+                    final String exportName = binding.exportName();
+                    if (localExportNames.contains(exportName) || assignedReExportNames.contains(exportName)) {
+                        continue;
+                    }
+                    final String sourceExportSymbol = dependencyExports.get(binding.importedName());
+                    if (sourceExportSymbol == null) {
+                        throw new JvmCompilationException(
+                                "TSJ-BACKEND-UNSUPPORTED",
+                                "Re-export binding `" + binding.importedName() + "` is not exported by "
+                                        + reExport.dependency().getFileName()
+                                        + " (re-exported from " + module.sourceFile().getFileName() + ").",
+                                reExport.line(),
+                                1
+                        );
+                    }
+                    final String targetExportSymbol = moduleExports.get(exportName);
+                    if (targetExportSymbol == null) {
+                        continue;
+                    }
+                    appendBundledLine(
+                            builder,
+                            lineOrigins,
+                            "  " + targetExportSymbol + " = " + sourceExportSymbol + ";",
+                            null,
+                            -1
+                    );
+                    assignedReExportNames.add(exportName);
+                }
             }
             appendBundledLine(builder, lineOrigins, "}", null, -1);
             if (asyncInit) {
@@ -488,6 +1986,79 @@ public final class JvmBytecodeCompiler {
             appendBundledLine(builder, lineOrigins, "", null, -1);
         }
         return new BundleResult(builder.toString(), List.copyOf(lineOrigins));
+    }
+
+    private static boolean isTopLevelModuleLine(final String line) {
+        if (line == null || line.isBlank()) {
+            return false;
+        }
+        return !Character.isWhitespace(line.charAt(0));
+    }
+
+    private static boolean shouldRefreshImportBindingsBeforeLine(final List<String> bodyLines, final int index) {
+        final String current = bodyLines.get(index).trim();
+        if (current.isEmpty() || isContinuationLineStart(current)) {
+            return false;
+        }
+        int previousIndex = index - 1;
+        while (previousIndex >= 0) {
+            final String previous = bodyLines.get(previousIndex).trim();
+            if (previous.isEmpty()) {
+                previousIndex--;
+                continue;
+            }
+            return !isContinuationLineEnd(previous);
+        }
+        return true;
+    }
+
+    private static boolean isContinuationLineStart(final String line) {
+        return line.startsWith("&&")
+                || line.startsWith("||")
+                || line.startsWith("??")
+                || line.startsWith("?.")
+                || line.startsWith(".")
+                || line.startsWith(",")
+                || line.startsWith(":")
+                || line.startsWith(")")
+                || line.startsWith("]")
+                || line.startsWith("}")
+                || line.startsWith("+")
+                || line.startsWith("-")
+                || line.startsWith("*")
+                || line.startsWith("/")
+                || line.startsWith("%")
+                || line.startsWith("|")
+                || line.startsWith("&")
+                || line.startsWith("^")
+                || line.startsWith("<<")
+                || line.startsWith(">>");
+    }
+
+    private static boolean isContinuationLineEnd(final String line) {
+        return line.endsWith("(")
+                || line.endsWith("[")
+                || line.endsWith("{")
+                || line.endsWith(",")
+                || line.endsWith(".")
+                || line.endsWith(":")
+                || line.endsWith("?")
+                || line.endsWith("&&")
+                || line.endsWith("||")
+                || line.endsWith("??")
+                || line.endsWith("+")
+                || line.endsWith("-")
+                || line.endsWith("*")
+                || line.endsWith("/")
+                || line.endsWith("%")
+                || line.endsWith("|")
+                || line.endsWith("&")
+                || line.endsWith("^")
+                || line.endsWith("<<")
+                || line.endsWith(">>")
+                || line.endsWith(">>>")
+                || line.endsWith("=")
+                || line.endsWith("=>");
     }
 
     private static void collectModule(
@@ -518,8 +2089,10 @@ public final class JvmBytecodeCompiler {
         }
 
         final List<ModuleImport> imports = new ArrayList<>();
+        final List<ModuleReExport> reExports = new ArrayList<>();
         final List<String> bodyLines = new ArrayList<>();
         final List<Integer> bodyLineNumbers = new ArrayList<>();
+        final Set<Path> dynamicImportDependencies = new LinkedHashSet<>();
         final Map<String, String> exportBindings = new LinkedHashMap<>();
         boolean requiresAsyncInit = false;
         final String[] lines = sourceText.replace("\r\n", "\n").split("\n", -1);
@@ -674,6 +2247,35 @@ public final class JvmBytecodeCompiler {
                 index = importEndIndex;
                 continue;
             }
+            if (trimmedLine.startsWith("export *") || trimmedLine.startsWith("export {")) {
+                final ImportStatement exportStatement = collectImportStatement(lines, index);
+                final String exportCandidate = exportStatement.canonicalStatement();
+                final Matcher exportAllFromMatcher = EXPORT_ALL_FROM_PATTERN.matcher(exportCandidate);
+                final Matcher exportNamedFromMatcher = EXPORT_NAMED_FROM_PATTERN.matcher(exportCandidate);
+                if (exportAllFromMatcher.matches()) {
+                    final String importPath = exportAllFromMatcher.group(1);
+                    final Path dependency = resolveImport(normalizedModule, importPath, index + 1);
+                    collectModule(dependency, orderedModules, visiting);
+                    reExports.add(ModuleReExport.all(dependency, index + 1));
+                    index = exportStatement.endLineIndex();
+                    continue;
+                }
+                if (exportNamedFromMatcher.matches()) {
+                    final String rawBindings = exportNamedFromMatcher.group(1);
+                    final String importPath = exportNamedFromMatcher.group(2);
+                    final Path dependency = resolveImport(normalizedModule, importPath, index + 1);
+                    collectModule(dependency, orderedModules, visiting);
+                    reExports.add(
+                            ModuleReExport.named(
+                                    dependency,
+                                    parseNamedReExportBindings(rawBindings, normalizedModule, index + 1),
+                                    index + 1
+                            )
+                    );
+                    index = exportStatement.endLineIndex();
+                    continue;
+                }
+            }
             if (trimmedLine.startsWith("import ")) {
                 bodyLines.add(importCandidate);
                 bodyLineNumbers.add(importStartLine);
@@ -684,17 +2286,33 @@ public final class JvmBytecodeCompiler {
                     ? rewriteExportLine(line, index + 1)
                     : null;
             if (exportRewrite != null) {
-                bodyLines.add(exportRewrite.rewrittenLine());
+                final String rewrittenExportLine = rewriteDynamicImportCalls(
+                        exportRewrite.rewrittenLine(),
+                        normalizedModule,
+                        index + 1,
+                        orderedModules,
+                        visiting,
+                        dynamicImportDependencies
+                );
+                bodyLines.add(rewrittenExportLine);
                 bodyLineNumbers.add(index + 1);
                 for (ExportBinding exportBinding : exportRewrite.exportedBindings()) {
                     exportBindings.put(exportBinding.exportName(), exportBinding.localName());
                 }
-                requiresAsyncInit = requiresAsyncInit || lineContainsAwaitKeyword(exportRewrite.rewrittenLine());
+                requiresAsyncInit = requiresAsyncInit || lineContainsAwaitKeyword(rewrittenExportLine);
                 continue;
             }
-            bodyLines.add(line);
+            final String rewrittenLine = rewriteDynamicImportCalls(
+                    line,
+                    normalizedModule,
+                    index + 1,
+                    orderedModules,
+                    visiting,
+                    dynamicImportDependencies
+            );
+            bodyLines.add(rewrittenLine);
             bodyLineNumbers.add(index + 1);
-            requiresAsyncInit = requiresAsyncInit || lineContainsAwaitKeyword(line);
+            requiresAsyncInit = requiresAsyncInit || lineContainsAwaitKeyword(rewrittenLine);
         }
 
         orderedModules.put(
@@ -702,8 +2320,10 @@ public final class JvmBytecodeCompiler {
                 new ModuleSource(
                         normalizedModule,
                         List.copyOf(imports),
+                        List.copyOf(reExports),
                         List.copyOf(bodyLines),
                         List.copyOf(bodyLineNumbers),
+                        Set.copyOf(dynamicImportDependencies),
                         exportBindings.entrySet()
                                 .stream()
                                 .map(entry -> new ExportBinding(entry.getKey(), entry.getValue()))
@@ -769,6 +2389,114 @@ public final class JvmBytecodeCompiler {
         return List.copyOf(parsedBindings);
     }
 
+    private static List<ReExportBinding> parseNamedReExportBindings(
+            final String rawBindings,
+            final Path sourceFile,
+            final int line
+    ) {
+        final List<ReExportBinding> parsedBindings = new ArrayList<>();
+        final String[] bindingSegments = rawBindings.split(",");
+        for (String rawBinding : bindingSegments) {
+            final String trimmed = rawBinding.trim();
+            if (trimmed.isEmpty()) {
+                continue;
+            }
+            if (trimmed.startsWith("type ")) {
+                continue;
+            }
+            final String importedName;
+            final String exportName;
+            if (trimmed.contains(" as ")) {
+                final String[] parts = trimmed.split("\\s+as\\s+");
+                if (parts.length != 2) {
+                    throw invalidNamedBinding(sourceFile, line, trimmed, null, null);
+                }
+                importedName = parts[0].trim();
+                exportName = parts[1].trim();
+            } else {
+                importedName = trimmed;
+                exportName = trimmed;
+            }
+            if (!isValidTsIdentifier(importedName) || !isValidTsIdentifier(exportName)) {
+                throw invalidNamedBinding(sourceFile, line, trimmed, null, null);
+            }
+            parsedBindings.add(new ReExportBinding(importedName, exportName));
+        }
+        return List.copyOf(parsedBindings);
+    }
+
+    private static String rewriteDynamicImportCalls(
+            final String line,
+            final Path sourceFile,
+            final int lineNumber,
+            final Map<Path, ModuleSource> orderedModules,
+            final Set<Path> visiting,
+            final Set<Path> dynamicImportDependencies
+    ) {
+        if (line == null || line.indexOf("import") < 0) {
+            return line;
+        }
+        final Matcher matcher = DYNAMIC_IMPORT_CALL_PATTERN.matcher(line);
+        final StringBuffer rewritten = new StringBuffer();
+        boolean foundDynamicImport = false;
+        while (matcher.find()) {
+            foundDynamicImport = true;
+            final String rawArgs = matcher.group(1).trim();
+            if (rawArgs.contains(",")) {
+                throw unsupportedModuleFeature(
+                        sourceFile,
+                        lineNumber,
+                        FEATURE_DYNAMIC_IMPORT,
+                        "dynamic import() requires exactly one string-literal relative specifier in TSJ-65 subset.",
+                        GUIDANCE_DYNAMIC_IMPORT
+                );
+            }
+            final String specifier = parseDynamicImportSpecifier(rawArgs);
+            if (specifier == null) {
+                throw unsupportedModuleFeature(
+                        sourceFile,
+                        lineNumber,
+                        FEATURE_DYNAMIC_IMPORT,
+                        "dynamic import() requires a string-literal relative specifier in TSJ-65 subset.",
+                        GUIDANCE_DYNAMIC_IMPORT
+                );
+            }
+            if (!(specifier.startsWith("./") || specifier.startsWith("../") || specifier.startsWith("/"))) {
+                throw unsupportedModuleFeature(
+                        sourceFile,
+                        lineNumber,
+                        FEATURE_DYNAMIC_IMPORT,
+                        "Only relative dynamic import specifiers are supported in TSJ-65 subset: " + specifier,
+                        GUIDANCE_DYNAMIC_IMPORT
+                );
+            }
+            final Path dependency = resolveImport(sourceFile, specifier, lineNumber);
+            collectModule(dependency, orderedModules, visiting);
+            dynamicImportDependencies.add(dependency);
+            final String replacement = "__tsj_dynamic_import(\"" + escapeJavaLiteral(dependency.toString()) + "\")";
+            matcher.appendReplacement(rewritten, Matcher.quoteReplacement(replacement));
+        }
+        if (!foundDynamicImport) {
+            return line;
+        }
+        matcher.appendTail(rewritten);
+        return rewritten.toString();
+    }
+
+    private static String parseDynamicImportSpecifier(final String rawArgs) {
+        if (rawArgs == null || rawArgs.length() < 2) {
+            return null;
+        }
+        final char quote = rawArgs.charAt(0);
+        if (quote != '"' && quote != '\'') {
+            return null;
+        }
+        if (rawArgs.charAt(rawArgs.length() - 1) != quote) {
+            return null;
+        }
+        return rawArgs.substring(1, rawArgs.length() - 1);
+    }
+
     private static ExportRewrite rewriteExportLine(final String line, final int lineNumber) {
         final String trimmed = line.trim();
         if (!trimmed.startsWith("export ")) {
@@ -831,6 +2559,12 @@ public final class JvmBytecodeCompiler {
                 );
             }
         }
+        final Matcher localNamedExportMatcher = Pattern.compile("^export\\s*\\{([^}]*)}\\s*;?$").matcher(trimmed);
+        if (localNamedExportMatcher.find()) {
+            final List<ExportBinding> localNamedBindings =
+                    parseLocalExportBindings(localNamedExportMatcher.group(1), lineNumber);
+            return new ExportRewrite("", localNamedBindings);
+        }
         final List<ExportBinding> exportedBindings = parseExportedBindings(trimmed);
         if (exportedBindings.isEmpty()) {
             return new ExportRewrite(line, List.of());
@@ -883,6 +2617,48 @@ public final class JvmBytecodeCompiler {
             return List.of(new ExportBinding(declarationHead, declarationHead));
         }
         return List.of();
+    }
+
+    private static List<ExportBinding> parseLocalExportBindings(final String rawBindings, final int lineNumber) {
+        final List<ExportBinding> parsedBindings = new ArrayList<>();
+        final String[] bindingSegments = rawBindings.split(",");
+        for (String rawBinding : bindingSegments) {
+            final String trimmed = rawBinding.trim();
+            if (trimmed.isEmpty()) {
+                continue;
+            }
+            if (trimmed.startsWith("type ")) {
+                continue;
+            }
+            final String localName;
+            final String exportName;
+            if (trimmed.contains(" as ")) {
+                final String[] parts = trimmed.split("\\s+as\\s+");
+                if (parts.length != 2) {
+                    throw new JvmCompilationException(
+                            "TSJ-BACKEND-PARSE",
+                            "Invalid local export binding: " + trimmed,
+                            lineNumber,
+                            1
+                    );
+                }
+                localName = parts[0].trim();
+                exportName = parts[1].trim();
+            } else {
+                localName = trimmed;
+                exportName = trimmed;
+            }
+            if (!isValidTsIdentifier(localName) || !isValidTsIdentifier(exportName)) {
+                throw new JvmCompilationException(
+                        "TSJ-BACKEND-PARSE",
+                        "Invalid local export binding: " + trimmed,
+                        lineNumber,
+                        1
+                );
+            }
+            parsedBindings.add(new ExportBinding(exportName, localName));
+        }
+        return List.copyOf(parsedBindings);
     }
 
     private static String exportGlobalSymbol(final int moduleIndex, final String exportName) {
@@ -996,6 +2772,87 @@ public final class JvmBytecodeCompiler {
         return builder.toString();
     }
 
+    private static Set<String> detectMutableExportLocalNames(final ModuleSource module) {
+        final Set<String> mutableLocals = new LinkedHashSet<>();
+        if (module.exportBindings().isEmpty()) {
+            return mutableLocals;
+        }
+        for (ExportBinding exportBinding : module.exportBindings()) {
+            final String localName = exportBinding.localName();
+            for (String bodyLine : module.bodyLines()) {
+                final String trimmed = bodyLine.trim();
+                if (trimmed.startsWith("let ") || trimmed.startsWith("var ")) {
+                    if (lineDeclaresIdentifier(trimmed, localName)) {
+                        mutableLocals.add(localName);
+                        break;
+                    }
+                }
+            }
+        }
+        return mutableLocals;
+    }
+
+    private static Set<String> detectFunctionDeclarationLocalNames(final ModuleSource module) {
+        final Set<String> functionLocals = new LinkedHashSet<>();
+        if (module.exportBindings().isEmpty()) {
+            return functionLocals;
+        }
+        for (ExportBinding exportBinding : module.exportBindings()) {
+            final String localName = exportBinding.localName();
+            final Pattern functionPattern = Pattern.compile(
+                    "^(?:async\\s+)?function\\s+" + Pattern.quote(localName) + "\\s*\\("
+            );
+            for (String bodyLine : module.bodyLines()) {
+                if (functionPattern.matcher(bodyLine.trim()).find()) {
+                    functionLocals.add(localName);
+                    break;
+                }
+            }
+        }
+        return functionLocals;
+    }
+
+    private static Map<String, List<String>> exportSymbolsByLocalName(
+            final ModuleSource module,
+            final Map<String, String> moduleExports
+    ) {
+        final Map<String, List<String>> byLocal = new LinkedHashMap<>();
+        for (ExportBinding exportBinding : module.exportBindings()) {
+            final String exportSymbol = moduleExports.get(exportBinding.exportName());
+            if (exportSymbol == null) {
+                continue;
+            }
+            byLocal.computeIfAbsent(exportBinding.localName(), ignored -> new ArrayList<>()).add(exportSymbol);
+        }
+        return byLocal;
+    }
+
+    private static boolean lineDeclaresIdentifier(final String declarationLine, final String identifier) {
+        final String declarators = declarationLine.startsWith("let ")
+                ? declarationLine.substring("let ".length())
+                : declarationLine.startsWith("var ")
+                ? declarationLine.substring("var ".length())
+                : "";
+        if (declarators.isEmpty()) {
+            return false;
+        }
+        final String[] parts = declarators.split(",");
+        for (String part : parts) {
+            final String candidate = part.trim();
+            if (candidate.isEmpty()) {
+                continue;
+            }
+            final int equalsIndex = candidate.indexOf('=');
+            final String namePortion = equalsIndex >= 0
+                    ? candidate.substring(0, equalsIndex).trim()
+                    : candidate;
+            if (identifier.equals(namePortion)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private static void appendBundledLine(
             final StringBuilder builder,
             final List<SourceLineOrigin> lineOrigins,
@@ -1012,7 +2869,10 @@ public final class JvmBytecodeCompiler {
             return false;
         }
         final ModuleSource module = modules.get(0);
-        return module.imports().isEmpty() && module.exportBindings().isEmpty();
+        return module.imports().isEmpty()
+                && module.reExports().isEmpty()
+                && module.dynamicImportDependencies().isEmpty()
+                && module.exportBindings().isEmpty();
     }
 
     private static boolean isValidTsIdentifier(final String value) {
@@ -1096,7 +2956,7 @@ public final class JvmBytecodeCompiler {
         );
     }
 
-    private static void compileJava(final Path javaSourcePath, final Path classesDir) {
+    private static void compileJava(final List<Path> javaSourcePaths, final Path classesDir) {
         final JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
         if (compiler == null) {
             throw new JvmCompilationException(
@@ -1107,8 +2967,7 @@ public final class JvmBytecodeCompiler {
 
         final DiagnosticCollector<JavaFileObject> diagnostics = new DiagnosticCollector<>();
         try (StandardJavaFileManager fileManager = compiler.getStandardFileManager(diagnostics, Locale.ROOT, UTF_8)) {
-            final List<Path> compilationSources = new ArrayList<>();
-            compilationSources.add(javaSourcePath);
+            final List<Path> compilationSources = new ArrayList<>(javaSourcePaths);
             if (!isRuntimeAvailableOnClasspath()) {
                 compilationSources.addAll(discoverRuntimeSourceFiles());
             }
@@ -1200,6 +3059,14 @@ public final class JvmBytecodeCompiler {
         final String systemClassPath = System.getProperty("java.class.path", "");
         if (!systemClassPath.isBlank()) {
             for (String entry : systemClassPath.split(Pattern.quote(File.pathSeparator))) {
+                if (entry != null && !entry.isBlank()) {
+                    entries.add(entry);
+                }
+            }
+        }
+        final String additionalClasspath = System.getProperty(ADDITIONAL_CLASSPATH_PROPERTY, "");
+        if (!additionalClasspath.isBlank()) {
+            for (String entry : additionalClasspath.split(Pattern.quote(File.pathSeparator))) {
                 if (entry != null && !entry.isBlank()) {
                     entries.add(entry);
                 }
@@ -1370,6 +3237,140 @@ public final class JvmBytecodeCompiler {
         return builder.toString();
     }
 
+    private static ParseWithIncrementalResult parseProgramWithIncrementalCache(
+            final String sourceText,
+            final Path sourceFile,
+            final BundleResult bundleResult
+    ) {
+        final boolean cacheEnabled = Boolean.parseBoolean(System.getProperty(INCREMENTAL_CACHE_PROPERTY, "true"));
+        final String compilerVersion = incrementalCompilerVersion();
+        final String sourceGraphFingerprint = computeSourceGraphFingerprint(
+                sourceText,
+                sourceFile,
+                bundleResult,
+                compilerVersion
+        );
+        if (!cacheEnabled) {
+            return new ParseWithIncrementalResult(
+                    parseProgram(sourceText, sourceFile, bundleResult),
+                    new IncrementalCompilationReport(
+                            false,
+                            compilerVersion,
+                            sourceGraphFingerprint,
+                            IncrementalStageState.DISABLED,
+                            IncrementalStageState.DISABLED,
+                            IncrementalStageState.MISS
+                    )
+            );
+        }
+
+        final Path normalizedSource = sourceFile.toAbsolutePath().normalize();
+        final String previousFingerprint;
+        synchronized (LAST_SOURCE_GRAPH_FINGERPRINT) {
+            previousFingerprint = LAST_SOURCE_GRAPH_FINGERPRINT.put(normalizedSource, sourceGraphFingerprint);
+        }
+        final boolean invalidated = previousFingerprint != null && !previousFingerprint.equals(sourceGraphFingerprint);
+        final IncrementalParseCacheKey cacheKey = new IncrementalParseCacheKey(sourceGraphFingerprint, compilerVersion);
+        final ParseResult cached;
+        synchronized (INCREMENTAL_PARSE_CACHE) {
+            cached = INCREMENTAL_PARSE_CACHE.get(cacheKey);
+        }
+        if (cached != null) {
+            return new ParseWithIncrementalResult(
+                    cached,
+                    new IncrementalCompilationReport(
+                            true,
+                            compilerVersion,
+                            sourceGraphFingerprint,
+                            IncrementalStageState.HIT,
+                            IncrementalStageState.HIT,
+                            IncrementalStageState.MISS
+                    )
+            );
+        }
+
+        final ParseResult parsed = parseProgram(sourceText, sourceFile, bundleResult);
+        synchronized (INCREMENTAL_PARSE_CACHE) {
+            INCREMENTAL_PARSE_CACHE.put(cacheKey, parsed);
+        }
+        final IncrementalStageState missState = invalidated
+                ? IncrementalStageState.INVALIDATED
+                : IncrementalStageState.MISS;
+        return new ParseWithIncrementalResult(
+                parsed,
+                new IncrementalCompilationReport(
+                        true,
+                        compilerVersion,
+                        sourceGraphFingerprint,
+                        missState,
+                        missState,
+                        IncrementalStageState.MISS
+                )
+        );
+    }
+
+    private static String incrementalCompilerVersion() {
+        return INCREMENTAL_CACHE_VERSION
+                + "|"
+                + BackendJvmModule.moduleName()
+                + "|"
+                + BackendJvmModule.dependencyFingerprint();
+    }
+
+    private static String computeSourceGraphFingerprint(
+            final String sourceText,
+            final Path sourceFile,
+            final BundleResult bundleResult,
+            final String compilerVersion
+    ) {
+        final MessageDigest digest = messageDigestSha256();
+        updateDigest(digest, compilerVersion);
+        updateDigest(digest, sourceFile.toAbsolutePath().normalize().toString());
+        updateDigest(digest, System.getProperty(LEGACY_TOKENIZER_PROPERTY, "false"));
+        updateDigest(digest, System.getProperty(AST_NO_FALLBACK_PROPERTY, "true"));
+        final LinkedHashSet<String> moduleFiles = new LinkedHashSet<>();
+        for (SourceLineOrigin lineOrigin : bundleResult.lineOrigins()) {
+            if (lineOrigin != null && lineOrigin.sourceFile() != null) {
+                moduleFiles.add(lineOrigin.sourceFile().toAbsolutePath().normalize().toString());
+            }
+        }
+        for (String moduleFile : moduleFiles) {
+            updateDigest(digest, moduleFile);
+        }
+        updateDigest(digest, sourceText);
+        return toHex(digest.digest());
+    }
+
+    private static MessageDigest messageDigestSha256() {
+        try {
+            return MessageDigest.getInstance("SHA-256");
+        } catch (final NoSuchAlgorithmException noSuchAlgorithmException) {
+            throw new IllegalStateException("SHA-256 digest is unavailable.", noSuchAlgorithmException);
+        }
+    }
+
+    private static void updateDigest(final MessageDigest digest, final String value) {
+        digest.update((value == null ? "" : value).getBytes(UTF_8));
+        digest.update((byte) 0);
+    }
+
+    private static String toHex(final byte[] bytes) {
+        final StringBuilder builder = new StringBuilder(bytes.length * 2);
+        for (byte current : bytes) {
+            builder.append(String.format(Locale.ROOT, "%02x", current));
+        }
+        return builder.toString();
+    }
+
+    private static <K, V> Map<K, V> newLruMap(final int maxEntries) {
+        return Collections.synchronizedMap(new LinkedHashMap<>(16, 0.75f, true) {
+            @Override
+            protected boolean removeEldestEntry(final Map.Entry<K, V> eldest) {
+                return size() > maxEntries;
+            }
+        });
+    }
+
     private static ParseResult parseProgram(
             final String sourceText,
             final Path sourceFile,
@@ -1392,7 +3393,13 @@ public final class JvmBytecodeCompiler {
             return new ParseResult(astLoweringResult.program(), astLoweringResult.statementLocations());
         }
 
-        if (Boolean.parseBoolean(System.getProperty(AST_NO_FALLBACK_PROPERTY, "false"))) {
+        if (Boolean.parseBoolean(System.getProperty(AST_NO_FALLBACK_PROPERTY, "true"))) {
+            if (!bridgeResult.normalizationDiagnostics().isEmpty()) {
+                throw bridgeDiagnosticToCompilationException(
+                        bridgeResult.normalizationDiagnostics().getFirst(),
+                        bundleResult
+                );
+            }
             throw new JvmCompilationException(
                     "TSJ-BACKEND-AST-LOWERING",
                     "Normalized AST lowering is unavailable for this source and parser fallback is disabled."
@@ -1417,7 +3424,13 @@ public final class JvmBytecodeCompiler {
         if (bridgeResult.diagnostics().isEmpty()) {
             return;
         }
-        final TypeScriptSyntaxBridge.BridgeDiagnostic diagnostic = bridgeResult.diagnostics().getFirst();
+        throw bridgeDiagnosticToCompilationException(bridgeResult.diagnostics().getFirst(), bundleResult);
+    }
+
+    private static JvmCompilationException bridgeDiagnosticToCompilationException(
+            final TypeScriptSyntaxBridge.BridgeDiagnostic diagnostic,
+            final BundleResult bundleResult
+    ) {
         final String code = diagnostic.code() == null || diagnostic.code().isBlank()
                 ? "TSJ-BACKEND-PARSE"
                 : diagnostic.code();
@@ -1429,14 +3442,23 @@ public final class JvmBytecodeCompiler {
         final String diagnosticSource = mappedLocation != null
                 ? mappedLocation.sourceFile().toString()
                 : null;
-        throw new JvmCompilationException(
+        final String featureId = diagnostic.featureId();
+        final String guidance = diagnostic.guidance();
+        String message = diagnostic.message();
+        if (featureId != null && !featureId.isBlank() && message != null && !message.contains("[featureId=")) {
+            message = message + " [featureId=" + featureId + "]";
+            if (guidance != null && !guidance.isBlank()) {
+                message = message + ". Guidance: " + guidance;
+            }
+        }
+        return new JvmCompilationException(
                 code,
-                diagnostic.message(),
+                message,
                 line,
                 column,
                 diagnosticSource,
-                null,
-                null
+                featureId,
+                guidance
         );
     }
 
@@ -2572,6 +4594,35 @@ public final class JvmBytecodeCompiler {
     private record SourceLocation(Path sourceFile, int line, int column) {
     }
 
+    private record TopLevelClassDeclaration(
+            ClassDeclaration declaration,
+            SourceLocation sourceLocation
+    ) {
+    }
+
+    private record MetadataCarrierDeclaration(
+            ClassDeclaration classDeclaration,
+            TsDecoratedClass decoratedClass,
+            Map<String, String> importedDecoratorBindings
+    ) {
+        private MetadataCarrierDeclaration {
+            classDeclaration = Objects.requireNonNull(classDeclaration, "classDeclaration");
+            importedDecoratorBindings = Map.copyOf(
+                    Objects.requireNonNull(importedDecoratorBindings, "importedDecoratorBindings")
+            );
+        }
+    }
+
+    private record ClassLookupKey(Path sourceFile, String className) {
+        private ClassLookupKey {
+            sourceFile = Objects.requireNonNull(sourceFile, "sourceFile").toAbsolutePath().normalize();
+            className = Objects.requireNonNull(className, "className");
+        }
+    }
+
+    private record AnnotationAssignment(String name, String value) {
+    }
+
     private enum ModuleImportKind {
         NAMED,
         NAMESPACE,
@@ -2582,7 +4633,47 @@ public final class JvmBytecodeCompiler {
     private record ImportBinding(String importedName, String localName) {
     }
 
+    private record ImportRefreshBinding(String localName, String exportSymbol) {
+    }
+
     private record ExportBinding(String exportName, String localName) {
+    }
+
+    private enum ModuleReExportKind {
+        ALL,
+        NAMED
+    }
+
+    private record ReExportBinding(String importedName, String exportName) {
+    }
+
+    private record ModuleReExport(
+            ModuleReExportKind kind,
+            Path dependency,
+            List<ReExportBinding> bindings,
+            int line
+    ) {
+        private static ModuleReExport all(final Path dependency, final int line) {
+            return new ModuleReExport(
+                    ModuleReExportKind.ALL,
+                    dependency,
+                    List.of(),
+                    line
+            );
+        }
+
+        private static ModuleReExport named(
+                final Path dependency,
+                final List<ReExportBinding> bindings,
+                final int line
+        ) {
+            return new ModuleReExport(
+                    ModuleReExportKind.NAMED,
+                    dependency,
+                    List.copyOf(bindings),
+                    line
+            );
+        }
     }
 
     private record ModuleImport(
@@ -2652,8 +4743,10 @@ public final class JvmBytecodeCompiler {
     private record ModuleSource(
             Path sourceFile,
             List<ModuleImport> imports,
+            List<ModuleReExport> reExports,
             List<String> bodyLines,
             List<Integer> bodyLineNumbers,
+            Set<Path> dynamicImportDependencies,
             List<ExportBinding> exportBindings,
             boolean requiresAsyncInit
     ) {
@@ -4833,6 +6926,7 @@ public final class JvmBytecodeCompiler {
         private final String classSimpleName;
         private final Program program;
         private final IdentityHashMap<Statement, SourceLocation> statementLocations;
+        private final List<StrictNativeClassModel> strictNativeClassModels;
         private final List<String> propertyCacheFieldDeclarations;
         private int propertyCacheCounter;
 
@@ -4840,12 +6934,16 @@ public final class JvmBytecodeCompiler {
                 final String packageName,
                 final String classSimpleName,
                 final Program program,
-                final Map<Statement, SourceLocation> statementLocations
+                final Map<Statement, SourceLocation> statementLocations,
+                final StrictNativeClassLoweringPlan strictLoweringPlan
         ) {
             this.packageName = packageName;
             this.classSimpleName = classSimpleName;
             this.program = program;
             this.statementLocations = new IdentityHashMap<>(statementLocations);
+            this.strictNativeClassModels = createStrictNativeClassModels(
+                    Objects.requireNonNull(strictLoweringPlan, "strictLoweringPlan").nativeClasses()
+            );
             this.propertyCacheFieldDeclarations = new ArrayList<>();
             this.propertyCacheCounter = 0;
         }
@@ -4955,6 +7053,16 @@ public final class JvmBytecodeCompiler {
             builder.append("    private static final java.util.Map<String, Object> ")
                     .append(TOP_LEVEL_CLASS_MAP_FIELD)
                     .append(" = new java.util.LinkedHashMap<>();\n");
+            builder.append("    private interface __TsjStrictNativeInstance {\n");
+            builder.append("        Object __tsjInvoke(String methodName, Object... args);\n");
+            builder.append("        void __tsjSetField(String fieldName, Object value);\n");
+            builder.append("    }\n");
+            builder.append("    private interface __TsjStrictNativeFactory {\n");
+            builder.append("        __TsjStrictNativeInstance create(Object[] constructorArgs);\n");
+            builder.append("    }\n");
+            builder.append("    private static final java.util.Map<String, __TsjStrictNativeFactory> ")
+                    .append("__TSJ_STRICT_FACTORIES")
+                    .append(" = new java.util.LinkedHashMap<>();\n");
             builder.append("    private static boolean ")
                     .append(BOOTSTRAP_GUARD_FIELD)
                     .append(" = false;\n");
@@ -4972,6 +7080,14 @@ public final class JvmBytecodeCompiler {
             builder.append("            return;\n");
             builder.append("        }\n");
             builder.append("        ").append(TOP_LEVEL_CLASS_MAP_FIELD).append(".clear();\n");
+            builder.append("        __TSJ_STRICT_FACTORIES.clear();\n");
+            for (StrictNativeClassModel model : strictNativeClassModels) {
+                builder.append("        __TSJ_STRICT_FACTORIES.put(\"")
+                        .append(escapeJava(model.tsClassName()))
+                        .append("\", (__tsjCtorArgs) -> new ")
+                        .append(model.nativeClassSimpleName())
+                        .append("(__tsjCtorArgs));\n");
+            }
             builder.append(bootstrapBody);
             builder.append("    }\n\n");
             builder.append("    public static Object __tsjInvokeClass(")
@@ -4991,13 +7107,6 @@ public final class JvmBytecodeCompiler {
                     .append("final Object... args")
                     .append(") {\n");
             builder.append("        __tsjBootstrap();\n");
-            builder.append("        final Object classValue = ")
-                    .append(TOP_LEVEL_CLASS_MAP_FIELD)
-                    .append(".get(className);\n");
-            builder.append("        if (classValue == null) {\n");
-            builder.append("            throw new IllegalArgumentException(")
-                    .append("\"TSJ controller class not found: \" + className);\n");
-            builder.append("        }\n");
             builder.append("        final Object[] ctorArgs = constructorArgs == null ? new Object[0] : constructorArgs;\n");
             builder.append("        final String[] safeFieldNames = fieldNames == null ? new String[0] : fieldNames;\n");
             builder.append("        final Object[] safeFieldValues = fieldValues == null ? new Object[0] : fieldValues;\n");
@@ -5008,6 +7117,28 @@ public final class JvmBytecodeCompiler {
             builder.append("        final Object[] safeSetterValues = setterValues == null ? new Object[0] : setterValues;\n");
             builder.append("        if (safeSetterNames.length != safeSetterValues.length) {\n");
             builder.append("            throw new IllegalArgumentException(\"TSJ injection setter name/value length mismatch.\");\n");
+            builder.append("        }\n");
+            builder.append("        final __TsjStrictNativeFactory __tsjStrictFactory = ")
+                    .append("__TSJ_STRICT_FACTORIES.get(className);\n");
+            builder.append("        if (__tsjStrictFactory != null) {\n");
+            builder.append("            final __TsjStrictNativeInstance __tsjStrictInstance = ")
+                    .append("__tsjStrictFactory.create(ctorArgs);\n");
+            builder.append("            for (int i = 0; i < safeFieldNames.length; i++) {\n");
+            builder.append("                __tsjStrictInstance.__tsjSetField(safeFieldNames[i], safeFieldValues[i]);\n");
+            builder.append("            }\n");
+            builder.append("            for (int i = 0; i < safeSetterNames.length; i++) {\n");
+            builder.append("                __tsjStrictInstance.__tsjInvoke(safeSetterNames[i], safeSetterValues[i]);\n");
+            builder.append("            }\n");
+            builder.append("            final Object result = __tsjStrictInstance.__tsjInvoke(methodName, args);\n");
+            builder.append("            dev.tsj.runtime.TsjRuntime.flushMicrotasks();\n");
+            builder.append("            return result;\n");
+            builder.append("        }\n");
+            builder.append("        final Object classValue = ")
+                    .append(TOP_LEVEL_CLASS_MAP_FIELD)
+                    .append(".get(className);\n");
+            builder.append("        if (classValue == null) {\n");
+            builder.append("            throw new IllegalArgumentException(")
+                    .append("\"TSJ controller class not found: \" + className);\n");
             builder.append("        }\n");
             builder.append("        final Object instance = dev.tsj.runtime.TsjRuntime.construct(classValue, ctorArgs);\n");
             builder.append("        for (int i = 0; i < safeFieldNames.length; i++) {\n");
@@ -5026,11 +7157,772 @@ public final class JvmBytecodeCompiler {
                     .append(") {\n");
             builder.append("        return __tsjInvokeClass(className, methodName, new Object[0], args);\n");
             builder.append("    }\n\n");
+            builder.append("""
+                    public static Object __tsjCoerceControllerRequestBody(
+                            final String tsTypeSpec,
+                            final Object rawValue
+                    ) {
+                        if (tsTypeSpec == null || tsTypeSpec.isBlank()) {
+                            return rawValue;
+                        }
+                        final __TsjTypeSpec __tsjResolved = __tsjResolveTypeSpec(tsTypeSpec);
+                        if (rawValue == null || rawValue == dev.tsj.runtime.TsjRuntime.undefined()) {
+                            if (__tsjResolved.nullable()) {
+                                return rawValue;
+                            }
+                            throw __tsjTypeError(
+                                    "null request-body is not allowed for strict type `" + __tsjResolved.baseType() + "`."
+                            );
+                        }
+                        return __tsjCoerceStrictType(__tsjResolved.baseType(), rawValue);
+                    }
+
+                    private static Object __tsjCoerceStrictType(final String tsTypeSpec, final Object rawValue) {
+                        final String __tsjBase = __tsjStripOuterParens(tsTypeSpec == null ? "" : tsTypeSpec.trim());
+                        if (__tsjBase.isBlank() || "any".equals(__tsjBase) || "unknown".equals(__tsjBase)
+                                || "object".equals(__tsjBase)) {
+                            return rawValue;
+                        }
+                        if ("string".equals(__tsjBase)) {
+                            if (!(rawValue instanceof String)) {
+                                throw __tsjTypeError("type mismatch for strict type `string`.");
+                            }
+                            return rawValue;
+                        }
+                        if ("number".equals(__tsjBase)) {
+                            if (!(rawValue instanceof Number)) {
+                                throw __tsjTypeError("type mismatch for strict type `number`.");
+                            }
+                            return rawValue;
+                        }
+                        if ("boolean".equals(__tsjBase)) {
+                            if (!(rawValue instanceof Boolean)) {
+                                throw __tsjTypeError("type mismatch for strict type `boolean`.");
+                            }
+                            return rawValue;
+                        }
+                        if (__tsjBase.endsWith("[]")) {
+                            final String __tsjElementType = __tsjBase.substring(0, __tsjBase.length() - 2).trim();
+                            return __tsjCoerceArrayType(__tsjElementType, rawValue);
+                        }
+                        if (__tsjBase.startsWith("Array<") && __tsjBase.endsWith(">")) {
+                            final String __tsjElementType = __tsjBase.substring("Array<".length(), __tsjBase.length() - 1).trim();
+                            return __tsjCoerceArrayType(__tsjElementType, rawValue);
+                        }
+                        if (__tsjBase.startsWith("Record<") && __tsjBase.endsWith(">")) {
+                            final String __tsjInner = __tsjBase.substring("Record<".length(), __tsjBase.length() - 1);
+                            final java.util.List<String> __tsjArgs = __tsjSplitTopLevel(__tsjInner, ',');
+                            if (__tsjArgs.size() != 2) {
+                                throw __tsjTypeError("unsupported Record type shape `" + __tsjBase + "`.");
+                            }
+                            final String __tsjKeyType = __tsjStripOuterParens(__tsjArgs.get(0).trim());
+                            if (!"string".equals(__tsjKeyType)) {
+                                throw __tsjTypeError("unsupported Record key type `" + __tsjKeyType + "` in `" + __tsjBase + "`.");
+                            }
+                            return __tsjCoerceRecordType(__tsjArgs.get(1).trim(), rawValue);
+                        }
+                        if (__tsjBase.startsWith("{") && __tsjBase.endsWith("}")) {
+                            throw __tsjTypeError("unsupported request-body object-literal type shape `" + __tsjBase + "`.");
+                        }
+                        if (!__tsjIsSimpleIdentifier(__tsjBase)) {
+                            throw __tsjTypeError("unsupported strict request-body type shape `" + __tsjBase + "`.");
+                        }
+                        return __tsjCoerceStrictDtoType(__tsjBase, rawValue);
+                    }
+
+                    private static Object __tsjCoerceArrayType(final String elementTypeSpec, final Object rawValue) {
+                        final java.util.List<Object> __tsjValues = new java.util.ArrayList<>();
+                        if (rawValue instanceof java.util.List<?> __tsjList) {
+                            for (Object __tsjValue : __tsjList) {
+                                __tsjValues.add(__tsjCoerceControllerRequestBody(elementTypeSpec, __tsjValue));
+                            }
+                            return java.util.List.copyOf(__tsjValues);
+                        }
+                        if (rawValue != null && rawValue.getClass().isArray()) {
+                            final int __tsjLength = java.lang.reflect.Array.getLength(rawValue);
+                            for (int __tsjIndex = 0; __tsjIndex < __tsjLength; __tsjIndex++) {
+                                __tsjValues.add(
+                                        __tsjCoerceControllerRequestBody(
+                                                elementTypeSpec,
+                                                java.lang.reflect.Array.get(rawValue, __tsjIndex)
+                                        )
+                                );
+                            }
+                            return java.util.List.copyOf(__tsjValues);
+                        }
+                        throw __tsjTypeError("expected array/list payload for strict type `" + elementTypeSpec + "[]`.");
+                    }
+
+                    private static Object __tsjCoerceRecordType(final String valueTypeSpec, final Object rawValue) {
+                        if (!(rawValue instanceof java.util.Map<?, ?> __tsjMap)) {
+                            throw __tsjTypeError("expected object/map payload for strict record type `" + valueTypeSpec + "`.");
+                        }
+                        final java.util.Map<String, Object> __tsjOut = new java.util.LinkedHashMap<>();
+                        for (java.util.Map.Entry<?, ?> __tsjEntry : __tsjMap.entrySet()) {
+                            __tsjOut.put(
+                                    String.valueOf(__tsjEntry.getKey()),
+                                    __tsjCoerceControllerRequestBody(valueTypeSpec, __tsjEntry.getValue())
+                            );
+                        }
+                        return java.util.Map.copyOf(__tsjOut);
+                    }
+
+                    private static Object __tsjCoerceStrictDtoType(final String tsClassName, final Object rawValue) {
+                        __tsjBootstrap();
+                        final __TsjStrictNativeFactory __tsjFactory = __TSJ_STRICT_FACTORIES.get(tsClassName);
+                        if (__tsjFactory == null) {
+                            return rawValue;
+                        }
+                        if (rawValue instanceof __TsjStrictNativeInstance) {
+                            return rawValue;
+                        }
+                        if (!(rawValue instanceof java.util.Map<?, ?> __tsjMap)) {
+                            throw __tsjTypeError(
+                                    "unsupported request-body value for strict DTO `" + tsClassName + "`: expected map/object payload."
+                            );
+                        }
+                        final __TsjStrictNativeInstance __tsjDto = __tsjFactory.create(new Object[0]);
+                        for (java.util.Map.Entry<?, ?> __tsjEntry : __tsjMap.entrySet()) {
+                            final String __tsjFieldName = String.valueOf(__tsjEntry.getKey());
+                            try {
+                                __tsjDto.__tsjSetField(__tsjFieldName, __tsjEntry.getValue());
+                            } catch (IllegalArgumentException illegalArgumentException) {
+                                throw __tsjTypeError(
+                                        "unsupported strict request-body field `" + __tsjFieldName
+                                                + "` for DTO `" + tsClassName + "`."
+                                );
+                            }
+                        }
+                        return __tsjDto;
+                    }
+
+                    private static __TsjTypeSpec __tsjResolveTypeSpec(final String tsTypeSpec) {
+                        final String __tsjNormalized = __tsjStripOuterParens(tsTypeSpec.trim());
+                        final java.util.List<String> __tsjUnionParts = __tsjSplitTopLevel(__tsjNormalized, '|');
+                        boolean __tsjNullable = false;
+                        String __tsjPrimary = null;
+                        for (String __tsjPart : __tsjUnionParts) {
+                            final String __tsjCandidate = __tsjStripOuterParens(__tsjPart.trim());
+                            if (__tsjCandidate.isBlank()) {
+                                continue;
+                            }
+                            if ("null".equals(__tsjCandidate) || "undefined".equals(__tsjCandidate)) {
+                                __tsjNullable = true;
+                                continue;
+                            }
+                            if (__tsjPrimary == null) {
+                                __tsjPrimary = __tsjCandidate;
+                                continue;
+                            }
+                            if (!__tsjPrimary.equals(__tsjCandidate)) {
+                                throw __tsjTypeError("unsupported union request-body type `" + __tsjNormalized + "`.");
+                            }
+                        }
+                        if (__tsjPrimary == null) {
+                            __tsjPrimary = "any";
+                        }
+                        return new __TsjTypeSpec(__tsjPrimary, __tsjNullable);
+                    }
+
+                    private static java.util.List<String> __tsjSplitTopLevel(final String text, final char separator) {
+                        final java.util.List<String> parts = new java.util.ArrayList<>();
+                        int start = 0;
+                        int angleDepth = 0;
+                        int parenDepth = 0;
+                        int bracketDepth = 0;
+                        int braceDepth = 0;
+                        for (int index = 0; index < text.length(); index++) {
+                            final char value = text.charAt(index);
+                            switch (value) {
+                                case '<' -> angleDepth++;
+                                case '>' -> {
+                                    if (angleDepth > 0) {
+                                        angleDepth--;
+                                    }
+                                }
+                                case '(' -> parenDepth++;
+                                case ')' -> {
+                                    if (parenDepth > 0) {
+                                        parenDepth--;
+                                    }
+                                }
+                                case '[' -> bracketDepth++;
+                                case ']' -> {
+                                    if (bracketDepth > 0) {
+                                        bracketDepth--;
+                                    }
+                                }
+                                case '{' -> braceDepth++;
+                                case '}' -> {
+                                    if (braceDepth > 0) {
+                                        braceDepth--;
+                                    }
+                                }
+                                default -> {
+                                    if (value == separator
+                                            && angleDepth == 0
+                                            && parenDepth == 0
+                                            && bracketDepth == 0
+                                            && braceDepth == 0) {
+                                        parts.add(text.substring(start, index));
+                                        start = index + 1;
+                                    }
+                                }
+                            }
+                        }
+                        parts.add(text.substring(start));
+                        return java.util.List.copyOf(parts);
+                    }
+
+                    private static String __tsjStripOuterParens(final String value) {
+                        String current = value == null ? "" : value.trim();
+                        while (current.startsWith("(") && current.endsWith(")") && current.length() >= 2) {
+                            int depth = 0;
+                            boolean wrapsAll = true;
+                            for (int index = 0; index < current.length(); index++) {
+                                final char character = current.charAt(index);
+                                if (character == '(') {
+                                    depth++;
+                                } else if (character == ')') {
+                                    depth--;
+                                    if (depth == 0 && index < current.length() - 1) {
+                                        wrapsAll = false;
+                                        break;
+                                    }
+                                }
+                            }
+                            if (!wrapsAll || depth != 0) {
+                                break;
+                            }
+                            current = current.substring(1, current.length() - 1).trim();
+                        }
+                        return current;
+                    }
+
+                    private static boolean __tsjIsSimpleIdentifier(final String value) {
+                        if (value == null || value.isBlank()) {
+                            return false;
+                        }
+                        final char first = value.charAt(0);
+                        if (!(Character.isLetter(first) || first == '_' || first == '$')) {
+                            return false;
+                        }
+                        for (int index = 1; index < value.length(); index++) {
+                            final char character = value.charAt(index);
+                            if (!(Character.isLetterOrDigit(character) || character == '_' || character == '$')) {
+                                return false;
+                            }
+                        }
+                        return true;
+                    }
+
+                    private static IllegalArgumentException __tsjTypeError(final String detail) {
+                        return new IllegalArgumentException("TSJ-WEB-BINDING " + detail);
+                    }
+
+                    private record __TsjTypeSpec(String baseType, boolean nullable) {
+                    }
+
+                    """);
+            if (!strictNativeClassModels.isEmpty()) {
+                appendStrictNativeClassDefinitions(builder);
+            }
             builder.append("    public static void main(String[] args) {\n");
             builder.append("        __tsjBootstrap();\n");
             builder.append("    }\n");
             builder.append("}\n");
             return builder.toString();
+        }
+
+        private List<StrictNativeClassModel> createStrictNativeClassModels(
+                final List<ClassDeclaration> classDeclarations
+        ) {
+            if (classDeclarations.isEmpty()) {
+                return List.of();
+            }
+            final List<StrictNativeClassModel> models = new ArrayList<>();
+            final Map<String, Integer> classNameCounts = new LinkedHashMap<>();
+            for (ClassDeclaration declaration : classDeclarations) {
+                final String nativeClassSimpleName = allocateUniqueName(
+                        classNameCounts,
+                        sanitizeJavaIdentifier(declaration.name()) + "__TsjStrictNative"
+                );
+                final Map<String, String> fieldNameMap = new LinkedHashMap<>();
+                final Map<String, Integer> fieldNameCounts = new LinkedHashMap<>();
+                for (String fieldName : declaration.fieldNames()) {
+                    fieldNameMap.put(
+                            fieldName,
+                            allocateUniqueName(fieldNameCounts, sanitizeJavaIdentifier(fieldName))
+                    );
+                }
+                final Map<String, String> methodNameMap = new LinkedHashMap<>();
+                final Map<String, Integer> methodNameCounts = new LinkedHashMap<>();
+                for (ClassMethod method : declaration.methods()) {
+                    methodNameMap.put(
+                            method.name(),
+                            allocateUniqueName(methodNameCounts, sanitizeJavaIdentifier(method.name()))
+                    );
+                }
+                models.add(new StrictNativeClassModel(
+                        declaration.name(),
+                        nativeClassSimpleName,
+                        declaration,
+                        Map.copyOf(fieldNameMap),
+                        Map.copyOf(methodNameMap)
+                ));
+            }
+            return List.copyOf(models);
+        }
+
+        private void appendStrictNativeClassDefinitions(final StringBuilder builder) {
+            for (StrictNativeClassModel model : strictNativeClassModels) {
+                appendStrictNativeClassDefinition(builder, model);
+                builder.append("\n");
+            }
+        }
+
+        private void appendStrictNativeClassDefinition(
+                final StringBuilder builder,
+                final StrictNativeClassModel model
+        ) {
+            builder.append("    public static final class ")
+                    .append(model.nativeClassSimpleName())
+                    .append(" implements __TsjStrictNativeInstance {\n");
+            for (String fieldName : model.declaration().fieldNames()) {
+                final String javaFieldName = model.fieldNameMap().get(fieldName);
+                builder.append("        private Object ").append(javaFieldName).append(";\n");
+            }
+            builder.append("\n");
+            builder.append("        private static Object __tsjArg(final Object[] args, final int index) {\n");
+            builder.append("            return args != null && index < args.length\n");
+            builder.append("                    ? args[index]\n");
+            builder.append("                    : dev.tsj.runtime.TsjRuntime.undefined();\n");
+            builder.append("        }\n\n");
+
+            builder.append("        private void __tsjInitFields() {\n");
+            for (String fieldName : model.declaration().fieldNames()) {
+                final String javaFieldName = model.fieldNameMap().get(fieldName);
+                builder.append("            this.")
+                        .append(javaFieldName)
+                        .append(" = dev.tsj.runtime.TsjRuntime.undefined();\n");
+            }
+            builder.append("        }\n\n");
+
+            builder.append("        public ")
+                    .append(model.nativeClassSimpleName())
+                    .append("() {\n");
+            builder.append("            __tsjInitFields();\n");
+            builder.append("        }\n\n");
+
+            builder.append("        private ")
+                    .append(model.nativeClassSimpleName())
+                    .append("(final Object... __tsjCtorArgs) {\n");
+            builder.append("            __tsjInitFields();\n");
+            if (model.declaration().constructorMethod() != null) {
+                final Map<String, String> variableNames = new LinkedHashMap<>();
+                final Map<String, Integer> localNameCounts = new LinkedHashMap<>();
+                appendStrictNativeParameterBindings(
+                        builder,
+                        model.declaration().constructorMethod().parameters(),
+                        "__tsjCtorArgs",
+                        variableNames,
+                        localNameCounts,
+                        "            "
+                );
+                appendStrictNativeStatements(
+                        builder,
+                        model,
+                        model.declaration().constructorMethod().body(),
+                        variableNames,
+                        localNameCounts,
+                        "            "
+                );
+            }
+            builder.append("        }\n\n");
+
+            for (String fieldName : model.declaration().fieldNames()) {
+                final String javaFieldName = model.fieldNameMap().get(fieldName);
+                final String pascalFieldName = toPascalCase(javaFieldName);
+                builder.append("        public Object get")
+                        .append(pascalFieldName)
+                        .append("() {\n");
+                builder.append("            return this.")
+                        .append(javaFieldName)
+                        .append(";\n");
+                builder.append("        }\n\n");
+                builder.append("        public void set")
+                        .append(pascalFieldName)
+                        .append("(final Object value) {\n");
+                builder.append("            this.")
+                        .append(javaFieldName)
+                        .append(" = value;\n");
+                builder.append("        }\n\n");
+            }
+
+            for (ClassMethod method : model.declaration().methods()) {
+                final String javaMethodName = model.methodNameMap().get(method.name());
+                builder.append("        private Object ")
+                        .append(javaMethodName)
+                        .append("(final Object... __tsjMethodArgs) {\n");
+                final Map<String, String> variableNames = new LinkedHashMap<>();
+                final Map<String, Integer> localNameCounts = new LinkedHashMap<>();
+                appendStrictNativeParameterBindings(
+                        builder,
+                        method.parameters(),
+                        "__tsjMethodArgs",
+                        variableNames,
+                        localNameCounts,
+                        "            "
+                );
+                appendStrictNativeStatements(
+                        builder,
+                        model,
+                        method.body(),
+                        variableNames,
+                        localNameCounts,
+                        "            "
+                );
+                if (!blockAlwaysExits(method.body())) {
+                    builder.append("            return dev.tsj.runtime.TsjRuntime.undefined();\n");
+                }
+                builder.append("        }\n\n");
+            }
+
+            builder.append("        @Override\n");
+            builder.append("        public Object __tsjInvoke(final String methodName, final Object... args) {\n");
+            if (model.methodNameMap().isEmpty()) {
+                builder.append("            throw new IllegalArgumentException(")
+                        .append("\"TSJ strict-native method not found: \" + methodName);\n");
+            } else {
+                builder.append("            return switch (methodName) {\n");
+                for (Map.Entry<String, String> entry : model.methodNameMap().entrySet()) {
+                    builder.append("                case \"")
+                            .append(escapeJava(entry.getKey()))
+                            .append("\" -> this.")
+                            .append(entry.getValue())
+                            .append("(args);\n");
+                }
+                builder.append("                default -> throw new IllegalArgumentException(")
+                        .append("\"TSJ strict-native method not found: \" + methodName);\n");
+                builder.append("            };\n");
+            }
+            builder.append("        }\n\n");
+
+            builder.append("        @Override\n");
+            builder.append("        public void __tsjSetField(final String fieldName, final Object value) {\n");
+            if (model.fieldNameMap().isEmpty()) {
+                builder.append("            throw new IllegalArgumentException(")
+                        .append("\"TSJ strict-native field not found: \" + fieldName);\n");
+            } else {
+                builder.append("            switch (fieldName) {\n");
+                for (Map.Entry<String, String> entry : model.fieldNameMap().entrySet()) {
+                    builder.append("                case \"")
+                            .append(escapeJava(entry.getKey()))
+                            .append("\" -> this.")
+                            .append(entry.getValue())
+                            .append(" = value;\n");
+                }
+                builder.append("                default -> throw new IllegalArgumentException(")
+                        .append("\"TSJ strict-native field not found: \" + fieldName);\n");
+                builder.append("            }\n");
+            }
+            builder.append("        }\n");
+            builder.append("    }\n");
+        }
+
+        private void appendStrictNativeParameterBindings(
+                final StringBuilder builder,
+                final List<String> parameters,
+                final String argsVariable,
+                final Map<String, String> variableNames,
+                final Map<String, Integer> localNameCounts,
+                final String indent
+        ) {
+            for (int index = 0; index < parameters.size(); index++) {
+                final String parameter = parameters.get(index);
+                final String javaName = allocateUniqueName(localNameCounts, sanitizeJavaIdentifier(parameter));
+                variableNames.put(parameter, javaName);
+                builder.append(indent)
+                        .append("Object ")
+                        .append(javaName)
+                        .append(" = __tsjArg(")
+                        .append(argsVariable)
+                        .append(", ")
+                        .append(index)
+                        .append(");\n");
+            }
+        }
+
+        private void appendStrictNativeStatements(
+                final StringBuilder builder,
+                final StrictNativeClassModel model,
+                final List<Statement> statements,
+                final Map<String, String> variableNames,
+                final Map<String, Integer> localNameCounts,
+                final String indent
+        ) {
+            for (Statement statement : statements) {
+                if (statement instanceof VariableDeclaration variableDeclaration) {
+                    final String javaName = allocateUniqueName(
+                            localNameCounts,
+                            sanitizeJavaIdentifier(variableDeclaration.name())
+                    );
+                    variableNames.put(variableDeclaration.name(), javaName);
+                    builder.append(indent)
+                            .append("Object ")
+                            .append(javaName)
+                            .append(" = ")
+                            .append(emitStrictNativeExpression(model, variableNames, variableDeclaration.expression()))
+                            .append(";\n");
+                    continue;
+                }
+                if (statement instanceof AssignmentStatement assignmentStatement) {
+                    final String left = emitStrictNativeAssignmentTarget(model, variableNames, assignmentStatement.target());
+                    builder.append(indent)
+                            .append(left)
+                            .append(" = ")
+                            .append(emitStrictNativeExpression(model, variableNames, assignmentStatement.expression()))
+                            .append(";\n");
+                    continue;
+                }
+                if (statement instanceof ReturnStatement returnStatement) {
+                    builder.append(indent)
+                            .append("return ")
+                            .append(emitStrictNativeExpression(model, variableNames, returnStatement.expression()))
+                            .append(";\n");
+                    continue;
+                }
+                if (statement instanceof ExpressionStatement expressionStatement) {
+                    builder.append(indent)
+                            .append(emitStrictNativeExpression(model, variableNames, expressionStatement.expression()))
+                            .append(";\n");
+                    continue;
+                }
+                if (statement instanceof IfStatement ifStatement) {
+                    builder.append(indent)
+                            .append("if (dev.tsj.runtime.TsjRuntime.truthy(")
+                            .append(emitStrictNativeExpression(model, variableNames, ifStatement.condition()))
+                            .append(")) {\n");
+                    appendStrictNativeStatements(
+                            builder,
+                            model,
+                            ifStatement.thenBlock(),
+                            new LinkedHashMap<>(variableNames),
+                            new LinkedHashMap<>(localNameCounts),
+                            indent + "    "
+                    );
+                    builder.append(indent).append("}");
+                    if (!ifStatement.elseBlock().isEmpty()) {
+                        builder.append(" else {\n");
+                        appendStrictNativeStatements(
+                                builder,
+                                model,
+                                ifStatement.elseBlock(),
+                                new LinkedHashMap<>(variableNames),
+                                new LinkedHashMap<>(localNameCounts),
+                                indent + "    "
+                        );
+                        builder.append(indent).append("}");
+                    }
+                    builder.append("\n");
+                    continue;
+                }
+                throw strictNativeLoweringFailure(
+                        "Unsupported class statement in strict-native lowering: "
+                                + statement.getClass().getSimpleName()
+                );
+            }
+        }
+
+        private String emitStrictNativeAssignmentTarget(
+                final StrictNativeClassModel model,
+                final Map<String, String> variableNames,
+                final Expression target
+        ) {
+            if (target instanceof VariableExpression variableExpression) {
+                final String javaName = variableNames.get(variableExpression.name());
+                if (javaName == null) {
+                    throw strictNativeLoweringFailure(
+                            "Unknown variable assignment target `" + variableExpression.name() + "`."
+                    );
+                }
+                return javaName;
+            }
+            if (target instanceof MemberAccessExpression memberAccessExpression
+                    && memberAccessExpression.receiver() instanceof ThisExpression) {
+                final String javaField = model.fieldNameMap().get(memberAccessExpression.member());
+                if (javaField == null) {
+                    throw strictNativeLoweringFailure(
+                            "Unknown class field assignment target `" + memberAccessExpression.member() + "`."
+                    );
+                }
+                return "this." + javaField;
+            }
+            throw strictNativeLoweringFailure("Unsupported assignment target in strict-native lowering.");
+        }
+
+        private String emitStrictNativeExpression(
+                final StrictNativeClassModel model,
+                final Map<String, String> variableNames,
+                final Expression expression
+        ) {
+            if (expression instanceof NumberLiteral numberLiteral) {
+                return emitNumberLiteral(numberLiteral.value());
+            }
+            if (expression instanceof StringLiteral stringLiteral) {
+                return "\"" + escapeJava(stringLiteral.value()) + "\"";
+            }
+            if (expression instanceof BooleanLiteral booleanLiteral) {
+                return booleanLiteral.value() ? "Boolean.TRUE" : "Boolean.FALSE";
+            }
+            if (expression instanceof NullLiteral) {
+                return "((Object) null)";
+            }
+            if (expression instanceof UndefinedLiteral) {
+                return "dev.tsj.runtime.TsjRuntime.undefined()";
+            }
+            if (expression instanceof ThisExpression) {
+                return "this";
+            }
+            if (expression instanceof VariableExpression variableExpression) {
+                final String javaName = variableNames.get(variableExpression.name());
+                if (javaName == null) {
+                    throw strictNativeLoweringFailure(
+                            "Unknown variable `" + variableExpression.name() + "` in strict-native lowering."
+                    );
+                }
+                return javaName;
+            }
+            if (expression instanceof MemberAccessExpression memberAccessExpression) {
+                if (!(memberAccessExpression.receiver() instanceof ThisExpression)) {
+                    throw strictNativeLoweringFailure("Only `this.<field>` access is supported in strict-native lowering.");
+                }
+                final String javaField = model.fieldNameMap().get(memberAccessExpression.member());
+                if (javaField == null) {
+                    throw strictNativeLoweringFailure(
+                            "Unknown class field `" + memberAccessExpression.member() + "` in strict-native lowering."
+                    );
+                }
+                return "this." + javaField;
+            }
+            if (expression instanceof UnaryExpression unaryExpression) {
+                final String operand = emitStrictNativeExpression(model, variableNames, unaryExpression.expression());
+                return switch (unaryExpression.operator()) {
+                    case "+" -> "dev.tsj.runtime.TsjRuntime.unaryPlus(" + operand + ")";
+                    case "-" -> "dev.tsj.runtime.TsjRuntime.negate(" + operand + ")";
+                    case "!" -> "Boolean.valueOf(!dev.tsj.runtime.TsjRuntime.truthy(" + operand + "))";
+                    case "~" -> "dev.tsj.runtime.TsjRuntime.bitwiseNot(" + operand + ")";
+                    default -> throw strictNativeLoweringFailure(
+                            "Unsupported unary operator in strict-native lowering: " + unaryExpression.operator()
+                    );
+                };
+            }
+            if (expression instanceof BinaryExpression binaryExpression) {
+                final String left = emitStrictNativeExpression(model, variableNames, binaryExpression.left());
+                final String right = emitStrictNativeExpression(model, variableNames, binaryExpression.right());
+                return switch (binaryExpression.operator()) {
+                    case "+", "-", "*", "/", "%", "**", "&", "|", "^", "<<", ">>", ">>>"
+                            -> emitBinaryOperatorExpression(binaryExpression.operator(), left, right);
+                    case "," -> "dev.tsj.runtime.TsjRuntime.comma(" + left + ", " + right + ")";
+                    case "<" -> "Boolean.valueOf(dev.tsj.runtime.TsjRuntime.lessThan(" + left + ", " + right + "))";
+                    case "<=" -> "Boolean.valueOf(dev.tsj.runtime.TsjRuntime.lessThanOrEqual("
+                            + left + ", " + right + "))";
+                    case ">" -> "Boolean.valueOf(dev.tsj.runtime.TsjRuntime.greaterThan(" + left + ", " + right + "))";
+                    case ">=" -> "Boolean.valueOf(dev.tsj.runtime.TsjRuntime.greaterThanOrEqual("
+                            + left + ", " + right + "))";
+                    case "==" -> "Boolean.valueOf(dev.tsj.runtime.TsjRuntime.abstractEquals("
+                            + left + ", " + right + "))";
+                    case "===" -> "Boolean.valueOf(dev.tsj.runtime.TsjRuntime.strictEquals("
+                            + left + ", " + right + "))";
+                    case "!=" -> "Boolean.valueOf(!dev.tsj.runtime.TsjRuntime.abstractEquals("
+                            + left + ", " + right + "))";
+                    case "!==" -> "Boolean.valueOf(!dev.tsj.runtime.TsjRuntime.strictEquals("
+                            + left + ", " + right + "))";
+                    case "&&" -> "dev.tsj.runtime.TsjRuntime.logicalAnd(" + left + ", () -> " + right + ")";
+                    case "||" -> "dev.tsj.runtime.TsjRuntime.logicalOr(" + left + ", () -> " + right + ")";
+                    case "??" -> "dev.tsj.runtime.TsjRuntime.nullishCoalesce(" + left + ", () -> " + right + ")";
+                    default -> throw strictNativeLoweringFailure(
+                            "Unsupported binary operator in strict-native lowering: " + binaryExpression.operator()
+                    );
+                };
+            }
+            if (expression instanceof ConditionalExpression conditionalExpression) {
+                final String condition = emitStrictNativeExpression(model, variableNames, conditionalExpression.condition());
+                final String whenTrue = emitStrictNativeExpression(model, variableNames, conditionalExpression.whenTrue());
+                final String whenFalse = emitStrictNativeExpression(model, variableNames, conditionalExpression.whenFalse());
+                return "(dev.tsj.runtime.TsjRuntime.truthy("
+                        + condition
+                        + ") ? "
+                        + whenTrue
+                        + " : "
+                        + whenFalse
+                        + ")";
+            }
+            if (expression instanceof CallExpression callExpression) {
+                if (!(callExpression.callee() instanceof MemberAccessExpression memberAccessExpression)) {
+                    throw strictNativeLoweringFailure(
+                            "Only member call expressions are supported in strict-native lowering."
+                    );
+                }
+                final List<String> renderedArgs = new ArrayList<>();
+                for (Expression argument : callExpression.arguments()) {
+                    renderedArgs.add(emitStrictNativeExpression(model, variableNames, argument));
+                }
+                final boolean directThisMethodCall = memberAccessExpression.receiver() instanceof ThisExpression
+                        && model.methodNameMap().containsKey(memberAccessExpression.member());
+                if (directThisMethodCall) {
+                    final String javaMethod = model.methodNameMap().get(memberAccessExpression.member());
+                    if (renderedArgs.isEmpty()) {
+                        return "this." + javaMethod + "()";
+                    }
+                    return "this." + javaMethod + "(" + String.join(", ", renderedArgs) + ")";
+                }
+                final String receiver = emitStrictNativeExpression(
+                        model,
+                        variableNames,
+                        memberAccessExpression.receiver()
+                );
+                final String methodName = "\"" + escapeJava(memberAccessExpression.member()) + "\"";
+                if (renderedArgs.isEmpty()) {
+                    return "dev.tsj.runtime.TsjRuntime.invokeMember(" + receiver + ", " + methodName + ")";
+                }
+                return "dev.tsj.runtime.TsjRuntime.invokeMember("
+                        + receiver
+                        + ", "
+                        + methodName
+                        + ", "
+                        + String.join(", ", renderedArgs)
+                        + ")";
+            }
+            throw strictNativeLoweringFailure(
+                    "Unsupported class expression in strict-native lowering: "
+                            + expression.getClass().getSimpleName()
+            );
+        }
+
+        private JvmCompilationException strictNativeLoweringFailure(final String detail) {
+            return new JvmCompilationException(
+                    "TSJ-STRICT-BRIDGE",
+                    "Strict-native lowering mismatch: " + detail
+                            + " [featureId="
+                            + FEATURE_STRICT_BRIDGE
+                            + "]. Guidance: "
+                            + GUIDANCE_STRICT_BRIDGE,
+                    null,
+                    null,
+                    null,
+                    FEATURE_STRICT_BRIDGE,
+                    GUIDANCE_STRICT_BRIDGE
+            );
+        }
+
+        private record StrictNativeClassModel(
+                String tsClassName,
+                String nativeClassSimpleName,
+                ClassDeclaration declaration,
+                Map<String, String> fieldNameMap,
+                Map<String, String> methodNameMap
+        ) {
         }
 
         private void emitStatements(
@@ -5363,6 +8255,7 @@ public final class JvmBytecodeCompiler {
             final String cellName = context.resolveBinding(declaration.name());
             final String thisVar = context.allocateGeneratedName("lambdaThis");
             final String argsVar = context.allocateGeneratedName("lambdaArgs");
+            final boolean moduleInitializerFunction = declaration.name().startsWith("__tsj_init_module_");
 
             builder.append(indent)
                     .append(cellName)
@@ -5373,7 +8266,14 @@ public final class JvmBytecodeCompiler {
                     .append(") -> {\n");
 
             final EmissionContext functionContext =
-                    new EmissionContext(context, thisVar, context.resolveSuperClassExpression(), false, argsVar);
+                    new EmissionContext(
+                            context,
+                            thisVar,
+                            context.resolveSuperClassExpression(),
+                            false,
+                            argsVar,
+                            moduleInitializerFunction
+                    );
             emitParameterCells(builder, functionContext, declaration.parameters(), argsVar, indent + "    ");
 
             emitStatements(builder, functionContext, declaration.body(), indent + "    ", true);
@@ -5496,7 +8396,7 @@ public final class JvmBytecodeCompiler {
                     .append(".set(")
                     .append(classVar)
                     .append(");\n");
-            if (context.isTopLevelScope()) {
+            if (context.isTopLevelScope() || context.isModuleInitializerScope()) {
                 builder.append(indent)
                         .append(TOP_LEVEL_CLASS_MAP_FIELD)
                         .append(".put(\"")
@@ -7599,6 +10499,9 @@ public final class JvmBytecodeCompiler {
                 if (isObjectSpreadFactoryCall(callExpression)) {
                     return emitSpreadRuntimeCall(context, "objectSpread", callExpression.arguments());
                 }
+                if (isObjectRestFactoryCall(callExpression)) {
+                    return emitObjectRestRuntimeCall(context, callExpression);
+                }
                 if (isRestArgsFactoryCall(callExpression)) {
                     return emitRestArgsRuntimeCall(context, callExpression);
                 }
@@ -8017,6 +10920,19 @@ public final class JvmBytecodeCompiler {
                     + ")";
         }
 
+        private String emitObjectRestRuntimeCall(
+                final EmissionContext context,
+                final CallExpression callExpression
+        ) {
+            if (callExpression.arguments().isEmpty()) {
+                throw new JvmCompilationException(
+                        "TSJ-BACKEND-UNSUPPORTED",
+                        "__tsj_object_rest requires a source object expression."
+                );
+            }
+            return emitSpreadRuntimeCall(context, "objectRest", callExpression.arguments());
+        }
+
         private boolean isArraySpreadFactoryCall(final CallExpression callExpression) {
             if (!(callExpression.callee() instanceof VariableExpression variableExpression)) {
                 return false;
@@ -8043,6 +10959,13 @@ public final class JvmBytecodeCompiler {
                 return false;
             }
             return "__tsj_rest_args".equals(variableExpression.name());
+        }
+
+        private boolean isObjectRestFactoryCall(final CallExpression callExpression) {
+            if (!(callExpression.callee() instanceof VariableExpression variableExpression)) {
+                return false;
+            }
+            return "__tsj_object_rest".equals(variableExpression.name());
         }
 
         private boolean isArrayRestFactoryCall(final CallExpression callExpression) {
@@ -8179,6 +11102,7 @@ public final class JvmBytecodeCompiler {
             private final String superClassExpression;
             private final boolean constructorContext;
             private final String argumentsReference;
+            private final boolean moduleInitializerScope;
 
             private EmissionContext(final EmissionContext parent) {
                 this(
@@ -8186,7 +11110,8 @@ public final class JvmBytecodeCompiler {
                         parent != null ? parent.thisReference : null,
                         parent != null ? parent.superClassExpression : null,
                         parent != null && parent.constructorContext,
-                        parent != null ? parent.argumentsReference : null
+                        parent != null ? parent.argumentsReference : null,
+                        false
                 );
             }
 
@@ -8201,7 +11126,8 @@ public final class JvmBytecodeCompiler {
                         thisReference,
                         superClassExpression,
                         constructorContext,
-                        parent != null ? parent.argumentsReference : null
+                        parent != null ? parent.argumentsReference : null,
+                        false
                 );
             }
 
@@ -8212,6 +11138,24 @@ public final class JvmBytecodeCompiler {
                     final boolean constructorContext,
                     final String argumentsReference
             ) {
+                this(
+                        parent,
+                        thisReference,
+                        superClassExpression,
+                        constructorContext,
+                        argumentsReference,
+                        false
+                );
+            }
+
+            private EmissionContext(
+                    final EmissionContext parent,
+                    final String thisReference,
+                    final String superClassExpression,
+                    final boolean constructorContext,
+                    final String argumentsReference,
+                    final boolean moduleInitializerScope
+            ) {
                 this.parent = parent;
                 this.bindings = new LinkedHashMap<>();
                 this.labels = new LinkedHashMap<>();
@@ -8220,6 +11164,7 @@ public final class JvmBytecodeCompiler {
                 this.superClassExpression = superClassExpression;
                 this.constructorContext = constructorContext;
                 this.argumentsReference = argumentsReference;
+                this.moduleInitializerScope = moduleInitializerScope;
             }
 
             private String predeclareBinding(final String sourceName) {
@@ -8394,6 +11339,10 @@ public final class JvmBytecodeCompiler {
 
             private boolean isTopLevelScope() {
                 return parent == null;
+            }
+
+            private boolean isModuleInitializerScope() {
+                return moduleInitializerScope;
             }
 
             private boolean isConstructorContext() {

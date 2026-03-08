@@ -10,8 +10,8 @@ Status legend:
 
 | Feature Area | Feature | Scope | Status | Diagnostic Code / Feature ID | Primary Coverage |
 |---|---|---|---|---|---|
-| Core grammar | Non-TSX TGTA `ok` fixtures (`*.ts`, `*.d.ts`) | `tsj compile` | Subset | `12/15` fixtures compile (`TSJ-COMPILE-SUCCESS`); known blockers emit `TSJ-BACKEND-PARSE` (`020`, `030`) and `TSJ-BACKEND-UNSUPPORTED` (`140`) | `TsjTgtaCompileGateTest#tgtaNonTsxFixturesCompileWithTsjCompileSuccess` + `TsjTgtaCompileGateTest#tgtaKnownFailingFixturesEmitStableDiagnosticCodes` |
-| Core grammar | JSX/TSX parsing/execution | current TGTA closure | Out of Scope | current parse failure (`TS1005`) | `examples/tgta/src/ok/110_jsx.tsx` (excluded by scope) |
+| Core grammar | Non-TSX TGTA `ok` fixtures (`*.ts`, `*.d.ts`) | `tsj compile` | Subset | `13/15` fixtures compile (`TSJ-COMPILE-SUCCESS`); known blockers emit `TSJ-BACKEND-UNSUPPORTED` (`020`, `050`) | `TsjTgtaCompileGateTest#tgtaNonTsxFixturesCompileWithTsjCompileSuccess` + `TsjTgtaCompileGateTest#tgtaKnownFailingFixturesEmitStableDiagnosticCodes` |
+| Core grammar | JSX/TSX parsing/execution | current syntax closure | Out of Scope | `TSJ-BACKEND-UNSUPPORTED` / `TSJ67-TSX-OUT-OF-SCOPE` | `JvmBytecodeCompilerTest#rejectsTsxInputWithTsj67FeatureDiagnostic` + `TsjCliTest#compileTsxInputReturnsTsj67UnsupportedDiagnosticMetadata` |
 | Core grammar | Unary plus (`+x`) | backend parser path | Supported | `TSJ-COMPILE-SUCCESS` / `TSJ-RUN-SUCCESS` | `JvmBytecodeCompilerTest#supportsUnaryPlusExponentBitwiseShiftAndTypeRelationOperatorsInTsjGrammarPath` + `unsupported/grammar/001_unary_plus.ts` |
 | Module grammar | Relative named imports (`import { x } from "./m.ts"`) | `tsj run` TSJ-12 path | Supported | `TSJ-RUN-SUCCESS` | `TsjCliTest#runSupportsAliasNamedImportInTsj12` |
 | Module grammar | Default imports (`import x from "./m.ts"`) | `tsj run` TSJ-12 path | Supported | `TSJ-RUN-SUCCESS` | `TsjCliTest#runSupportsDefaultImportWithOptionalNamedBindingsInTsj22` |
@@ -26,7 +26,7 @@ Status legend:
 | Restricted runtime features | Dynamic import (`import("...")`) | TSJ-15 guardrail | Unsupported | `TSJ-BACKEND-UNSUPPORTED` / `TSJ15-DYNAMIC-IMPORT` | `TsjCliTest#runDynamicImportIncludesUnsupportedFeatureContext` |
 | Restricted runtime features | `eval(...)` | TSJ-15 guardrail | Unsupported | `TSJ-BACKEND-UNSUPPORTED` / `TSJ15-EVAL` | `TsjCliTest#runEvalIncludesUnsupportedFeatureContext` |
 | Restricted runtime features | `Function(...)` / `new Function(...)` | TSJ-15 guardrail | Unsupported | `TSJ-BACKEND-UNSUPPORTED` / `TSJ15-FUNCTION-CONSTRUCTOR` | `TsjCliTest#runFunctionConstructorIncludesUnsupportedFeatureContext` |
-| Restricted runtime features | `new Proxy(...)` | TSJ-15 guardrail | Unsupported | `TSJ-BACKEND-UNSUPPORTED` / `TSJ15-PROXY` | `TsjCliTest#runProxyIncludesUnsupportedFeatureContext` |
+| Restricted runtime features | `new Proxy(...)` + `Reflect.*` baseline | runtime object semantics | Supported | `TSJ-RUN-SUCCESS` | `JvmBytecodeCompilerTest#supportsProxyConstructorReflectApiAndRevocableProxy` + `TsjCliTest#compileProxySourceSucceeds` |
 | Runtime semantics | Bitwise/shift/exponentiation operators | run-path parity | Supported | `TSJ-RUN-SUCCESS` | `JvmBytecodeCompilerTest#supportsUnaryPlusExponentBitwiseShiftAndTypeRelationOperatorsInTsjGrammarPath` + `unsupported/grammar/002_exponentiation.ts` through `unsupported/grammar/007_bitwise_xor.ts` |
 | Runtime semantics | `typeof`, `in`, `instanceof` | run-path parity | Supported | `TSJ-RUN-SUCCESS` | `JvmBytecodeCompilerTest#supportsUnaryPlusExponentBitwiseShiftAndTypeRelationOperatorsInTsjGrammarPath` + `unsupported/grammar/008_typeof_operator.ts` through `unsupported/grammar/010_instanceof_operator.ts` |
 

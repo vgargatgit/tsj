@@ -6,8 +6,10 @@ This guide is the starting point for engineers who are not compiler experts.
 
 1. `README.md` (repo root): quickest way to compile/run TS with TSJ.
 2. `docs/cli-contract.md`: exact CLI command and diagnostic contract.
-3. `docs/unsupported-feature-matrix.md`: supported vs unsupported TS syntax/features.
-4. `unsupported/README.md`: progression suite for known unsupported grammar/semantic gaps.
+3. `docs/jvm-strict-mode-guide.md`: strict-mode programming model and migration workflow.
+4. `docs/jvm-strict-release-checklist.md`: strict release signoff checklist and known exclusions.
+5. `docs/unsupported-feature-matrix.md`: supported vs unsupported TS syntax/features.
+6. `unsupported/README.md`: progression suite for known unsupported grammar/semantic gaps.
 
 ## Common Tasks
 
@@ -18,6 +20,8 @@ Use root quickstart in `README.md`.
 Note:
 
 1. `tsj run` currently does not forward program argv to TS entrypoints.
+2. `tsj compile` and `tsj run` do not generate Spring adapters by default.
+   Use `--legacy-spring-adapters` only for legacy compatibility flows, or use `tsj spring-package`.
 
 ### Understand why code fails
 
@@ -36,17 +40,22 @@ Note:
 ### Core docs
 
 - `docs/cli-contract.md`: command syntax, options, diagnostics.
+- `docs/jvm-strict-mode-guide.md`: how to program for `jvm-strict` mode and migrate incrementally.
+- `docs/jvm-strict-release-checklist.md`: strict release signoff checklist + known exclusions.
 - `docs/developer-guide.md`: contributor workflow and module-level test loops.
 - `docs/unsupported-feature-matrix.md`: support status matrix.
+- `docs/performance-sla.md`: baseline performance targets + TSJ-69 incremental readiness thresholds.
 - `docs/todo.md`: active backlog and recent review outcomes.
 - `docs/plans.md`: execution plans and checklists.
+- `tests/conformance/tsj70-syntax-compatibility-manifest.json`: TSJ-70 compatibility manifest for syntax GA signoff.
 
 ### Interop and compatibility
 
 - `docs/interop-bridge-spec.md`: interop spec format.
 - `docs/interop-policy.md`: strict/broad policy and controls.
 - `docs/interop-compatibility-guide.md`: metadata, reflection, generic adaptation, and certification gates.
-- `docs/anyjar-certification.md`: TSJ-44 any-jar certification stack.
+- `docs/anyjar-certification.md`: TSJ-44 any-jar certification stack + TSJ-75 annotation-survival gate
+  (supported subset, non-goals, and legacy migration notes).
 - `docs/tita-runbook.md`: TITA reproducible checks.
 
 ### Spring/JPA/Kotlin parity

@@ -59,6 +59,28 @@ public final class TsjSpringWebControllerGenerator {
         );
     }
 
+    public TsjSpringWebControllerGenerator(final List<Path> classpathEntries) {
+        this(
+                createClasspathAwareExtractor(classpathEntries),
+                new TsDecoratorAnnotationMapping(),
+                new TsAnnotationAttributeParser()
+        );
+    }
+
+    private static TsDecoratorModelExtractor createClasspathAwareExtractor(final List<Path> classpathEntries) {
+        final TsDecoratorAnnotationMapping annotationMapping = new TsDecoratorAnnotationMapping();
+        final List<Path> normalizedEntries = classpathEntries == null
+                ? List.of()
+                : classpathEntries.stream()
+                        .filter(Objects::nonNull)
+                        .map(path -> path.toAbsolutePath().normalize())
+                        .toList();
+        final TsDecoratorClasspathResolver classpathResolver = new TsDecoratorClasspathResolver(
+                new JavaSymbolTable(normalizedEntries, "tsj-spring-web-controller")
+        );
+        return new TsDecoratorModelExtractor(annotationMapping, classpathResolver);
+    }
+
     TsjSpringWebControllerGenerator(
             final TsDecoratorModelExtractor decoratorModelExtractor,
             final TsDecoratorAnnotationMapping annotationMapping,
@@ -579,8 +601,10 @@ public final class TsjSpringWebControllerGenerator {
                 final String generatedName = "arg" + parameter.index();
                 parameters.add(new RouteParameter(
                         generatedName,
+                        "Object",
                         "org.springframework.web.bind.annotation.RequestParam",
-                        generatedName
+                        generatedName,
+                        null
                 ));
                 continue;
             }
@@ -622,7 +646,13 @@ public final class TsjSpringWebControllerGenerator {
                             "Only one @RequestBody parameter is supported per route."
                     );
                 }
-                parameters.add(new RouteParameter(parameter.name(), mappedAnnotation, null));
+                parameters.add(new RouteParameter(
+                        parameter.name(),
+                        resolveRequestBodyJavaType(parameter.typeAnnotation()),
+                        mappedAnnotation,
+                        null,
+                        resolveRequestBodyTypeName(parameter.typeAnnotation())
+                ));
                 continue;
             }
             final String annotationValue = parseNamedParameterDecoratorValue(decorator, parameter.name(), sourceFile);
@@ -648,9 +678,156 @@ public final class TsjSpringWebControllerGenerator {
                                 + "."
                 );
             }
-            parameters.add(new RouteParameter(parameter.name(), mappedAnnotation, annotationValue));
+            parameters.add(new RouteParameter(parameter.name(), "Object", mappedAnnotation, annotationValue, null));
         }
         return List.copyOf(parameters);
+    }
+
+    private static String resolveRequestBodyTypeName(final String typeAnnotation) {
+        if (typeAnnotation == null || typeAnnotation.isBlank()) {
+            return null;
+        }
+        return typeAnnotation.trim();
+    }
+
+    private static String resolveRequestBodyJavaType(final String typeAnnotation) {
+        if (typeAnnotation == null || typeAnnotation.isBlank()) {
+            return "Object";
+        }
+        final String normalized = stripOuterParens(typeAnnotation.trim());
+        if (normalized.isBlank()) {
+            return "Object";
+        }
+        final List<String> unionParts = splitTopLevel(normalized, '|');
+        String base = null;
+        for (String part : unionParts) {
+            final String candidate = stripOuterParens(part.trim());
+            if (candidate.isBlank() || "null".equals(candidate) || "undefined".equals(candidate)) {
+                continue;
+            }
+            if (base == null) {
+                base = candidate;
+                continue;
+            }
+            if (!base.equals(candidate)) {
+                return "Object";
+            }
+        }
+        if (base == null) {
+            return "Object";
+        }
+        return mapTsTypeToJavaType(base);
+    }
+
+    private static String mapTsTypeToJavaType(final String tsTypeSpec) {
+        final String normalized = stripOuterParens(tsTypeSpec.trim());
+        if (normalized.endsWith("[]") && normalized.length() > 2) {
+            final String elementType = normalized.substring(0, normalized.length() - 2).trim();
+            return "java.util.List<" + mapTsTypeToJavaType(elementType) + ">";
+        }
+        if (normalized.startsWith("Array<") && normalized.endsWith(">")) {
+            final String inner = normalized.substring("Array<".length(), normalized.length() - 1);
+            final List<String> arguments = splitTopLevel(inner, ',');
+            if (arguments.size() == 1) {
+                return "java.util.List<" + mapTsTypeToJavaType(arguments.getFirst().trim()) + ">";
+            }
+            return "Object";
+        }
+        if (normalized.startsWith("Record<") && normalized.endsWith(">")) {
+            final String inner = normalized.substring("Record<".length(), normalized.length() - 1);
+            final List<String> arguments = splitTopLevel(inner, ',');
+            if (arguments.size() == 2) {
+                final String keyType = stripOuterParens(arguments.getFirst().trim());
+                if ("string".equals(keyType)) {
+                    return "java.util.Map<String, "
+                            + mapTsTypeToJavaType(arguments.get(1).trim())
+                            + ">";
+                }
+            }
+            return "Object";
+        }
+        return switch (normalized) {
+            case "string" -> "String";
+            case "number" -> "Double";
+            case "boolean" -> "Boolean";
+            case "any", "unknown", "object" -> "Object";
+            default -> "Object";
+        };
+    }
+
+    private static List<String> splitTopLevel(final String text, final char separator) {
+        final List<String> parts = new ArrayList<>();
+        int start = 0;
+        int angleDepth = 0;
+        int parenDepth = 0;
+        int bracketDepth = 0;
+        int braceDepth = 0;
+        for (int index = 0; index < text.length(); index++) {
+            final char value = text.charAt(index);
+            switch (value) {
+                case '<' -> angleDepth++;
+                case '>' -> {
+                    if (angleDepth > 0) {
+                        angleDepth--;
+                    }
+                }
+                case '(' -> parenDepth++;
+                case ')' -> {
+                    if (parenDepth > 0) {
+                        parenDepth--;
+                    }
+                }
+                case '[' -> bracketDepth++;
+                case ']' -> {
+                    if (bracketDepth > 0) {
+                        bracketDepth--;
+                    }
+                }
+                case '{' -> braceDepth++;
+                case '}' -> {
+                    if (braceDepth > 0) {
+                        braceDepth--;
+                    }
+                }
+                default -> {
+                    if (value == separator
+                            && angleDepth == 0
+                            && parenDepth == 0
+                            && bracketDepth == 0
+                            && braceDepth == 0) {
+                        parts.add(text.substring(start, index));
+                        start = index + 1;
+                    }
+                }
+            }
+        }
+        parts.add(text.substring(start));
+        return List.copyOf(parts);
+    }
+
+    private static String stripOuterParens(final String value) {
+        String current = value == null ? "" : value.trim();
+        while (current.startsWith("(") && current.endsWith(")") && current.length() >= 2) {
+            int depth = 0;
+            boolean wrapsAll = true;
+            for (int index = 0; index < current.length(); index++) {
+                final char character = current.charAt(index);
+                if (character == '(') {
+                    depth++;
+                } else if (character == ')') {
+                    depth--;
+                    if (depth == 0 && index < current.length() - 1) {
+                        wrapsAll = false;
+                        break;
+                    }
+                }
+            }
+            if (!wrapsAll || depth != 0) {
+                break;
+            }
+            current = current.substring(1, current.length() - 1).trim();
+        }
+        return current;
     }
 
     private String parseNamedParameterDecoratorValue(
@@ -903,7 +1080,9 @@ public final class TsjSpringWebControllerGenerator {
                     builder.append(", ");
                 }
                 builder.append(parameter.renderAnnotation())
-                        .append(" Object ")
+                        .append(" ")
+                        .append(parameter.javaType())
+                        .append(" ")
                         .append(parameter.javaName());
             }
             builder.append(") {\n");
@@ -911,7 +1090,7 @@ public final class TsjSpringWebControllerGenerator {
                     programClassName,
                     controller,
                     route.methodName(),
-                    route.parameterNames()
+                    route.parameters()
             )).append(";\n");
             builder.append("    }\n\n");
         }
@@ -935,7 +1114,7 @@ public final class TsjSpringWebControllerGenerator {
                     programClassName,
                     controller,
                     errorHandler.methodName(),
-                    List.of("error")
+                    List.of(new RouteParameter("error", "Object", "", null, null))
             )).append(";\n");
             builder.append("    }\n\n");
         }
@@ -948,36 +1127,54 @@ public final class TsjSpringWebControllerGenerator {
             final String programClassName,
             final ControllerModel controller,
             final String methodName,
-            final List<String> arguments
+            final List<RouteParameter> arguments
     ) {
+        final String invocation;
         if (controller.constructorDependencies().isEmpty()) {
-            final StringBuilder invocation = new StringBuilder();
-            invocation.append(programClassName)
+            final StringBuilder builder = new StringBuilder();
+            builder.append(programClassName)
                     .append(".__tsjInvokeController(\"")
                     .append(escapeJava(controller.className()))
                     .append("\", \"")
                     .append(escapeJava(methodName))
                     .append("\"");
-            for (String argument : arguments) {
-                invocation.append(", ").append(argument);
+            for (RouteParameter argument : arguments) {
+                builder.append(", ").append(renderControllerArgumentExpression(programClassName, argument));
             }
-            invocation.append(")");
-            return invocation.toString();
+            builder.append(")");
+            invocation = builder.toString();
+        } else {
+            final StringBuilder builder = new StringBuilder();
+            builder.append(programClassName)
+                    .append(".__tsjInvokeClassWithInjection(\"")
+                    .append(escapeJava(controller.className()))
+                    .append("\", \"")
+                    .append(escapeJava(methodName))
+                    .append("\", ")
+                    .append(renderObjectArrayLiteral(constructorDependencyExpressions(controller.constructorDependencies())))
+                    .append(", new String[]{}, new Object[]{}, new String[]{}, new Object[]{}");
+            for (RouteParameter argument : arguments) {
+                builder.append(", ").append(renderControllerArgumentExpression(programClassName, argument));
+            }
+            builder.append(")");
+            invocation = builder.toString();
         }
-        final StringBuilder invocation = new StringBuilder();
-        invocation.append(programClassName)
-                .append(".__tsjInvokeClassWithInjection(\"")
-                .append(escapeJava(controller.className()))
-                .append("\", \"")
-                .append(escapeJava(methodName))
-                .append("\", ")
-                .append(renderObjectArrayLiteral(constructorDependencyExpressions(controller.constructorDependencies())))
-                .append(", new String[]{}, new Object[]{}, new String[]{}, new Object[]{}");
-        for (String argument : arguments) {
-            invocation.append(", ").append(argument);
+        return "dev.tsj.runtime.TsjInteropCodec.toJava(" + invocation + ", java.lang.Object.class)";
+    }
+
+    private static String renderControllerArgumentExpression(
+            final String programClassName,
+            final RouteParameter routeParameter
+    ) {
+        if (routeParameter.requestBodyTypeName() == null) {
+            return routeParameter.javaName();
         }
-        invocation.append(")");
-        return invocation.toString();
+        return programClassName
+                + ".__tsjCoerceControllerRequestBody(\""
+                + escapeJava(routeParameter.requestBodyTypeName())
+                + "\", "
+                + routeParameter.javaName()
+                + ")";
     }
 
     private static List<String> constructorDependencyExpressions(final List<ConstructorDependency> dependencies) {
@@ -1057,19 +1254,14 @@ public final class TsjSpringWebControllerGenerator {
             List<RouteParameter> parameters,
             Integer statusCode
     ) {
-        private List<String> parameterNames() {
-            final List<String> names = new ArrayList<>(parameters.size());
-            for (RouteParameter parameter : parameters) {
-                names.add(parameter.javaName());
-            }
-            return List.copyOf(names);
-        }
     }
 
     private record RouteParameter(
             String javaName,
+            String javaType,
             String annotationClassName,
-            String annotationValue
+            String annotationValue,
+            String requestBodyTypeName
     ) {
         private String renderAnnotation() {
             if (annotationValue == null) {

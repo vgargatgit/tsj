@@ -1,17 +1,29 @@
 package dev.tsj.compiler.backend.jvm;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import dev.tsj.compiler.backend.jvm.fixtures.annotations.CtorMark;
+import dev.tsj.compiler.backend.jvm.fixtures.annotations.FieldMark;
+import dev.tsj.compiler.backend.jvm.fixtures.annotations.MethodMark;
+import dev.tsj.compiler.backend.jvm.fixtures.annotations.ParamMark;
+import dev.tsj.compiler.backend.jvm.fixtures.annotations.RichMark;
+import dev.tsj.compiler.backend.jvm.fixtures.annotations.TypeMark;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
+import java.net.URL;
+import java.net.URLClassLoader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class JvmBytecodeCompilerTest {
     private static final String TOKEN_BRIDGE_SCRIPT_PROPERTY = "tsj.backend.tokenBridgeScript";
@@ -20,6 +32,7 @@ class JvmBytecodeCompilerTest {
 
     @TempDir
     Path tempDir;
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     @Test
     void emitsLoadableClassForArithmeticAndFunctionCalls() throws Exception {
@@ -50,6 +63,355 @@ class JvmBytecodeCompilerTest {
     }
 
     @Test
+    void compileInJvmStrictModeEmitsNativeClassDispatchForEligibleClassSubset() throws Exception {
+        final Path sourceFile = tempDir.resolve("strict-native-class.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                class Counter {
+                  value: number;
+
+                  constructor(initial: number) {
+                    this.value = initial;
+                  }
+
+                  getValue() {
+                    return this.value;
+                  }
+
+                  increment(step: number) {
+                    this.value = this.value + step;
+                    return this.getValue();
+                  }
+                }
+                """,
+                UTF_8
+        );
+
+        final Path outDir = tempDir.resolve("strict-native-class-out");
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(
+                sourceFile,
+                outDir,
+                JvmOptimizationOptions.defaults(),
+                JvmBytecodeCompiler.BackendMode.JVM_STRICT
+        );
+
+        assertEquals("jvm-native-class-subset", artifact.strictLoweringPath());
+        final String generatedSource = Files.readString(
+                outDir.resolve("generated-src/dev/tsj/generated/StrictNativeClassProgram.java"),
+                UTF_8
+        );
+        assertTrue(generatedSource.contains("__TSJ_STRICT_FACTORIES"));
+        assertTrue(generatedSource.contains("__tsjStrictFactory"));
+        assertTrue(generatedSource.contains("Counter__TsjStrictNative"));
+    }
+
+    @Test
+    void strictJvmClassInvocationReturnsNativeInstanceInsteadOfTsjObjectCarrier() throws Exception {
+        final Path sourceFile = tempDir.resolve("strict-native-instance.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                class Person {
+                  name: string;
+
+                  constructor(name: string) {
+                    this.name = name;
+                  }
+
+                  self() {
+                    return this;
+                  }
+                }
+                """,
+                UTF_8
+        );
+
+        final Path outDir = tempDir.resolve("strict-native-instance-out");
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(
+                sourceFile,
+                outDir,
+                JvmOptimizationOptions.defaults(),
+                JvmBytecodeCompiler.BackendMode.JVM_STRICT
+        );
+
+        try (URLClassLoader classLoader = new URLClassLoader(new URL[]{artifact.outputDirectory().toUri().toURL()})) {
+            final Class<?> programClass = Class.forName(artifact.className(), true, classLoader);
+            final java.lang.reflect.Method invokeClass = programClass.getDeclaredMethod(
+                    "__tsjInvokeClass",
+                    String.class,
+                    String.class,
+                    Object[].class,
+                    Object[].class
+            );
+            final Object result = invokeClass.invoke(
+                    null,
+                    "Person",
+                    "self",
+                    new Object[]{"Ada"},
+                    new Object[0]
+            );
+
+            assertNotEquals("dev.tsj.runtime.TsjObject", result.getClass().getName());
+            assertTrue(result.getClass().getName().contains("Person__TsjStrictNative"));
+        }
+    }
+
+    @Test
+    void strictJvmNativeDtoSupportsJacksonRoundTripForFrameworkBoundaries() throws Exception {
+        final Path sourceFile = tempDir.resolve("strict-native-jackson-dto.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                class PersonDto {
+                  id: string;
+                  name: string;
+
+                  constructor(id: string, name: string) {
+                    this.id = id;
+                    this.name = name;
+                  }
+
+                  self() {
+                    return this;
+                  }
+                }
+                """,
+                UTF_8
+        );
+
+        final Path outDir = tempDir.resolve("strict-native-jackson-dto-out");
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(
+                sourceFile,
+                outDir,
+                JvmOptimizationOptions.defaults(),
+                JvmBytecodeCompiler.BackendMode.JVM_STRICT
+        );
+
+        assertEquals("jvm-native-class-subset", artifact.strictLoweringPath());
+        try (URLClassLoader classLoader = new URLClassLoader(new URL[]{artifact.outputDirectory().toUri().toURL()})) {
+            final Class<?> programClass = Class.forName(artifact.className(), true, classLoader);
+            final java.lang.reflect.Method invokeClass = programClass.getDeclaredMethod(
+                    "__tsjInvokeClass",
+                    String.class,
+                    String.class,
+                    Object[].class,
+                    Object[].class
+            );
+            final Object dto = invokeClass.invoke(
+                    null,
+                    "PersonDto",
+                    "self",
+                    new Object[]{"42", "Ada"},
+                    new Object[0]
+            );
+            final String serialized = OBJECT_MAPPER.writeValueAsString(dto);
+            assertTrue(serialized.contains("\"id\":\"42\""));
+            assertTrue(serialized.contains("\"name\":\"Ada\""));
+
+            @SuppressWarnings("unchecked")
+            final Class<Object> dtoClass = (Class<Object>) dto.getClass();
+            final Object rebound = OBJECT_MAPPER.readValue(serialized, dtoClass);
+            final java.lang.reflect.Method getId = dtoClass.getDeclaredMethod("getId");
+            final java.lang.reflect.Method getName = dtoClass.getDeclaredMethod("getName");
+            assertEquals("42", getId.invoke(rebound));
+            assertEquals("Ada", getName.invoke(rebound));
+        }
+    }
+
+    @Test
+    void strictJvmNativeSubsetSupportsIfStatementInClassMethodBody() throws Exception {
+        final Path sourceFile = tempDir.resolve("strict-native-if-branch.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                class Threshold {
+                  value: number;
+
+                  constructor(value: number) {
+                    this.value = value;
+                  }
+
+                  normalize(limit: number) {
+                    if (this.value > limit) {
+                      this.value = limit;
+                    } else {
+                      this.value = this.value + 1;
+                    }
+                    return this.value;
+                  }
+                }
+                """,
+                UTF_8
+        );
+
+        final Path outDir = tempDir.resolve("strict-native-if-branch-out");
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(
+                sourceFile,
+                outDir,
+                JvmOptimizationOptions.defaults(),
+                JvmBytecodeCompiler.BackendMode.JVM_STRICT
+        );
+
+        assertEquals("jvm-native-class-subset", artifact.strictLoweringPath());
+        try (URLClassLoader classLoader = new URLClassLoader(new URL[]{artifact.outputDirectory().toUri().toURL()})) {
+            final Class<?> programClass = Class.forName(artifact.className(), true, classLoader);
+            final java.lang.reflect.Method invokeClass = programClass.getDeclaredMethod(
+                    "__tsjInvokeClass",
+                    String.class,
+                    String.class,
+                    Object[].class,
+                    Object[].class
+            );
+
+            final Object high = invokeClass.invoke(
+                    null,
+                    "Threshold",
+                    "normalize",
+                    new Object[]{5},
+                    new Object[]{3}
+            );
+            final Object low = invokeClass.invoke(
+                    null,
+                    "Threshold",
+                    "normalize",
+                    new Object[]{2},
+                    new Object[]{3}
+            );
+
+            assertEquals(3.0d, ((Number) high).doubleValue());
+            assertEquals(3.0d, ((Number) low).doubleValue());
+        }
+    }
+
+    @Test
+    void strictJvmNativeSubsetSupportsMemberCallsOnAutowiredLikeFields() throws Exception {
+        final Path sourceFile = tempDir.resolve("strict-native-member-invoke.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                class Repository {
+                  findNext(value: number) {
+                    return value + 1;
+                  }
+                }
+
+                class Service {
+                  repository: Repository;
+
+                  constructor(repository: Repository) {
+                    this.repository = repository;
+                  }
+
+                  fetch(value: number) {
+                    return this.repository.findNext(value);
+                  }
+                }
+
+                const repository = new Repository();
+                const service = new Service(repository);
+                console.log("value=" + service.fetch(41));
+                """,
+                UTF_8
+        );
+
+        final Path outDir = tempDir.resolve("strict-native-member-invoke-out");
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(
+                sourceFile,
+                outDir,
+                JvmOptimizationOptions.defaults(),
+                JvmBytecodeCompiler.BackendMode.JVM_STRICT
+        );
+
+        assertEquals("jvm-native-class-subset", artifact.strictLoweringPath());
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+        assertEquals("value=42\n", stdout.toString(UTF_8));
+    }
+
+    @Test
+    void strictRuntimeCarrierRegistersTopLevelClassesFromBundledModuleInitializers() throws Exception {
+        final Path moduleFile = tempDir.resolve("strict-runtime-carrier-controller.ts");
+        final Path entryFile = tempDir.resolve("strict-runtime-carrier-main.ts");
+        Files.writeString(
+                moduleFile,
+                """
+                export class PetClinicController {
+                  listOwners() {
+                    return "ok";
+                  }
+                }
+                """,
+                UTF_8
+        );
+        Files.writeString(entryFile, "import \"./strict-runtime-carrier-controller.ts\";\n", UTF_8);
+
+        final Path outDir = tempDir.resolve("strict-runtime-carrier-main-out");
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(
+                entryFile,
+                outDir,
+                JvmOptimizationOptions.defaults(),
+                JvmBytecodeCompiler.BackendMode.JVM_STRICT
+        );
+
+        assertEquals("runtime-carrier", artifact.strictLoweringPath());
+        try (URLClassLoader classLoader = new URLClassLoader(new URL[]{artifact.outputDirectory().toUri().toURL()})) {
+            final Class<?> programClass = Class.forName(artifact.className(), true, classLoader);
+            final java.lang.reflect.Method invokeClass = programClass.getDeclaredMethod(
+                    "__tsjInvokeClass",
+                    String.class,
+                    String.class,
+                    Object[].class,
+                    Object[].class
+            );
+            final Object result = invokeClass.invoke(
+                    null,
+                    "PetClinicController",
+                    "listOwners",
+                    new Object[0],
+                    new Object[0]
+            );
+            assertEquals("ok", result);
+        }
+    }
+
+    @Test
+    void strictJvmModeRejectsClassMethodsThatRequireRuntimeCarrierFallback() throws Exception {
+        final Path sourceFile = tempDir.resolve("strict-bridge-unsupported.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                class Counter {
+                  value: number;
+
+                  constructor(initial: number) {
+                    this.value = initial;
+                  }
+
+                  update(transform: any) {
+                    this.value = transform(this.value);
+                    return this.value;
+                  }
+                }
+                """,
+                UTF_8
+        );
+
+        final JvmCompilationException exception = assertThrows(
+                JvmCompilationException.class,
+                () -> new JvmBytecodeCompiler().compile(
+                        sourceFile,
+                        tempDir.resolve("strict-bridge-unsupported-out"),
+                        JvmOptimizationOptions.defaults(),
+                        JvmBytecodeCompiler.BackendMode.JVM_STRICT
+                )
+        );
+
+        assertEquals("TSJ-STRICT-BRIDGE", exception.code());
+        assertEquals("TSJ80-STRICT-BRIDGE", exception.featureId());
+    }
+
+    @Test
     void emitsSourceMapFileForGeneratedProgram() throws Exception {
         final Path sourceFile = tempDir.resolve("source-map.ts");
         Files.writeString(
@@ -72,6 +434,200 @@ class JvmBytecodeCompilerTest {
         assertTrue(Files.exists(artifact.sourceMapFile()));
         assertTrue(sourceMap.startsWith("TSJ-SOURCE-MAP\t1"));
         assertTrue(sourceMap.contains("source-map.ts"));
+    }
+
+    @Test
+    void emitsLoadableMetadataCarrierClassForTopLevelTsClass() throws Exception {
+        final Path sourceFile = tempDir.resolve("carrier.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                class Person {
+                  name: string = "";
+
+                  constructor(name: string, age: number) {
+                    this.name = name;
+                  }
+
+                  greet(prefix: string) {
+                    return prefix + this.name;
+                  }
+                }
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("carrier-out"));
+        final Path carrierClass = artifact.outputDirectory()
+                .resolve("dev/tsj/generated/metadata/PersonTsjCarrier.class");
+        assertTrue(Files.exists(carrierClass));
+
+        try (URLClassLoader classLoader = new URLClassLoader(new URL[]{artifact.outputDirectory().toUri().toURL()})) {
+            final Class<?> carrierClassType = Class.forName(
+                    "dev.tsj.generated.metadata.PersonTsjCarrier",
+                    true,
+                    classLoader
+            );
+
+            assertEquals(Object.class, carrierClassType.getDeclaredField("name").getType());
+            final java.lang.reflect.Constructor<?> constructor =
+                    carrierClassType.getDeclaredConstructor(Object.class, Object.class);
+            assertEquals("name", constructor.getParameters()[0].getName());
+            assertEquals("age", constructor.getParameters()[1].getName());
+
+            final java.lang.reflect.Method greet = carrierClassType.getDeclaredMethod("greet", Object.class);
+            assertEquals(Object.class, greet.getReturnType());
+            assertEquals("prefix", greet.getParameters()[0].getName());
+        }
+    }
+
+    @Test
+    void emitsDefaultConstructorForMetadataCarrierWhenTsClassHasNoConstructor() throws Exception {
+        final Path sourceFile = tempDir.resolve("carrier-default-ctor.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                class EmptyCarrierTarget {
+                  value: number = 1;
+                }
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact =
+                new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("carrier-default-ctor-out"));
+        final Path carrierClass = artifact.outputDirectory()
+                .resolve("dev/tsj/generated/metadata/EmptyCarrierTargetTsjCarrier.class");
+        assertTrue(Files.exists(carrierClass));
+
+        try (URLClassLoader classLoader = new URLClassLoader(new URL[]{artifact.outputDirectory().toUri().toURL()})) {
+            final Class<?> carrierClassType = Class.forName(
+                    "dev.tsj.generated.metadata.EmptyCarrierTargetTsjCarrier",
+                    true,
+                    classLoader
+            );
+            carrierClassType.getDeclaredConstructor();
+        }
+    }
+
+    @Test
+    void emitsImportedRuntimeAnnotationsOnMetadataCarrierClassMembersAndParameters() throws Exception {
+        final Path sourceFile = tempDir.resolve("carrier-annotations.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                import { TypeMark } from "java:dev.tsj.compiler.backend.jvm.fixtures.annotations.TypeMark";
+                import { FieldMark } from "java:dev.tsj.compiler.backend.jvm.fixtures.annotations.FieldMark";
+                import { CtorMark } from "java:dev.tsj.compiler.backend.jvm.fixtures.annotations.CtorMark";
+                import { MethodMark } from "java:dev.tsj.compiler.backend.jvm.fixtures.annotations.MethodMark";
+                import { ParamMark } from "java:dev.tsj.compiler.backend.jvm.fixtures.annotations.ParamMark";
+
+                @TypeMark
+                class AnnotatedCarrierTarget {
+                  @FieldMark
+                  value: number = 1;
+
+                  @CtorMark
+                  constructor(@ParamMark name: string) {
+                    this.value = 2;
+                  }
+
+                  @MethodMark
+                  greet(@ParamMark prefix: string) {
+                    return prefix + this.value;
+                  }
+                }
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact =
+                new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("carrier-annotations-out"));
+        final Path carrierClass = artifact.outputDirectory()
+                .resolve("dev/tsj/generated/metadata/AnnotatedCarrierTargetTsjCarrier.class");
+        assertTrue(Files.exists(carrierClass));
+
+        try (URLClassLoader classLoader = new URLClassLoader(new URL[]{artifact.outputDirectory().toUri().toURL()})) {
+            final Class<?> carrierClassType = Class.forName(
+                    "dev.tsj.generated.metadata.AnnotatedCarrierTargetTsjCarrier",
+                    true,
+                    classLoader
+            );
+            assertTrue(carrierClassType.isAnnotationPresent(TypeMark.class));
+            assertTrue(carrierClassType.getDeclaredField("value").isAnnotationPresent(FieldMark.class));
+
+            final java.lang.reflect.Constructor<?> constructor = carrierClassType.getDeclaredConstructor(Object.class);
+            assertTrue(constructor.isAnnotationPresent(CtorMark.class));
+            assertTrue(constructor.getParameters()[0].isAnnotationPresent(ParamMark.class));
+
+            final java.lang.reflect.Method method = carrierClassType.getDeclaredMethod("greet", Object.class);
+            assertTrue(method.isAnnotationPresent(MethodMark.class));
+            assertTrue(method.getParameters()[0].isAnnotationPresent(ParamMark.class));
+        }
+    }
+
+    @Test
+    void emitsImportedRuntimeAnnotationAttributeValuesOnMetadataCarrierMembers() throws Exception {
+        final Path sourceFile = tempDir.resolve("carrier-annotation-values.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                import { RichMark } from "java:dev.tsj.compiler.backend.jvm.fixtures.annotations.RichMark";
+
+                @RichMark('class-value')
+                class RichCarrierTarget {
+                  @RichMark({ name: 'field-name', count: 2 })
+                  value: number = 1;
+
+                  @RichMark({ tags: ['ctor', 'init'] })
+                  constructor(@RichMark('ctor-param') name: string) {
+                    this.value = 2;
+                  }
+
+                  @RichMark({ tags: ['method', 'value'] })
+                  greet(@RichMark({ name: 'param-name', count: 9 }) prefix: string) {
+                    return prefix + this.value;
+                  }
+                }
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact =
+                new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("carrier-annotation-values-out"));
+        final Path carrierClass = artifact.outputDirectory()
+                .resolve("dev/tsj/generated/metadata/RichCarrierTargetTsjCarrier.class");
+        assertTrue(Files.exists(carrierClass));
+
+        try (URLClassLoader classLoader = new URLClassLoader(new URL[]{artifact.outputDirectory().toUri().toURL()})) {
+            final Class<?> carrierClassType = Class.forName(
+                    "dev.tsj.generated.metadata.RichCarrierTargetTsjCarrier",
+                    true,
+                    classLoader
+            );
+            final RichMark classMark = carrierClassType.getAnnotation(RichMark.class);
+            assertEquals("class-value", classMark.value());
+
+            final RichMark fieldMark = carrierClassType.getDeclaredField("value").getAnnotation(RichMark.class);
+            assertEquals("field-name", fieldMark.name());
+            assertEquals(2, fieldMark.count());
+
+            final java.lang.reflect.Constructor<?> constructor = carrierClassType.getDeclaredConstructor(Object.class);
+            final RichMark constructorMark = constructor.getAnnotation(RichMark.class);
+            assertArrayEquals(new String[]{"ctor", "init"}, constructorMark.tags());
+
+            final RichMark constructorParameterMark =
+                    constructor.getParameters()[0].getAnnotation(RichMark.class);
+            assertEquals("ctor-param", constructorParameterMark.value());
+
+            final java.lang.reflect.Method method = carrierClassType.getDeclaredMethod("greet", Object.class);
+            final RichMark methodMark = method.getAnnotation(RichMark.class);
+            assertArrayEquals(new String[]{"method", "value"}, methodMark.tags());
+
+            final RichMark methodParameterMark = method.getParameters()[0].getAnnotation(RichMark.class);
+            assertEquals("param-name", methodParameterMark.name());
+            assertEquals(9, methodParameterMark.count());
+        }
     }
 
     @Test
@@ -878,6 +1434,50 @@ class JvmBytecodeCompilerTest {
         new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
 
         assertEquals("decl:3|4|1|2|ok|11\nassign:9|8|1|2\n", stdout.toString(UTF_8));
+    }
+
+    @Test
+    void supportsDestructuringDefaultsAndRestAcrossDeclarationsAssignmentsParametersAndLoopHeaders() throws Exception {
+        final Path sourceFile = tempDir.resolve("destructuring-defaults-rest.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                function summarize({ a = 1, b = 2, ...rest }) {
+                  return `${a}|${b}|${rest.c}|${rest.d}`;
+                }
+
+                const { x = 10, y, ...others } = { y: 20, z: 30, w: 40 };
+
+                let first = 0;
+                let tail = [];
+                [first, ...tail] = [5, 6, 7];
+
+                let picked = 0;
+                let remaining = {};
+                ({ z: picked, ...remaining } = { z: 9, q: 8, r: 7 });
+
+                let loopTotal = 0;
+                for (const [left, right = 0] of [[1, 2], [3]]) {
+                  loopTotal += left + right;
+                }
+
+                console.log("params=" + summarize({ b: 5, c: 6, d: 7 }));
+                console.log(`decl=${x}|${y}|${others.z}|${others.w}`);
+                console.log(`assign=${first}|${tail[0]}|${tail[1]}|${picked}|${remaining.q}|${remaining.r}`);
+                console.log("loop=" + loopTotal);
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact =
+                new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out-destructuring-defaults-rest"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals(
+                "params=1|5|6|7\ndecl=10|20|30|40\nassign=5|6|7|9|8|7\nloop=6\n",
+                stdout.toString(UTF_8)
+        );
     }
 
     @Test
@@ -4235,6 +4835,117 @@ class JvmBytecodeCompilerTest {
     }
 
     @Test
+    void supportsReExportStarAndNamedFromInTsj65Subset() throws Exception {
+        final Path module = tempDir.resolve("dep.ts");
+        final Path barrel = tempDir.resolve("barrel.ts");
+        final Path entry = tempDir.resolve("main.ts");
+        Files.writeString(
+                module,
+                """
+                export const alpha = 1;
+                export const beta = 2;
+                let count = 0;
+                export function inc() {
+                  count = count + 1;
+                }
+                export function read() {
+                  return count;
+                }
+                """,
+                UTF_8
+        );
+        Files.writeString(
+                barrel,
+                """
+                export * from "./dep.ts";
+                export { beta as renamedBeta } from "./dep.ts";
+                """,
+                UTF_8
+        );
+        Files.writeString(
+                entry,
+                """
+                import { alpha, renamedBeta, inc, read } from "./barrel.ts";
+                console.log("alpha=" + alpha);
+                console.log("beta=" + renamedBeta);
+                console.log("count0=" + read());
+                inc();
+                console.log("count1=" + read());
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(entry, tempDir.resolve("out65-reexport"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals("alpha=1\nbeta=2\ncount0=0\ncount1=1\n", stdout.toString(UTF_8));
+    }
+
+    @Test
+    void supportsRelativeDynamicImportWithModuleNamespaceObjectInTsj65Subset() throws Exception {
+        final Path module = tempDir.resolve("dep.ts");
+        final Path entry = tempDir.resolve("main.ts");
+        Files.writeString(
+                module,
+                """
+                const defaultValue = 41;
+                export default defaultValue;
+                export const value = 7;
+                """,
+                UTF_8
+        );
+        Files.writeString(
+                entry,
+                """
+                const loaded = await import("./dep.ts");
+                console.log("default=" + loaded.default);
+                console.log("value=" + loaded.value);
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(entry, tempDir.resolve("out65-dynamic-import"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals("default=41\nvalue=7\n", stdout.toString(UTF_8));
+    }
+
+    @Test
+    void supportsNamedImportLiveBindingForMutableExportInTsj65Subset() throws Exception {
+        final Path module = tempDir.resolve("dep.ts");
+        final Path entry = tempDir.resolve("main.ts");
+        Files.writeString(
+                module,
+                """
+                export let count = 1;
+                export function inc() {
+                  count = count + 1;
+                }
+                """,
+                UTF_8
+        );
+        Files.writeString(
+                entry,
+                """
+                import { count, inc } from "./dep.ts";
+                console.log("before=" + count);
+                inc();
+                console.log("after=" + count);
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact =
+                new JvmBytecodeCompiler().compile(entry, tempDir.resolve("out65-live-binding"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals("before=1\nafter=2\n", stdout.toString(UTF_8));
+    }
+
+    @Test
     void rejectsNonRelativeImportInTsj12Bootstrap() throws Exception {
         final Path entry = tempDir.resolve("main.ts");
         Files.writeString(
@@ -4588,6 +5299,54 @@ class JvmBytecodeCompilerTest {
     }
 
     @Test
+    void supportsLabeledContinueTargetingOuterForOfLoopInTsj59bSubset() throws Exception {
+        final Path sourceFile = tempDir.resolve("labeled-continue-for-of.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                const groups = [[1, 2, 3], [4, 5]];
+                let total = 0;
+                outer: for (const group of groups) {
+                  for (const value of group) {
+                    if (value === 5) {
+                      break outer;
+                    }
+                    switch (value) {
+                      case 1:
+                        total += value;
+                        break;
+                      case 2:
+                        total += value;
+                      case 3:
+                        total += value;
+                        break;
+                      default:
+                        total += value;
+                        break;
+                    }
+                    if (value === 1) {
+                      continue;
+                    }
+                    if (value === 3) {
+                      continue outer;
+                    }
+                    total += 100;
+                  }
+                }
+                console.log("total=" + total);
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact =
+                new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out59b-labeled-for-of"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals("total=212\n", stdout.toString(UTF_8));
+    }
+
+    @Test
     void supportsCommaOperatorEvaluationOrderAndFinalValueInTsj59aSubset() throws Exception {
         final Path sourceFile = tempDir.resolve("comma-operator.ts");
         Files.writeString(
@@ -4640,7 +5399,8 @@ class JvmBytecodeCompilerTest {
         Files.writeString(
                 sourceFile,
                 """
-                const loader = import("./dep.ts");
+                const specifier = "./dep.ts";
+                const loader = import(specifier);
                 console.log(loader);
                 """,
                 UTF_8
@@ -4656,7 +5416,7 @@ class JvmBytecodeCompilerTest {
                 "TSJ15-DYNAMIC-IMPORT",
                 "Use static relative imports"
         );
-        assertEquals(1, exception.line());
+        assertEquals(2, exception.line());
         assertEquals(sourceFile.toAbsolutePath().normalize().toString(), exception.sourceFile());
     }
 
@@ -4950,6 +5710,307 @@ class JvmBytecodeCompilerTest {
     }
 
     @Test
+    void supportsStage3ClassDecoratorContextAndReplacementInTsj66Subset() throws Exception {
+        final Path sourceFile = tempDir.resolve("stage3-class-decorator.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                function tagged(value: any, context: any) {
+                  if (!context || context.kind !== "class") {
+                    throw new Error("missing-class-context");
+                  }
+                  return class extends value {
+                    static marker = "stage3";
+                  };
+                }
+
+                @tagged
+                class Example {}
+
+                console.log((Example as any).marker);
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out-stage3-class"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals("stage3\n", stdout.toString(UTF_8));
+    }
+
+    @Test
+    void supportsStage3MethodDecoratorContextAndReplacementInTsj66Subset() throws Exception {
+        final Path sourceFile = tempDir.resolve("stage3-method-decorator.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                function wrap(value: any, context: any) {
+                  if (!context || context.kind !== "method") {
+                    throw new Error("missing-method-context");
+                  }
+                  if (typeof value !== "function") {
+                    throw new Error("missing-method-value");
+                  }
+                  return function (..._args: any[]) {
+                    return String(context.name) + ":decorated";
+                  };
+                }
+
+                class Example {
+                  @wrap
+                  work() {
+                    return 7;
+                  }
+                }
+
+                console.log(new Example().work());
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out-stage3-method"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals("work:decorated\n", stdout.toString(UTF_8));
+    }
+
+    @Test
+    void rejectsDecoratedPrivateClassElementWithTsj66FeatureDiagnostic() throws Exception {
+        final Path sourceFile = tempDir.resolve("decorated-private-member.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                function mark(value: any, _context: any) {
+                  return value;
+                }
+
+                class Demo {
+                  @mark
+                  #secret() {
+                    return 1;
+                  }
+                }
+                """,
+                UTF_8
+        );
+
+        final JvmCompilationException exception = org.junit.jupiter.api.Assertions.assertThrows(
+                JvmCompilationException.class,
+                () -> new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out-stage3-private"))
+        );
+
+        assertUnsupportedFeature(
+                exception,
+                "TSJ66-DECORATOR-PRIVATE-ELEMENT",
+                "non-private class elements"
+        );
+        assertEquals(7, exception.line());
+        assertEquals(sourceFile.toAbsolutePath().normalize().toString(), exception.sourceFile());
+    }
+
+    @Test
+    void supportsStage3FieldDecoratorInitializerTransformInTsj66Subset() throws Exception {
+        final Path sourceFile = tempDir.resolve("stage3-field-decorator.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                function addOne(_value: any, context: any) {
+                  if (!context || context.kind !== "field" || context.name !== "count" || context.static !== false || context.private !== false) {
+                    throw new Error("bad-field-context");
+                  }
+                  return function (initial: any) {
+                    return initial + 1;
+                  };
+                }
+
+                class Counter {
+                  @addOne
+                  count = 2;
+                }
+
+                console.log(new Counter().count);
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out-stage3-field"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals("3\n", stdout.toString(UTF_8));
+    }
+
+    @Test
+    void rejectsStage3AccessorDecoratorWithTsj66FeatureDiagnostic() throws Exception {
+        final Path sourceFile = tempDir.resolve("stage3-accessor-decorator.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                function mark(value: any, _context: any) {
+                  return value;
+                }
+
+                class Demo {
+                  @mark
+                  accessor value = 1;
+                }
+                """,
+                UTF_8
+        );
+
+        final JvmCompilationException exception = org.junit.jupiter.api.Assertions.assertThrows(
+                JvmCompilationException.class,
+                () -> new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out-stage3-accessor"))
+        );
+
+        assertUnsupportedFeature(
+                exception,
+                "TSJ66-DECORATOR-STAGE3-ACCESSOR",
+                "Use field or method decorators"
+        );
+        assertEquals(7, exception.line());
+        assertEquals(sourceFile.toAbsolutePath().normalize().toString(), exception.sourceFile());
+    }
+
+    @Test
+    void rejectsStage3GetterDecoratorWithTsj66FeatureDiagnostic() throws Exception {
+        final Path sourceFile = tempDir.resolve("stage3-getter-decorator.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                function mark(value: any, _context: any) {
+                  return value;
+                }
+
+                class Demo {
+                  @mark
+                  get value() {
+                    return 1;
+                  }
+                }
+                """,
+                UTF_8
+        );
+
+        final JvmCompilationException exception = org.junit.jupiter.api.Assertions.assertThrows(
+                JvmCompilationException.class,
+                () -> new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out-stage3-getter"))
+        );
+
+        assertUnsupportedFeature(
+                exception,
+                "TSJ66-DECORATOR-STAGE3-ACCESSOR",
+                "Use field or method decorators"
+        );
+        assertEquals(7, exception.line());
+        assertEquals(sourceFile.toAbsolutePath().normalize().toString(), exception.sourceFile());
+    }
+
+    @Test
+    void rejectsStage3SetterDecoratorWithTsj66FeatureDiagnostic() throws Exception {
+        final Path sourceFile = tempDir.resolve("stage3-setter-decorator.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                function mark(value: any, _context: any) {
+                  return value;
+                }
+
+                class Demo {
+                  @mark
+                  set value(next: number) {
+                    console.log(next);
+                  }
+                }
+                """,
+                UTF_8
+        );
+
+        final JvmCompilationException exception = org.junit.jupiter.api.Assertions.assertThrows(
+                JvmCompilationException.class,
+                () -> new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out-stage3-setter"))
+        );
+
+        assertUnsupportedFeature(
+                exception,
+                "TSJ66-DECORATOR-STAGE3-ACCESSOR",
+                "Use field or method decorators"
+        );
+        assertEquals(7, exception.line());
+        assertEquals(sourceFile.toAbsolutePath().normalize().toString(), exception.sourceFile());
+    }
+
+    @Test
+    void rejectsStage3ParameterDecoratorWithTsj66FeatureDiagnostic() throws Exception {
+        final Path sourceFile = tempDir.resolve("stage3-parameter-decorator.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                function mark(value: any, _context: any) {
+                  return value;
+                }
+
+                class Demo {
+                  method(@mark value: number) {
+                    return value;
+                  }
+                }
+                """,
+                UTF_8
+        );
+
+        final JvmCompilationException exception = org.junit.jupiter.api.Assertions.assertThrows(
+                JvmCompilationException.class,
+                () -> new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out-stage3-parameter"))
+        );
+
+        assertUnsupportedFeature(
+                exception,
+                "TSJ66-DECORATOR-STAGE3-PARAMETER",
+                "legacy parameter decorator factories"
+        );
+        assertEquals(6, exception.line());
+        assertEquals(sourceFile.toAbsolutePath().normalize().toString(), exception.sourceFile());
+    }
+
+    @Test
+    void supportsLegacyMethodDecoratorFactoryCallExpressionInTsj66Subset() throws Exception {
+        final Path sourceFile = tempDir.resolve("legacy-method-decorator-factory.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                function wrap(prefix: string) {
+                  return function (_target: any, _key: string, descriptor: PropertyDescriptor) {
+                    const original = descriptor.value;
+                    descriptor.value = function (...args: any[]) {
+                      return prefix + ":" + original.apply(this, args);
+                    };
+                    return descriptor;
+                  };
+                }
+
+                class Demo {
+                  @wrap("p")
+                  value() {
+                    return "ok";
+                  }
+                }
+
+                console.log(new Demo().value());
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out-legacy-method-factory"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals("p:ok\n", stdout.toString(UTF_8));
+    }
+
+    @Test
     void compilesDeclarationFilesAsNoOpPrograms() throws Exception {
         final Path declarationFile = tempDir.resolve("ambient.d.ts");
         Files.writeString(
@@ -5123,6 +6184,96 @@ class JvmBytecodeCompilerTest {
     }
 
     @Test
+    void defaultsToAstNoFallbackWhenBridgeOmitsNormalizedProgram() throws Exception {
+        final Path sourceFile = tempDir.resolve("bridge-normalized-null.ts");
+        final Path bridgeScript = tempDir.resolve("bridge-normalized-null.cjs");
+        Files.writeString(
+                sourceFile,
+                """
+                console.log("ok");
+                """,
+                UTF_8
+        );
+        Files.writeString(
+                bridgeScript,
+                """
+                process.stdout.write(JSON.stringify({
+                  schemaVersion: "tsj-backend-token-v1",
+                  diagnostics: [],
+                  tokens: [{ type: "EOF", text: "", line: 1, column: 1 }],
+                  astNodes: [{ kind: "SourceFile", line: 1, column: 1, endLine: 1, endColumn: 1 }],
+                  normalizedProgram: null,
+                  normalizationDiagnostics: []
+                }));
+                """,
+                UTF_8
+        );
+
+        final String previousBridgeScript = System.getProperty(TOKEN_BRIDGE_SCRIPT_PROPERTY);
+        final String previousLegacyTokenizer = System.getProperty(LEGACY_TOKENIZER_PROPERTY);
+        final String previousAstNoFallback = System.getProperty(AST_NO_FALLBACK_PROPERTY);
+        try {
+            System.setProperty(TOKEN_BRIDGE_SCRIPT_PROPERTY, bridgeScript.toString());
+            System.clearProperty(LEGACY_TOKENIZER_PROPERTY);
+            System.clearProperty(AST_NO_FALLBACK_PROPERTY);
+
+            final JvmCompilationException exception = org.junit.jupiter.api.Assertions.assertThrows(
+                    JvmCompilationException.class,
+                    () -> new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out58h"))
+            );
+            assertEquals("TSJ-BACKEND-AST-LOWERING", exception.code());
+            assertTrue(exception.getMessage().contains("parser fallback is disabled"));
+        } finally {
+            restoreSystemProperty(TOKEN_BRIDGE_SCRIPT_PROPERTY, previousBridgeScript);
+            restoreSystemProperty(LEGACY_TOKENIZER_PROPERTY, previousLegacyTokenizer);
+            restoreSystemProperty(AST_NO_FALLBACK_PROPERTY, previousAstNoFallback);
+        }
+    }
+
+    @Test
+    void allowsDebugParserFallbackWhenAstNoFallbackExplicitlyDisabled() throws Exception {
+        final Path sourceFile = tempDir.resolve("bridge-normalized-null-debug-fallback.ts");
+        final Path bridgeScript = tempDir.resolve("bridge-normalized-null-debug-fallback.cjs");
+        Files.writeString(
+                sourceFile,
+                """
+                console.log("ok");
+                """,
+                UTF_8
+        );
+        Files.writeString(
+                bridgeScript,
+                """
+                process.stdout.write(JSON.stringify({
+                  schemaVersion: "tsj-backend-token-v1",
+                  diagnostics: [],
+                  tokens: [{ type: "EOF", text: "", line: 1, column: 1 }],
+                  astNodes: [{ kind: "SourceFile", line: 1, column: 1, endLine: 1, endColumn: 1 }],
+                  normalizedProgram: null,
+                  normalizationDiagnostics: []
+                }));
+                """,
+                UTF_8
+        );
+
+        final String previousBridgeScript = System.getProperty(TOKEN_BRIDGE_SCRIPT_PROPERTY);
+        final String previousLegacyTokenizer = System.getProperty(LEGACY_TOKENIZER_PROPERTY);
+        final String previousAstNoFallback = System.getProperty(AST_NO_FALLBACK_PROPERTY);
+        try {
+            System.setProperty(TOKEN_BRIDGE_SCRIPT_PROPERTY, bridgeScript.toString());
+            System.clearProperty(LEGACY_TOKENIZER_PROPERTY);
+            System.setProperty(AST_NO_FALLBACK_PROPERTY, "false");
+
+            final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out58i"));
+            assertTrue(Files.exists(artifact.classFile()));
+        } finally {
+            restoreSystemProperty(TOKEN_BRIDGE_SCRIPT_PROPERTY, previousBridgeScript);
+            restoreSystemProperty(LEGACY_TOKENIZER_PROPERTY, previousLegacyTokenizer);
+            restoreSystemProperty(AST_NO_FALLBACK_PROPERTY, previousAstNoFallback);
+        }
+    }
+
+    @Test
     void canCompileSimpleProgramWithAstOnlyPathWhenParserFallbackDisabled() throws Exception {
         final Path sourceFile = tempDir.resolve("ast-only-simple.ts");
         Files.writeString(
@@ -5281,6 +6432,70 @@ class JvmBytecodeCompilerTest {
         } finally {
             restoreSystemProperty(LEGACY_TOKENIZER_PROPERTY, previousLegacyTokenizer);
             restoreSystemProperty(AST_NO_FALLBACK_PROPERTY, previousAstNoFallback);
+        }
+    }
+
+    @Test
+    void rejectsTsxInputWithTsj67FeatureDiagnostic() throws Exception {
+        final Path sourceFile = tempDir.resolve("tsx-out-of-scope.tsx");
+        Files.writeString(
+                sourceFile,
+                """
+                export const View = <div>tsx</div>;
+                """,
+                UTF_8
+        );
+
+        final JvmCompilationException exception = org.junit.jupiter.api.Assertions.assertThrows(
+                JvmCompilationException.class,
+                () -> new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("out-tsx"))
+        );
+        assertUnsupportedFeature(exception, "TSJ67-TSX-OUT-OF-SCOPE", "TSX/JSX is not in scope");
+    }
+
+    @Test
+    void reportsIncrementalCacheMissHitAndInvalidationAcrossModuleGraphChanges() throws Exception {
+        final String previousIncrementalCache = System.getProperty("tsj.backend.incrementalCache");
+        try {
+            System.setProperty("tsj.backend.incrementalCache", "true");
+
+            final Path dependency = tempDir.resolve("dep.ts");
+            Files.writeString(dependency, "export let value = 1;\n", UTF_8);
+            final Path sourceFile = tempDir.resolve("incremental-main.ts");
+            Files.writeString(
+                    sourceFile,
+                    """
+                    import { value } from "./dep.ts";
+                    console.log("value=" + value);
+                    """,
+                    UTF_8
+            );
+
+            final JvmBytecodeCompiler compiler = new JvmBytecodeCompiler();
+            compiler.compile(sourceFile, tempDir.resolve("incremental-out-1"));
+            final JvmBytecodeCompiler.IncrementalCompilationReport first = compiler.lastIncrementalCompilationReport();
+            assertTrue(first.cacheEnabled());
+            assertEquals(JvmBytecodeCompiler.IncrementalStageState.MISS, first.frontend());
+            assertEquals(JvmBytecodeCompiler.IncrementalStageState.MISS, first.lowering());
+            assertEquals(JvmBytecodeCompiler.IncrementalStageState.MISS, first.backend());
+            assertTrue(!first.sourceGraphFingerprint().isBlank());
+
+            compiler.compile(sourceFile, tempDir.resolve("incremental-out-2"));
+            final JvmBytecodeCompiler.IncrementalCompilationReport second = compiler.lastIncrementalCompilationReport();
+            assertEquals(JvmBytecodeCompiler.IncrementalStageState.HIT, second.frontend());
+            assertEquals(JvmBytecodeCompiler.IncrementalStageState.HIT, second.lowering());
+            assertEquals(JvmBytecodeCompiler.IncrementalStageState.MISS, second.backend());
+            assertEquals(first.sourceGraphFingerprint(), second.sourceGraphFingerprint());
+
+            Files.writeString(dependency, "export let value = 2;\n", UTF_8);
+            compiler.compile(sourceFile, tempDir.resolve("incremental-out-3"));
+            final JvmBytecodeCompiler.IncrementalCompilationReport third = compiler.lastIncrementalCompilationReport();
+            assertEquals(JvmBytecodeCompiler.IncrementalStageState.INVALIDATED, third.frontend());
+            assertEquals(JvmBytecodeCompiler.IncrementalStageState.INVALIDATED, third.lowering());
+            assertEquals(JvmBytecodeCompiler.IncrementalStageState.MISS, third.backend());
+            assertFalse(first.sourceGraphFingerprint().equals(third.sourceGraphFingerprint()));
+        } finally {
+            restoreSystemProperty("tsj.backend.incrementalCache", previousIncrementalCache);
         }
     }
 

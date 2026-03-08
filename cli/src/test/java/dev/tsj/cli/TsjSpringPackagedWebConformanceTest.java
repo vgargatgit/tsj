@@ -79,6 +79,82 @@ class TsjSpringPackagedWebConformanceTest {
     }
 
     @Test
+    void springPackageSupportsJvmStrictModeForWebAdapters() throws Exception {
+        final Path supportJar = buildPackagedWebSupportJar();
+        final Path entryFile = writeWebEntryFixture();
+        final Path outDir = tempDir.resolve("tsj34f-package-out-strict");
+
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+        final int exitCode = TsjCli.execute(
+                new String[]{
+                        "spring-package",
+                        entryFile.toString(),
+                        "--out",
+                        outDir.toString(),
+                        "--jar",
+                        supportJar.toString(),
+                        "--interop-policy",
+                        "broad",
+                        "--ack-interop-risk",
+                        "--mode",
+                        "jvm-strict"
+                },
+                new PrintStream(stdout),
+                new PrintStream(stderr)
+        );
+
+        assertEquals(0, exitCode, "stderr:\n" + stderr.toString(UTF_8));
+        assertEquals("", stderr.toString(UTF_8));
+        assertTrue(stdout.toString(UTF_8).contains("\"code\":\"TSJ-SPRING-PACKAGE-SUCCESS\""));
+        assertTrue(Files.exists(outDir.resolve("tsj-spring-app.jar")));
+    }
+
+    @Test
+    void springPackageStrictModeGeneratesLauncherForJavaImportedDecoratorsAcrossModuleGraph() throws Exception {
+        final Path supportJar = buildPackagedWebSupportJar();
+        final Path entryFile = writeJavaImportedWebModuleGraphEntryFixture();
+        final Path outDir = tempDir.resolve("tsj34f-package-out-java-imported");
+
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+        final int exitCode = TsjCli.execute(
+                new String[]{
+                        "spring-package",
+                        entryFile.toString(),
+                        "--out",
+                        outDir.toString(),
+                        "--jar",
+                        supportJar.toString(),
+                        "--interop-policy",
+                        "broad",
+                        "--ack-interop-risk",
+                        "--mode",
+                        "jvm-strict"
+                },
+                new PrintStream(stdout),
+                new PrintStream(stderr)
+        );
+
+        assertEquals(0, exitCode, "stderr:\n" + stderr.toString(UTF_8));
+        assertEquals("", stderr.toString(UTF_8));
+        assertTrue(stdout.toString(UTF_8).contains("\"code\":\"TSJ-SPRING-PACKAGE-SUCCESS\""));
+
+        final Path packagedJar = outDir.resolve("tsj-spring-app.jar");
+        assertTrue(Files.exists(packagedJar));
+        try (JarFile jarFile = new JarFile(packagedJar.toFile())) {
+            assertTrue(
+                    jarFile.getJarEntry("dev/tsj/generated/web/ImportedEchoControllerTsjController.class") != null,
+                    "Expected generated controller adapter from java:-imported decorators."
+            );
+            assertTrue(
+                    jarFile.getJarEntry("dev/tsj/generated/boot/TsjSpringBootLauncher.class") != null,
+                    "Expected generated Spring Boot launcher for packaged HTTP runtime."
+            );
+        }
+    }
+
+    @Test
     void packagedWebConformanceGateProducesTsJavaKotlinReport() throws Exception {
         final Path supportJar = buildPackagedWebSupportJar();
         final Path scenarioOutput = tempDir.resolve("tsj34f-scenario-output.txt");
@@ -350,6 +426,61 @@ class TsjSpringPackagedWebConformanceTest {
         return entry;
     }
 
+    private Path writeJavaImportedWebModuleGraphEntryFixture() throws Exception {
+        final Path entry = tempDir.resolve("tsj34f-web-main-imported.ts");
+        final Path webDir = tempDir.resolve("src/web");
+        final Path domainDir = tempDir.resolve("src/domain");
+        Files.createDirectories(webDir);
+        Files.createDirectories(domainDir);
+        final Path controller = webDir.resolve("imported-echo-controller.ts");
+        final Path entity = domainDir.resolve("owner.ts");
+        Files.writeString(
+                entity,
+                """
+                import type { Entity } from "java:jakarta.persistence.Entity";
+
+                @Entity
+                export class Owner {
+                  id: string;
+
+                  constructor() {
+                    this.id = "1";
+                  }
+                }
+                """,
+                UTF_8
+        );
+        Files.writeString(
+                controller,
+                """
+                import type { GetMapping } from "java:org.springframework.web.bind.annotation.GetMapping";
+                import type { RequestMapping } from "java:org.springframework.web.bind.annotation.RequestMapping";
+                import type { RequestParam } from "java:org.springframework.web.bind.annotation.RequestParam";
+                import type { RestController } from "java:org.springframework.web.bind.annotation.RestController";
+                import "../domain/owner";
+
+                @RestController
+                @RequestMapping("/api")
+                export class ImportedEchoController {
+                  @GetMapping("/echo")
+                  echo(@RequestParam("value") value: string) {
+                    return "echo:" + value;
+                  }
+                }
+                """,
+                UTF_8
+        );
+        Files.writeString(
+                entry,
+                """
+                import "./src/web/imported-echo-controller";
+                console.log("tsj34f-boot");
+                """,
+                UTF_8
+        );
+        return entry;
+    }
+
     private StageResult runSpringPackage(final String[] args) throws Exception {
         final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
         final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
@@ -431,6 +562,75 @@ class TsjSpringPackagedWebConformanceTest {
                 @Target({ElementType.PARAMETER})
                 public @interface RequestParam {
                     String value() default "";
+                }
+                """
+        );
+        writeJavaSource(
+                sourceRoot,
+                "jakarta/persistence/Entity.java",
+                """
+                package jakarta.persistence;
+
+                import java.lang.annotation.ElementType;
+                import java.lang.annotation.Retention;
+                import java.lang.annotation.RetentionPolicy;
+                import java.lang.annotation.Target;
+
+                @Retention(RetentionPolicy.RUNTIME)
+                @Target({ElementType.TYPE})
+                public @interface Entity {
+                }
+                """
+        );
+        writeJavaSource(
+                sourceRoot,
+                "org/springframework/boot/autoconfigure/SpringBootApplication.java",
+                """
+                package org.springframework.boot.autoconfigure;
+
+                import java.lang.annotation.ElementType;
+                import java.lang.annotation.Retention;
+                import java.lang.annotation.RetentionPolicy;
+                import java.lang.annotation.Target;
+
+                @Retention(RetentionPolicy.RUNTIME)
+                @Target({ElementType.TYPE})
+                public @interface SpringBootApplication {
+                    String[] scanBasePackages() default {};
+                }
+                """
+        );
+        writeJavaSource(
+                sourceRoot,
+                "org/springframework/boot/SpringApplication.java",
+                """
+                package org.springframework.boot;
+
+                public final class SpringApplication {
+                    private SpringApplication() {
+                    }
+
+                    public static void run(final Class<?> applicationClass, final String[] args) {
+                        // no-op support stub for packaged-web conformance tests.
+                    }
+                }
+                """
+        );
+        writeJavaSource(
+                sourceRoot,
+                "org/springframework/context/annotation/Import.java",
+                """
+                package org.springframework.context.annotation;
+
+                import java.lang.annotation.ElementType;
+                import java.lang.annotation.Retention;
+                import java.lang.annotation.RetentionPolicy;
+                import java.lang.annotation.Target;
+
+                @Retention(RetentionPolicy.RUNTIME)
+                @Target({ElementType.TYPE})
+                public @interface Import {
+                    Class<?>[] value() default {};
                 }
                 """
         );

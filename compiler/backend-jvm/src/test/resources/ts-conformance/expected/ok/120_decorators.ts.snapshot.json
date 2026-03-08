@@ -876,32 +876,44 @@
         "name" : "methodDecoratorResult_9"
       }, {
         "column" : 3,
-        "expression" : {
+        "condition" : {
           "column" : 3,
-          "kind" : "BinaryExpression",
-          "left" : {
-            "column" : 3,
-            "kind" : "VariableExpression",
-            "line" : 12,
-            "name" : "methodDecoratorResult_9"
-          },
+          "kind" : "VariableExpression",
           "line" : 12,
-          "operator" : "||",
-          "right" : {
+          "name" : "methodDecoratorResult_9"
+        },
+        "elseBlock" : [ ],
+        "kind" : "IfStatement",
+        "line" : 12,
+        "thenBlock" : [ {
+          "column" : 3,
+          "expression" : {
+            "column" : 3,
+            "kind" : "BinaryExpression",
+            "left" : {
+              "column" : 3,
+              "kind" : "VariableExpression",
+              "line" : 12,
+              "name" : "methodDecoratorResult_9"
+            },
+            "line" : 12,
+            "operator" : "||",
+            "right" : {
+              "column" : 3,
+              "kind" : "VariableExpression",
+              "line" : 12,
+              "name" : "decoratorDescriptor_7"
+            }
+          },
+          "kind" : "AssignmentStatement",
+          "line" : 12,
+          "target" : {
             "column" : 3,
             "kind" : "VariableExpression",
             "line" : 12,
             "name" : "decoratorDescriptor_7"
           }
-        },
-        "kind" : "AssignmentStatement",
-        "line" : 12,
-        "target" : {
-          "column" : 3,
-          "kind" : "VariableExpression",
-          "line" : 12,
-          "name" : "decoratorDescriptor_7"
-        }
+        } ]
       } ]
     }, {
       "column" : 3,

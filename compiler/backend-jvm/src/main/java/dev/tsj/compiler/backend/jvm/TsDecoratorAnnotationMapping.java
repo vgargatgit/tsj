@@ -9,7 +9,7 @@ import java.util.Set;
  * TS decorator -> JVM annotation mapping contract for TSJ-32a subset.
  */
 public final class TsDecoratorAnnotationMapping {
-    private static final Map<String, String> CLASS_DECORATORS = Map.ofEntries(
+    private static final Map<String, String> DEFAULT_CLASS_DECORATORS = Map.ofEntries(
             Map.entry("Component", "org.springframework.stereotype.Component"),
             Map.entry("Service", "org.springframework.stereotype.Service"),
             Map.entry("Repository", "org.springframework.stereotype.Repository"),
@@ -23,7 +23,7 @@ public final class TsDecoratorAnnotationMapping {
             Map.entry("Transactional", "org.springframework.transaction.annotation.Transactional"),
             Map.entry("Validated", "org.springframework.validation.annotation.Validated")
     );
-    private static final Map<String, String> METHOD_DECORATORS = Map.ofEntries(
+    private static final Map<String, String> DEFAULT_METHOD_DECORATORS = Map.ofEntries(
             Map.entry("Bean", "org.springframework.context.annotation.Bean"),
             Map.entry("Autowired", "org.springframework.beans.factory.annotation.Autowired"),
             Map.entry("Qualifier", "org.springframework.beans.factory.annotation.Qualifier"),
@@ -43,7 +43,7 @@ public final class TsDecoratorAnnotationMapping {
             Map.entry("Transactional", "org.springframework.transaction.annotation.Transactional"),
             Map.entry("Validated", "org.springframework.validation.annotation.Validated")
     );
-    private static final Map<String, String> PARAMETER_DECORATORS = Map.ofEntries(
+    private static final Map<String, String> DEFAULT_PARAMETER_DECORATORS = Map.ofEntries(
             Map.entry("RequestParam", "org.springframework.web.bind.annotation.RequestParam"),
             Map.entry("PathVariable", "org.springframework.web.bind.annotation.PathVariable"),
             Map.entry("RequestHeader", "org.springframework.web.bind.annotation.RequestHeader"),
@@ -56,26 +56,47 @@ public final class TsDecoratorAnnotationMapping {
             Map.entry("Max", "jakarta.validation.constraints.Max"),
             Map.entry("Valid", "jakarta.validation.Valid")
     );
+    private final Map<String, String> classDecorators;
+    private final Map<String, String> methodDecorators;
+    private final Map<String, String> parameterDecorators;
+
+    public TsDecoratorAnnotationMapping() {
+        this(DEFAULT_CLASS_DECORATORS, DEFAULT_METHOD_DECORATORS, DEFAULT_PARAMETER_DECORATORS);
+    }
+
+    public static TsDecoratorAnnotationMapping empty() {
+        return new TsDecoratorAnnotationMapping(Map.of(), Map.of(), Map.of());
+    }
+
+    private TsDecoratorAnnotationMapping(
+            final Map<String, String> classDecorators,
+            final Map<String, String> methodDecorators,
+            final Map<String, String> parameterDecorators
+    ) {
+        this.classDecorators = Map.copyOf(Objects.requireNonNull(classDecorators, "classDecorators"));
+        this.methodDecorators = Map.copyOf(Objects.requireNonNull(methodDecorators, "methodDecorators"));
+        this.parameterDecorators = Map.copyOf(Objects.requireNonNull(parameterDecorators, "parameterDecorators"));
+    }
 
     public Optional<String> mapClassDecorator(final String decoratorName) {
         Objects.requireNonNull(decoratorName, "decoratorName");
-        return Optional.ofNullable(CLASS_DECORATORS.get(decoratorName));
+        return Optional.ofNullable(classDecorators.get(decoratorName));
     }
 
     public Optional<String> mapMethodDecorator(final String decoratorName) {
         Objects.requireNonNull(decoratorName, "decoratorName");
-        return Optional.ofNullable(METHOD_DECORATORS.get(decoratorName));
+        return Optional.ofNullable(methodDecorators.get(decoratorName));
     }
 
     public Optional<String> mapParameterDecorator(final String decoratorName) {
         Objects.requireNonNull(decoratorName, "decoratorName");
-        return Optional.ofNullable(PARAMETER_DECORATORS.get(decoratorName));
+        return Optional.ofNullable(parameterDecorators.get(decoratorName));
     }
 
     public Set<String> supportedDecoratorNames() {
-        final java.util.LinkedHashSet<String> names = new java.util.LinkedHashSet<>(CLASS_DECORATORS.keySet());
-        names.addAll(METHOD_DECORATORS.keySet());
-        names.addAll(PARAMETER_DECORATORS.keySet());
+        final java.util.LinkedHashSet<String> names = new java.util.LinkedHashSet<>(classDecorators.keySet());
+        names.addAll(methodDecorators.keySet());
+        names.addAll(parameterDecorators.keySet());
         return Set.copyOf(names);
     }
 }

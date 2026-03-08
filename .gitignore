@@ -21,6 +21,7 @@ build/
 dist/
 out/
 coverage/
+.tsj-build/
 
 # IDEs / editors
 .idea/

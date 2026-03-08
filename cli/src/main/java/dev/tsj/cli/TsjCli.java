@@ -17,9 +17,11 @@ import dev.tsj.compiler.backend.jvm.TsjSpringWebControllerGenerator;
 import dev.tsj.compiler.backend.jvm.TsjSpringComponentArtifact;
 import dev.tsj.compiler.backend.jvm.TsjSpringComponentGenerator;
 import dev.tsj.compiler.frontend.FrontendModule;
+import dev.tsj.compiler.frontend.StrictEligibilityChecker;
 import dev.tsj.compiler.ir.IrModule;
 import dev.tsj.runtime.RuntimeModule;
 import dev.tsj.runtime.TsjJavaInterop;
+import dev.tsj.runtime.TsjInteropCodec;
 import dev.tsj.runtime.TsjRuntime;
 
 import java.io.IOException;
@@ -32,6 +34,7 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedHashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -94,13 +97,16 @@ public final class TsjCli {
     private static final String OPTION_SMOKE_ENDPOINT_URL = "--smoke-endpoint-url";
     private static final String OPTION_SMOKE_TIMEOUT_MS = "--smoke-timeout-ms";
     private static final String OPTION_SMOKE_POLL_MS = "--smoke-poll-ms";
+    private static final String OPTION_LEGACY_SPRING_ADAPTERS = "--legacy-spring-adapters";
     private static final String OPTION_TS_STACKTRACE = "--ts-stacktrace";
     private static final String OPTION_OPTIMIZE = "--optimize";
     private static final String OPTION_NO_OPTIMIZE = "--no-optimize";
+    private static final String OPTION_MODE = "--mode";
     private static final String OPTION_WARMUP = "--warmup";
     private static final String OPTION_ITERATIONS = "--iterations";
     private static final String OPTION_SMOKE = "--smoke";
     private static final String SYSTEM_PROPERTY_GLOBAL_POLICY_PATH = "tsj.interop.globalPolicy";
+    private static final String SYSTEM_PROPERTY_BACKEND_ADDITIONAL_CLASSPATH = "tsj.backend.additionalClasspath";
     private static final String ENV_GLOBAL_POLICY_PATH = "TSJ_INTEROP_GLOBAL_POLICY";
     private static final String PROJECT_POLICY_RELATIVE_PATH = ".tsj/interop-policy.properties";
     private static final String POLICY_KEY_INTEROP_POLICY = "interop.policy";
@@ -146,6 +152,10 @@ public final class TsjCli {
     private static final String AUTO_INTEROP_CACHE_FINGERPRINT_KEY = "fingerprint";
     private static final String AUTO_INTEROP_OUTPUT_DIR = "generated-interop";
     private static final String SPRING_PACKAGE_DEFAULT_JAR_NAME = "tsj-spring-app.jar";
+    private static final String SPRING_BOOT_LAUNCHER_OUTPUT_DIR = "generated-boot";
+    private static final String SPRING_BOOT_LAUNCHER_CLASS = "dev.tsj.generated.boot.TsjSpringBootLauncher";
+    private static final String GENERATED_WEB_PACKAGE = "dev.tsj.generated.web";
+    private static final String GENERATED_COMPONENT_PACKAGE = "dev.tsj.generated.spring";
     private static final Pattern IMPORT_STATEMENT_PATTERN = Pattern.compile(
             "(?s)\\bimport\\s+(?:(type\\s+)?(.+?)\\s+from\\s*[\"']([^\"']+)[\"']"
                     + "(?:\\s+(?:with|assert)\\s*\\{[^;]*})?|[\"']([^\"']+)[\"']"
@@ -236,7 +246,8 @@ public final class TsjCli {
                             + "[--interop-policy strict|broad] [--ack-interop-risk] "
                             + "[--interop-role <roles>] [--interop-approval <token>] "
                             + "[--interop-denylist <patterns>] [--interop-audit-log <path>] "
-                            + "[--interop-audit-aggregate <path>] "
+                            + "[--interop-audit-aggregate <path>] [--legacy-spring-adapters] "
+                            + "[--mode default|jvm-strict] "
                             + "[--interop-trace]"
             );
         }
@@ -258,7 +269,9 @@ public final class TsjCli {
                 options.interopAuditLogPath(),
                 options.interopAuditAggregatePath(),
                 options.interopTraceEnabled(),
+                options.legacySpringAdaptersEnabled(),
                 JvmBytecodeRunner.ClassloaderIsolationMode.SHARED,
+                options.compilerMode(),
                 COMMAND_COMPILE
         );
 
@@ -268,6 +281,10 @@ public final class TsjCli {
         context.put("className", artifact.jvmArtifact.className());
         context.put("classFile", artifact.jvmArtifact.classFile().toString());
         context.put("outDir", options.outDir().toString());
+        context.put("compilerMode", options.compilerMode().cliValue());
+        if (options.compilerMode() == CompilerMode.JVM_STRICT) {
+            context.put("strictLoweringPath", artifact.jvmArtifact.strictLoweringPath());
+        }
         context.put("interopClasspathEntries", Integer.toString(artifact.classpathResolution().entries().size()));
         context.put(
                 "interopMediationDecisions",
@@ -346,6 +363,30 @@ public final class TsjCli {
                 "optDeadCodeElimination",
                 Boolean.toString(options.optimizationOptions().deadCodeEliminationEnabled())
         );
+        context.put(
+                "incrementalCacheEnabled",
+                Boolean.toString(artifact.incrementalCompilationReport().cacheEnabled())
+        );
+        context.put(
+                "incrementalCompilerVersion",
+                artifact.incrementalCompilationReport().compilerVersion()
+        );
+        context.put(
+                "incrementalSourceGraphFingerprint",
+                artifact.incrementalCompilationReport().sourceGraphFingerprint()
+        );
+        context.put(
+                "incrementalFrontendStage",
+                artifact.incrementalCompilationReport().frontend().name().toLowerCase(Locale.ROOT)
+        );
+        context.put(
+                "incrementalLoweringStage",
+                artifact.incrementalCompilationReport().lowering().name().toLowerCase(Locale.ROOT)
+        );
+        context.put(
+                "incrementalBackendStage",
+                artifact.incrementalCompilationReport().backend().name().toLowerCase(Locale.ROOT)
+        );
         emitDiagnostic(
                 stdout,
                 "INFO",
@@ -366,7 +407,9 @@ public final class TsjCli {
                             + "[--ack-interop-risk] [--interop-denylist <patterns>] "
                             + "[--interop-role <roles>] [--interop-approval <token>] "
                             + "[--interop-audit-log <path>] [--interop-audit-aggregate <path>] "
-                            + "[--interop-trace] [--classloader-isolation shared|app-isolated] "
+                            + "[--interop-trace] [--legacy-spring-adapters] "
+                            + "[--mode default|jvm-strict] "
+                            + "[--classloader-isolation shared|app-isolated] "
                             + "[--ts-stacktrace]"
             );
         }
@@ -391,7 +434,9 @@ public final class TsjCli {
                     runOptions.interopAuditLogPath(),
                     runOptions.interopAuditAggregatePath(),
                     runOptions.interopTraceEnabled(),
+                    runOptions.legacySpringAdaptersEnabled(),
                     runOptions.classloaderIsolationMode(),
+                    runOptions.compilerMode(),
                     COMMAND_RUN
             );
         } catch (final CliFailure failure) {
@@ -426,6 +471,7 @@ public final class TsjCli {
                             + "[--resource-dir <dir>] [--boot-jar <jar-file>] [--smoke-run] "
                             + "[--smoke-endpoint-url <http-url>] [--smoke-timeout-ms <ms>] "
                             + "[--smoke-poll-ms <ms>] "
+                            + "[--mode default|jvm-strict] "
                             + "[--optimize|--no-optimize]"
             );
         }
@@ -450,7 +496,9 @@ public final class TsjCli {
                     options.interopAuditLogPath(),
                     options.interopAuditAggregatePath(),
                     options.interopTraceEnabled(),
+                    true,
                     JvmBytecodeRunner.ClassloaderIsolationMode.SHARED,
+                    options.compilerMode(),
                     COMMAND_SPRING_PACKAGE
             );
         } catch (final CliFailure failure) {
@@ -460,6 +508,7 @@ public final class TsjCli {
                     mergeFailureContext(failure.context, "stage", classifyStartupStage(failure.code))
             );
         }
+        maybeGenerateSpringBootLauncherSource(artifact, options);
         compileGeneratedSpringAdaptersForPackaging(artifact, options);
 
         final SpringPackageResult packageResult = packageSpringJar(artifact, options);
@@ -473,6 +522,10 @@ public final class TsjCli {
         packageContext.put("fatJarDependencySources", Integer.toString(packageResult.dependencySources().size()));
         packageContext.put("interopPolicy", options.interopPolicy().cliValue());
         packageContext.put("interopPolicySource", options.interopPolicySource());
+        packageContext.put("compilerMode", options.compilerMode().cliValue());
+        if (options.compilerMode() == CompilerMode.JVM_STRICT) {
+            packageContext.put("strictLoweringPath", artifact.jvmArtifact().strictLoweringPath());
+        }
         packageContext.put(
                 "interopAuditAggregate",
                 options.interopAuditAggregatePath() == null ? "" : options.interopAuditAggregatePath().toString()
@@ -706,6 +759,8 @@ public final class TsjCli {
         boolean interopRolesExplicit = false;
         boolean interopApprovalExplicit = false;
         boolean interopTraceEnabled = false;
+        boolean legacySpringAdaptersEnabled = false;
+        CompilerMode compilerMode = CompilerMode.DEFAULT;
         Path interopAuditLogPath = null;
         Path interopAuditAggregatePath = null;
         String interopApprovalToken = null;
@@ -840,6 +895,22 @@ public final class TsjCli {
                 index++;
                 continue;
             }
+            if (OPTION_MODE.equals(token)) {
+                if (index + 1 >= args.length) {
+                    throw CliFailure.usage(
+                            "TSJ-CLI-006",
+                            "Missing value for `--mode`."
+                    );
+                }
+                compilerMode = parseCompilerModeValue(args[index + 1]);
+                index += 2;
+                continue;
+            }
+            if (OPTION_LEGACY_SPRING_ADAPTERS.equals(token)) {
+                legacySpringAdaptersEnabled = true;
+                index++;
+                continue;
+            }
             final JvmOptimizationOptions toggled = parseOptimizationToggle(token);
             if (toggled != null) {
                 optimizationOptions = toggled;
@@ -898,7 +969,9 @@ public final class TsjCli {
                 List.copyOf(interopDenylistPatterns),
                 interopAuditLogPath,
                 interopAuditAggregatePath,
-                interopTraceEnabled
+                interopTraceEnabled,
+                legacySpringAdaptersEnabled,
+                compilerMode
         );
     }
 
@@ -1038,7 +1111,9 @@ public final class TsjCli {
             final Path interopAuditLogPath,
             final Path interopAuditAggregatePath,
             final boolean interopTraceEnabled,
+            final boolean enableLegacySpringAdapters,
             final JvmBytecodeRunner.ClassloaderIsolationMode classloaderIsolationMode,
+            final CompilerMode compilerMode,
             final String commandName
     ) {
         if (!Files.exists(entryPath) || !Files.isRegularFile(entryPath)) {
@@ -1056,6 +1131,8 @@ public final class TsjCli {
                 Map.of("entry", entryPath.toString())
             );
         }
+
+        enforceStrictModeEligibility(entryPath, compilerMode);
 
         final List<String> discoveredInteropTargets = discoverInteropTargets(entryPath);
         try {
@@ -1109,15 +1186,35 @@ public final class TsjCli {
                 classpathScopeExclusions
         );
 
+        final JvmBytecodeCompiler backendCompiler = new JvmBytecodeCompiler();
         final JvmCompiledArtifact jvmArtifact;
+        JvmBytecodeCompiler.IncrementalCompilationReport incrementalCompilationReport =
+                JvmBytecodeCompiler.IncrementalCompilationReport.disabled();
+        final String previousAdditionalClasspath = System.getProperty(SYSTEM_PROPERTY_BACKEND_ADDITIONAL_CLASSPATH);
+        final String additionalClasspath = renderAdditionalBackendClasspath(interopClasspathEntries);
+        if (additionalClasspath.isBlank()) {
+            System.clearProperty(SYSTEM_PROPERTY_BACKEND_ADDITIONAL_CLASSPATH);
+        } else {
+            System.setProperty(SYSTEM_PROPERTY_BACKEND_ADDITIONAL_CLASSPATH, additionalClasspath);
+        }
         try {
-            jvmArtifact = new JvmBytecodeCompiler().compile(entryPath, outDir, optimizationOptions);
+            final JvmBytecodeCompiler.BackendMode backendMode = compilerMode == CompilerMode.JVM_STRICT
+                    ? JvmBytecodeCompiler.BackendMode.JVM_STRICT
+                    : JvmBytecodeCompiler.BackendMode.DEFAULT;
+            jvmArtifact = backendCompiler.compile(entryPath, outDir, optimizationOptions, backendMode);
+            incrementalCompilationReport = backendCompiler.lastIncrementalCompilationReport();
         } catch (final JvmCompilationException compilationException) {
             throw CliFailure.runtime(
                     compilationException.code(),
                     compilationException.getMessage(),
                     backendFailureContext(entryPath, compilationException)
             );
+        } finally {
+            if (previousAdditionalClasspath == null || previousAdditionalClasspath.isBlank()) {
+                System.clearProperty(SYSTEM_PROPERTY_BACKEND_ADDITIONAL_CLASSPATH);
+            } else {
+                System.setProperty(SYSTEM_PROPERTY_BACKEND_ADDITIONAL_CLASSPATH, previousAdditionalClasspath);
+            }
         }
         final AutoInteropBridgeResult interopBridgeResult;
         try {
@@ -1146,32 +1243,42 @@ public final class TsjCli {
             );
         }
         final TsjWebControllerResult tsjWebControllerResult;
-        try {
-            tsjWebControllerResult = maybeGenerateTsjWebControllerAdapters(
-                    entryPath,
-                    outDir,
-                    jvmArtifact.className()
-            );
-        } catch (final JvmCompilationException compilationException) {
-            throw CliFailure.runtime(
-                    compilationException.code(),
-                    compilationException.getMessage(),
-                    backendFailureContext(entryPath, compilationException)
-            );
-        }
         final TsjSpringComponentResult tsjSpringComponentResult;
-        try {
-            tsjSpringComponentResult = maybeGenerateTsjSpringComponentAdapters(
-                    entryPath,
-                    outDir,
-                    jvmArtifact.className()
-            );
-        } catch (final JvmCompilationException compilationException) {
-            throw CliFailure.runtime(
-                    compilationException.code(),
-                    compilationException.getMessage(),
-                    backendFailureContext(entryPath, compilationException)
-            );
+        final boolean legacySpringAdaptersEnabled =
+                COMMAND_SPRING_PACKAGE.equals(commandName) || enableLegacySpringAdapters;
+        if (legacySpringAdaptersEnabled) {
+            try {
+                tsjWebControllerResult = maybeGenerateTsjWebControllerAdapters(
+                        entryPath,
+                        outDir,
+                        jvmArtifact.className(),
+                        interopClasspathEntries
+                );
+            } catch (final JvmCompilationException compilationException) {
+                throw CliFailure.runtime(
+                        compilationException.code(),
+                        compilationException.getMessage(),
+                        backendFailureContext(entryPath, compilationException)
+                );
+            }
+            try {
+                tsjSpringComponentResult = maybeGenerateTsjSpringComponentAdapters(
+                        entryPath,
+                        outDir,
+                        jvmArtifact.className(),
+                        interopClasspathEntries
+                );
+            } catch (final JvmCompilationException compilationException) {
+                throw CliFailure.runtime(
+                        compilationException.code(),
+                        compilationException.getMessage(),
+                        backendFailureContext(entryPath, compilationException)
+                );
+            }
+        } else {
+            clearLegacySpringAdapterOutput(outDir);
+            tsjWebControllerResult = new TsjWebControllerResult(List.of(), 0);
+            tsjSpringComponentResult = new TsjSpringComponentResult(List.of(), 0);
         }
 
         final ClasspathSymbolIndexer.ClasspathSymbolIndex classpathSymbolIndex;
@@ -1226,6 +1333,11 @@ public final class TsjCli {
             properties.setProperty("classFile", jvmArtifact.classFile().toString());
             properties.setProperty("sourceMapFile", jvmArtifact.sourceMapFile().toString());
             properties.setProperty("classesDir", jvmArtifact.outputDirectory().toString());
+            properties.setProperty("compiler.mode", compilerMode.cliValue());
+            if (compilerMode == CompilerMode.JVM_STRICT) {
+                properties.setProperty("strict.eligibility", "passed");
+                properties.setProperty("strict.loweringPath", jvmArtifact.strictLoweringPath());
+            }
             properties.setProperty(ARTIFACT_INTEROP_CLASSPATH_COUNT, Integer.toString(interopClasspathEntries.size()));
             for (int index = 0; index < interopClasspathEntries.size(); index++) {
                 properties.setProperty(
@@ -1382,6 +1494,27 @@ public final class TsjCli {
                     "optimization.deadCodeEliminationEnabled",
                     Boolean.toString(optimizationOptions.deadCodeEliminationEnabled())
             );
+            properties.setProperty(
+                    "incremental.cacheEnabled",
+                    Boolean.toString(incrementalCompilationReport.cacheEnabled())
+            );
+            properties.setProperty("incremental.compilerVersion", incrementalCompilationReport.compilerVersion());
+            properties.setProperty(
+                    "incremental.sourceGraphFingerprint",
+                    incrementalCompilationReport.sourceGraphFingerprint()
+            );
+            properties.setProperty(
+                    "incremental.frontend",
+                    incrementalCompilationReport.frontend().name().toLowerCase(Locale.ROOT)
+            );
+            properties.setProperty(
+                    "incremental.lowering",
+                    incrementalCompilationReport.lowering().name().toLowerCase(Locale.ROOT)
+            );
+            properties.setProperty(
+                    "incremental.backend",
+                    incrementalCompilationReport.backend().name().toLowerCase(Locale.ROOT)
+            );
 
             try (OutputStream outputStream = Files.newOutputStream(artifactPath)) {
                 properties.store(outputStream, "TSJ compiled artifact");
@@ -1406,7 +1539,8 @@ public final class TsjCli {
                     ),
                     interopBridgeResult,
                     tsjWebControllerResult,
-                    tsjSpringComponentResult
+                    tsjSpringComponentResult,
+                    incrementalCompilationReport
             );
         } catch (final IOException ioException) {
             throw CliFailure.runtime(
@@ -1462,6 +1596,48 @@ public final class TsjCli {
                         "guidance", "Move the dependency to compile/runtime scope or run with compatible classpath scope."
                 )
         );
+    }
+
+    private static void clearLegacySpringAdapterOutput(final Path outDir) {
+        deleteDirectoryIfExists(outDir.resolve("generated-web"));
+        deleteDirectoryIfExists(outDir.resolve("generated-components"));
+        deleteDirectoryIfExists(outDir.resolve(SPRING_BOOT_LAUNCHER_OUTPUT_DIR));
+    }
+
+    private static void deleteDirectoryIfExists(final Path directory) {
+        final Path normalizedDirectory = directory.toAbsolutePath().normalize();
+        if (!Files.exists(normalizedDirectory)) {
+            return;
+        }
+        try (Stream<Path> paths = Files.walk(normalizedDirectory)) {
+            paths.sorted(Comparator.reverseOrder()).forEach(path -> {
+                try {
+                    Files.deleteIfExists(path);
+                } catch (final IOException ioException) {
+                    throw new IllegalStateException(ioException);
+                }
+            });
+        } catch (final IllegalStateException illegalStateException) {
+            final Throwable cause = illegalStateException.getCause();
+            final String reason = cause == null ? illegalStateException.getMessage() : cause.getMessage();
+            throw CliFailure.runtime(
+                    "TSJ-COMPILE-500",
+                    "Failed to clear legacy Spring adapter output at `"
+                            + normalizedDirectory
+                            + "`: "
+                            + reason,
+                    Map.of("directory", normalizedDirectory.toString())
+            );
+        } catch (final IOException ioException) {
+            throw CliFailure.runtime(
+                    "TSJ-COMPILE-500",
+                    "Failed to inspect legacy Spring adapter output at `"
+                            + normalizedDirectory
+                            + "`: "
+                            + ioException.getMessage(),
+                    Map.of("directory", normalizedDirectory.toString())
+            );
+        }
     }
 
     private static CliFailure maybeRunInteropClasspathFailure(
@@ -1643,13 +1819,15 @@ public final class TsjCli {
         int resourceFileCount = 0;
         int dependencyEntryCount = 0;
         final Set<String> writtenEntries = new LinkedHashSet<>();
+        final MergedJarMetadata mergedJarMetadata = new MergedJarMetadata();
         try (JarOutputStream jarOutputStream = new JarOutputStream(Files.newOutputStream(jarPath), manifest)) {
             try {
                 writeDirectoryToJar(
                         jarOutputStream,
                         artifact.jvmArtifact().outputDirectory(),
                         artifact.jvmArtifact().outputDirectory(),
-                        writtenEntries
+                        writtenEntries,
+                        mergedJarMetadata
                 );
             } catch (final IOException ioException) {
                 throw springPackageFailure(
@@ -1666,7 +1844,8 @@ public final class TsjCli {
                             jarOutputStream,
                             resourceDirectory,
                             resourceDirectory,
-                            writtenEntries
+                            writtenEntries,
+                            mergedJarMetadata
                     );
                 } catch (final IOException ioException) {
                     throw springPackageFailure(
@@ -1684,7 +1863,8 @@ public final class TsjCli {
                         jarOutputStream,
                         artifact.artifactPath(),
                         "META-INF/tsj/program.tsj.properties",
-                        writtenEntries
+                        writtenEntries,
+                        mergedJarMetadata
                 );
             } catch (final IOException ioException) {
                 throw springPackageFailure(
@@ -1700,7 +1880,8 @@ public final class TsjCli {
                     dependencyEntryCount += writeClasspathEntryToJar(
                             jarOutputStream,
                             dependencySource,
-                            writtenEntries
+                            writtenEntries,
+                            mergedJarMetadata
                     );
                 } catch (final IOException ioException) {
                     throw springPackageFailure(
@@ -1713,6 +1894,7 @@ public final class TsjCli {
                     );
                 }
             }
+            dependencyEntryCount += writeMergedMetadataToJar(jarOutputStream, writtenEntries, mergedJarMetadata);
         } catch (final IOException ioException) {
             throw springPackageFailure(
                     "manifest",
@@ -2041,19 +2223,109 @@ public final class TsjCli {
     private static int writeClasspathEntryToJar(
             final JarOutputStream jarOutputStream,
             final Path classpathEntry,
-            final Set<String> writtenEntries
+            final Set<String> writtenEntries,
+            final MergedJarMetadata mergedJarMetadata
     ) throws IOException {
         final Path normalized = classpathEntry.toAbsolutePath().normalize();
         if (Files.isDirectory(normalized)) {
-            return writeDirectoryToJar(jarOutputStream, normalized, normalized, writtenEntries);
+            return writeDirectoryToJar(jarOutputStream, normalized, normalized, writtenEntries, mergedJarMetadata);
         }
         final String fileName = normalized.getFileName() == null
                 ? ""
                 : normalized.getFileName().toString().toLowerCase(Locale.ROOT);
         if (Files.isRegularFile(normalized) && fileName.endsWith(".jar")) {
-            return writeJarFileToJar(jarOutputStream, normalized, writtenEntries);
+            return writeJarFileToJar(jarOutputStream, normalized, writtenEntries, mergedJarMetadata);
         }
         return 0;
+    }
+
+    private static void maybeGenerateSpringBootLauncherSource(
+            final CompiledArtifact artifact,
+            final SpringPackageOptions options
+    ) {
+        final List<String> controllerClasses = artifact.tsjWebControllerResult()
+                .controllerClassNames()
+                .stream()
+                .map(TsjCli::toGeneratedWebControllerAdapterClassName)
+                .toList();
+        if (controllerClasses.isEmpty()) {
+            return;
+        }
+        final LinkedHashSet<String> importedClasses = new LinkedHashSet<>(controllerClasses);
+        artifact.tsjSpringComponentResult()
+                .componentClassNames()
+                .stream()
+                .map(TsjCli::toGeneratedSpringComponentAdapterClassName)
+                .forEach(importedClasses::add);
+
+        final Path launcherSource = options.outDir()
+                .resolve(SPRING_BOOT_LAUNCHER_OUTPUT_DIR)
+                .resolve("dev/tsj/generated/boot/TsjSpringBootLauncher.java")
+                .toAbsolutePath()
+                .normalize();
+        try {
+            final Path parent = launcherSource.getParent();
+            if (parent != null) {
+                Files.createDirectories(parent);
+            }
+            Files.writeString(
+                    launcherSource,
+                    renderSpringBootLauncherSource(artifact.jvmArtifact().className(), List.copyOf(importedClasses)),
+                    java.nio.charset.StandardCharsets.UTF_8,
+                    StandardOpenOption.CREATE,
+                    StandardOpenOption.TRUNCATE_EXISTING,
+                    StandardOpenOption.WRITE
+            );
+        } catch (final IOException ioException) {
+            throw CliFailure.runtime(
+                    "TSJ-SPRING-PACKAGE",
+                    "Failed to generate Spring Boot launcher source: " + ioException.getMessage(),
+                    Map.of(
+                            "stage", "compile",
+                            "failureKind", "generated-adapter-compile",
+                            "launcherSource", launcherSource.toString(),
+                            "entry", artifact.entryPath().toAbsolutePath().normalize().toString()
+                    )
+            );
+        }
+    }
+
+    private static String renderSpringBootLauncherSource(
+            final String programClassName,
+            final List<String> importedClasses
+    ) {
+        final StringBuilder builder = new StringBuilder();
+        builder.append("package dev.tsj.generated.boot;\n\n");
+        builder.append("@org.springframework.boot.autoconfigure.SpringBootApplication(scanBasePackages = \"dev.tsj.generated\")\n");
+        if (!importedClasses.isEmpty()) {
+            builder.append("@org.springframework.context.annotation.Import({\n");
+            for (int index = 0; index < importedClasses.size(); index++) {
+                builder.append("    ").append(importedClasses.get(index)).append(".class");
+                if (index + 1 < importedClasses.size()) {
+                    builder.append(",");
+                }
+                builder.append("\n");
+            }
+            builder.append("})\n");
+        }
+        builder.append("public class TsjSpringBootLauncher {\n");
+        builder.append("    public TsjSpringBootLauncher() {\n");
+        builder.append("    }\n\n");
+        builder.append("    public static void main(final String[] args) {\n");
+        builder.append("        ").append(programClassName).append(".main(args);\n");
+        builder.append("        java.lang.System.setProperty(\"spring.main.web-application-type\", \"servlet\");\n");
+        builder.append("        org.springframework.boot.SpringApplication.run(TsjSpringBootLauncher.class, args);\n");
+        builder.append("    }\n");
+        builder.append("}\n");
+        return builder.toString();
+    }
+
+    private static String toGeneratedWebControllerAdapterClassName(final String sourceClassName) {
+        return GENERATED_WEB_PACKAGE + "." + sourceClassName + "TsjController";
+    }
+
+    private static String toGeneratedSpringComponentAdapterClassName(final String sourceClassName) {
+        return GENERATED_COMPONENT_PACKAGE + "." + sourceClassName + "TsjComponent";
     }
 
     private static void compileGeneratedSpringAdaptersForPackaging(
@@ -2063,6 +2335,7 @@ public final class TsjCli {
         final List<Path> sourceFiles = new ArrayList<>();
         sourceFiles.addAll(collectGeneratedJavaSources(options.outDir().resolve("generated-web")));
         sourceFiles.addAll(collectGeneratedJavaSources(options.outDir().resolve("generated-components")));
+        sourceFiles.addAll(collectGeneratedJavaSources(options.outDir().resolve(SPRING_BOOT_LAUNCHER_OUTPUT_DIR)));
         if (sourceFiles.isEmpty()) {
             return;
         }
@@ -2092,6 +2365,13 @@ public final class TsjCli {
                 classPath = classesDir;
             } else {
                 classPath = classPath + File.pathSeparator + classesDir;
+            }
+            final LinkedHashSet<Path> adapterSupportClasspath = new LinkedHashSet<>();
+            addClassLocation(adapterSupportClasspath, TsjRuntime.class);
+            addClassLocation(adapterSupportClasspath, TsjJavaInterop.class);
+            addClassLocation(adapterSupportClasspath, TsjInteropCodec.class);
+            for (Path supportEntry : adapterSupportClasspath) {
+                classPath = classPath + File.pathSeparator + supportEntry.toAbsolutePath().normalize();
             }
             for (Path classpathEntry : options.interopClasspathEntries()) {
                 classPath = classPath + File.pathSeparator + classpathEntry.toAbsolutePath().normalize();
@@ -2184,7 +2464,8 @@ public final class TsjCli {
     private static int writeJarFileToJar(
             final JarOutputStream jarOutputStream,
             final Path sourceJar,
-            final Set<String> writtenEntries
+            final Set<String> writtenEntries,
+            final MergedJarMetadata mergedJarMetadata
     ) throws IOException {
         int added = 0;
         try (JarFile jarFile = new JarFile(sourceJar.toFile())) {
@@ -2195,7 +2476,16 @@ public final class TsjCli {
                     continue;
                 }
                 final String entryName = sourceEntry.getName().replace('\\', '/');
-                if (shouldSkipDependencyEntry(entryName) || !writtenEntries.add(entryName)) {
+                if (shouldSkipDependencyEntry(entryName)) {
+                    continue;
+                }
+                if (mergedJarMetadata.supports(entryName)) {
+                    try (InputStream inputStream = jarFile.getInputStream(sourceEntry)) {
+                        mergedJarMetadata.add(entryName, inputStream.readAllBytes());
+                    }
+                    continue;
+                }
+                if (!writtenEntries.add(entryName)) {
                     continue;
                 }
                 final JarEntry mergedEntry = new JarEntry(entryName);
@@ -2225,7 +2515,8 @@ public final class TsjCli {
             final JarOutputStream jarOutputStream,
             final Path baseDirectory,
             final Path sourceDirectory,
-            final Set<String> writtenEntries
+            final Set<String> writtenEntries,
+            final MergedJarMetadata mergedJarMetadata
     ) throws IOException {
         int added = 0;
         try (Stream<Path> paths = Files.walk(sourceDirectory)) {
@@ -2238,7 +2529,7 @@ public final class TsjCli {
                 if (entryName.isBlank()) {
                     continue;
                 }
-                if (addFileToJar(jarOutputStream, file, entryName, writtenEntries)) {
+                if (addFileToJar(jarOutputStream, file, entryName, writtenEntries, mergedJarMetadata)) {
                     added++;
                 }
             }
@@ -2250,9 +2541,14 @@ public final class TsjCli {
             final JarOutputStream jarOutputStream,
             final Path sourceFile,
             final String entryName,
-            final Set<String> writtenEntries
+            final Set<String> writtenEntries,
+            final MergedJarMetadata mergedJarMetadata
     ) throws IOException {
         final String normalizedEntry = entryName.replace('\\', '/');
+        if (mergedJarMetadata.supports(normalizedEntry)) {
+            mergedJarMetadata.add(normalizedEntry, Files.readAllBytes(sourceFile));
+            return true;
+        }
         if (!writtenEntries.add(normalizedEntry)) {
             return false;
         }
@@ -2261,6 +2557,118 @@ public final class TsjCli {
         Files.copy(sourceFile, jarOutputStream);
         jarOutputStream.closeEntry();
         return true;
+    }
+
+    private static int writeMergedMetadataToJar(
+            final JarOutputStream jarOutputStream,
+            final Set<String> writtenEntries,
+            final MergedJarMetadata mergedJarMetadata
+    ) throws IOException {
+        return mergedJarMetadata.writeToJar(jarOutputStream, writtenEntries);
+    }
+
+    private static final class MergedJarMetadata {
+        private static final String SPRING_FACTORIES_ENTRY = "META-INF/spring.factories";
+        private final LinkedHashMap<String, LinkedHashSet<String>> springFactoriesByKey = new LinkedHashMap<>();
+        private final LinkedHashMap<String, LinkedHashSet<String>> mergedLineEntries = new LinkedHashMap<>();
+
+        private boolean supports(final String entryName) {
+            return isSpringFactories(entryName) || isLineMergeEntry(entryName);
+        }
+
+        private void add(final String entryName, final byte[] bytes) throws IOException {
+            if (isSpringFactories(entryName)) {
+                mergeSpringFactories(bytes);
+                return;
+            }
+            if (isLineMergeEntry(entryName)) {
+                mergeLineEntry(entryName, bytes);
+            }
+        }
+
+        private int writeToJar(
+                final JarOutputStream jarOutputStream,
+                final Set<String> writtenEntries
+        ) throws IOException {
+            int added = 0;
+            if (!springFactoriesByKey.isEmpty()) {
+                final StringBuilder builder = new StringBuilder();
+                for (Map.Entry<String, LinkedHashSet<String>> entry : springFactoriesByKey.entrySet()) {
+                    if (entry.getValue().isEmpty()) {
+                        continue;
+                    }
+                    builder.append(entry.getKey())
+                            .append("=")
+                            .append(String.join(",", entry.getValue()))
+                            .append("\n");
+                }
+                if (!builder.isEmpty() && writtenEntries.add(SPRING_FACTORIES_ENTRY)) {
+                    final JarEntry mergedEntry = new JarEntry(SPRING_FACTORIES_ENTRY);
+                    jarOutputStream.putNextEntry(mergedEntry);
+                    jarOutputStream.write(builder.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8));
+                    jarOutputStream.closeEntry();
+                    added++;
+                }
+            }
+            for (Map.Entry<String, LinkedHashSet<String>> entry : mergedLineEntries.entrySet()) {
+                if (entry.getValue().isEmpty()) {
+                    continue;
+                }
+                if (!writtenEntries.add(entry.getKey())) {
+                    continue;
+                }
+                final JarEntry mergedEntry = new JarEntry(entry.getKey());
+                jarOutputStream.putNextEntry(mergedEntry);
+                for (String line : entry.getValue()) {
+                    jarOutputStream.write(line.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+                    jarOutputStream.write('\n');
+                }
+                jarOutputStream.closeEntry();
+                added++;
+            }
+            return added;
+        }
+
+        private void mergeSpringFactories(final byte[] bytes) throws IOException {
+            final Properties properties = new Properties();
+            try (java.io.StringReader reader = new java.io.StringReader(
+                    new String(bytes, java.nio.charset.StandardCharsets.UTF_8)
+            )) {
+                properties.load(reader);
+            }
+            for (String key : properties.stringPropertyNames()) {
+                final LinkedHashSet<String> mergedValues =
+                        springFactoriesByKey.computeIfAbsent(key, ignored -> new LinkedHashSet<>());
+                final String rawValue = properties.getProperty(key, "");
+                for (String value : rawValue.split(",")) {
+                    final String trimmed = value.trim();
+                    if (!trimmed.isEmpty()) {
+                        mergedValues.add(trimmed);
+                    }
+                }
+            }
+        }
+
+        private void mergeLineEntry(final String entryName, final byte[] bytes) {
+            final LinkedHashSet<String> mergedLines =
+                    mergedLineEntries.computeIfAbsent(entryName, ignored -> new LinkedHashSet<>());
+            final String content = new String(bytes, java.nio.charset.StandardCharsets.UTF_8);
+            for (String line : content.split("\\R")) {
+                final String trimmed = line.trim();
+                if (!trimmed.isEmpty() && !trimmed.startsWith("#")) {
+                    mergedLines.add(trimmed);
+                }
+            }
+        }
+
+        private boolean isSpringFactories(final String entryName) {
+            return SPRING_FACTORIES_ENTRY.equals(entryName);
+        }
+
+        private boolean isLineMergeEntry(final String entryName) {
+            return entryName.startsWith("META-INF/services/")
+                    || (entryName.startsWith("META-INF/spring/") && entryName.endsWith(".imports"));
+        }
     }
 
     private static List<Path> resolveSpringResourceDirectories(
@@ -2380,12 +2788,15 @@ public final class TsjCli {
     private static TsjWebControllerResult maybeGenerateTsjWebControllerAdapters(
             final Path entryPath,
             final Path outDir,
-            final String programClassName
+            final String programClassName,
+            final List<Path> interopClasspathEntries
     ) {
         final Path normalizedOutDir = outDir.toAbsolutePath().normalize();
         final Path generatedWebDir = normalizedOutDir.resolve("generated-web");
         try {
-            final TsjSpringWebControllerArtifact artifact = new TsjSpringWebControllerGenerator().generate(
+            final TsjSpringWebControllerArtifact artifact = new TsjSpringWebControllerGenerator(
+                    interopClasspathEntries
+            ).generate(
                     entryPath,
                     programClassName,
                     generatedWebDir
@@ -2405,12 +2816,15 @@ public final class TsjCli {
     private static TsjSpringComponentResult maybeGenerateTsjSpringComponentAdapters(
             final Path entryPath,
             final Path outDir,
-            final String programClassName
+            final String programClassName,
+            final List<Path> interopClasspathEntries
     ) {
         final Path normalizedOutDir = outDir.toAbsolutePath().normalize();
         final Path generatedComponentsDir = normalizedOutDir.resolve("generated-components");
         try {
-            final TsjSpringComponentArtifact artifact = new TsjSpringComponentGenerator().generate(
+            final TsjSpringComponentArtifact artifact = new TsjSpringComponentGenerator(
+                    interopClasspathEntries
+            ).generate(
                     entryPath,
                     programClassName,
                     generatedComponentsDir
@@ -2882,6 +3296,20 @@ public final class TsjCli {
         }
     }
 
+    private static String renderAdditionalBackendClasspath(final List<Path> interopClasspathEntries) {
+        final LinkedHashSet<String> entries = new LinkedHashSet<>();
+        for (Path classpathEntry : interopClasspathEntries) {
+            if (classpathEntry == null) {
+                continue;
+            }
+            final Path normalized = classpathEntry.toAbsolutePath().normalize();
+            if (Files.exists(normalized)) {
+                entries.add(normalized.toString());
+            }
+        }
+        return String.join(File.pathSeparator, entries);
+    }
+
     private static void addClasspathEntry(final Set<String> entries, final Path candidate) {
         if (candidate == null) {
             return;
@@ -3034,7 +3462,8 @@ public final class TsjCli {
                 classesDir,
                 className,
                 classFile,
-                sourceMapFile
+                sourceMapFile,
+                properties.getProperty("strict.loweringPath", "runtime-carrier")
         );
     }
 
@@ -3071,6 +3500,8 @@ public final class TsjCli {
         boolean interopRolesExplicit = false;
         boolean interopApprovalExplicit = false;
         boolean interopTraceEnabled = false;
+        boolean legacySpringAdaptersEnabled = false;
+        CompilerMode compilerMode = CompilerMode.DEFAULT;
         Path interopAuditLogPath = null;
         Path interopAuditAggregatePath = null;
         String interopApprovalToken = null;
@@ -3208,6 +3639,22 @@ public final class TsjCli {
                 index++;
                 continue;
             }
+            if (OPTION_MODE.equals(token)) {
+                if (index + 1 >= args.length) {
+                    throw CliFailure.usage(
+                            "TSJ-CLI-006",
+                            "Missing value for `--mode`."
+                    );
+                }
+                compilerMode = parseCompilerModeValue(args[index + 1]);
+                index += 2;
+                continue;
+            }
+            if (OPTION_LEGACY_SPRING_ADAPTERS.equals(token)) {
+                legacySpringAdaptersEnabled = true;
+                index++;
+                continue;
+            }
             if (OPTION_TS_STACKTRACE.equals(token)) {
                 showTsStackTrace = true;
                 index++;
@@ -3258,7 +3705,7 @@ public final class TsjCli {
         );
         final ClasspathResolution classpathResolution = normalizeClasspathInputs(
                 classpathInputs,
-                ClasspathUsageMode.RUNTIME
+                ClasspathUsageMode.PACKAGING
         );
         return new RunOptions(
                 outDir,
@@ -3277,7 +3724,9 @@ public final class TsjCli {
                 interopAuditLogPath,
                 interopAuditAggregatePath,
                 interopTraceEnabled,
-                classloaderIsolationMode
+                legacySpringAdaptersEnabled,
+                classloaderIsolationMode,
+                compilerMode
         );
     }
 
@@ -3303,6 +3752,7 @@ public final class TsjCli {
         String smokeEndpointUrl = null;
         long smokeTimeoutMs = DEFAULT_SMOKE_ENDPOINT_TIMEOUT_MS;
         long smokePollMs = DEFAULT_SMOKE_ENDPOINT_POLL_MS;
+        CompilerMode compilerMode = CompilerMode.DEFAULT;
         JvmOptimizationOptions optimizationOptions = JvmOptimizationOptions.defaults();
         final List<String> interopDenylistPatterns = new ArrayList<>();
         final List<String> interopRoles = new ArrayList<>();
@@ -3405,6 +3855,14 @@ public final class TsjCli {
                 index++;
                 continue;
             }
+            if (OPTION_MODE.equals(token)) {
+                if (index + 1 >= args.length) {
+                    throw CliFailure.usage("TSJ-CLI-006", "Missing value for `--mode`.");
+                }
+                compilerMode = parseCompilerModeValue(args[index + 1]);
+                index += 2;
+                continue;
+            }
             if (OPTION_RESOURCE_DIR.equals(token)) {
                 if (index + 1 >= args.length) {
                     throw CliFailure.usage("TSJ-CLI-006", "Missing value for `--resource-dir`.");
@@ -3496,12 +3954,16 @@ public final class TsjCli {
         );
         final ClasspathResolution classpathResolution = normalizeClasspathInputs(
                 classpathInputs,
-                ClasspathUsageMode.RUNTIME
+                ClasspathUsageMode.PACKAGING
+        );
+        final List<Path> springPackageClasspathEntries = resolveSpringPackageClasspathEntries(
+                classpathInputs,
+                classpathResolution
         );
         return new SpringPackageOptions(
                 outDir,
                 optimizationOptions,
-                classpathResolution.entries(),
+                springPackageClasspathEntries,
                 classpathResolution.decisions(),
                 classpathResolution.usageMode(),
                 classpathResolution.scopeExclusions(),
@@ -3519,8 +3981,23 @@ public final class TsjCli {
                 smokeRun,
                 smokeEndpointUrl,
                 smokeTimeoutMs,
-                smokePollMs
+                smokePollMs,
+                compilerMode
         );
+    }
+
+    private static List<Path> resolveSpringPackageClasspathEntries(
+            final List<ClasspathInput> classpathInputs,
+            final ClasspathResolution classpathResolution
+    ) {
+        if (classpathInputs.isEmpty()) {
+            return classpathResolution.entries();
+        }
+        final LinkedHashSet<Path> entries = new LinkedHashSet<>();
+        for (ClasspathInput classpathInput : classpathInputs) {
+            entries.add(classpathInput.value().toAbsolutePath().normalize());
+        }
+        return List.copyOf(entries);
     }
 
     private static InteropPolicy parseInteropPolicyValue(final String rawValue) {
@@ -3624,6 +4101,59 @@ public final class TsjCli {
                             + "`. Expected `shared` or `app-isolated`."
             );
         };
+    }
+
+    private static CompilerMode parseCompilerModeValue(final String rawValue) {
+        if (rawValue == null) {
+            throw CliFailure.usage(
+                    "TSJ-CLI-018",
+                    "Invalid value for `--mode`: null. Expected `default` or `jvm-strict`."
+            );
+        }
+        return switch (rawValue.trim()) {
+            case "default" -> CompilerMode.DEFAULT;
+            case "jvm-strict" -> CompilerMode.JVM_STRICT;
+            default -> throw CliFailure.usage(
+                    "TSJ-CLI-018",
+                    "Invalid value for `--mode`: `"
+                            + rawValue
+                            + "`. Expected `default` or `jvm-strict`."
+            );
+        };
+    }
+
+    private static void enforceStrictModeEligibility(final Path entryPath, final CompilerMode compilerMode) {
+        if (compilerMode != CompilerMode.JVM_STRICT) {
+            return;
+        }
+        final StrictEligibilityChecker.StrictEligibilityAnalysis analysis;
+        try {
+            analysis = new StrictEligibilityChecker().analyze(entryPath);
+        } catch (final IOException ioException) {
+            throw CliFailure.runtime(
+                    "TSJ-STRICT-IO",
+                    "Failed to read source for strict-mode checks: " + ioException.getMessage(),
+                    Map.of("file", entryPath.toAbsolutePath().normalize().toString())
+            );
+        }
+        if (analysis.eligible() || analysis.violation() == null) {
+            return;
+        }
+        final StrictEligibilityChecker.StrictEligibilityViolation violation = analysis.violation();
+        final Map<String, String> context = new LinkedHashMap<>();
+        context.put("mode", compilerMode.cliValue());
+        context.put("featureId", violation.featureId());
+        context.put("feature", violation.feature());
+        context.put("file", violation.filePath().toAbsolutePath().normalize().toString());
+        context.put("line", Integer.toString(violation.line()));
+        context.put("column", Integer.toString(violation.column()));
+        context.put("guidance", violation.guidance());
+        context.put("analyzedFiles", Integer.toString(analysis.analyzedFileCount()));
+        throw CliFailure.runtime(
+                "TSJ-STRICT-UNSUPPORTED",
+                "Unsupported feature in `jvm-strict` mode: " + violation.feature() + ".",
+                Map.copyOf(context)
+        );
     }
 
     private static InteropPolicyResolution resolveInteropPolicyResolution(
@@ -5344,7 +5874,8 @@ public final class TsjCli {
 
     private enum ClasspathUsageMode {
         COMPILE("compile", List.of("compile", "runtime", "provided")),
-        RUNTIME("runtime", List.of("compile", "runtime"));
+        RUNTIME("runtime", List.of("compile", "runtime")),
+        PACKAGING("packaging", List.of("compile", "runtime", "provided", "test"));
 
         private final String cliValue;
         private final List<String> allowedScopes;
@@ -5389,7 +5920,9 @@ public final class TsjCli {
             List<String> interopDenylistPatterns,
             Path interopAuditLogPath,
             Path interopAuditAggregatePath,
-            boolean interopTraceEnabled
+            boolean interopTraceEnabled,
+            boolean legacySpringAdaptersEnabled,
+            CompilerMode compilerMode
     ) {
     }
 
@@ -5410,7 +5943,9 @@ public final class TsjCli {
             Path interopAuditLogPath,
             Path interopAuditAggregatePath,
             boolean interopTraceEnabled,
-            JvmBytecodeRunner.ClassloaderIsolationMode classloaderIsolationMode
+            boolean legacySpringAdaptersEnabled,
+            JvmBytecodeRunner.ClassloaderIsolationMode classloaderIsolationMode,
+            CompilerMode compilerMode
     ) {
     }
 
@@ -5435,8 +5970,24 @@ public final class TsjCli {
             boolean smokeRun,
             String smokeEndpointUrl,
             long smokeTimeoutMs,
-            long smokePollMs
+            long smokePollMs,
+            CompilerMode compilerMode
     ) {
+    }
+
+    private enum CompilerMode {
+        DEFAULT("default"),
+        JVM_STRICT("jvm-strict");
+
+        private final String cliValue;
+
+        CompilerMode(final String cliValue) {
+            this.cliValue = cliValue;
+        }
+
+        private String cliValue() {
+            return cliValue;
+        }
     }
 
     private enum InteropPolicy {
@@ -5462,7 +6013,8 @@ public final class TsjCli {
             ClasspathSymbolIndexSummary classpathSymbolIndex,
             AutoInteropBridgeResult interopBridgeResult,
             TsjWebControllerResult tsjWebControllerResult,
-            TsjSpringComponentResult tsjSpringComponentResult
+            TsjSpringComponentResult tsjSpringComponentResult,
+            JvmBytecodeCompiler.IncrementalCompilationReport incrementalCompilationReport
     ) {
     }
 

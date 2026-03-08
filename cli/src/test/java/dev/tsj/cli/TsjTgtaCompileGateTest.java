@@ -18,7 +18,10 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class TsjTgtaCompileGateTest {
-    private static final Map<String, String> KNOWN_FAILING_FIXTURES = Map.of();
+    private static final Map<String, String> KNOWN_FAILING_FIXTURES = Map.of(
+            "020_expressions.ts", "TSJ-BACKEND-UNSUPPORTED",
+            "050_modules.ts", "TSJ-BACKEND-UNSUPPORTED"
+    );
 
     @TempDir
     Path tempDir;

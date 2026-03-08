@@ -93,10 +93,28 @@ function diagnosticToJson(ts, sourceFile, diagnostic) {
   };
 }
 
-class NormalizationError extends Error {}
+class NormalizationError extends Error {
+  constructor(message, options = {}) {
+    super(message);
+    this.code = options.code || 'TSJ-BACKEND-AST-LOWERING';
+    this.line = Number.isInteger(options.line) ? options.line : null;
+    this.column = Number.isInteger(options.column) ? options.column : null;
+    this.featureId = options.featureId || null;
+    this.guidance = options.guidance || null;
+  }
+}
 
-function unsupported(message) {
-  throw new NormalizationError(message);
+function unsupported(message, options = {}) {
+  throw new NormalizationError(message, options);
+}
+
+function unsupportedAtNode(sourceFile, node, message, options = {}) {
+  const loc = nodeLocation(sourceFile, node);
+  unsupported(message, {
+    ...options,
+    line: loc.line,
+    column: loc.column
+  });
 }
 
 function hasModifier(ts, node, kind) {
@@ -191,6 +209,20 @@ function rewriteCurrentLoopContinueStatements(statements, replaceContinue, loopL
         ? loopLabel === null
         : continueLabel === loopLabel;
       return matchesCurrentLoop ? replaceContinue(statement) : [statement];
+    }
+    if (statement.kind === 'LabeledStatement') {
+      if (loopLabel !== null) {
+        const [rewrittenNestedStatement] = rewriteCurrentLoopContinueStatements(
+          [statement.statement],
+          replaceContinue,
+          loopLabel
+        );
+        return [{
+          ...statement,
+          statement: rewrittenNestedStatement
+        }];
+      }
+      return [statement];
     }
     if (statement.kind === 'WhileStatement') {
       if (loopLabel !== null) {
@@ -1003,9 +1035,25 @@ function expandBindingNameToStatements(ts, sourceFile, bindingName, sourceExpres
   }
   if (ts.isObjectBindingPattern(bindingName)) {
     const statements = [];
+    const excludedKeys = [];
+    let sawRestElement = false;
     for (const element of bindingName.elements) {
+      if (sawRestElement) {
+        unsupported('Object rest element must be the final element in normalizedProgram.');
+      }
       if (element.dotDotDotToken) {
-        unsupported('Object rest destructuring is unsupported in normalizedProgram.');
+        sawRestElement = true;
+        const restExpression = createObjectRestExpression(sourceExpression, excludedKeys, line, column);
+        statements.push(...expandBindingNameToStatements(
+          ts,
+          sourceFile,
+          element.name,
+          restExpression,
+          mode,
+          line,
+          column
+        ));
+        continue;
       }
       let key;
       if (element.propertyName) {
@@ -1015,6 +1063,7 @@ function expandBindingNameToStatements(ts, sourceFile, bindingName, sourceExpres
       } else {
         unsupported('Object destructuring requires explicit property names for nested bindings.');
       }
+      excludedKeys.push(key);
       const valueExpression = memberAccessExpression(sourceExpression, key, line, column);
       const resolvedValueExpression = element.initializer
         ? createDestructuringDefaultExpression(
@@ -1135,7 +1184,16 @@ function expandAssignmentTargetToStatements(ts, sourceFile, targetExpression, so
         continue;
       }
       if (ts.isSpreadElement(element)) {
-        unsupported('Array rest assignment is unsupported in normalizedProgram.');
+        const restExpression = createArrayRestExpression(sourceExpression, index, line, column);
+        statements.push(...expandAssignmentTargetToStatements(
+          ts,
+          sourceFile,
+          element.expression,
+          restExpression,
+          line,
+          column
+        ));
+        break;
       }
       const valueExpression = memberAccessExpression(sourceExpression, String(index), line, column);
       statements.push(...expandAssignmentTargetToStatements(
@@ -1152,11 +1210,27 @@ function expandAssignmentTargetToStatements(ts, sourceFile, targetExpression, so
   }
   if (ts.isObjectLiteralExpression(targetExpression)) {
     const statements = [];
+    const excludedKeys = [];
+    let sawRestElement = false;
     for (const property of targetExpression.properties) {
+      if (sawRestElement) {
+        unsupported('Object rest assignment target must be the final property in normalizedProgram.');
+      }
       if (ts.isSpreadAssignment(property)) {
-        unsupported('Object rest assignment is unsupported in normalizedProgram.');
+        sawRestElement = true;
+        const restExpression = createObjectRestExpression(sourceExpression, excludedKeys, line, column);
+        statements.push(...expandAssignmentTargetToStatements(
+          ts,
+          sourceFile,
+          property.expression,
+          restExpression,
+          line,
+          column
+        ));
+        continue;
       }
       if (ts.isShorthandPropertyAssignment(property)) {
+        excludedKeys.push(property.name.text);
         const valueExpression = memberAccessExpression(sourceExpression, property.name.text, line, column);
         statements.push(...expandAssignmentTargetToStatements(
           ts,
@@ -1170,6 +1244,7 @@ function expandAssignmentTargetToStatements(ts, sourceFile, targetExpression, so
       }
       if (ts.isPropertyAssignment(property)) {
         const key = propertyNameText(ts, sourceFile, property.name);
+        excludedKeys.push(key);
         const valueExpression = memberAccessExpression(sourceExpression, key, line, column);
         statements.push(...expandAssignmentTargetToStatements(
           ts,
@@ -1260,6 +1335,21 @@ function createArrayRestExpression(sourceExpression, startIndex, line, column) {
         text: String(startIndex)
       })
     ]
+  });
+}
+
+function createObjectRestExpression(sourceExpression, excludedKeys, line, column) {
+  const args = [cloneNormalized(sourceExpression)];
+  for (const key of excludedKeys) {
+    args.push(stringLiteralExpression(String(key), line, column));
+  }
+  return withSyntheticLocation(line, column, {
+    kind: 'CallExpression',
+    callee: withSyntheticLocation(line, column, {
+      kind: 'VariableExpression',
+      name: '__tsj_object_rest'
+    }),
+    arguments: args
   });
 }
 
@@ -1362,6 +1452,14 @@ function normalizeObjectMethodValue(ts, sourceFile, property) {
     unsupported('Object methods in normalizedProgram require bodies.');
   }
   if (property.asteriskToken) {
+    if (hasModifier(ts, property, ts.SyntaxKind.AsyncKeyword)) {
+      unsupportedAtNode(
+        sourceFile,
+        property,
+        'Async generator methods are unsupported in TSJ-13b subset.',
+        { code: 'TSJ-BACKEND-UNSUPPORTED' }
+      );
+    }
     unsupported('Generator object methods are unsupported in normalizedProgram.');
   }
   if (property.questionToken) {
@@ -1388,7 +1486,13 @@ function normalizeObjectAccessorValue(ts, sourceFile, property) {
     unsupported('Optional object accessors are unsupported in normalizedProgram.');
   }
   if (hasModifier(ts, property, ts.SyntaxKind.AsyncKeyword)) {
-    unsupported('Async object accessors are unsupported in normalizedProgram.');
+    const accessorKind = ts.isGetAccessorDeclaration(property) ? 'get' : 'set';
+    unsupportedAtNode(
+      sourceFile,
+      property,
+      `Async ${accessorKind} methods are unsupported in TSJ-13b subset.`,
+      { code: 'TSJ-BACKEND-UNSUPPORTED' }
+    );
   }
   const normalizedParameters = normalizeParameters(ts, sourceFile, property.parameters);
   return withLocation(sourceFile, property, {
@@ -1542,6 +1646,7 @@ function ensureNoUnsupportedClassMemberModifiers(ts, member) {
       || modifier.kind === ts.SyntaxKind.AbstractKeyword
       || modifier.kind === ts.SyntaxKind.OverrideKeyword
       || modifier.kind === ts.SyntaxKind.AccessorKeyword
+      || modifier.kind === ts.SyntaxKind.AsyncKeyword
       || modifier.kind === ts.SyntaxKind.Decorator
     ) {
       continue;
@@ -1714,6 +1819,120 @@ function collectTopLevelBindingNames(ts, sourceFile) {
   return names;
 }
 
+function collectTopLevelDecoratorBindingArities(ts, sourceFile) {
+  const arities = new Map();
+  for (const statement of sourceFile.statements) {
+    if (ts.isFunctionDeclaration(statement) && statement.name && ts.isIdentifier(statement.name)) {
+      arities.set(statement.name.text, statement.parameters ? statement.parameters.length : 0);
+      continue;
+    }
+    if (!ts.isVariableStatement(statement)) {
+      continue;
+    }
+    for (const declaration of statement.declarationList.declarations) {
+      if (!ts.isIdentifier(declaration.name) || !declaration.initializer) {
+        continue;
+      }
+      if (ts.isFunctionExpression(declaration.initializer) || ts.isArrowFunction(declaration.initializer)) {
+        arities.set(
+          declaration.name.text,
+          declaration.initializer.parameters ? declaration.initializer.parameters.length : 0
+        );
+      }
+    }
+  }
+  return arities;
+}
+
+function decoratorBindingName(ts, decoratorNode) {
+  const decoratorExpression = decoratorNode.expression ? decoratorNode.expression : decoratorNode;
+  if (ts.isIdentifier(decoratorExpression)) {
+    return decoratorExpression.text;
+  }
+  if (ts.isCallExpression(decoratorExpression) && ts.isIdentifier(decoratorExpression.expression)) {
+    return decoratorExpression.expression.text;
+  }
+  return null;
+}
+
+function classDecoratorUsesStage3(ts, decoratorNode, knownBindingArities) {
+  const decoratorExpression = decoratorNode.expression ? decoratorNode.expression : decoratorNode;
+  if (ts.isCallExpression(decoratorExpression)) {
+    // Decorator factories stay on legacy invocation path in current TSJ-66 subset.
+    return false;
+  }
+  const name = decoratorBindingName(ts, decoratorNode);
+  if (name === null || !knownBindingArities.has(name)) {
+    return false;
+  }
+  return knownBindingArities.get(name) >= 2;
+}
+
+function methodDecoratorUsesStage3(ts, decoratorNode, knownBindingArities) {
+  const decoratorExpression = decoratorNode.expression ? decoratorNode.expression : decoratorNode;
+  if (ts.isCallExpression(decoratorExpression)) {
+    // Decorator factories stay on legacy invocation path in current TSJ-66 subset.
+    return false;
+  }
+  const name = decoratorBindingName(ts, decoratorNode);
+  if (name === null || !knownBindingArities.has(name)) {
+    return false;
+  }
+  return knownBindingArities.get(name) <= 2;
+}
+
+function propertyDecoratorUsesStage3(ts, decoratorNode, knownBindingArities) {
+  const decoratorExpression = decoratorNode.expression ? decoratorNode.expression : decoratorNode;
+  if (ts.isCallExpression(decoratorExpression)) {
+    // Preserve legacy decorator-factory property behavior in current TSJ subset.
+    return false;
+  }
+  const name = decoratorBindingName(ts, decoratorNode);
+  if (name === null || !knownBindingArities.has(name)) {
+    return false;
+  }
+  return knownBindingArities.get(name) <= 2;
+}
+
+function splitPropertyDecoratorsByStage3(ts, decorators, knownBindingArities) {
+  const stage3Decorators = [];
+  const legacyDecorators = [];
+  for (const decorator of decorators) {
+    if (propertyDecoratorUsesStage3(ts, decorator, knownBindingArities)) {
+      stage3Decorators.push(decorator);
+      continue;
+    }
+    legacyDecorators.push(decorator);
+  }
+  return { stage3Decorators, legacyDecorators };
+}
+
+function splitMethodDecoratorsByStage3(ts, decorators, knownBindingArities) {
+  const stage3Decorators = [];
+  const legacyDecorators = [];
+  for (const decorator of decorators) {
+    if (methodDecoratorUsesStage3(ts, decorator, knownBindingArities)) {
+      stage3Decorators.push(decorator);
+      continue;
+    }
+    legacyDecorators.push(decorator);
+  }
+  return { stage3Decorators, legacyDecorators };
+}
+
+function parameterDecoratorUsesStage3(ts, decoratorNode, knownBindingArities) {
+  const decoratorExpression = decoratorNode.expression ? decoratorNode.expression : decoratorNode;
+  if (ts.isCallExpression(decoratorExpression)) {
+    // Preserve existing legacy parameter decorator-factory forms.
+    return false;
+  }
+  const name = decoratorBindingName(ts, decoratorNode);
+  if (name === null || !knownBindingArities.has(name)) {
+    return false;
+  }
+  return knownBindingArities.get(name) <= 2;
+}
+
 function shouldLowerDecorator(ts, decoratorNode, knownBindings) {
   const decoratorExpression = decoratorNode.expression ? decoratorNode.expression : decoratorNode;
   if (ts.isIdentifier(decoratorExpression)) {
@@ -1739,6 +1958,42 @@ function functionTypeCheckExpression(expression, line, column) {
       text: 'function'
     })
   });
+}
+
+function stage3ClassDecoratorContextExpression(classNameText, line, column) {
+  return objectLiteralFromEntries([
+    {
+      key: 'kind',
+      value: stringLiteralExpression('class', line, column)
+    },
+    {
+      key: 'name',
+      value: classNameText === null
+        ? undefinedLiteral(line, column)
+        : stringLiteralExpression(classNameText, line, column)
+    }
+  ], line, column);
+}
+
+function stage3MemberDecoratorContextExpression(kind, keyExpression, isStaticMember, line, column) {
+  return objectLiteralFromEntries([
+    {
+      key: 'kind',
+      value: stringLiteralExpression(kind, line, column)
+    },
+    {
+      key: 'name',
+      value: cloneNormalized(keyExpression)
+    },
+    {
+      key: 'static',
+      value: withSyntheticLocation(line, column, { kind: 'BooleanLiteral', value: !!isStaticMember })
+    },
+    {
+      key: 'private',
+      value: withSyntheticLocation(line, column, { kind: 'BooleanLiteral', value: false })
+    }
+  ], line, column);
 }
 
 function normalizeDecoratorRuntimeValue(ts, sourceFile, decoratorNode) {
@@ -1792,12 +2047,186 @@ function classMemberDecoratorKeyExpression(keySpec) {
   return stringLiteralExpression(keySpec.literalKey, keySpec.line, keySpec.column);
 }
 
+function rejectUnsupportedDecoratedPrivateMember(ts, sourceFile, member, memberDecorators) {
+  if (memberDecorators.length === 0 || !member.name || !ts.isPrivateIdentifier(member.name)) {
+    return;
+  }
+  unsupportedAtNode(
+    sourceFile,
+    member.name,
+    'Decorators on private class elements are unsupported in TSJ-66 subset.',
+    {
+      code: 'TSJ-BACKEND-UNSUPPORTED',
+      featureId: 'TSJ66-DECORATOR-PRIVATE-ELEMENT',
+      guidance: 'Use non-private class elements for decorators in TSJ-66 subset.'
+    }
+  );
+}
+
+function rejectUnsupportedStage3AccessorDecorators(ts, sourceFile, member, stage3Decorators) {
+  if (
+    stage3Decorators.length === 0
+    || (
+      !hasModifier(ts, member, ts.SyntaxKind.AccessorKeyword)
+      && !ts.isGetAccessorDeclaration(member)
+      && !ts.isSetAccessorDeclaration(member)
+    )
+  ) {
+    return;
+  }
+  const targetNode = member.name || member;
+  unsupportedAtNode(
+    sourceFile,
+    targetNode,
+    'Stage-3 decorators on `accessor` declarations are unsupported in TSJ-66 subset.',
+    {
+      code: 'TSJ-BACKEND-UNSUPPORTED',
+      featureId: 'TSJ66-DECORATOR-STAGE3-ACCESSOR',
+      guidance: 'Use field or method decorators in TSJ-66 subset.'
+    }
+  );
+}
+
+function rejectUnsupportedStage3ParameterDecorators(
+  ts,
+  sourceFile,
+  parameters,
+  knownBindings,
+  knownBindingArities
+) {
+  for (const parameter of parameters) {
+    const parameterDecorators = decoratorNodes(ts, parameter);
+    if (parameterDecorators.length === 0) {
+      continue;
+    }
+    for (const decorator of parameterDecorators) {
+      if (!shouldLowerDecorator(ts, decorator, knownBindings)) {
+        continue;
+      }
+      if (!parameterDecoratorUsesStage3(ts, decorator, knownBindingArities)) {
+        continue;
+      }
+      unsupportedAtNode(
+        sourceFile,
+        decorator,
+        'Stage-3 parameter decorators are unsupported in TSJ-66 subset.',
+        {
+          code: 'TSJ-BACKEND-UNSUPPORTED',
+          featureId: 'TSJ66-DECORATOR-STAGE3-PARAMETER',
+          guidance: 'Use legacy parameter decorator factories (for framework metadata) or remove parameter decorators in TSJ-66 subset.'
+        }
+      );
+    }
+  }
+}
+
+function createStage3FieldInitializerExpression(
+  ts,
+  sourceFile,
+  stage3Decorators,
+  keySpec,
+  staticField,
+  initializerExpression,
+  line,
+  column
+) {
+  const keyName = nextSyntheticName('fieldDecoratorKey');
+  const keyExpression = variableExpression(keyName, line, column);
+  const valueName = nextSyntheticName('fieldDecoratorValue');
+  const valueExpression = variableExpression(valueName, line, column);
+  const body = [
+    withSyntheticLocation(line, column, {
+      kind: 'VariableDeclaration',
+      name: keyName,
+      expression: classMemberDecoratorKeyExpression(keySpec)
+    }),
+    withSyntheticLocation(line, column, {
+      kind: 'VariableDeclaration',
+      name: valueName,
+      expression: cloneNormalized(initializerExpression)
+    })
+  ];
+
+  for (const decorator of [...stage3Decorators].reverse()) {
+    const decoratorLoc = nodeLocation(sourceFile, decorator);
+    const decoratorName = nextSyntheticName('fieldDecorator');
+    const decoratorExpression = variableExpression(decoratorName, decoratorLoc.line, decoratorLoc.column);
+    const fieldInitializerName = nextSyntheticName('fieldInitializer');
+    const fieldInitializerExpression = variableExpression(fieldInitializerName, decoratorLoc.line, decoratorLoc.column);
+
+    body.push(withSyntheticLocation(decoratorLoc.line, decoratorLoc.column, {
+      kind: 'VariableDeclaration',
+      name: decoratorName,
+      expression: normalizeDecoratorRuntimeValue(ts, sourceFile, decorator)
+    }));
+    body.push(withSyntheticLocation(decoratorLoc.line, decoratorLoc.column, {
+      kind: 'IfStatement',
+      condition: functionTypeCheckExpression(decoratorExpression, decoratorLoc.line, decoratorLoc.column),
+      thenBlock: [
+        withSyntheticLocation(decoratorLoc.line, decoratorLoc.column, {
+          kind: 'VariableDeclaration',
+          name: fieldInitializerName,
+          expression: withSyntheticLocation(decoratorLoc.line, decoratorLoc.column, {
+            kind: 'CallExpression',
+            callee: cloneNormalized(decoratorExpression),
+            arguments: [
+              undefinedLiteral(decoratorLoc.line, decoratorLoc.column),
+              stage3MemberDecoratorContextExpression(
+                'field',
+                keyExpression,
+                staticField,
+                decoratorLoc.line,
+                decoratorLoc.column
+              )
+            ]
+          })
+        }),
+        withSyntheticLocation(decoratorLoc.line, decoratorLoc.column, {
+          kind: 'IfStatement',
+          condition: functionTypeCheckExpression(fieldInitializerExpression, decoratorLoc.line, decoratorLoc.column),
+          thenBlock: [withSyntheticLocation(decoratorLoc.line, decoratorLoc.column, {
+            kind: 'AssignmentStatement',
+            target: cloneNormalized(valueExpression),
+            expression: withSyntheticLocation(decoratorLoc.line, decoratorLoc.column, {
+              kind: 'CallExpression',
+              callee: cloneNormalized(fieldInitializerExpression),
+              arguments: [cloneNormalized(valueExpression)]
+            })
+          })],
+          elseBlock: []
+        })
+      ],
+      elseBlock: []
+    }));
+  }
+
+  body.push(withSyntheticLocation(line, column, {
+    kind: 'ReturnStatement',
+    expression: cloneNormalized(valueExpression)
+  }));
+
+  return withSyntheticLocation(line, column, {
+    kind: 'CallExpression',
+    callee: withSyntheticLocation(line, column, {
+      kind: 'FunctionExpression',
+      parameters: [],
+      body,
+      async: false,
+      generator: false,
+      thisMode: 'LEXICAL'
+    }),
+    arguments: []
+  });
+}
+
 function createClassDecoratorApplicationStatements(
   ts,
   sourceFile,
   decorators,
   knownBindings,
+  knownBindingArities,
   classReference,
+  classNameText,
   line,
   column
 ) {
@@ -1809,6 +2238,7 @@ function createClassDecoratorApplicationStatements(
     const decoratorExpression = variableExpression(decoratorName, decoratorLoc.line, decoratorLoc.column);
     const resultName = nextSyntheticName('classDecoratorResult');
     const resultExpression = variableExpression(resultName, decoratorLoc.line, decoratorLoc.column);
+    const stage3Invocation = classDecoratorUsesStage3(ts, decorator, knownBindingArities);
     statements.push(withSyntheticLocation(decoratorLoc.line, decoratorLoc.column, {
       kind: 'VariableDeclaration',
       name: decoratorName,
@@ -1824,7 +2254,12 @@ function createClassDecoratorApplicationStatements(
           expression: withSyntheticLocation(decoratorLoc.line, decoratorLoc.column, {
             kind: 'CallExpression',
             callee: cloneNormalized(decoratorExpression),
-            arguments: [cloneNormalized(classReference)]
+            arguments: stage3Invocation
+              ? [
+                cloneNormalized(classReference),
+                stage3ClassDecoratorContextExpression(classNameText, decoratorLoc.line, decoratorLoc.column)
+              ]
+              : [cloneNormalized(classReference)]
           })
         }),
         withSyntheticLocation(decoratorLoc.line, decoratorLoc.column, {
@@ -1849,8 +2284,11 @@ function createMethodDecoratorApplicationStatements(
   sourceFile,
   decorators,
   knownBindings,
+  knownBindingArities,
   targetExpression,
   keySpec,
+  decoratorKind,
+  isStaticMember,
   line,
   column
 ) {
@@ -1861,6 +2299,24 @@ function createMethodDecoratorApplicationStatements(
   const targetVariable = variableExpression(targetName, line, column);
   const keyVariable = variableExpression(keyName, line, column);
   const descriptorVariable = variableExpression(descriptorName, line, column);
+  const descriptorMemberName = decoratorKind === 'getter'
+    ? 'get'
+    : decoratorKind === 'setter'
+      ? 'set'
+      : 'value';
+  const stage3ValueExpression = memberAccessExpression(
+    descriptorVariable,
+    descriptorMemberName,
+    line,
+    column
+  );
+  const stage3ContextExpression = stage3MemberDecoratorContextExpression(
+    decoratorKind,
+    keyVariable,
+    isStaticMember,
+    line,
+    column
+  );
 
   statements.push(withSyntheticLocation(line, column, {
     kind: 'VariableDeclaration',
@@ -1889,6 +2345,7 @@ function createMethodDecoratorApplicationStatements(
     const decoratorExpression = variableExpression(decoratorName, decoratorLoc.line, decoratorLoc.column);
     const resultName = nextSyntheticName('methodDecoratorResult');
     const resultExpression = variableExpression(resultName, decoratorLoc.line, decoratorLoc.column);
+    const stage3Invocation = methodDecoratorUsesStage3(ts, decorator, knownBindingArities);
     statements.push(withSyntheticLocation(decoratorLoc.line, decoratorLoc.column, {
       kind: 'VariableDeclaration',
       name: decoratorName,
@@ -1904,22 +2361,41 @@ function createMethodDecoratorApplicationStatements(
           expression: withSyntheticLocation(decoratorLoc.line, decoratorLoc.column, {
             kind: 'CallExpression',
             callee: cloneNormalized(decoratorExpression),
-            arguments: [
-              cloneNormalized(targetVariable),
-              cloneNormalized(keyVariable),
-              cloneNormalized(descriptorVariable)
-            ]
+            arguments: stage3Invocation
+              ? [
+                cloneNormalized(stage3ValueExpression),
+                cloneNormalized(stage3ContextExpression)
+              ]
+              : [
+                cloneNormalized(targetVariable),
+                cloneNormalized(keyVariable),
+                cloneNormalized(descriptorVariable)
+              ]
           })
         }),
         withSyntheticLocation(decoratorLoc.line, decoratorLoc.column, {
-          kind: 'AssignmentStatement',
-          target: cloneNormalized(descriptorVariable),
-          expression: withSyntheticLocation(decoratorLoc.line, decoratorLoc.column, {
-            kind: 'BinaryExpression',
-            left: cloneNormalized(resultExpression),
-            operator: '||',
-            right: cloneNormalized(descriptorVariable)
-          })
+          kind: 'IfStatement',
+          condition: cloneNormalized(resultExpression),
+          thenBlock: [withSyntheticLocation(decoratorLoc.line, decoratorLoc.column, {
+            kind: 'AssignmentStatement',
+            target: stage3Invocation
+              ? memberAccessExpression(
+                descriptorVariable,
+                descriptorMemberName,
+                decoratorLoc.line,
+                decoratorLoc.column
+              )
+              : cloneNormalized(descriptorVariable),
+            expression: stage3Invocation
+              ? cloneNormalized(resultExpression)
+              : withSyntheticLocation(decoratorLoc.line, decoratorLoc.column, {
+                kind: 'BinaryExpression',
+                left: cloneNormalized(resultExpression),
+                operator: '||',
+                right: cloneNormalized(descriptorVariable)
+              })
+          })],
+          elseBlock: []
         })
       ],
       elseBlock: []
@@ -2002,17 +2478,38 @@ function createPropertyDecoratorApplicationStatements(
   return statements;
 }
 
-function normalizeClassMethodDefinition(ts, sourceFile, method) {
+function normalizeClassMethodDefinition(
+  ts,
+  sourceFile,
+  method,
+  knownDecoratorBindings,
+  knownDecoratorBindingArities
+) {
   ensureNoUnsupportedClassMemberModifiers(ts, method);
   if (!method.body) {
     unsupported('Class methods in normalizedProgram require bodies.');
   }
   if (method.asteriskToken) {
+    if (hasModifier(ts, method, ts.SyntaxKind.AsyncKeyword)) {
+      unsupportedAtNode(
+        sourceFile,
+        method,
+        'Async generator methods are unsupported in TSJ-13b subset.',
+        { code: 'TSJ-BACKEND-UNSUPPORTED' }
+      );
+    }
     unsupported('Generator class methods are unsupported in normalizedProgram.');
   }
   if (method.questionToken) {
     unsupported('Optional class methods are unsupported in normalizedProgram.');
   }
+  rejectUnsupportedStage3ParameterDecorators(
+    ts,
+    sourceFile,
+    method.parameters,
+    knownDecoratorBindings,
+    knownDecoratorBindingArities
+  );
   const normalizedParameters = normalizeParameters(ts, sourceFile, method.parameters);
   return {
     parameters: normalizedParameters.names,
@@ -2140,6 +2637,7 @@ function normalizeClassDeclaration(ts, sourceFile, statement) {
   const classReference = variableExpression(classNameText, classLoc.line, classLoc.column);
   const prototypeReference = memberAccessExpression(classReference, 'prototype', classLoc.line, classLoc.column);
   const knownDecoratorBindings = collectTopLevelBindingNames(ts, sourceFile);
+  const knownDecoratorBindingArities = collectTopLevelDecoratorBindingArities(ts, sourceFile);
   const classDecorators = decoratorNodes(ts, statement);
 
   let constructorMethod = null;
@@ -2153,16 +2651,40 @@ function normalizeClassDeclaration(ts, sourceFile, statement) {
       const keySpec = classMemberKeySpec(ts, sourceFile, member.name);
       const memberLoc = nodeLocation(sourceFile, member);
       const memberDecorators = decoratorNodes(ts, member);
+      const propertyDecorators = splitPropertyDecoratorsByStage3(
+        ts,
+        memberDecorators,
+        knownDecoratorBindingArities
+      );
+      rejectUnsupportedDecoratedPrivateMember(ts, sourceFile, member, memberDecorators);
+      rejectUnsupportedStage3AccessorDecorators(
+        ts,
+        sourceFile,
+        member,
+        propertyDecorators.stage3Decorators
+      );
       const initializerExpression = member.initializer
         ? normalizeExpression(ts, sourceFile, member.initializer)
         : withSyntheticLocation(memberLoc.line, memberLoc.column, { kind: 'UndefinedLiteral' });
       const staticField = hasModifier(ts, member, ts.SyntaxKind.StaticKeyword);
+      const loweredInitializerExpression = propertyDecorators.stage3Decorators.length > 0
+        ? createStage3FieldInitializerExpression(
+          ts,
+          sourceFile,
+          propertyDecorators.stage3Decorators,
+          keySpec,
+          staticField,
+          initializerExpression,
+          memberLoc.line,
+          memberLoc.column
+        )
+        : initializerExpression;
       const assignmentStatement = createClassPropertyWriteStatement(
         staticField
           ? classReference
           : withSyntheticLocation(memberLoc.line, memberLoc.column, { kind: 'ThisExpression' }),
         keySpec,
-        initializerExpression,
+        loweredInitializerExpression,
         memberLoc.line,
         memberLoc.column
       );
@@ -2174,11 +2696,11 @@ function normalizeClassDeclaration(ts, sourceFile, statement) {
           fieldNames.push(keySpec.literalKey);
         }
       }
-      if (memberDecorators.length > 0) {
+      if (propertyDecorators.legacyDecorators.length > 0) {
         postClassStatements.push(...createPropertyDecoratorApplicationStatements(
           ts,
           sourceFile,
-          memberDecorators,
+          propertyDecorators.legacyDecorators,
           knownDecoratorBindings,
           staticField ? classReference : prototypeReference,
           keySpec,
@@ -2196,6 +2718,13 @@ function normalizeClassDeclaration(ts, sourceFile, statement) {
       if (!member.body) {
         unsupported('Class constructors in normalizedProgram require bodies.');
       }
+      rejectUnsupportedStage3ParameterDecorators(
+        ts,
+        sourceFile,
+        member.parameters,
+        knownDecoratorBindings,
+        knownDecoratorBindingArities
+      );
       const normalizedParameters = normalizeParameters(ts, sourceFile, member.parameters);
       const parameterPropertyAssignments = constructorParameterPropertyAssignments(
         ts,
@@ -2221,7 +2750,13 @@ function normalizeClassDeclaration(ts, sourceFile, statement) {
       }
       const methodLoc = nodeLocation(sourceFile, member);
       const keySpec = classMemberKeySpec(ts, sourceFile, member.name);
-      const methodDefinition = normalizeClassMethodDefinition(ts, sourceFile, member);
+      const methodDefinition = normalizeClassMethodDefinition(
+        ts,
+        sourceFile,
+        member,
+        knownDecoratorBindings,
+        knownDecoratorBindingArities
+      );
       const staticMethod = hasModifier(ts, member, ts.SyntaxKind.StaticKeyword);
       if (staticMethod) {
         postClassStatements.push(createClassPropertyWriteStatement(
@@ -2248,14 +2783,18 @@ function normalizeClassDeclaration(ts, sourceFile, statement) {
         ));
       }
       const memberDecorators = decoratorNodes(ts, member);
+      rejectUnsupportedDecoratedPrivateMember(ts, sourceFile, member, memberDecorators);
       if (memberDecorators.length > 0) {
         postClassStatements.push(...createMethodDecoratorApplicationStatements(
           ts,
           sourceFile,
           memberDecorators,
           knownDecoratorBindings,
+          knownDecoratorBindingArities,
           staticMethod ? classReference : prototypeReference,
           keySpec,
+          'method',
+          staticMethod,
           methodLoc.line,
           methodLoc.column
         ));
@@ -2268,8 +2807,21 @@ function normalizeClassDeclaration(ts, sourceFile, statement) {
         continue;
       }
       if (hasModifier(ts, member, ts.SyntaxKind.AsyncKeyword)) {
-        unsupported('Async class accessors are unsupported in normalizedProgram.');
+        const accessorKind = ts.isGetAccessorDeclaration(member) ? 'get' : 'set';
+        unsupportedAtNode(
+          sourceFile,
+          member,
+          `Async ${accessorKind} methods are unsupported in TSJ-13b subset.`,
+          { code: 'TSJ-BACKEND-UNSUPPORTED' }
+        );
       }
+      rejectUnsupportedStage3ParameterDecorators(
+        ts,
+        sourceFile,
+        member.parameters,
+        knownDecoratorBindings,
+        knownDecoratorBindingArities
+      );
       const keySpec = classMemberKeySpec(ts, sourceFile, member.name);
       const memberLoc = nodeLocation(sourceFile, member);
       const targetExpression = hasModifier(ts, member, ts.SyntaxKind.StaticKeyword)
@@ -2297,17 +2849,36 @@ function normalizeClassDeclaration(ts, sourceFile, statement) {
         )
       }));
       const memberDecorators = decoratorNodes(ts, member);
+      rejectUnsupportedDecoratedPrivateMember(ts, sourceFile, member, memberDecorators);
       if (memberDecorators.length > 0) {
-        postClassStatements.push(...createMethodDecoratorApplicationStatements(
+        const accessorDecorators = splitMethodDecoratorsByStage3(
+          ts,
+          memberDecorators,
+          knownDecoratorBindingArities
+        );
+        rejectUnsupportedStage3AccessorDecorators(
           ts,
           sourceFile,
-          memberDecorators,
-          knownDecoratorBindings,
-          targetExpression,
-          keySpec,
-          memberLoc.line,
-          memberLoc.column
-        ));
+          member,
+          accessorDecorators.stage3Decorators
+        );
+        const accessorDecoratorKind = ts.isGetAccessorDeclaration(member) ? 'getter' : 'setter';
+        const staticAccessor = hasModifier(ts, member, ts.SyntaxKind.StaticKeyword);
+        if (accessorDecorators.legacyDecorators.length > 0) {
+          postClassStatements.push(...createMethodDecoratorApplicationStatements(
+            ts,
+            sourceFile,
+            accessorDecorators.legacyDecorators,
+            knownDecoratorBindings,
+            knownDecoratorBindingArities,
+            targetExpression,
+            keySpec,
+            accessorDecoratorKind,
+            staticAccessor,
+            memberLoc.line,
+            memberLoc.column
+          ));
+        }
       }
       continue;
     }
@@ -2374,7 +2945,9 @@ function normalizeClassDeclaration(ts, sourceFile, statement) {
     sourceFile,
     classDecorators,
     knownDecoratorBindings,
+    knownDecoratorBindingArities,
     classReference,
+    classNameText,
     classLoc.line,
     classLoc.column
   );
@@ -2662,7 +3235,16 @@ function normalizeExpression(ts, sourceFile, expression) {
       }
       const specifier = importArgument.text;
       if (specifier.startsWith('./') || specifier.startsWith('../') || specifier.startsWith('/')) {
-        unsupported('Dynamic relative import expressions are unsupported in normalizedProgram.');
+        unsupportedAtNode(
+          sourceFile,
+          expression,
+          'dynamic import() is unsupported in TSJ MVP.',
+          {
+            code: 'TSJ-BACKEND-UNSUPPORTED',
+            featureId: 'TSJ15-DYNAMIC-IMPORT',
+            guidance: 'Use static relative imports (`import { x } from "./m.ts"`) in TSJ MVP.'
+          }
+        );
       }
       const importLoc = nodeLocation(sourceFile, expression);
       return withLocation(sourceFile, expression, {
@@ -3683,12 +4265,25 @@ function normalizeStatement(ts, sourceFile, statement) {
 function normalizeProgram(ts, sourceFile) {
   try {
     return {
-      kind: 'Program',
-      statements: sourceFile.statements.flatMap((statement) => normalizeStatement(ts, sourceFile, statement))
+      program: {
+        kind: 'Program',
+        statements: sourceFile.statements.flatMap((statement) => normalizeStatement(ts, sourceFile, statement))
+      },
+      diagnostics: []
     };
   } catch (error) {
     if (error instanceof NormalizationError) {
-      return null;
+      return {
+        program: null,
+        diagnostics: [{
+          code: error.code || 'TSJ-BACKEND-AST-LOWERING',
+          message: error.message || 'Normalized AST lowering is unavailable.',
+          line: Number.isInteger(error.line) ? error.line : null,
+          column: Number.isInteger(error.column) ? error.column : null,
+          featureId: error.featureId || null,
+          guidance: error.guidance || null
+        }]
+      };
     }
     throw error;
   }
@@ -3720,14 +4315,17 @@ function tokenize(ts, sourcePath, sourceText) {
   const sourceFile = ts.createSourceFile(sourcePath, sourceText, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
   const diagnostics = sourceFile.parseDiagnostics.map((diagnostic) => diagnosticToJson(ts, sourceFile, diagnostic));
   const astNodes = collectAstNodes(ts, sourceFile);
-  const normalizedProgram = normalizeProgram(ts, sourceFile);
+  const normalization = normalizeProgram(ts, sourceFile);
+  const normalizedProgram = normalization.program;
+  const normalizationDiagnostics = normalization.diagnostics;
   if (diagnostics.length > 0) {
     return {
       schemaVersion: SCHEMA_VERSION,
       diagnostics,
       tokens: [],
       astNodes,
-      normalizedProgram
+      normalizedProgram,
+      normalizationDiagnostics
     };
   }
 
@@ -3761,7 +4359,8 @@ function tokenize(ts, sourcePath, sourceText) {
     diagnostics: [],
     tokens,
     astNodes,
-    normalizedProgram
+    normalizedProgram,
+    normalizationDiagnostics
   };
 }
 

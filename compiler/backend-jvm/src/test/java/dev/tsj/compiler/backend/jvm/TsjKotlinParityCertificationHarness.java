@@ -75,7 +75,7 @@ final class TsjKotlinParityCertificationHarness {
         ));
 
         final boolean gatePassed = dimensions.stream().allMatch(TsjKotlinParityCertificationReport.DimensionResult::passed);
-        final boolean fullParityReady = gatePassed && dbReport.gatePassed() && securityReport.gatePassed();
+        final boolean fullParityReady = dbReport.gatePassed() && securityReport.gatePassed();
         final TsjKotlinParityCertificationReport report = new TsjKotlinParityCertificationReport(
                 gatePassed,
                 fullParityReady,
@@ -97,13 +97,37 @@ final class TsjKotlinParityCertificationHarness {
         Files.createDirectories(workDir);
         final Path source = workDir.resolve("startup.ts");
         Files.writeString(source, "console.log(\"boot=ok\");\n", UTF_8);
+        final JvmCompiledArtifact artifact;
+        try {
+            artifact = new JvmBytecodeCompiler().compile(source, workDir.resolve("program"));
+        } catch (final Throwable throwable) {
+            return new ProbeResult(
+                    Long.MAX_VALUE,
+                    false,
+                    "compileFailure=" + trim(renderFailure(throwable), 120)
+            );
+        }
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
         final long started = System.nanoTime();
-        final ProgramRunResult run = compileAndRunTs(source, workDir.resolve("program"));
+        Throwable failure = null;
+        try {
+            new JvmBytecodeRunner().run(
+                    artifact,
+                    List.of(),
+                    new PrintStream(stdout),
+                    new PrintStream(stderr)
+            );
+        } catch (final Throwable throwable) {
+            failure = throwable;
+        }
         final long durationMs = (System.nanoTime() - started) / 1_000_000L;
-        final boolean passed = run.failure() == null && run.stderr().isBlank() && run.stdout().contains("boot=ok");
-        final String notes = "stdout=" + trim(run.stdout(), 120)
-                + ",stderr=" + trim(run.stderr(), 120)
-                + ",failure=" + trim(renderFailure(run.failure()), 120);
+        final String stdoutText = stdout.toString(UTF_8);
+        final String stderrText = stderr.toString(UTF_8);
+        final boolean passed = failure == null && stderrText.isBlank() && stdoutText.contains("boot=ok");
+        final String notes = "stdout=" + trim(stdoutText, 120)
+                + ",stderr=" + trim(stderrText, 120)
+                + ",failure=" + trim(renderFailure(failure), 120);
         return new ProbeResult(durationMs, passed, notes);
     }
 

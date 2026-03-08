@@ -722,6 +722,37 @@ public final class TsjRuntime {
         return arrayLiteral(values.subList(safeStart, values.size()).toArray());
     }
 
+    public static Object objectRest(final Object value, final Object... excludedKeys) {
+        if (isNullish(value)) {
+            throw new IllegalArgumentException("Cannot destructure object rest from nullish value.");
+        }
+        final Map<String, Boolean> excluded = new LinkedHashMap<>();
+        if (excludedKeys != null) {
+            for (Object excludedKey : excludedKeys) {
+                excluded.put(propertyToKey(excludedKey), Boolean.TRUE);
+            }
+        }
+        final TsjObject result = new TsjObject(null);
+        if (value instanceof TsjObject tsjObject) {
+            for (Map.Entry<String, Object> entry : tsjObject.ownPropertiesView().entrySet()) {
+                if (!excluded.containsKey(entry.getKey())) {
+                    result.setOwn(entry.getKey(), entry.getValue());
+                }
+            }
+            return result;
+        }
+        if (value instanceof Map<?, ?> mapValue) {
+            for (Map.Entry<?, ?> entry : mapValue.entrySet()) {
+                final String key = entry.getKey() == null ? "null" : entry.getKey().toString();
+                if (!excluded.containsKey(key)) {
+                    result.setOwn(key, entry.getValue());
+                }
+            }
+            return result;
+        }
+        throw new IllegalArgumentException("Object rest target is not an object: " + toDisplayString(value));
+    }
+
     public static Object indexRead(final Object target, final Object index) {
         final String key = propertyToKey(index);
         return getProperty(target, key);

@@ -2,9 +2,26 @@
 
 ## Commands
 
-### `tsj compile <input.ts> --out <dir> [--classpath <entries>] [--jar <jar-file>] [--interop-spec <interop.properties>] [--interop-policy strict|broad] [--ack-interop-risk] [--interop-role <roles>] [--interop-approval <token>] [--interop-denylist <patterns>] [--interop-audit-log <path>] [--interop-audit-aggregate <path>] [--interop-trace] [--optimize|--no-optimize]`
+### `--mode jvm-strict` (TSJ-84 Contract)
+
+Tracked by `TSJ-78` to `TSJ-84` in `docs/stories.md` (current roadmap scope complete).
+
+Implemented scope:
+
+1. `compile`/`run` accept `--mode jvm-strict` for direct JVM class-model compilation subset.
+2. Default mode remains unchanged and continues to preserve current TS/JS semantic path.
+3. Strict mode rejects baseline out-of-subset dynamic constructs with deterministic `TSJ-STRICT-*` diagnostics
+   (`import(...)`, `eval`, `Function`, `Proxy`, `delete`, prototype mutation, unchecked `any` member invocation).
+4. Strict artifacts publish deterministic conformance/readiness reports:
+   `tests/conformance/tsj83-strict-readiness.json` and `tests/conformance/tsj84-strict-release-readiness.json`.
+5. Artifact metadata records selected mode (`compiler.mode`) and strict lowering path
+   (`strict.eligibility`, `strict.loweringPath`) for strict builds.
+
+### `tsj compile <input.ts> --out <dir> [--classpath <entries>] [--jar <jar-file>] [--interop-spec <interop.properties>] [--interop-policy strict|broad] [--ack-interop-risk] [--interop-role <roles>] [--interop-approval <token>] [--interop-denylist <patterns>] [--interop-audit-log <path>] [--interop-audit-aggregate <path>] [--interop-trace] [--legacy-spring-adapters] [--optimize|--no-optimize] [--mode default|jvm-strict]`
 Behavior:
 1. Validates input file exists and has `.ts`/`.tsx` extension.
+   - `.tsx` is currently out of scope and fails deterministically with
+     `TSJ-BACKEND-UNSUPPORTED` + `featureId=TSJ67-TSX-OUT-OF-SCOPE`.
 2. Compiles supported TSJ-7 subset into JVM classes.
    - TSJ-8 extends supported subset with nested function declarations and lexical closures.
    - TSJ-9 extends supported subset with class/object features:
@@ -28,8 +45,18 @@ Behavior:
    - `<out>/classes`
 5. Emits artifact file:
    - `<out>/program.tsj.properties`
+   - includes compiler mode metadata key:
+     `compiler.mode`.
+  - when `--mode jvm-strict` is used, includes strict-lowering keys:
+    `strict.eligibility` and `strict.loweringPath`.
+    - `strict.loweringPath=runtime-carrier` when no strict-native class subset is lowered.
+    - `strict.loweringPath=jvm-native-class-subset` when strict-native top-level class lowering is active.
    - includes optimization metadata keys:
      `optimization.constantFoldingEnabled` and `optimization.deadCodeEliminationEnabled`.
+   - includes TSJ-69 incremental pipeline metadata keys:
+     `incremental.cacheEnabled`, `incremental.compilerVersion`,
+     `incremental.sourceGraphFingerprint`,
+     `incremental.frontend`, `incremental.lowering`, `incremental.backend`.
    - includes interop classpath metadata keys:
      `interopClasspath.count` and `interopClasspath.<index>`.
    - includes interop bridge metadata keys:
@@ -76,20 +103,26 @@ Behavior:
      `run` and `spring-package` allow `compile,runtime`.
    - scope filtering metadata is persisted under `interopClasspath.scope.*`.
    - interop targets available only via excluded scopes fail with `TSJ-CLASSPATH-SCOPE`.
-12. TSJ-34 decorator path:
-   - scans TS source/module graph for supported decorators:
+12. Legacy Spring adapter path (`--legacy-spring-adapters`) only:
+   - default `compile` does not generate Spring web/component adapters.
+   - when explicitly enabled, scans TS source/module graph for supported decorators:
      `@RestController`, `@RequestMapping`,
      `@GetMapping|@PostMapping|@PutMapping|@DeleteMapping|@PatchMapping`,
-     `@ExceptionHandler`, `@ResponseStatus`.
-   - auto-generates Spring adapter source files under:
-     `<out>/generated-web/dev/tsj/generated/web/*.java`.
-   - generated adapter methods delegate to compiled TS program via `__tsjInvokeController(...)`.
+     `@ExceptionHandler`, `@ResponseStatus`,
+     plus component/dependency decorators used by generated Spring component adapters.
+   - generated adapter sources are emitted under:
+     `<out>/generated-web/dev/tsj/generated/web/*.java` and
+     `<out>/generated-components/dev/tsj/generated/spring/*.java`.
 
 Success diagnostic:
 - Code: `TSJ-COMPILE-SUCCESS`
+- TSJ-69 compile success context includes stage telemetry:
+  `incrementalFrontendStage`, `incrementalLoweringStage`, `incrementalBackendStage`.
 
 Failure diagnostics:
 - `TSJ-CLI-003` missing required `--out`
+- `TSJ-CLI-018` invalid `--mode` value
+- `TSJ-STRICT-UNSUPPORTED` baseline strict-mode unsupported feature (with `featureId`, file, line, column, guidance)
 - `TSJ-CLI-011` invalid classpath/jar input
 - `TSJ-CLASSPATH-CONFLICT` conflicting jar versions for one artifact stem
 - `TSJ-CLASSPATH-SCOPE` interop target requires dependency scope excluded for current command path
@@ -110,9 +143,12 @@ Failure diagnostics:
   - TSJ-15 unsupported-feature failures use `TSJ-BACKEND-UNSUPPORTED` with context:
     `file`, `line`, `column`, `featureId`, `guidance`.
 
-### `tsj run <entry.ts> [--out <dir>] [--classpath <entries>] [--jar <jar-file>] [--interop-spec <interop.properties>] [--interop-policy strict|broad] [--ack-interop-risk] [--interop-role <roles>] [--interop-approval <token>] [--interop-denylist <patterns>] [--interop-audit-log <path>] [--interop-audit-aggregate <path>] [--interop-trace] [--classloader-isolation shared|app-isolated] [--ts-stacktrace] [--optimize|--no-optimize]`
+### `tsj run <entry.ts> [--out <dir>] [--classpath <entries>] [--jar <jar-file>] [--interop-spec <interop.properties>] [--interop-policy strict|broad] [--ack-interop-risk] [--interop-role <roles>] [--interop-approval <token>] [--interop-denylist <patterns>] [--interop-audit-log <path>] [--interop-audit-aggregate <path>] [--interop-trace] [--legacy-spring-adapters] [--classloader-isolation shared|app-isolated] [--mode default|jvm-strict] [--ts-stacktrace] [--optimize|--no-optimize]`
 Behavior:
 1. Compiles entry to artifact (default out dir `.tsj-build` when omitted).
+   - default `run` compile phase does not generate Spring web/component adapters.
+   - use `--legacy-spring-adapters` only when legacy Spring adapter generation is explicitly required.
+   - `--mode` defaults to `default`; use `--mode jvm-strict` to enable strict guardrails.
    - Optimization defaults to enabled (`--optimize`) and can be disabled with `--no-optimize`.
    - Interop classpath can be provided explicitly through `--classpath` and/or repeated `--jar`.
    - `--interop-spec <interop.properties>` enables integrated auto-bridge generation during compile phase.
@@ -150,6 +186,7 @@ Success diagnostic:
 
 Failure diagnostics:
 - `TSJ-CLI-004` missing entry path
+- `TSJ-CLI-018` invalid `--mode` value
 - `TSJ-CLI-011` invalid classpath/jar input
 - `TSJ-CLASSPATH-CONFLICT` conflicting jar versions for one artifact stem
 - `TSJ-CLI-013` invalid interop policy value
@@ -167,9 +204,11 @@ Failure diagnostics:
 - `TSJ-RUN-*` runtime class load/execute failures
 - compile-phase failure codes from `tsj compile`
 
-### `tsj spring-package <entry.ts> --out <dir> [--classpath <entries>] [--jar <jar-file>] [--interop-spec <interop.properties>] [--interop-policy strict|broad] [--ack-interop-risk] [--interop-role <roles>] [--interop-approval <token>] [--interop-denylist <patterns>] [--interop-audit-log <path>] [--interop-audit-aggregate <path>] [--interop-trace] [--resource-dir <dir>] [--boot-jar <jar-file>] [--smoke-run] [--smoke-endpoint-url <http(s)-url|stdout://marker>] [--smoke-timeout-ms <ms>] [--smoke-poll-ms <ms>] [--optimize|--no-optimize]`
+### `tsj spring-package <entry.ts> --out <dir> [--classpath <entries>] [--jar <jar-file>] [--interop-spec <interop.properties>] [--interop-policy strict|broad] [--ack-interop-risk] [--interop-role <roles>] [--interop-approval <token>] [--interop-denylist <patterns>] [--interop-audit-log <path>] [--interop-audit-aggregate <path>] [--interop-trace] [--resource-dir <dir>] [--boot-jar <jar-file>] [--smoke-run] [--smoke-endpoint-url <http(s)-url|stdout://marker>] [--smoke-timeout-ms <ms>] [--smoke-poll-ms <ms>] [--mode default|jvm-strict] [--optimize|--no-optimize]`
 Behavior:
 1. Compiles entry to TSJ artifact using the same compile path as `tsj compile`.
+   - `spring-package` explicitly enables legacy Spring web/component adapter generation for packaging flow.
+   - `--mode` defaults to `default`; `--mode jvm-strict` runs strict eligibility + strict backend lowering in packaging flow.
 2. Compiles generated TS-authored Spring adapter sources (web/component) into packaged classes output when present.
 3. Packages generated classes into a runnable jar:
    - default jar path: `<out>/tsj-spring-app.jar`

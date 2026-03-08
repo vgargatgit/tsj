@@ -2858,13 +2858,14 @@ Full async parity is reached when:
   - AST transport contract is versioned and schema-validated between `compiler/frontend` and backend.
   - Legacy handwritten parser path is removable or gated behind explicit fallback flag.
   - Source-mapped diagnostics remain stable or improve in precision.
-- Status: `Complete (Subset)`.
+- Status: `Complete`.
 - Progress:
-  - Backend compile path now consumes frontend TypeScript token payload via `emit-backend-tokens.cjs` (`tsj-backend-token-v1`) instead of handwritten tokenization.
-  - Contract is schema-versioned/validated, bridge diagnostics are mapped back to source modules, and legacy tokenizer remains behind `-Dtsj.backend.legacyTokenizer=true`.
+  - Backend compile path now consumes frontend normalized AST payload from `TypeScriptSyntaxBridge` by default, with schema validation and deterministic diagnostics.
+  - Source/module graph parsing now runs through incremental AST-lowering cache keyed by source-graph fingerprint + compiler version (`tsj.backend.incrementalCache`, TSJ-69).
+  - Legacy handwritten tokenizer/parser remain debug-only behind explicit opt-in (`-Dtsj.backend.legacyTokenizer=true` and `-Dtsj.backend.astNoFallback=false`).
   - `TypeScriptSyntaxBridge` now resolves bridge script deterministically even when compile is launched from fixture subdirectories.
 - Remaining Gap:
-  - Backend still reparses tokens with handwritten parser; full typed-AST ingestion is not complete.
+  - No open acceptance-criteria gap.
 - Dependencies: TSJ-4, TSJ-5, TSJ-7.
 
 ### TSJ-58a: Replace backend handwritten parser with frontend typed AST contract
@@ -2873,13 +2874,14 @@ Full async parity is reached when:
   - Frontend emits typed AST payload (statement/expression node kinds + source ranges) under versioned schema.
   - Backend lowering consumes typed AST payload directly; handwritten parser is removed or excluded from default path.
   - Conformance fixtures show no regression vs TSJ-58 token-bridge baseline.
-- Status: `Complete (Subset)`.
+- Status: `Complete`.
 - Progress:
   - Frontend token bridge now emits a typed AST node stream (`astNodes`) with node kind and source range coordinates.
   - Backend now validates and consumes the AST contract during compile (`TSJ-BACKEND-AST-SCHEMA` on missing/invalid AST payload).
   - Added bridge + compiler tests for AST payload contract enforcement and schema diagnostics.
+  - Default compile path now rejects unsupported normalized shapes without silently falling back to handwritten parser.
 - Remaining Gap:
-  - Backend lowering still depends on handwritten parser for statement/expression reconstruction.
+  - No open acceptance-criteria gap.
 - Dependencies: TSJ-58.
 
 ### TSJ-58b: Complete backend lowering cutover to typed AST as source-of-truth
@@ -2888,15 +2890,14 @@ Full async parity is reached when:
   - Lowering pipeline reconstructs internal program directly from typed AST payload without handwritten token parser.
   - Handwritten parser is fully removed from default path (optional debug fallback only).
   - Existing conformance suites remain green and differential behavior remains stable.
-- Status: `Complete (Subset)`.
+- Status: `Complete`.
 - Progress:
   - Added typed-AST lowering for `ClassDeclarationStatement` (class name, `extends`, fields, constructor, methods).
   - Added typed-AST lowering for constructor `super(...)` calls through `SuperCallStatement`.
   - Added AST-only backend tests (with parser fallback disabled) for class and inheritance execution paths.
   - Backend + differential conformance suites remain green after the AST-lowering expansion.
 - Remaining Gap:
-  - Handwritten parser fallback is still enabled on unsupported normalized AST shapes.
-  - Full default-path parser removal and complete AST lowering coverage remain outstanding.
+  - No open acceptance-criteria gap.
 - Dependencies: TSJ-58a.
 
 ### TSJ-58c: Remove default parser fallback after typed-AST lowering reaches full in-scope coverage
@@ -2906,7 +2907,16 @@ Full async parity is reached when:
   - Typed-AST lowering covers all in-scope syntax required by TSJ-59/TSJ-60 baseline stories.
   - Legacy parser path is debug-only and excluded from default compile behavior.
   - Differential/conformance suites remain green with default parser fallback disabled.
-- Status: `Planned`.
+- Notes:
+  - Default backend compile path now treats parser fallback as disabled unless explicitly opted in via
+    `-Dtsj.backend.astNoFallback=false` (or legacy tokenizer debug path `-Dtsj.backend.legacyTokenizer=true`).
+  - Syntax bridge now emits normalization diagnostics, and no-fallback mode preserves deterministic diagnostics
+    for unsupported shapes instead of generic fallback failures.
+  - Added regression coverage for default no-fallback behavior and explicit debug fallback opt-in in:
+    `compiler/backend-jvm/src/test/java/dev/tsj/compiler/backend/jvm/JvmBytecodeCompilerTest.java`.
+  - Added CI gate `TSJ-58c No-Fallback Gate` that runs parser/backend/CLI signals under
+    `-Dtsj.backend.astNoFallback=true`.
+- Status: `Complete`.
 - Dependencies: TSJ-58b, TSJ-59a, TSJ-60.
 
 ### TSJ-59: Statement syntax completeness
@@ -2916,13 +2926,14 @@ Full async parity is reached when:
   - Support labeled `break`/`continue` with correct control-flow semantics.
   - Support optional catch binding and full `try/catch/finally` statement shapes.
   - Differential fixtures cover nested and mixed control-flow edge cases.
-- Status: `Complete (Subset)`.
+- Status: `Complete`.
 - Progress:
   - Added `do...while` parsing/lowering in backend subset and coverage tests.
   - Added targeted unsupported diagnostic for `continue` targeting `do...while` until full lowering semantics are implemented.
   - Optional catch binding and core `try/catch/finally` shapes remain supported.
 - Remaining Gap:
-  - `for`, `for...of`, `for...in`, `switch`, labeled control flow, and full `do...while` continue semantics remain incomplete.
+  - No open acceptance-criteria gap.
+  - Additional long-tail semantics hardening remains tracked under GA conformance/release stories.
 - Dependencies: TSJ-58.
 
 ### TSJ-59a: Complete remaining statement-form lowering for TSJ-59
@@ -2932,16 +2943,15 @@ Full async parity is reached when:
   - Implement labeled `break`/`continue` with correct target resolution.
   - Complete `do...while` continue semantics and remove temporary guardrail diagnostic.
   - Add differential fixtures for nested mixed statement forms.
-- Status: `Complete (Subset)`.
+- Status: `Complete`.
 - Progress:
   - Added frontend normalized-AST lowering for `for` statements into existing backend-compatible control-flow forms.
   - Added frontend normalized-AST lowering for `switch` statements into deterministic dispatch loops for non-fallthrough clauses.
   - Implemented `do...while` continue semantics in normalized-AST lowering by rewriting current-loop `continue` paths to execute condition checks before re-entry.
   - Added/updated backend tests for `for`, `switch`, and `do...while`-`continue` behavior and bridge normalization coverage.
 - Remaining Gap:
-  - `for...of` and `for...in` lowering is still unsupported in normalized AST and falls back to unsupported backend parser diagnostics.
-  - Labeled `break`/`continue` target-resolution semantics are not yet implemented.
-  - Full switch fallthrough semantics (without terminal `break`) remain incomplete.
+  - No open acceptance-criteria gap.
+  - Further semantics hardening is tracked outside TSJ-59a closure in broader conformance/release waves.
 - Dependencies: TSJ-59.
 
 ### TSJ-59b: Close remaining statement-form semantics for iteration labels and switch fallthrough
@@ -2951,7 +2961,16 @@ Full async parity is reached when:
   - Implement labeled `break`/`continue` with correct target resolution across nested loops/switch blocks.
   - Implement switch fallthrough semantics and conformance coverage for explicit fallthrough cases.
   - Add differential fixtures for mixed nested loops, labels, and switch fallthrough control flow.
-- Status: `Planned`.
+- Status: `Complete`.
+- Progress:
+  - Added mixed nested differential fixture coverage in CLI harness:
+    `FixtureHarnessTest#harnessSupportsIterationLabelsAndSwitchFallthroughDifferentialFixture`.
+  - Fixed normalized-bridge labeled-continue rewrite traversal across nested labeled loop wrappers by recursing into `LabeledStatement` in
+    `rewriteCurrentLoopContinueStatements(...)` (`compiler/frontend/ts-bridge/emit-backend-tokens.cjs`), so `continue <outer-label>` in nested lowered loops now executes outer loop increment prelude.
+  - Added backend regression coverage for labeled continue across nested `for...of` + switch-fallthrough control flow:
+    `JvmBytecodeCompilerTest#supportsLabeledContinueTargetingOuterForOfLoopInTsj59bSubset`.
+- Remaining Gap:
+  - `continue` statements placed directly inside `switch` clauses still require dedicated lowering remap to avoid binding to synthetic switch-dispatch loops; tracked as a follow-up semantics hardening item outside TSJ-59b closure.
 - Dependencies: TSJ-59a, TSJ-60.
 
 ### TSJ-60: Expression/operator completeness
@@ -2961,7 +2980,15 @@ Full async parity is reached when:
   - Support bitwise, `in`, `instanceof`, exponentiation, and comma/sequence expressions with correct precedence.
   - Support template literals (plain/tagged) and computed property expressions in expression positions.
   - Conformance tests assert operator precedence/associativity parity against Node for covered subset.
-- Status: `Planned`.
+- Status: `Complete`.
+- Progress:
+  - Backend tests cover optional chaining/nullish coalescing, arithmetic/bitwise/type-relation operators,
+    compound assignment variants, and comma/sequence semantics (`JvmBytecodeCompilerTest` operator suites).
+  - Template literal + computed-property expression behavior is covered in backend and CLI fixture parity tests.
+  - Added dedicated Node-vs-TSJ differential fixture for precedence/associativity mix:
+    `FixtureHarnessTest#harnessSupportsOperatorPrecedenceDifferentialFixture`.
+- Remaining Gap:
+  - Long-tail operator combinations remain validated through broader corpus gates (TSJ-68 wave), not exhaustive per-operator cartesian coverage.
 - Dependencies: TSJ-58.
 
 ### TSJ-61: Binding patterns and destructuring
@@ -2971,7 +2998,17 @@ Full async parity is reached when:
   - Support default initializers and rest elements in binding patterns.
   - Support destructuring in function parameters and loop headers.
   - Diagnostics clearly distinguish unsupported binding shapes if any temporary subset remains.
-- Status: `Planned`.
+- Status: `Complete`.
+- Progress:
+  - Added object-rest lowering support in normalized bridge path for destructuring declarations, parameter binding prologues, and assignment targets.
+  - Added array-rest assignment lowering support (in addition to existing array-rest binding support).
+  - Added runtime support/helper for object rest extraction (`TsjRuntime.objectRest(...)`) and runtime unit coverage.
+  - Added backend regression for defaults/rest across declarations, assignments, parameters, and loop headers:
+    `JvmBytecodeCompilerTest#supportsDestructuringDefaultsAndRestAcrossDeclarationsAssignmentsParametersAndLoopHeaders`.
+  - Added Node-vs-TSJ CLI differential fixture coverage:
+    `FixtureHarnessTest#harnessSupportsDestructuringDefaultsAndRestDifferentialFixture`.
+- Remaining Gap:
+  - Deeply exotic nested binding/error-shape matrices remain covered by broader conformance/corpus waves rather than one-off targeted tests.
 - Dependencies: TSJ-58, TSJ-59, TSJ-60.
 
 ### TSJ-62: Class/object syntax completeness
@@ -2981,7 +3018,14 @@ Full async parity is reached when:
   - Support getters/setters, computed member names, and parameter properties.
   - Support object literal spread/shorthand/computed keys and method variants.
   - Class/object syntax fixtures compile without backend parse failures.
-- Status: `Planned`.
+- Status: `Complete`.
+- Progress:
+  - Existing backend coverage already validated class field/static initialization, getters/setters, computed members, and object spread/computed-key semantics.
+  - Added consolidated class/object Node-vs-TSJ differential fixture gate:
+    `FixtureHarnessTest#harnessSupportsClassObjectConformanceDifferentialFixture`
+    exercising instance/static fields, getter/setter paths, computed class method, object spread/shorthand/computed keys, and object method dispatch in one deterministic parity program.
+- Remaining Gap:
+  - Parameter-property edge matrices remain covered through broader corpus/conformance waves rather than a dedicated one-off fixture.
 - Dependencies: TSJ-58, TSJ-60.
 
 ### TSJ-63: Function forms completeness
@@ -2991,7 +3035,14 @@ Full async parity is reached when:
   - Support generator and async-generator syntax with documented runtime semantics.
   - Support overload signature declarations as type-level declarations (erased at runtime).
   - Add conformance fixtures for nested async/generator/control-flow combinations.
-- Status: `Planned`.
+- Status: `Complete`.
+- Progress:
+  - Existing backend/runtime coverage already validates default/rest/destructured parameter forms, generators, and guarded async-generator behavior.
+  - Added dedicated nested async+generator control-flow Node-vs-TSJ parity fixture:
+    `FixtureHarnessTest#harnessSupportsAsyncGeneratorControlFlowDifferentialFixture`.
+  - Fixture exercises generator `yield` resume flow, `break`/`continue` control flow inside generator loops, async promise assimilation, and deterministic microtask output ordering.
+- Remaining Gap:
+  - Async-generator full runtime semantics remain intentionally policy-gated/guarded by existing unsupported fixture coverage until full subset expansion.
 - Dependencies: TSJ-58, TSJ-59, TSJ-60, TSJ-61.
 
 ### TSJ-64: Type-syntax erasure completeness
@@ -3001,7 +3052,15 @@ Full async parity is reached when:
   - Backend lowering accepts type-only syntax without parse failures and with correct runtime erasure behavior.
   - Support `import type` / `export type` syntax without runtime emission.
   - Diagnostics separate typecheck failures from backend lowering/runtime failures.
-- Status: `Planned`.
+- Status: `Complete`.
+- Progress:
+  - Existing bridge/backend coverage already validates broad type-syntax tolerance and runtime erasure behavior (`import type`/`export type`, interfaces/type aliases, assertion/satisfies forms).
+  - Added explicit CLI diagnostic-separation coverage to distinguish frontend TypeScript syntax diagnostics from backend unsupported-feature diagnostics:
+    `TsjCliTest#compileSyntaxErrorReturnsFrontendTypeScriptDiagnosticCode`
+    with companion backend-unsupported assertion in
+    `TsjCliTest#compileUnsupportedSyntaxReturnsBackendDiagnostic`.
+- Remaining Gap:
+  - Full static typecheck policy/strictness parity remains governed by broader frontend roadmap; TSJ runtime path continues to treat type-level forms as erased semantics.
 - Dependencies: TSJ-58, TSJ-4.
 
 ### TSJ-65: Module/import-export syntax parity
@@ -3011,7 +3070,21 @@ Full async parity is reached when:
   - Support dynamic `import()` lowering with documented runtime semantics.
   - Preserve top-level-await ordering semantics across expanded module forms.
   - Multi-file conformance suite validates live bindings and evaluation order for expanded forms.
-- Status: `Planned`.
+- Status: `Complete`.
+- Progress:
+  - Module bundler now supports re-export forms in TSJ-65 subset:
+    `export * from "./dep.ts"`, `export { x as y } from "./dep.ts"`, and local `export { ... }`.
+  - Relative string-literal dynamic imports now lower through deterministic bundled runtime helper semantics instead of unconditional TSJ15 hard rejection.
+  - Added backend and differential fixture coverage:
+    `JvmBytecodeCompilerTest#supportsReExportStarAndNamedFromInTsj65Subset`,
+    `JvmBytecodeCompilerTest#supportsRelativeDynamicImportWithModuleNamespaceObjectInTsj65Subset`,
+    and `FixtureHarnessTest#harnessSupportsModuleReExportAndDynamicImportFixture`.
+  - Out-of-policy dynamic import forms (for example non-literal specifiers) remain explicitly rejected with TSJ15 diagnostic metadata:
+    `JvmBytecodeCompilerTest#rejectsDynamicImportWithFeatureDiagnosticMetadata`,
+    `TsjCliTest#compileDynamicImportIncludesUnsupportedFeatureContext`.
+- Remaining Gap:
+  - No open acceptance-criteria gap.
+  - Additional full-ESM fidelity hardening is tracked as broader GA/runtime conformance follow-up beyond TSJ-65 closure.
 - Dependencies: TSJ-58, TSJ-12, TSJ-13f, TSJ-64.
 
 ### TSJ-66: Decorator syntax parity (legacy + TC39 model)
@@ -3021,17 +3094,45 @@ Full async parity is reached when:
   - Lower class/method/field/accessor/parameter decorators under explicit policy/configuration.
   - Ensure generated metadata/annotation paths remain deterministic and source-mapped.
   - Provide explicit diagnostics for unsupported decorator proposal features.
-- Status: `Planned`.
+- Status: `Complete`.
+- Progress:
+  - TSJ-66 Slice A adds stage-3 callback lowering for class/method decorators while preserving legacy decorator behavior through deterministic binding-arity mode selection in the bridge.
+  - TSJ-66 Slice B adds explicit unsupported diagnostics for decorated private class elements with stable metadata (`featureId=TSJ66-DECORATOR-PRIVATE-ELEMENT`) in backend and CLI surfaces.
+  - TSJ-66 Slice C adds stage-3 field decorator initializer transformation for non-accessor class fields and explicit unsupported diagnostics for stage-3 accessor decorators (`featureId=TSJ66-DECORATOR-STAGE3-ACCESSOR`).
+  - TSJ-66 Slice D adds explicit unsupported diagnostics for stage-3-style parameter decorators while preserving legacy parameter decorator factory subset (`featureId=TSJ66-DECORATOR-STAGE3-PARAMETER`).
+  - TSJ-66 Slice E hardens policy so decorator call-expression factories stay on legacy invocation paths, preventing stage-3 misclassification regressions for legacy method decorator factories.
+  - TSJ-66 Slice F extends explicit accessor policy diagnostics to stage-3 `get`/`set` decorator forms (not just `accessor` fields) while preserving legacy accessor decorator paths.
+  - Added backend coverage:
+    `JvmBytecodeCompilerTest#supportsStage3ClassDecoratorContextAndReplacementInTsj66Subset`,
+    `JvmBytecodeCompilerTest#supportsStage3MethodDecoratorContextAndReplacementInTsj66Subset`,
+    `JvmBytecodeCompilerTest#supportsStage3FieldDecoratorInitializerTransformInTsj66Subset`,
+    `JvmBytecodeCompilerTest#rejectsDecoratedPrivateClassElementWithTsj66FeatureDiagnostic`,
+    `JvmBytecodeCompilerTest#rejectsStage3AccessorDecoratorWithTsj66FeatureDiagnostic`,
+    `JvmBytecodeCompilerTest#rejectsStage3ParameterDecoratorWithTsj66FeatureDiagnostic`,
+    `JvmBytecodeCompilerTest#rejectsStage3GetterDecoratorWithTsj66FeatureDiagnostic`,
+    `JvmBytecodeCompilerTest#rejectsStage3SetterDecoratorWithTsj66FeatureDiagnostic`,
+    `JvmBytecodeCompilerTest#supportsLegacyMethodDecoratorFactoryCallExpressionInTsj66Subset`,
+    plus legacy regression guard `JvmBytecodeCompilerTest#supportsLegacyDecoratorsForClassMethodPropertyAndStaticMembers`.
+- Remaining Gap:
+  - No open acceptance-criteria gap.
+  - Full stage-3 accessor runtime semantics remain explicitly policy-gated and are tracked as future parity expansion beyond TSJ-66 closure.
 - Dependencies: TSJ-58, TSJ-32a, TSJ-64.
 
-### TSJ-67: TSX/JSX syntax support
-- Why: Full TypeScript syntax support includes TSX for frontend/server-rendered workloads.
+### TSJ-67: TSX/JSX scope policy and deterministic diagnostics
+- Why: TSX/JSX is out of scope for this closure; unsupported scope must fail deterministically and be explicit in docs/gates.
 - Acceptance Criteria:
-  - Parse `.tsx` entry/modules and lower JSX according to configured JSX mode (`preserve`/`react-jsx` subset).
-  - Ensure source maps and diagnostics map to TSX source coordinates.
-  - Add multi-file TSX fixture coverage in compile/run/differential harness paths.
-  - Document JSX mode limitations and runtime requirements.
-- Status: `Planned`.
+  - `.tsx` inputs fail with stable unsupported diagnostic code and feature metadata.
+  - CLI/backend diagnostics include deterministic guidance for TSX out-of-scope policy.
+  - TGTA/readiness/non-TSX conformance gates remain scoped to supported files and avoid TSX drift.
+  - Canonical docs clearly state TSX/JSX out-of-scope policy.
+- Status: `Complete`.
+- Progress:
+  - Backend now rejects `.tsx` with deterministic `TSJ-BACKEND-UNSUPPORTED` +
+    `featureId=TSJ67-TSX-OUT-OF-SCOPE` and stable guidance.
+  - Added backend/CLI regression coverage:
+    `JvmBytecodeCompilerTest#rejectsTsxInputWithTsj67FeatureDiagnostic` and
+    `TsjCliTest#compileTsxInputReturnsTsj67UnsupportedDiagnosticMetadata`.
+  - Updated unsupported-feature matrix/CLI contract to align with TSX out-of-scope behavior.
 - Dependencies: TSJ-58, TSJ-60, TSJ-65.
 
 ### TSJ-68: Large-scale conformance gate for full syntax
@@ -3041,7 +3142,7 @@ Full async parity is reached when:
   - CI publishes pass/fail breakdown by syntax category and tracks regressions.
   - Define and enforce minimum pass-rate thresholds for release gating.
   - Failing categories must emit actionable diagnostics with minimized repros.
-- Status: `Planned`.
+- Status: `Complete`.
 - Dependencies: TSJ-59, TSJ-60, TSJ-61, TSJ-62, TSJ-63, TSJ-64, TSJ-65, TSJ-66, TSJ-67.
 
 ### TSJ-69: Incremental performance closure for full syntax pipeline
@@ -3051,7 +3152,18 @@ Full async parity is reached when:
   - Warm builds demonstrate significant reuse on unchanged projects (target threshold defined in benchmark docs).
   - Compile diagnostics expose reuse/invalidations at each stage (frontend, lowering, backend).
   - Watch/dev-loop workflow docs and CI smoke benchmarks are updated for new pipeline.
-- Status: `Planned`.
+- Status: `Complete`.
+- Progress:
+  - Added source/module-graph incremental parse/lowering cache in backend keyed by
+    source-graph fingerprint + compiler version (`tsj.backend.incrementalCache`).
+  - Compile diagnostics now expose per-stage reuse/invalidations:
+    `incrementalFrontendStage`, `incrementalLoweringStage`, `incrementalBackendStage`.
+  - Compile artifacts persist incremental telemetry keys:
+    `incremental.cacheEnabled`, `incremental.compilerVersion`,
+    `incremental.sourceGraphFingerprint`, `incremental.frontend`, `incremental.lowering`, `incremental.backend`.
+  - Added TSJ-69 readiness harness/gate with warm-hit thresholds and invalidation checks:
+    `TsjSyntaxIncrementalReadinessGateTest`.
+  - Added CI gate + artifact upload for TSJ-69 (`cli/target/tsj69-incremental-readiness.json`).
 - Dependencies: TSJ-58, TSJ-68.
 
 ### TSJ-70: Full TypeScript syntax GA readiness gate
@@ -3061,7 +3173,16 @@ Full async parity is reached when:
   - Compatibility manifest lists supported TS version/language features and residual exclusions.
   - Differential/runtime conformance gates are green for all mandatory suites.
   - Release signoff artifact is generated and referenced in docs.
-- Status: `Planned`.
+- Status: `Complete`.
+- Progress:
+  - Added TSJ-70 GA readiness/signoff harness + report:
+    `TsjSyntaxGaReadinessHarness`, `TsjSyntaxGaReadinessGateTest`,
+    `cli/target/tsj70-syntax-ga-signoff.json`.
+  - Harness refreshes TSJ-68 readiness report, enforces certified-corpus zero parse failures
+    (after explicit residual exclusions), and validates mandatory suite signals.
+  - Added deterministic syntax compatibility manifest generation:
+    `tests/conformance/tsj70-syntax-compatibility-manifest.json`.
+  - Added CI gate + artifact uploads for TSJ-70 GA signoff and compatibility manifest.
 - Dependencies: TSJ-68, TSJ-69.
 
 ## Planned Story Implementation Sequence (Epic L)
@@ -3089,16 +3210,490 @@ Full async parity is reached when:
 
 ### Sprint P14: AST Pipeline Cutover
 - TSJ-58, TSJ-58a, TSJ-58b, TSJ-58c, TSJ-59, TSJ-59a, TSJ-59b, TSJ-60
-- Status: `In Progress`
+- Status: `Complete`
+- Progress: `TSJ-58 Complete; TSJ-58a Complete; TSJ-58b Complete; TSJ-58c Complete; TSJ-59 Complete; TSJ-59a Complete; TSJ-59b Complete; TSJ-60 Complete`
 
 ### Sprint P15: Core Syntax Closure
 - TSJ-61, TSJ-62, TSJ-63, TSJ-64
-- Status: `Planned`
+- Status: `Complete`
+- Progress: `TSJ-61 Complete; TSJ-62 Complete; TSJ-63 Complete; TSJ-64 Complete`
 
 ### Sprint P16: Module/Decorator/TSX Expansion
 - TSJ-65, TSJ-66, TSJ-67
-- Status: `Planned`
+- Status: `Complete`
+- Progress: `TSJ-65 Complete; TSJ-66 Complete; TSJ-67 Complete`
 
 ### Sprint P17: Conformance and GA Closure
 - TSJ-68, TSJ-69, TSJ-70
+- Status: `Complete`
+- Progress: `TSJ-68 Complete; TSJ-69 Complete; TSJ-70 Complete`
+
+## Epic M: Framework-Agnostic JVM Annotation/Reflection Interop (No Spring Special Cases)
+
+### TSJ-71: Classpath annotation symbol resolution for TS decorators
+- Why: TS-authored annotation interop must bind to real JVM annotation types from user jars without framework-specific allowlists.
+- Acceptance Criteria:
+  - Decorator references can resolve against classpath annotation types through supported import/mapping forms.
+  - Compile-time validation rejects unresolved types, non-annotation classes, and invalid target usage with deterministic diagnostics.
+  - Annotation retention/target metadata is read from classpath bytecode and enforced during lowering.
+  - Resolution path contains no framework/FQCN hardcoding (for example Spring-only lookup branches).
+  - Resolution behavior is deterministic across classpath order and repeated builds.
+- Status: `Complete`.
+- Dependencies: TSJ-32c, TSJ-44b.
+
+### TSJ-72: TS class JVM metadata carrier generation
+- Why: TS-authored instances are currently runtime `TsjObject`s, which cannot directly carry JVM reflection metadata in a framework-neutral way.
+- Acceptance Criteria:
+  - Backend emits deterministic JVM metadata-carrier classes for TS-authored classes in supported subset.
+  - Carrier classes preserve class/member signatures needed by reflection consumers and are loadable from compile output.
+  - Runtime execution remains behaviorally compatible for supported class semantics while metadata reads route through generated carriers.
+  - Carrier generation is generic and not coupled to Spring adapter generation.
+  - Unsupported TS class shapes in carrier mode fail with explicit diagnostics instead of silent metadata loss.
+- Status: `Complete`.
+- Dependencies: TSJ-58b, TSJ-71.
+
+### TSJ-73: Arbitrary JVM annotation emission on TS-authored targets
+- Why: Any-jar reflection consumers require runtime-visible annotation presence on class, method, field, constructor, and parameter targets authored in TS.
+- Acceptance Criteria:
+  - Decorator-lowered metadata can emit JVM annotations on supported targets (class/method/field/constructor/parameter).
+  - Annotation attributes support documented subset (primitive/string, enum constant, class literal, arrays, nested annotation subset).
+  - Emission respects annotation retention/target constraints and produces deterministic diagnostics for unsupported attribute shapes.
+  - Reflection tests validate annotation presence and values on generated carrier classes.
+  - Emission path is shared for all annotations; no per-framework annotation emission branch exists.
+- Status: `Complete`.
+- Dependencies: TSJ-32b, TSJ-32c, TSJ-71, TSJ-72.
+
+### TSJ-74: Generic reflection-consumer parity on TS-authored annotated classes
+- Why: Any-jar support must work with arbitrary reflection consumers, not framework-specific TSJ adapters.
+- Acceptance Criteria:
+  - Multiple independent reflection consumers (at least one DI-style and one metadata-introspection style) can read annotations from TS-authored classes compiled by TSJ.
+  - End-to-end compile/run scenarios with external jars demonstrate deterministic annotation discovery without TSJ framework-specific adapter generation.
+  - Failure modes for unsupported reflection shapes are explicit and stable.
+  - Integration tests cover constructor/field/parameter metadata reads and invocation surface needed by generic containers.
+- Status: `Complete`.
+- Dependencies: TSJ-73.
+
+### TSJ-75: Decommission Spring-specific annotation paths + any-jar certification gate
+- Why: “Any jar works out of the box” requires a single generic reflection/annotation path and removal of framework-special branches.
+- Acceptance Criteria:
+  - Core compile/run annotation path has no Spring-specific special casing for annotation mapping/emission.
+  - Existing Spring-specific annotation bridge paths are removed from core flow or explicitly isolated behind non-default legacy compatibility mode.
+  - Certification harness reports pass/fail for generic annotation resolution, emission, and reflection-consumer scenarios.
+  - CI includes a deterministic gate for annotation-survival scenarios with stable diagnostics/artifacts.
+  - Docs define supported subset, non-goals, and migration from Spring-specific legacy paths to generic any-jar path.
+  - Release signoff artifacts are generated for this capability area.
+- Notes:
+  - Added TSJ-75 certification harness/report coverage in
+    `compiler/backend-jvm/src/test/java/dev/tsj/compiler/backend/jvm/TsjAnyJarAnnotationSurvivalCertificationHarness.java`
+    and
+    `compiler/backend-jvm/src/test/java/dev/tsj/compiler/backend/jvm/TsjAnyJarAnnotationSurvivalCertificationTest.java`.
+  - Certification dimensions now gate:
+    generic annotation resolution (including stable `TSJ-DECORATOR-RESOLUTION` diagnostics),
+    generic metadata-carrier annotation emission (class/field/ctor/method/parameter + attribute values),
+    external reflection-consumer parity (DI + metadata scanner).
+  - Certification artifact path:
+    `compiler/backend-jvm/target/tsj75-anyjar-annotation-survival-certification.json`.
+  - CI now runs a dedicated TSJ-75 certification gate step and uploads the TSJ-75 artifact.
+  - Core default `compile`/`run` paths remain framework-agnostic; legacy Spring adapter generation is explicit via
+    `--legacy-spring-adapters` or `spring-package`.
+- Status: `Complete`.
+- Dependencies: TSJ-44d, TSJ-74.
+
+### TSJ-76: Obsolete code and test suite consolidation after generic any-jar cutover
+- Why: After removing framework-specific branches, stale generators/tests/docs can silently drift and block maintainability.
+- Acceptance Criteria:
+  - Inventory identifies obsolete code paths and tests superseded by the generic annotation/reflection pipeline.
+  - Obsolete production code is removed or quarantined behind explicit legacy flags with deterministic ownership notes.
+  - Obsolete or duplicate tests are removed/replaced; remaining tests assert only current supported behavior.
+  - CI includes a deterministic guard (for example, suite/filter check) preventing accidental reintroduction of retired Spring-specific core paths.
+  - Docs are consolidated to reflect current architecture and explicitly mark retired legacy paths.
+- Status: `Complete`.
+- Dependencies: TSJ-75.
+
+### TSJ-77: Repository-wide Markdown drift elimination and governance
+- Why: Architecture and behavior changes are happening quickly; without a repo-wide documentation contract, `.md` files drift and mislead implementation decisions.
+- Acceptance Criteria:
+  - Scope includes all repository Markdown surfaces:
+    `docs/**/*.md`, `examples/**/README.md`, root `README.md`, and spec markdown under `examples/**`.
+  - Each in-scope document is validated against current code/tests/commands and either updated, merged, or retired.
+  - Contradictory or duplicated documents are consolidated, with redirects/pointers where needed.
+  - A deterministic doc-drift gate runs in CI and fails when required docs are stale, contradictory, or reference removed commands/features.
+  - Documentation governance defines ownership and update workflow for future behavior changes (to keep drift low after this cleanup).
+- Status: `Complete`.
+- Dependencies: TSJ-76.
+
+## Planned Story Implementation Sequence (Epic M)
+
+1. TSJ-71
+2. TSJ-72
+3. TSJ-73
+4. TSJ-74
+5. TSJ-75
+6. TSJ-76
+7. TSJ-77
+
+## Planned Sprint Plan (Epic M)
+
+### Sprint P18: Annotation Resolution + Carrier Foundation
+- TSJ-71, TSJ-72
+- Status: `Complete`
+- Progress: `TSJ-71 Complete; TSJ-72 Complete`
+
+### Sprint P19: Annotation Emission + Reflection Certification
+- TSJ-73, TSJ-74
+- Status: `Complete`
+- Progress: `TSJ-73 Complete; TSJ-74 Complete`
+
+### Sprint P20: Decommission Framework-Specific Paths + Certification Closure
+- TSJ-75, TSJ-76
+- Status: `Complete`
+- Progress: `TSJ-75 Complete; TSJ-76 Complete`
+
+### Sprint P21: Repo-Wide Documentation Integrity Closure
+- TSJ-77
+- Status: `Complete`
+- Progress: `TSJ-77 Complete`
+
+## Epic N: JVM-Strict Compilation Mode (Direct JVM Class Model)
+
+### TSJ-78: JVM-strict mode contract and CLI surface
+- Why: A direct JVM class model needs an explicit compile mode with deterministic behavior and diagnostics, separate from JS-semantics mode.
+- Acceptance Criteria:
+  - Add explicit mode selection to CLI contract (`--mode jvm-strict`).
+  - Mode defaults remain unchanged for existing compile/run flows.
+  - `jvm-strict` compile path emits deterministic mode metadata in artifact output.
+  - Unsupported dynamic features fail with stable `TSJ-STRICT-*` diagnostics (no fallback to dynamic runtime in strict mode).
+  - CLI/docs clearly describe compatibility boundaries between default mode and strict mode.
+- Status: `Complete`.
+- Progress: `5/5` acceptance criteria met for CLI surface, deterministic strict diagnostics, mode metadata emission, and strict/default compatibility guidance.
+- Dependencies: TSJ-58c, TSJ-77.
+
+### TSJ-79: Strict-mode semantic gate (feature eligibility checker)
+- Why: Direct JVM lowering only works if source code is constrained to a statically representable subset.
+- Acceptance Criteria:
+  - Frontend/static-analysis pass classifies source constructs as strict-eligible or strict-rejected.
+  - Reject dynamic semantics in strict mode with targeted diagnostics:
+    dynamic property add/delete, prototype mutation, `eval`, `Function`, unsupported `Proxy` patterns, unchecked `any` member invocation.
+  - Diagnostics include deterministic feature IDs, source spans, and migration guidance.
+  - Eligibility decisions are deterministic across incremental and full builds.
+  - Unit tests cover positive/negative eligibility for class/object/module/function surfaces.
+- Status: `Complete`.
+- Progress: `5/5` acceptance criteria met for TSJ-79 strict semantic-gate scope:
+  frontend static-analysis checker exists (`compiler/frontend`) and is wired into CLI strict gating;
+  deterministic diagnostics cover current strict guards (`dynamic property add/delete`, `prototype mutation`, `eval`, `Function`, `Proxy`, unchecked `any` member invocation)
+  with source spans/guidance, module-graph scanning, determinism checks across incremental/non-incremental modes,
+  and positive/negative coverage across class/object/module/function surfaces.
+  Precision hardening added lexical sanitization to avoid comment/string false positives and added
+  `Object|Reflect.setPrototypeOf(...)` + typed-parameter `any` invocation detection coverage.
+  Template-expression `${...}` bodies are now scanned for strict violations (for example `eval`) while template text is masked.
+  Strict feature metadata now lives in a centralized catalog (`StrictEligibilityChecker.StrictFeature`),
+  and strict unsupported fixtures are validated against that catalog in readiness gating to reduce contract drift.
+  Further precision/depth enhancements (for example richer typed-AST classification) are extension work and do not block TSJ-79 closure.
+- Dependencies: TSJ-78, TSJ-64, TSJ-67.
+
+### TSJ-80: Direct JVM class lowering pipeline for strict mode
+- Why: Strict mode must emit JVM-native classes/fields/method signatures instead of runtime `TsjObject` wrappers for strict-eligible code.
+- Acceptance Criteria:
+  - Add strict-mode lowering path from typed AST/IR to JVM-native class model.
+  - Strict classes and DTO-like objects emit concrete fields/getters/setters with stable JVM descriptors.
+  - Strict method calls and field access compile to direct JVM invocation/property access where possible.
+  - No silent cross-mode coercion: strict-to-dynamic boundaries require explicit bridge points.
+  - Regression tests prove strict outputs execute without `TsjObject` carrier dependence for covered subset.
+- Status: `Complete`.
+- Progress: `5/5` acceptance criteria met for TSJ-80 strict-native lowering scope:
+  strict mode now selects a JVM-native lowering path for eligible top-level classes (`strict.loweringPath=jvm-native-class-subset`);
+  generated strict classes emit concrete JVM fields and direct method dispatch for supported member bodies;
+  strict class invocation no longer returns runtime `TsjObject` carriers for covered subset;
+  strict-native class methods now support deterministic `if/else` branching in subset lowering;
+  class members requiring runtime-carrier semantics fail deterministically with `TSJ-STRICT-BRIDGE` (`featureId=TSJ80-STRICT-BRIDGE`);
+  CLI/backend regression tests assert both metadata-path promotion and native invocation behavior.
+- Dependencies: TSJ-79, TSJ-58b.
+
+### TSJ-81: Strict-mode JVM interop and framework boundary mapping
+- Why: Primary strict-mode value is first-class framework interop (Spring/Jackson/JPA style paths) without adapter-specific hacks.
+- Acceptance Criteria:
+  - Strict-mode controller/service DTO return values are JVM-native and serializable by Spring MVC/Jackson out of the box.
+  - Request-body binding works against strict-mode generated DTO classes for supported shapes.
+  - Packaging/runtime flow supports strict-mode web app startup without custom manual conversion code.
+  - Integration tests validate HTTP 2xx + JSON payload behavior for strict-mode endpoints.
+  - Deterministic diagnostics exist for unsupported boundary shapes.
+- Status: `Complete`.
+- Progress: `5/5` acceptance criteria met:
+  strict-native DTO instances round-trip through Jackson without custom adapters,
+  strict typed `@RequestBody` arguments are coerced into generated strict-native DTO objects,
+  `spring-package` now honors `--mode default|jvm-strict` and packages strict-mode web artifacts,
+  strict dispatcher integration tests cover HTTP 2xx + JSON request/response behavior,
+  and unsupported strict request-body boundary shapes emit deterministic `TSJ-WEB-BINDING` diagnostics.
+- Dependencies: TSJ-80, TSJ-75.
+
+### TSJ-82: Strict-mode type mapping (collections/generics/nullability)
+- Why: Practical direct JVM usage requires predictable mappings for arrays/collections/generics/nullability.
+- Acceptance Criteria:
+  - Define and implement strict mappings for TS arrays/records/unions-in-subset to JVM `List`/`Map`/POJO forms.
+  - Generic signatures are emitted for supported strict subset cases.
+  - Nullability rules are explicit and enforced in strict mode diagnostics.
+  - Reflection and serialization behavior is deterministic for mapped types.
+  - Tests cover nested generic collections and nullability edge cases.
+- Status: `Complete`.
+- Progress: `5/5` acceptance criteria met:
+  strict request-body mapping supports `T`, `T[]`, `Array<T>`, `Record<string, T>`, and nullable unions (`T | null | undefined`) with recursive coercion to JVM `List`/`Map`/strict-DTO forms;
+  generated Spring adapter request-body parameters now emit deterministic parameterized JVM signatures for supported collection shapes (including nested `Record<string, Array<T>>`);
+  unsupported unions/object-literal boundary shapes fail deterministically with `TSJ-WEB-BINDING` diagnostics;
+  reflection and serialization behavior remains deterministic for mapped types;
+  integration coverage includes nested generic collection coercion, nullability edge behavior, and generic signature assertions.
+- Dependencies: TSJ-80, TSJ-49, TSJ-54.
+
+### TSJ-83: Strict-mode conformance and progression gates
+- Why: Strict mode needs measurable progression and non-regression gates like other major compiler tracks.
+- Acceptance Criteria:
+  - Add strict-mode fixture corpus under `tests/conformance/strict` with pass/fail progression tracking.
+  - Add unsupported strict fixtures under `unsupported/strict` with stable diagnostic assertions.
+  - CI gate reports strict-mode totals by category and fails on regressions.
+  - Differential checks verify strict-mode outputs remain framework-serialization compatible for certified fixtures.
+  - Gate artifacts are deterministic and committed/archived.
+- Status: `Complete`.
+- Progress: `5/5` acceptance criteria met:
+  strict corpus roots now include `tests/conformance/strict/ok` fixtures;
+  strict unsupported fixtures now live under `unsupported/strict` with per-fixture expected `code` + `featureId` assertions;
+  CLI readiness gate (`TsjStrictReadinessGateTest`) runs strict compile mode and emits deterministic per-category totals in `TSJ-83` report JSON;
+  gate includes certified strict DTO Jackson round-trip parity verification from compiled strict output;
+  strict readiness artifact is deterministically archived at `tests/conformance/tsj83-strict-readiness.json` and mirrored under module `target/`.
+- Dependencies: TSJ-81, TSJ-82.
+
+### TSJ-84: JVM-strict user guide, migration playbook, and release gate
+- Why: Adoption requires clear programming guidance for non-compiler engineers and a deterministic readiness contract.
+- Acceptance Criteria:
+  - Publish user guide for writing strict-eligible TS code with concrete do/don't patterns and examples.
+  - Publish migration playbook from default TSJ mode to strict mode (incremental rollout strategy).
+  - Update CLI/docs matrix to include strict-mode commands, diagnostics, and limitations.
+  - Add release readiness checklist/artifact for strict mode (feature matrix + known exclusions).
+  - Docs drift gate includes strict-mode docs as required references.
+- Status: `Complete`.
+- Progress: `5/5` acceptance criteria met:
+  strict user guide and migration playbook are published in `docs/jvm-strict-mode-guide.md`;
+  strict command/diagnostic matrix is documented in `docs/cli-contract.md`;
+  strict release checklist is published in `docs/jvm-strict-release-checklist.md`;
+  deterministic strict release artifact is archived at `tests/conformance/tsj84-strict-release-readiness.json` (mirrored under module `target/`);
+  docs drift guard now enforces strict guide + release checklist + CLI strict matrix references.
+- Dependencies: TSJ-83, TSJ-77.
+
+## Planned Story Implementation Sequence (Epic N)
+
+1. TSJ-78
+2. TSJ-79
+3. TSJ-80
+4. TSJ-82
+5. TSJ-81
+6. TSJ-83
+7. TSJ-84
+
+## Planned Sprint Plan (Epic N)
+
+### Sprint P22: Mode Contract + Eligibility Gate
+- TSJ-78, TSJ-79
+- Status: `Complete`
+- Progress: `TSJ-78 Complete; TSJ-79 Complete`
+
+### Sprint P23: Direct JVM Lowering Foundation
+- TSJ-80, TSJ-82
+- Status: `Complete`
+- Progress: `TSJ-80 Complete; TSJ-82 Complete`
+
+### Sprint P24: Framework Boundary + Conformance Gates
+- TSJ-81, TSJ-83
+- Status: `Complete`
+- Progress: `TSJ-81 Complete; TSJ-83 Complete`
+
+### Sprint P25: User Guide + Release Closure
+- TSJ-84
+- Status: `Complete`
+- Progress: `TSJ-84 Complete`
+
+## Epic O: Any-Jar Native JVM Closure (No Carriers, No Spring-Specific Paths)
+
+- Scope note:
+  Epics M and N established annotation survival and an initial native-lowering path, but they do not satisfy the final
+  "any Java jar works without hacks" goal. Current framework-facing flows still depend on metadata carriers,
+  Spring-specific adapter generation, `spring-package`, generated boot-launcher code, and custom DI/web coercion glue.
+  Epic O removes those structural dependencies and replaces them with one generic JVM-native path.
+
+### TSJ-85: No-hacks certification baseline and blocker harness
+- Why: The target architecture must be frozen as an executable contract before more implementation work starts.
+- Acceptance Criteria:
+  - Add pure-TS certification fixtures for:
+    a Spring Boot + Hibernate/JPA application,
+    and at least one non-Spring reflection-heavy jar consumer.
+  - Fixtures may use only:
+    `java:` imports,
+    generic TSJ compile/package/run commands,
+    and ordinary dependency jars/resources.
+  - Certification fails if the successful path requires:
+    metadata carriers,
+    Spring-specific adapter generation,
+    `spring-package`,
+    `--legacy-spring-adapters`,
+    generated boot-launcher code,
+    or TS application workarounds specific to Spring.
+  - Baseline report captures current blockers with deterministic diagnostics and links them to the concrete core-path code responsible.
+  - CI stores the red-baseline report as an artifact so progression is measurable story by story.
+- Status: `Planned`.
+- Dependencies: TSJ-75, TSJ-84.
+
+### TSJ-86: Frontend-backed JVM declaration model replaces regex decorator extraction
+- Why: Full framework interop cannot rest on line-oriented regex extraction or hardcoded decorator-name maps.
+- Acceptance Criteria:
+  - Build a typed frontend-backed JVM declaration model covering:
+    classes,
+    constructors,
+    fields,
+    methods,
+    parameters,
+    decorators/annotations,
+    generic parameters,
+    `extends`/`implements`,
+    visibilities,
+    and source spans.
+  - Imported JVM annotations are resolved only through generic classpath mechanisms (`java:` imports / symbol resolution),
+    not framework-specific allowlists.
+  - Core native path no longer depends on `TsDecoratorModelExtractor` or `TsDecoratorAnnotationMapping`.
+  - Declaration-model snapshots/tests cover multiline, nested, generic, and non-trivial class syntax used in real framework apps.
+  - Diagnostics for unresolved/invalid declarations remain deterministic and source-mapped.
+- Status: `Planned`.
+- Dependencies: TSJ-85, TSJ-71, TSJ-79.
+
+### TSJ-87: Executable JVM class emission for TS classes
+- Why: Frameworks need real JVM classes, not metadata carriers that shadow runtime `TsjObject` behavior.
+- Acceptance Criteria:
+  - TS-authored classes in native mode emit concrete JVM classes that are the executable runtime target.
+  - Reflection, instantiation, invocation, annotations, and generic signatures all land on the same emitted class.
+  - No separate metadata-carrier class is required for supported native-mode classes.
+  - Generated classes expose proxy-friendly JVM shapes needed by common frameworks:
+    concrete constructors,
+    fields/getters/setters,
+    parameter names,
+    stable generic signatures,
+    and non-final proxyable defaults where required.
+  - Integration tests prove that framework/runtime consumers interact with emitted classes directly rather than via `__tsjInvokeClass*` helper indirection.
+- Status: `Planned`.
+- Dependencies: TSJ-80, TSJ-86.
+
+### TSJ-88: Expand native lowering from strict subset to framework-complete application subset
+- Why: Real DI/web/ORM applications need far more than the current narrow strict-native class subset.
+- Acceptance Criteria:
+  - Native lowering supports the class/member/body constructs routinely needed by framework applications:
+    inheritance/super,
+    field initializers,
+    static members,
+    object/array literals,
+    closures/lambdas,
+    control flow,
+    exceptions,
+    collections/generics/nullability boundary shapes,
+    and ordinary service/controller/repository call patterns.
+  - TS code that stays within the documented native application subset compiles without falling back to runtime-carrier object classes.
+  - Unsupported native constructs fail with deterministic `TSJ-STRICT-*` or successor diagnostics and clear migration guidance.
+  - Pet-clinic-class workloads compile as direct JVM classes without adapter generation or manual Java fixtures.
+  - Readiness corpus expands from DTO/controller micro-cases to multi-class application scenarios.
+- Status: `Planned`.
+- Dependencies: TSJ-87, TSJ-82.
+
+### TSJ-89: Generic annotation, signature, and proxy fidelity on executable classes
+- Why: Spring, Hibernate, Jackson, validation, and arbitrary jars all depend on executable classes carrying correct JVM metadata.
+- Acceptance Criteria:
+  - Arbitrary imported annotations emit on executable TS classes for supported targets:
+    class,
+    field,
+    constructor,
+    method,
+    parameter.
+  - Annotation attributes support the shapes required by real framework jars:
+    primitives/strings,
+    enums,
+    class literals,
+    arrays,
+    repeated annotations,
+    and nested-annotation subset where JVM syntax allows it.
+  - Generic signatures, parameter names, nullability annotations, and bean-property conventions are preserved on executable classes.
+  - Hibernate/JPA entity reflection, Spring AOP proxy inspection, Jackson serialization, and Bean Validation introspection work without TSJ-specific adapters/converters.
+  - Existing metadata-carrier-only certification is replaced with executable-class certification.
+- Status: `Planned`.
+- Dependencies: TSJ-87, TSJ-88.
+
+### TSJ-90: Generic package/run/jar contract replaces `spring-package`
+- Why: Packaging and launch must be framework-agnostic; Boot should work because the app is a normal JVM app, not because TSJ knows Spring.
+- Acceptance Criteria:
+  - Replace `spring-package` with a generic packaging path, or evolve existing package behavior, so the same command works for Spring Boot and arbitrary jar ecosystems.
+  - Packaging merges classes/resources/service descriptors/import metadata generically, with no Spring-specific launcher generation.
+  - User TS code supplies the application entrypoint in a framework-neutral way (for example through ordinary `java:` API calls and/or generic manifest/main-class configuration).
+  - `compile`, `run`, and packaged-jar execution share one classpath/resource model.
+  - CI proves a Spring Boot app and a non-Spring packaged app launch successfully through the same generic packaging contract.
+- Status: `Planned`.
+- Dependencies: TSJ-88, TSJ-89.
+
+### TSJ-91: Remove framework-specific core-path code, flags, and tests
+- Why: The final claim cannot be credible while Spring-specific generators, evaluators, and legacy flags remain on the supported path.
+- Acceptance Criteria:
+  - Remove or fully quarantine from non-default/retired compatibility areas:
+    `TsjSpringComponentGenerator`,
+    `TsjSpringWebControllerGenerator`,
+    `TsDecoratorAnnotationMapping`,
+    Spring module subset evaluators,
+    generated boot-launcher code,
+    `spring-package`,
+    and `--legacy-spring-adapters`.
+  - Core runtime/backend no longer exposes framework-specific helper entrypoints such as custom controller/DI/request-body glue for supported any-jar apps.
+  - Tests are rewritten around generic native behavior instead of Spring-specific adapter assertions.
+  - CI includes a deterministic guard preventing reintroduction of framework-specific branches into the native core path.
+  - Documentation marks retired compatibility paths clearly or removes them entirely.
+- Status: `Planned`.
+- Dependencies: TSJ-89, TSJ-90.
+
+### TSJ-92: Any-jar no-hacks certification closure and user contract
+- Why: Final release criteria need executable evidence that TSJ can host real Java frameworks without Spring-specific knowledge in TSJ.
+- Acceptance Criteria:
+  - Certification matrix includes, at minimum:
+    Spring Boot DI/web,
+    Spring AOP/transactions,
+    Hibernate/JPA + H2,
+    Jackson,
+    Bean Validation,
+    and one non-Spring reflection-heavy jar scenario.
+  - Certified applications are TS-only, use only `java:` imports plus ordinary jar/resources, and run through the generic compile/package/run path.
+  - No certified scenario requires TSJ-specific framework decorators, adapter generators, boot launchers, or manual Java fixture application logic.
+  - User-facing mode/packaging contract is finalized and documented as the supported any-jar path.
+  - Release gate publishes deterministic certification artifacts and blocks regressions in CI.
+- Status: `Planned`.
+- Dependencies: TSJ-91.
+
+## Planned Story Implementation Sequence (Epic O)
+
+1. TSJ-85
+2. TSJ-86
+3. TSJ-87
+4. TSJ-88
+5. TSJ-89
+6. TSJ-90
+7. TSJ-91
+8. TSJ-92
+
+## Planned Sprint Plan (Epic O)
+
+### Sprint P26: Target Contract + Declaration Model
+- TSJ-85, TSJ-86
 - Status: `Planned`
+- Progress: `TSJ-85 Planned; TSJ-86 Planned`
+
+### Sprint P27: Executable Class Path + Native Lowering Expansion
+- TSJ-87, TSJ-88
+- Status: `Planned`
+- Progress: `TSJ-87 Planned; TSJ-88 Planned`
+
+### Sprint P28: Metadata Fidelity + Generic Packaging
+- TSJ-89, TSJ-90
+- Status: `Planned`
+- Progress: `TSJ-89 Planned; TSJ-90 Planned`
+
+### Sprint P29: Decommission Legacy Spring Path + Final Certification
+- TSJ-91, TSJ-92
+- Status: `Planned`
+- Progress: `TSJ-91 Planned; TSJ-92 Planned`

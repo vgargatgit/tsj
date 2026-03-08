@@ -25,12 +25,21 @@ The script:
 Current fixture roots:
 
 - `unsupported/grammar`
+- `unsupported/strict`
 - `unsupported/jarinterop`
 
 Grammar case file convention:
 
 - runnable progression cases: `NNN_name.ts` (for example `013_dynamic_import.ts`)
 - helper modules shared by cases: `_name.ts` (excluded from case counting)
+
+Strict case file convention:
+
+- runnable progression cases: `NNN_name.ts`
+- helper modules shared by cases: `_name.ts` (excluded from case counting)
+- each runnable strict case declares expected diagnostics:
+  - `// EXPECT_CODE: <diagnostic-code>`
+  - `// EXPECT_FEATURE_ID: <feature-id>`
 
 Jar interop case file convention:
 

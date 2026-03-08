@@ -57,6 +57,24 @@ public final class TsjSpringComponentGenerator {
         this(new TsDecoratorModelExtractor(), new TsDecoratorAnnotationMapping());
     }
 
+    public TsjSpringComponentGenerator(final List<Path> classpathEntries) {
+        this(createClasspathAwareExtractor(classpathEntries), new TsDecoratorAnnotationMapping());
+    }
+
+    private static TsDecoratorModelExtractor createClasspathAwareExtractor(final List<Path> classpathEntries) {
+        final TsDecoratorAnnotationMapping annotationMapping = new TsDecoratorAnnotationMapping();
+        final List<Path> normalizedEntries = classpathEntries == null
+                ? List.of()
+                : classpathEntries.stream()
+                        .filter(Objects::nonNull)
+                        .map(path -> path.toAbsolutePath().normalize())
+                        .toList();
+        final TsDecoratorClasspathResolver classpathResolver = new TsDecoratorClasspathResolver(
+                new JavaSymbolTable(normalizedEntries, "tsj-spring-component")
+        );
+        return new TsDecoratorModelExtractor(annotationMapping, classpathResolver);
+    }
+
     TsjSpringComponentGenerator(
             final TsDecoratorModelExtractor decoratorModelExtractor,
             final TsDecoratorAnnotationMapping annotationMapping
@@ -671,16 +689,16 @@ public final class TsjSpringComponentGenerator {
             final String programClassName,
             final String generatedSimpleName,
             final ComponentModel component,
-            final String proxyInterfaceName
+        final String proxyInterfaceName
     ) {
         final StringBuilder builder = new StringBuilder();
+        final String beanName = deriveBeanName(generatedSimpleName);
         builder.append("package ").append(GENERATED_PACKAGE).append(";\n\n");
         builder.append("@").append(component.annotationType()).append("\n");
-        if (component.classQualifier() != null) {
-            builder.append("@org.springframework.beans.factory.annotation.Qualifier(\"")
-                    .append(escapeJava(component.classQualifier()))
-                    .append("\")\n");
-        }
+        final String classQualifier = component.classQualifier() == null ? beanName : component.classQualifier();
+        builder.append("@org.springframework.beans.factory.annotation.Qualifier(\"")
+                .append(escapeJava(classQualifier))
+                .append("\")\n");
         if (component.classPrimary()) {
             builder.append("@org.springframework.context.annotation.Primary\n");
         }
@@ -825,6 +843,16 @@ public final class TsjSpringComponentGenerator {
 
         builder.append("}\n");
         return builder.toString();
+    }
+
+    private static String deriveBeanName(final String generatedSimpleName) {
+        if (generatedSimpleName == null || generatedSimpleName.isEmpty()) {
+            return generatedSimpleName;
+        }
+        if (generatedSimpleName.length() == 1) {
+            return generatedSimpleName.toLowerCase();
+        }
+        return Character.toLowerCase(generatedSimpleName.charAt(0)) + generatedSimpleName.substring(1);
     }
 
     private String renderTsjInvocationExpression(

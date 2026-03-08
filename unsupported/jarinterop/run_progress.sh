@@ -22,6 +22,16 @@ if ! command -v jar >/dev/null 2>&1; then
   exit 2
 fi
 
+if [ "${TSJ_PROGRESS_BOOTSTRAPPED:-0}" != "1" ]; then
+  echo "bootstrapping tsj modules for progression runs"
+  if ! mvn -B -ntp -q -f "$REPO_ROOT/pom.xml" -pl cli -am \
+    -DskipTests -Dcheckstyle.skip=true install; then
+    echo "failed to bootstrap tsj modules for progression runs" >&2
+    exit 2
+  fi
+  export TSJ_PROGRESS_BOOTSTRAPPED=1
+fi
+
 mkdir -p "$WORK_DIR" "$BUILD_DIR"
 
 total=0

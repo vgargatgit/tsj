@@ -10,12 +10,14 @@ import java.nio.file.Path;
  * @param className generated main class name
  * @param classFile generated class file path
  * @param sourceMapFile generated source-map file path
+ * @param strictLoweringPath strict-mode lowering path metadata
  */
 public record JvmCompiledArtifact(
         Path entryFile,
         Path outputDirectory,
         String className,
         Path classFile,
-        Path sourceMapFile
+        Path sourceMapFile,
+        String strictLoweringPath
 ) {
 }
