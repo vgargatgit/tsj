@@ -8,6 +8,7 @@ import java.nio.file.Path;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class TsjMetadataParityCertificationTest {
@@ -20,13 +21,21 @@ class TsjMetadataParityCertificationTest {
         final TsjMetadataParityCertificationReport report = new TsjMetadataParityCertificationHarness().run(reportPath);
 
         assertEquals(5, report.classFamilies().size());
-        assertEquals(3, report.introspectorScenarios().size());
+        assertEquals(5, report.introspectorScenarios().size());
         assertTrue(Files.exists(report.reportPath()));
         assertTrue(Files.exists(report.moduleReportPath()));
         final String json = Files.readString(report.reportPath());
         assertTrue(json.contains("\"suite\":\"TSJ-39c-metadata-parity-certification\""));
         assertTrue(json.contains("\"family\":\"program\""));
-        assertTrue(json.contains("\"scenario\":\"bridge-generic-signature\""));
+        assertTrue(json.contains("\"family\":\"strict-component\""));
+        assertTrue(json.contains("\"family\":\"strict-proxy-target\""));
+        assertFalse(json.contains("\"family\":\"component\""));
+        assertFalse(json.contains("\"family\":\"proxy\""));
+        assertFalse(json.contains("\"family\":\"web-controller\""));
+        assertTrue(json.contains("\"scenario\":\"hibernate-executable-entity-introspection\""));
+        assertTrue(json.contains("\"scenario\":\"jackson-executable-dto-introspection\""));
+        assertTrue(json.contains("\"scenario\":\"validation-executable-dto-introspection\""));
+        assertTrue(json.contains("\"scenario\":\"strict-spring-web-executable-introspection\""));
     }
 
     @Test
@@ -41,7 +50,7 @@ class TsjMetadataParityCertificationTest {
                 .stream()
                 .filter(TsjMetadataParityCertificationReport.IntrospectorResult::supported)
                 .toList();
-        assertEquals(2, supported.size());
+        assertEquals(4, supported.size());
         assertTrue(supported.stream().allMatch(TsjMetadataParityCertificationReport.IntrospectorResult::passed));
     }
 

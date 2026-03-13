@@ -1475,6 +1475,8 @@
         "fieldNames" : [ "value" ],
         "methods" : [ ],
         "name" : "DeclaredClass",
+        "staticFields" : [ ],
+        "staticMethods" : [ ],
         "superClassName" : null
       },
       "kind" : "ClassDeclarationStatement",

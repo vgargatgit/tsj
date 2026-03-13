@@ -1,3 +1,6 @@
+import { Qualifier } from "java:org.springframework.beans.factory.annotation.Qualifier";
+import { Service } from "java:org.springframework.stereotype.Service";
+
 @Service
 @Qualifier("alpha")
 class AlphaService {

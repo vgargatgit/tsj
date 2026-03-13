@@ -1,7 +1,7 @@
 # Classpath Mediation (TSJ-40 + TSJ-40a + TSJ-40b + TSJ-40c + TSJ-40d)
 
 TSJ classpath mediation defines deterministic handling for `--classpath` and `--jar`
-inputs across `compile`, `run`, and `spring-package`.
+inputs across `compile`, `run`, and `package`.
 
 ## Current Behavior
 
@@ -30,7 +30,7 @@ inputs across `compile`, `run`, and `spring-package`.
    - supported dependency scopes: `compile`, `runtime`, `provided`, `test`,
    - compile-path scope contract:
      allowed scopes are `compile,runtime,provided`,
-   - run/spring-package scope contract:
+   - run/package scope contract:
      allowed scopes are `compile,runtime`,
    - unsupported/other scope tokens are currently treated as pass-through for compatibility.
 7. Compile artifacts persist scope-resolution metadata as:

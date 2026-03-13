@@ -1,7 +1,21 @@
 package dev.tsj.compiler.backend.jvm;
 
-import dev.tsj.compiler.backend.jvm.fixtures.InteropSpringFixtureType;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.validation.Validation;
+import jakarta.validation.Validator;
+import jakarta.validation.ValidatorFactory;
+import org.hibernate.boot.MetadataSources;
+import org.hibernate.boot.registry.BootstrapServiceRegistry;
+import org.hibernate.boot.registry.BootstrapServiceRegistryBuilder;
+import org.hibernate.boot.registry.StandardServiceRegistry;
+import org.hibernate.boot.registry.StandardServiceRegistryBuilder;
+import org.hibernate.cfg.AvailableSettings;
+import org.hibernate.validator.HibernateValidator;
+import org.hibernate.validator.messageinterpolation.ParameterMessageInterpolator;
+import org.hibernate.mapping.PersistentClass;
+import org.hibernate.mapping.Property;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestMapping;
 
 import javax.tools.DiagnosticCollector;
@@ -12,7 +26,6 @@ import javax.tools.ToolProvider;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Method;
-import java.lang.reflect.ParameterizedType;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.file.Files;
@@ -20,6 +33,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Set;
 import java.util.Properties;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -32,6 +46,7 @@ final class TsjIntrospectorCompatibilityMatrixHarness {
     private static final String UNSUPPORTED_CODE = "TSJ39B-INTROSPECTOR-UNSUPPORTED";
     private static final String MISMATCH_CODE = "TSJ39B-INTROSPECTOR-MISMATCH";
     private static final String UNKNOWN_SCENARIO_CODE = "TSJ39B-INTROSPECTOR-UNKNOWN";
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     TsjIntrospectorCompatibilityMatrixReport run(final Path reportPath) throws Exception {
         final Path repoRoot = resolveRepoRoot();
@@ -101,15 +116,37 @@ final class TsjIntrospectorCompatibilityMatrixHarness {
             final Path workDir
     ) {
         return switch (scenario) {
-            case "bridge-generic-signature" -> runBridgeGenericSignatureScenario(
+            case "strict-spring-web-executable-introspection" -> runStrictSpringWebExecutableScenario(
+                    repoRoot,
                     fixture,
                     library,
                     version,
                     supported,
                     guidance,
+                    properties,
                     workDir
             );
-            case "spring-web-mapping-introspection" -> runSpringWebMappingScenario(
+            case "jackson-executable-dto-introspection" -> runJacksonExecutableDtoScenario(
+                    repoRoot,
+                    fixture,
+                    library,
+                    version,
+                    supported,
+                    guidance,
+                    properties,
+                    workDir
+            );
+            case "hibernate-executable-entity-introspection" -> runHibernateExecutableEntityScenario(
+                    repoRoot,
+                    fixture,
+                    library,
+                    version,
+                    supported,
+                    guidance,
+                    properties,
+                    workDir
+            );
+            case "validation-executable-dto-introspection" -> runValidationExecutableDtoScenario(
                     repoRoot,
                     fixture,
                     library,
@@ -134,81 +171,15 @@ final class TsjIntrospectorCompatibilityMatrixHarness {
                     supported,
                     false,
                     UNKNOWN_SCENARIO_CODE,
-                    "Use documented scenarios: bridge-generic-signature, spring-web-mapping-introspection, "
+                    "Use documented scenarios: strict-spring-web-executable-introspection, jackson-executable-dto-introspection, "
+                            + "validation-executable-dto-introspection, hibernate-executable-entity-introspection, "
                             + "jackson-unsupported.",
                     "Unknown introspector scenario in fixture."
             );
         };
     }
 
-    private TsjIntrospectorCompatibilityMatrixReport.ScenarioResult runBridgeGenericSignatureScenario(
-            final String fixture,
-            final String library,
-            final String version,
-            final boolean supported,
-            final String guidance,
-            final Path workDir
-    ) {
-        try {
-            final String fixtureClass = InteropSpringFixtureType.class.getName();
-            final Path specFile = workDir.resolve("interop-spring-metadata.properties");
-            Files.writeString(
-                    specFile,
-                    """
-                    allowlist=%s#copyLabels
-                    targets=%s#copyLabels
-                    springConfiguration=true
-                    springBeanTargets=%s#copyLabels
-                    """.formatted(fixtureClass, fixtureClass, fixtureClass),
-                    UTF_8
-            );
-
-            final InteropBridgeArtifact artifact = new InteropBridgeGenerator().generate(specFile, workDir.resolve("bridge"));
-            final Path classesDir = workDir.resolve("classes");
-            compileSources(artifact.sourceFiles(), classesDir);
-
-            final String bridgeSimpleName = artifact.sourceFiles().getFirst().getFileName().toString().replace(".java", "");
-            final String bridgeClassName = "dev.tsj.generated.interop." + bridgeSimpleName;
-            try (URLClassLoader classLoader = new URLClassLoader(
-                    new URL[]{classesDir.toUri().toURL()},
-                    getClass().getClassLoader()
-            )) {
-                final Class<?> bridgeClass = Class.forName(bridgeClassName, true, classLoader);
-                final Method method = bridgeClass.getMethod("copyLabels", List.class);
-                final boolean passed = method.getGenericReturnType() instanceof ParameterizedType
-                        && "java.util.List<java.lang.String>".equals(method.getGenericReturnType().getTypeName())
-                        && "java.util.List<java.lang.String>".equals(method.getGenericParameterTypes()[0].getTypeName())
-                        && "arg0".equals(method.getParameters()[0].getName());
-                return new TsjIntrospectorCompatibilityMatrixReport.ScenarioResult(
-                        "bridge-generic-signature",
-                        fixture,
-                        library,
-                        version,
-                        supported,
-                        passed,
-                        passed ? "" : MISMATCH_CODE,
-                        guidance,
-                        passed
-                                ? "Reflection introspector reads generic signature and parameter metadata successfully."
-                                : "Reflection introspector observed metadata mismatch on generated bridge method."
-                );
-            }
-        } catch (final Exception exception) {
-            return new TsjIntrospectorCompatibilityMatrixReport.ScenarioResult(
-                    "bridge-generic-signature",
-                    fixture,
-                    library,
-                    version,
-                    supported,
-                    false,
-                    MISMATCH_CODE,
-                    guidance,
-                    exception.getClass().getSimpleName() + ": " + exception.getMessage()
-            );
-        }
-    }
-
-    private TsjIntrospectorCompatibilityMatrixReport.ScenarioResult runSpringWebMappingScenario(
+    private TsjIntrospectorCompatibilityMatrixReport.ScenarioResult runStrictSpringWebExecutableScenario(
             final Path repoRoot,
             final String fixture,
             final String library,
@@ -221,30 +192,34 @@ final class TsjIntrospectorCompatibilityMatrixHarness {
         try {
             final String entryValue = requiredProperty(properties, "entry", Path.of(fixture));
             final Path entryFile = repoRoot.resolve(entryValue).toAbsolutePath().normalize();
-            final JvmCompiledArtifact compiledArtifact = new JvmBytecodeCompiler().compile(entryFile, workDir.resolve("program"));
-            final TsjSpringWebControllerArtifact webArtifact = new TsjSpringWebControllerGenerator().generate(
+            final JvmCompiledArtifact compiledArtifact = new JvmBytecodeCompiler().compile(
                     entryFile,
-                    compiledArtifact.className(),
-                    workDir.resolve("generated")
+                    workDir.resolve("program"),
+                    JvmOptimizationOptions.defaults(),
+                    JvmBytecodeCompiler.BackendMode.JVM_STRICT
             );
-            compileSources(webArtifact.sourceFiles(), compiledArtifact.outputDirectory());
 
-            final String generatedClassName = "dev.tsj.generated.web.WebMatrixControllerTsjController";
+            final String strictClassName = "dev.tsj.generated.StrictWebMatrixController__TsjStrictNative";
             try (URLClassLoader classLoader = new URLClassLoader(
                     new URL[]{compiledArtifact.outputDirectory().toUri().toURL()},
                     getClass().getClassLoader()
             )) {
-                final Class<?> controllerClass = Class.forName(generatedClassName, true, classLoader);
-                final Method method = controllerClass.getMethod("echo", Object.class);
+                final Class<?> controllerClass = Class.forName(strictClassName, true, classLoader);
+                final Method method = controllerClass.getMethod("echo", String.class);
                 final RequestMapping requestMapping = controllerClass.getAnnotation(RequestMapping.class);
                 final GetMapping getMapping = method.getAnnotation(GetMapping.class);
+                final RequestParam requestParam = method.getParameters()[0].getAnnotation(RequestParam.class);
                 final boolean passed = requestMapping != null
                         && "/api".equals(requestMapping.value())
                         && getMapping != null
                         && "/echo".equals(getMapping.value())
-                        && method.getParameterCount() == 1;
+                        && method.getParameterCount() == 1
+                        && method.getParameters()[0].isNamePresent()
+                        && "value".equals(method.getParameters()[0].getName())
+                        && requestParam != null
+                        && "value".equals(requestParam.value());
                 return new TsjIntrospectorCompatibilityMatrixReport.ScenarioResult(
-                        "spring-web-mapping-introspection",
+                        "strict-spring-web-executable-introspection",
                         fixture,
                         library,
                         version,
@@ -253,13 +228,13 @@ final class TsjIntrospectorCompatibilityMatrixHarness {
                         passed ? "" : MISMATCH_CODE,
                         guidance,
                         passed
-                                ? "Spring-web-style annotation introspection reads route metadata successfully."
-                                : "Spring-web-style annotation introspection observed mapping metadata mismatch."
+                                ? "Spring-web-style annotation introspection reads route and parameter metadata directly from the strict executable class."
+                                : "Spring-web-style annotation introspection observed metadata mismatch on the strict executable class."
                 );
             }
         } catch (final Exception exception) {
             return new TsjIntrospectorCompatibilityMatrixReport.ScenarioResult(
-                    "spring-web-mapping-introspection",
+                    "strict-spring-web-executable-introspection",
                     fixture,
                     library,
                     version,
@@ -270,6 +245,255 @@ final class TsjIntrospectorCompatibilityMatrixHarness {
                     exception.getClass().getSimpleName() + ": " + exception.getMessage()
             );
         }
+    }
+
+    private TsjIntrospectorCompatibilityMatrixReport.ScenarioResult runJacksonExecutableDtoScenario(
+            final Path repoRoot,
+            final String fixture,
+            final String library,
+            final String version,
+            final boolean supported,
+            final String guidance,
+            final Properties properties,
+            final Path workDir
+    ) {
+        try {
+            final String entryValue = requiredProperty(properties, "entry", Path.of(fixture));
+            final Path entryFile = repoRoot.resolve(entryValue).toAbsolutePath().normalize();
+            final JvmCompiledArtifact compiledArtifact = new JvmBytecodeCompiler().compile(
+                    entryFile,
+                    workDir.resolve("program"),
+                    JvmOptimizationOptions.defaults(),
+                    JvmBytecodeCompiler.BackendMode.JVM_STRICT
+            );
+
+            final String className = "dev.tsj.generated.JacksonMatrixPerson__TsjStrictNative";
+            try (URLClassLoader classLoader = new URLClassLoader(
+                    new URL[]{compiledArtifact.outputDirectory().toUri().toURL()},
+                    getClass().getClassLoader()
+            )) {
+                final Class<?> dtoClass = Class.forName(className, true, classLoader);
+                final Object dto = dtoClass.getDeclaredConstructor().newInstance();
+                dtoClass.getDeclaredMethod("setId", String.class).invoke(dto, "42");
+                dtoClass.getDeclaredMethod("setName", String.class).invoke(dto, "Ada");
+
+                final String json = OBJECT_MAPPER.writeValueAsString(dto);
+                final Object rebound = OBJECT_MAPPER.readValue(json, dtoClass);
+                final String reboundId = String.valueOf(dtoClass.getDeclaredMethod("getId").invoke(rebound));
+                final String reboundName = String.valueOf(dtoClass.getDeclaredMethod("getName").invoke(rebound));
+
+                final boolean passed = json.contains("\"person_id\":\"42\"")
+                        && json.contains("\"display_name\":\"Ada\"")
+                        && "42".equals(reboundId)
+                        && "Ada".equals(reboundName);
+                return new TsjIntrospectorCompatibilityMatrixReport.ScenarioResult(
+                        "jackson-executable-dto-introspection",
+                        fixture,
+                        library,
+                        version,
+                        supported,
+                        passed,
+                        passed ? "" : MISMATCH_CODE,
+                        guidance,
+                        passed
+                                ? "Jackson serializes and deserializes the strict executable DTO using imported annotation metadata."
+                                : "Jackson observed a metadata or binding mismatch on the strict executable DTO."
+                );
+            }
+        } catch (final Exception exception) {
+            return new TsjIntrospectorCompatibilityMatrixReport.ScenarioResult(
+                    "jackson-executable-dto-introspection",
+                    fixture,
+                    library,
+                    version,
+                    supported,
+                    false,
+                    MISMATCH_CODE,
+                    guidance,
+                    exception.getClass().getSimpleName() + ": " + exception.getMessage()
+            );
+        }
+    }
+
+    private TsjIntrospectorCompatibilityMatrixReport.ScenarioResult runValidationExecutableDtoScenario(
+            final Path repoRoot,
+            final String fixture,
+            final String library,
+            final String version,
+            final boolean supported,
+            final String guidance,
+            final Properties properties,
+            final Path workDir
+    ) {
+        try {
+            final String entryValue = requiredProperty(properties, "entry", Path.of(fixture));
+            final Path entryFile = repoRoot.resolve(entryValue).toAbsolutePath().normalize();
+            final JvmCompiledArtifact strictArtifact = new JvmBytecodeCompiler().compile(
+                    entryFile,
+                    workDir.resolve("strict-program"),
+                    JvmOptimizationOptions.defaults(),
+                    JvmBytecodeCompiler.BackendMode.JVM_STRICT
+            );
+
+            try (URLClassLoader classLoader = new URLClassLoader(
+                    new URL[]{strictArtifact.outputDirectory().toUri().toURL()},
+                    getClass().getClassLoader()
+            );
+                 ValidatorFactory validatorFactory = Validation.byProvider(HibernateValidator.class)
+                         .configure()
+                         .messageInterpolator(new ParameterMessageInterpolator())
+                         .buildValidatorFactory()) {
+                final Class<?> dtoClass = Class.forName(
+                        "dev.tsj.generated.ValidationMatrixPerson__TsjStrictNative",
+                        true,
+                        classLoader
+                );
+                final Object dto = dtoClass.getDeclaredConstructor().newInstance();
+                final Validator validator = validatorFactory.getValidator();
+
+                final List<String> invalidViolations = describeViolations(validator.validate(dto));
+                dtoClass.getMethod("setName", String.class).invoke(dto, "Ada");
+                dtoClass.getMethod("setAlias", String.class).invoke(dto, "adalove");
+                final List<String> reboundViolations = describeViolations(validator.validate(dto));
+
+                final boolean passed = invalidViolations.equals(List.of(
+                        "alias=person.alias.length",
+                        "name=person.name.required"
+                )) && reboundViolations.isEmpty();
+                final String notes = passed
+                        ? "Bean Validation discovers imported field constraints directly on the strict executable DTO."
+                        : "Bean Validation mismatch: invalid=" + invalidViolations + ", rebound=" + reboundViolations;
+                return new TsjIntrospectorCompatibilityMatrixReport.ScenarioResult(
+                        "validation-executable-dto-introspection",
+                        fixture,
+                        library,
+                        version,
+                        supported,
+                        passed,
+                        passed ? "" : MISMATCH_CODE,
+                        guidance,
+                        notes
+                );
+            }
+        } catch (final Exception exception) {
+            return new TsjIntrospectorCompatibilityMatrixReport.ScenarioResult(
+                    "validation-executable-dto-introspection",
+                    fixture,
+                    library,
+                    version,
+                    supported,
+                    false,
+                    MISMATCH_CODE,
+                    guidance,
+                    exception.getClass().getSimpleName() + ": " + exception.getMessage()
+            );
+        }
+    }
+
+    private TsjIntrospectorCompatibilityMatrixReport.ScenarioResult runHibernateExecutableEntityScenario(
+            final Path repoRoot,
+            final String fixture,
+            final String library,
+            final String version,
+            final boolean supported,
+            final String guidance,
+            final Properties properties,
+            final Path workDir
+    ) {
+        StandardServiceRegistry serviceRegistry = null;
+        try {
+            final String entryValue = requiredProperty(properties, "entry", Path.of(fixture));
+            final Path entryFile = repoRoot.resolve(entryValue).toAbsolutePath().normalize();
+            final JvmCompiledArtifact strictArtifact = new JvmBytecodeCompiler().compile(
+                    entryFile,
+                    workDir.resolve("strict-program"),
+                    JvmOptimizationOptions.defaults(),
+                    JvmBytecodeCompiler.BackendMode.JVM_STRICT
+            );
+
+            try (URLClassLoader classLoader = new URLClassLoader(
+                    new URL[]{strictArtifact.outputDirectory().toUri().toURL()},
+                    getClass().getClassLoader()
+            )) {
+                final BootstrapServiceRegistry bootstrapServiceRegistry = new BootstrapServiceRegistryBuilder()
+                        .applyClassLoader(classLoader)
+                        .build();
+                serviceRegistry = new StandardServiceRegistryBuilder(bootstrapServiceRegistry)
+                        .applySetting(AvailableSettings.DIALECT, "org.hibernate.dialect.H2Dialect")
+                        .applySetting("hibernate.temp.use_jdbc_metadata_defaults", "false")
+                        .build();
+                final Class<?> entityClass = Class.forName(
+                        "dev.tsj.generated.HibernateMatrixPerson__TsjStrictNative",
+                        true,
+                        classLoader
+                );
+                final org.hibernate.boot.Metadata metadata = new MetadataSources(serviceRegistry)
+                        .addAnnotatedClass(entityClass)
+                        .buildMetadata();
+                final PersistentClass entityBinding = metadata.getEntityBindings().stream()
+                        .filter(binding -> entityClass.getName().equals(binding.getClassName()))
+                        .findFirst()
+                        .orElse(null);
+                final Property idProperty = entityBinding == null ? null : entityBinding.getIdentifierProperty();
+                final Property nameProperty = entityBinding == null ? null : entityBinding.getProperty("name");
+                final List<String> nameColumns = nameProperty == null
+                        ? List.of()
+                        : nameProperty.getColumns().stream()
+                                .map(column -> column.getName())
+                                .sorted()
+                                .toList();
+
+                final boolean passed = entityBinding != null
+                        && "people".equals(entityBinding.getTable().getName())
+                        && idProperty != null
+                        && "id".equals(idProperty.getName())
+                        && nameColumns.equals(List.of("display_name"));
+                final String notes = passed
+                        ? "Hibernate metadata bootstrap discovers imported JPA annotations directly on the strict executable entity."
+                        : "Hibernate metadata mismatch: entity="
+                                + (entityBinding == null ? "null" : entityBinding.getEntityName())
+                                + ", table="
+                                + (entityBinding == null ? "null" : entityBinding.getTable().getName())
+                                + ", id="
+                                + (idProperty == null ? "null" : idProperty.getName())
+                                + ", columns="
+                                + nameColumns;
+                return new TsjIntrospectorCompatibilityMatrixReport.ScenarioResult(
+                        "hibernate-executable-entity-introspection",
+                        fixture,
+                        library,
+                        version,
+                        supported,
+                        passed,
+                        passed ? "" : MISMATCH_CODE,
+                        guidance,
+                        notes
+                );
+            }
+        } catch (final Exception exception) {
+            return new TsjIntrospectorCompatibilityMatrixReport.ScenarioResult(
+                    "hibernate-executable-entity-introspection",
+                    fixture,
+                    library,
+                    version,
+                    supported,
+                    false,
+                    MISMATCH_CODE,
+                    guidance,
+                    exception.getClass().getSimpleName() + ": " + exception.getMessage()
+            );
+        } finally {
+            if (serviceRegistry != null) {
+                StandardServiceRegistryBuilder.destroy(serviceRegistry);
+            }
+        }
+    }
+
+    private static List<String> describeViolations(final Set<? extends jakarta.validation.ConstraintViolation<?>> violations) {
+        return violations.stream()
+                .map(violation -> violation.getPropertyPath() + "=" + violation.getMessage())
+                .sorted()
+                .toList();
     }
 
     private static TsjIntrospectorCompatibilityMatrixReport.ScenarioResult runUnsupportedScenario(

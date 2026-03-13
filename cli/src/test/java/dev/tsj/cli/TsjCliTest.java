@@ -35,6 +35,110 @@ class TsjCliTest {
     Path tempDir;
 
     @Test
+    void publicMissingCommandUsageDoesNotAdvertiseLegacySpringPackageAlias() {
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+
+        final int exitCode = TsjCli.execute(new String[0], new PrintStream(stdout), new PrintStream(stderr));
+
+        assertEquals(2, exitCode);
+        assertEquals("", stdout.toString(UTF_8));
+        final String stderrText = stderr.toString(UTF_8);
+        assertTrue(stderrText.contains("\"code\":\"TSJ-CLI-001\""));
+        assertFalse(stderrText.contains("spring-package"), stderrText);
+    }
+
+    @Test
+    void compileAndRunUsageDoNotAdvertiseLegacySpringAdapterFlag() {
+        final ByteArrayOutputStream compileStdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream compileStderr = new ByteArrayOutputStream();
+        final int compileExitCode = TsjCli.execute(
+                new String[]{"compile"},
+                new PrintStream(compileStdout),
+                new PrintStream(compileStderr)
+        );
+
+        assertEquals(2, compileExitCode);
+        assertEquals("", compileStdout.toString(UTF_8));
+        final String compileStderrText = compileStderr.toString(UTF_8);
+        assertTrue(compileStderrText.contains("\"code\":\"TSJ-CLI-003\""));
+        assertFalse(compileStderrText.contains("--legacy-spring-adapters"), compileStderrText);
+
+        final ByteArrayOutputStream runStdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream runStderr = new ByteArrayOutputStream();
+        final int runExitCode = TsjCli.execute(
+                new String[]{"run"},
+                new PrintStream(runStdout),
+                new PrintStream(runStderr)
+        );
+
+        assertEquals(2, runExitCode);
+        assertEquals("", runStdout.toString(UTF_8));
+        final String runStderrText = runStderr.toString(UTF_8);
+        assertTrue(runStderrText.contains("\"code\":\"TSJ-CLI-004\""));
+        assertFalse(runStderrText.contains("--legacy-spring-adapters"), runStderrText);
+    }
+
+    @Test
+    void retiredLegacySpringCompatibilityHooksAreRejected() throws Exception {
+        final ByteArrayOutputStream aliasStdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream aliasStderr = new ByteArrayOutputStream();
+
+        final int aliasExitCode = TsjCli.execute(
+                new String[]{"spring-package"},
+                new PrintStream(aliasStdout),
+                new PrintStream(aliasStderr)
+        );
+
+        assertEquals(2, aliasExitCode);
+        assertEquals("", aliasStdout.toString(UTF_8));
+        final String aliasStderrText = aliasStderr.toString(UTF_8);
+        assertTrue(aliasStderrText.contains("\"code\":\"TSJ-CLI-002\""), aliasStderrText);
+        assertTrue(aliasStderrText.contains("Unknown command `spring-package`"), aliasStderrText);
+
+        final Path entryFile = tempDir.resolve("retired-legacy-spring-option.ts");
+        Files.writeString(entryFile, "console.log('legacy');\n", UTF_8);
+
+        final ByteArrayOutputStream compileStdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream compileStderr = new ByteArrayOutputStream();
+        final int compileExitCode = TsjCli.execute(
+                new String[]{
+                        "compile",
+                        entryFile.toString(),
+                        "--out",
+                        tempDir.resolve("retired-legacy-compile-out").toString(),
+                        "--legacy-spring-adapters"
+                },
+                new PrintStream(compileStdout),
+                new PrintStream(compileStderr)
+        );
+        assertEquals(2, compileExitCode);
+        assertEquals("", compileStdout.toString(UTF_8));
+        final String compileStderrText = compileStderr.toString(UTF_8);
+        assertTrue(compileStderrText.contains("\"code\":\"TSJ-CLI-005\""), compileStderrText);
+        assertTrue(compileStderrText.contains("Unknown option `--legacy-spring-adapters`"), compileStderrText);
+
+        final ByteArrayOutputStream runStdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream runStderr = new ByteArrayOutputStream();
+        final int runExitCode = TsjCli.execute(
+                new String[]{
+                        "run",
+                        entryFile.toString(),
+                        "--out",
+                        tempDir.resolve("retired-legacy-run-out").toString(),
+                        "--legacy-spring-adapters"
+                },
+                new PrintStream(runStdout),
+                new PrintStream(runStderr)
+        );
+        assertEquals(2, runExitCode);
+        assertEquals("", runStdout.toString(UTF_8));
+        final String runStderrText = runStderr.toString(UTF_8);
+        assertTrue(runStderrText.contains("\"code\":\"TSJ-CLI-005\""), runStderrText);
+        assertTrue(runStderrText.contains("Unknown option `--legacy-spring-adapters`"), runStderrText);
+    }
+
+    @Test
     void compileCreatesArtifactAndEmitsStructuredSuccess() throws Exception {
         final Path entryFile = tempDir.resolve("main.ts");
         Files.writeString(entryFile, "export const answer = 42;\n", UTF_8);
@@ -146,7 +250,7 @@ class TsjCliTest {
     }
 
     @Test
-    void compileJvmStrictRejectsRuntimeCarrierClassFallbackWithDeterministicBridgeDiagnostic() throws Exception {
+    void compileJvmStrictRejectsUnsupportedDeleteWithDeterministicEligibilityDiagnostic() throws Exception {
         final Path entryFile = tempDir.resolve("strict-bridge-unsupported.ts");
         Files.writeString(
                 entryFile,
@@ -158,9 +262,8 @@ class TsjCliTest {
                     this.value = initial;
                   }
 
-                  update(transform: any) {
-                    this.value = transform(this.value);
-                    return this.value;
+                  reset() {
+                    return delete this.value;
                   }
                 }
                 """,
@@ -186,8 +289,8 @@ class TsjCliTest {
         assertEquals(1, exitCode);
         assertEquals("", stdout.toString(UTF_8));
         final String stderrText = stderr.toString(UTF_8);
-        assertTrue(stderrText.contains("\"code\":\"TSJ-STRICT-BRIDGE\""));
-        assertTrue(stderrText.contains("\"featureId\":\"TSJ80-STRICT-BRIDGE\""));
+        assertTrue(stderrText.contains("\"code\":\"TSJ-STRICT-UNSUPPORTED\""));
+        assertTrue(stderrText.contains("\"featureId\":\"TSJ-STRICT-DELETE\""));
         assertTrue(stderrText.contains("\"line\":\""));
         assertTrue(stderrText.contains("\"column\":\""));
     }
@@ -4040,6 +4143,71 @@ class TsjCliTest {
         assertTrue(
                 artifact.getProperty("interopBridges.unresolvedTarget.0.reason", "").contains("bindingArgs.max")
         );
+    }
+
+    @Test
+    void compileAutoInteropSkipsDecoratorOnlyJavaImports() throws Exception {
+        final Path supportJar = buildInteropJar(
+                "sample.annotations.Mark",
+                """
+                package sample.annotations;
+
+                import java.lang.annotation.ElementType;
+                import java.lang.annotation.Retention;
+                import java.lang.annotation.RetentionPolicy;
+                import java.lang.annotation.Target;
+
+                @Retention(RetentionPolicy.RUNTIME)
+                @Target({ElementType.TYPE, ElementType.FIELD, ElementType.PARAMETER})
+                public @interface Mark {
+                    String value() default "";
+                }
+                """
+        );
+        final Path entryFile = tempDir.resolve("auto-interop-decorator-only.ts");
+        Files.writeString(
+                entryFile,
+                """
+                import { Mark } from "java:sample.annotations.Mark";
+
+                @Mark("legacy")
+                class LegacyThing {
+                  value: string;
+
+                  constructor() {
+                    this.value = "ok";
+                  }
+                }
+
+                console.log(new LegacyThing().value);
+                """,
+                UTF_8
+        );
+        final Path outDir = tempDir.resolve("auto-interop-decorator-only-out");
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+
+        final int exitCode = TsjCli.execute(
+                new String[]{
+                        "compile",
+                        entryFile.toString(),
+                        "--out",
+                        outDir.toString(),
+                        "--mode",
+                        "jvm-strict",
+                        "--jar",
+                        supportJar.toString(),
+                        "--interop-policy",
+                        "broad",
+                        "--ack-interop-risk"
+                },
+                new PrintStream(stdout),
+                new PrintStream(stderr)
+        );
+
+        assertEquals(0, exitCode);
+        assertEquals("", stderr.toString(UTF_8));
+        assertFalse(Files.exists(outDir.resolve("generated-interop/interop-bridges.properties")));
     }
 
     @Test
@@ -8349,18 +8517,17 @@ class TsjCliTest {
     }
 
     @Test
-    void interopCommandSupportsSpringConfigurationBeanTargets() throws Exception {
-        final String fixtureClass = SpringBeanFixture.class.getName();
+    void interopCommandRejectsRetiredSpringBeanInteropKeys() throws Exception {
         final Path specFile = tempDir.resolve("interop-spring.properties");
         final Path outDir = tempDir.resolve("interop-spring-out");
         Files.writeString(
                 specFile,
                 """
-                allowlist=%s#$new
-                targets=%s#$new
+                allowlist=java.lang.Math#max
+                targets=java.lang.Math#max
                 springConfiguration=true
-                springBeanTargets=%s#$new
-                """.formatted(fixtureClass, fixtureClass, fixtureClass),
+                springBeanTargets=java.lang.Math#max
+                """,
                 UTF_8
         );
 
@@ -8373,38 +8540,28 @@ class TsjCliTest {
                 new PrintStream(stderr)
         );
 
-        assertEquals(0, exitCode);
-        assertTrue(stdout.toString(UTF_8).contains("\"code\":\"TSJ-INTEROP-SUCCESS\""));
-        assertEquals("", stderr.toString(UTF_8));
-        final Path sourceFile;
-        try (Stream<Path> paths = Files.walk(outDir.resolve("dev/tsj/generated/interop"))) {
-            sourceFile = paths
-                    .filter(path -> path.toString().endsWith(".java"))
-                    .findFirst()
-                    .orElseThrow();
-        }
-        final String source = Files.readString(sourceFile, UTF_8);
-        assertTrue(source.contains("@org.springframework.context.annotation.Configuration"));
-        assertTrue(source.contains("@org.springframework.context.annotation.Bean"));
-        assertTrue(source.contains("public dev.tsj.cli.TsjCliTest.SpringBeanFixture _new(final java.lang.String arg0)"));
+        final String stderrText = stderr.toString(UTF_8);
+        assertEquals(1, exitCode);
+        assertTrue(stderrText.contains("\"code\":\"TSJ-INTEROP-INVALID\""), stderrText);
+        assertTrue(stderrText.contains("springConfiguration"), stderrText);
+        assertTrue(stderrText.contains("retired"), stderrText);
+        assertEquals("", stdout.toString(UTF_8));
     }
 
     @Test
-    void interopCommandSupportsSpringWebControllerTargets() throws Exception {
-        final String fixtureClass = SpringWebFixture.class.getName();
+    void interopCommandRejectsRetiredSpringWebInteropKeys() throws Exception {
         final Path specFile = tempDir.resolve("interop-spring-web.properties");
         final Path outDir = tempDir.resolve("interop-spring-web-out");
         Files.writeString(
                 specFile,
                 """
-                allowlist=%s#echo,%s#validate
-                targets=%s#echo,%s#validate
+                allowlist=java.lang.Math#max
+                targets=java.lang.Math#max
                 springWebController=true
                 springWebBasePath=/api
-                springRequestMappings.echo=GET /echo
-                springRequestMappings.validate=GET /validate
+                springRequestMappings.max=GET /echo
                 springErrorMappings=java.lang.IllegalArgumentException:400
-                """.formatted(fixtureClass, fixtureClass, fixtureClass, fixtureClass),
+                """,
                 UTF_8
         );
 
@@ -8417,27 +8574,16 @@ class TsjCliTest {
                 new PrintStream(stderr)
         );
 
-        assertEquals(0, exitCode);
-        assertTrue(stdout.toString(UTF_8).contains("\"code\":\"TSJ-INTEROP-SUCCESS\""));
-        assertEquals("", stderr.toString(UTF_8));
-
-        final Path sourceFile;
-        try (Stream<Path> paths = Files.walk(outDir.resolve("dev/tsj/generated/interop"))) {
-            sourceFile = paths
-                    .filter(path -> path.toString().endsWith(".java"))
-                    .findFirst()
-                    .orElseThrow();
-        }
-        final String source = Files.readString(sourceFile, UTF_8);
-        assertTrue(source.contains("@org.springframework.web.bind.annotation.RestController"));
-        assertTrue(source.contains("@org.springframework.web.bind.annotation.RequestMapping(\"/api\")"));
-        assertTrue(source.contains("@org.springframework.web.bind.annotation.GetMapping(\"/echo\")"));
-        assertTrue(source.contains("@org.springframework.web.bind.annotation.GetMapping(\"/validate\")"));
-        assertTrue(source.contains("@org.springframework.web.bind.annotation.ResponseStatus"));
+        final String stderrText = stderr.toString(UTF_8);
+        assertEquals(1, exitCode);
+        assertTrue(stderrText.contains("\"code\":\"TSJ-INTEROP-INVALID\""), stderrText);
+        assertTrue(stderrText.contains("springWebController"), stderrText);
+        assertTrue(stderrText.contains("retired"), stderrText);
+        assertEquals("", stdout.toString(UTF_8));
     }
 
     @Test
-    void compileDoesNotGenerateSpringAdaptersByDefault() throws Exception {
+    void compileSupportsDecoratedClassesWithoutLegacyAdapterMetadata() throws Exception {
         final Path entryFile = tempDir.resolve("tsj75-default-compile.ts");
         Files.writeString(
                 entryFile,
@@ -8475,14 +8621,14 @@ class TsjCliTest {
         assertFalse(Files.exists(outDir.resolve("generated-web")));
         assertFalse(Files.exists(outDir.resolve("generated-components")));
         final Properties artifact = loadArtifactProperties(outDir.resolve("program.tsj.properties"));
-        assertEquals("0", artifact.getProperty("tsjWebControllers.controllerCount"));
-        assertEquals("0", artifact.getProperty("tsjWebControllers.generatedSourceCount"));
-        assertEquals("0", artifact.getProperty("tsjSpringComponents.componentCount"));
-        assertEquals("0", artifact.getProperty("tsjSpringComponents.generatedSourceCount"));
+        assertFalse(artifact.containsKey("tsjWebControllers.controllerCount"));
+        assertFalse(artifact.containsKey("tsjWebControllers.generatedSourceCount"));
+        assertFalse(artifact.containsKey("tsjSpringComponents.componentCount"));
+        assertFalse(artifact.containsKey("tsjSpringComponents.generatedSourceCount"));
     }
 
     @Test
-    void runDoesNotGenerateSpringAdaptersByDefault() throws Exception {
+    void runSupportsDecoratedClassesWithoutLegacyAdapterMetadata() throws Exception {
         final Path entryFile = tempDir.resolve("tsj75-default-run.ts");
         Files.writeString(
                 entryFile,
@@ -8516,158 +8662,14 @@ class TsjCliTest {
         assertFalse(Files.exists(outDir.resolve("generated-web")));
         assertFalse(Files.exists(outDir.resolve("generated-components")));
         final Properties artifact = loadArtifactProperties(outDir.resolve("program.tsj.properties"));
-        assertEquals("0", artifact.getProperty("tsjWebControllers.controllerCount"));
-        assertEquals("0", artifact.getProperty("tsjWebControllers.generatedSourceCount"));
-        assertEquals("0", artifact.getProperty("tsjSpringComponents.componentCount"));
-        assertEquals("0", artifact.getProperty("tsjSpringComponents.generatedSourceCount"));
+        assertFalse(artifact.containsKey("tsjWebControllers.controllerCount"));
+        assertFalse(artifact.containsKey("tsjWebControllers.generatedSourceCount"));
+        assertFalse(artifact.containsKey("tsjSpringComponents.componentCount"));
+        assertFalse(artifact.containsKey("tsjSpringComponents.generatedSourceCount"));
     }
 
     @Test
-    void compileGeneratesTsDecoratedSpringWebControllerAdapters() throws Exception {
-        final Path entryFile = tempDir.resolve("tsj34-controller.ts");
-        Files.writeString(
-                entryFile,
-                """
-                @RestController
-                @RequestMapping("/api")
-                class EchoController {
-                  @GetMapping("/echo")
-                  echo(value: string) {
-                    return "echo:" + value;
-                  }
-                }
-
-                console.log("ready");
-                """,
-                UTF_8
-        );
-        final Path outDir = tempDir.resolve("tsj34-controller-out");
-        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
-        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
-
-        final int exitCode = TsjCli.execute(
-                new String[]{
-                        "compile",
-                        entryFile.toString(),
-                        "--out",
-                        outDir.toString(),
-                        "--legacy-spring-adapters"
-                },
-                new PrintStream(stdout),
-                new PrintStream(stderr)
-        );
-
-        assertEquals(0, exitCode);
-        assertEquals("", stderr.toString(UTF_8));
-        assertTrue(stdout.toString(UTF_8).contains("\"code\":\"TSJ-COMPILE-SUCCESS\""));
-        final Path generatedSource = outDir.resolve(
-                "generated-web/dev/tsj/generated/web/EchoControllerTsjController.java"
-        );
-        assertTrue(Files.exists(generatedSource));
-        final String source = Files.readString(generatedSource, UTF_8);
-        assertTrue(source.contains("@org.springframework.web.bind.annotation.RestController"));
-        assertTrue(source.contains(".__tsjInvokeController("));
-    }
-
-    @Test
-    void compileGeneratesTsDecoratedSpringComponentAdapters() throws Exception {
-        final Path entryFile = tempDir.resolve("tsj33a-service.ts");
-        Files.writeString(
-                entryFile,
-                """
-                @Service
-                class GreetingService {
-                  constructor(prefix: any) {
-                  }
-
-                  greet(name: string) {
-                    return "hi:" + name;
-                  }
-                }
-
-                console.log("ready");
-                """,
-                UTF_8
-        );
-        final Path outDir = tempDir.resolve("tsj33a-service-out");
-        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
-        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
-
-        final int exitCode = TsjCli.execute(
-                new String[]{
-                        "compile",
-                        entryFile.toString(),
-                        "--out",
-                        outDir.toString(),
-                        "--legacy-spring-adapters"
-                },
-                new PrintStream(stdout),
-                new PrintStream(stderr)
-        );
-
-        assertEquals(0, exitCode);
-        assertEquals("", stderr.toString(UTF_8));
-        final Path generatedSource = outDir.resolve(
-                "generated-components/dev/tsj/generated/spring/GreetingServiceTsjComponent.java"
-        );
-        assertTrue(Files.exists(generatedSource));
-        final String source = Files.readString(generatedSource, UTF_8);
-        assertTrue(source.contains("@org.springframework.stereotype.Service"));
-        assertTrue(
-                source.contains(".__tsjInvokeClassWithInjection(")
-                        || source.contains(".__tsjInvokeClass(")
-        );
-
-        final Properties artifact = loadArtifactProperties(outDir.resolve("program.tsj.properties"));
-        assertEquals("1", artifact.getProperty("tsjSpringComponents.componentCount"));
-        assertEquals("1", artifact.getProperty("tsjSpringComponents.generatedSourceCount"));
-    }
-
-    @Test
-    void compileGeneratesTsConfigurationBeanComponentAdapters() throws Exception {
-        final Path entryFile = tempDir.resolve("tsj33b-config.ts");
-        Files.writeString(
-                entryFile,
-                """
-                @Configuration
-                class AppConfig {
-                  @Bean
-                  greeting() {
-                    return "hello";
-                  }
-                }
-                """,
-                UTF_8
-        );
-        final Path outDir = tempDir.resolve("tsj33b-config-out");
-        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
-        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
-
-        final int exitCode = TsjCli.execute(
-                new String[]{
-                        "compile",
-                        entryFile.toString(),
-                        "--out",
-                        outDir.toString(),
-                        "--legacy-spring-adapters"
-                },
-                new PrintStream(stdout),
-                new PrintStream(stderr)
-        );
-
-        assertEquals(0, exitCode);
-        assertEquals("", stderr.toString(UTF_8));
-        final Path generatedSource = outDir.resolve(
-                "generated-components/dev/tsj/generated/spring/AppConfigTsjComponent.java"
-        );
-        assertTrue(Files.exists(generatedSource));
-        final String source = Files.readString(generatedSource, UTF_8);
-        assertTrue(source.contains("@org.springframework.context.annotation.Configuration"));
-        assertTrue(source.contains("@org.springframework.context.annotation.Bean"));
-    }
-
-    @Test
-    void springPackageBuildsRunnableJarAndIncludesResourceFiles() throws Exception {
+    void packageBuildsRunnableJarAndIncludesResourceFiles() throws Exception {
         final Path projectDir = tempDir.resolve("tsj36-packaging-app");
         final Path entryFile = projectDir.resolve("main.ts");
         final Path resourceDir = projectDir.resolve("src/main/resources");
@@ -8682,7 +8684,7 @@ class TsjCliTest {
         final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
 
         final int exitCode = TsjCli.execute(
-                new String[]{"spring-package", entryFile.toString(), "--out", outDir.toString(), "--smoke-run"},
+                new String[]{"package", entryFile.toString(), "--out", outDir.toString(), "--smoke-run"},
                 new PrintStream(stdout),
                 new PrintStream(stderr)
         );
@@ -8690,10 +8692,10 @@ class TsjCliTest {
         final String stdoutText = stdout.toString(UTF_8);
         assertEquals(0, exitCode);
         assertEquals("", stderr.toString(UTF_8));
-        assertTrue(stdoutText.contains("\"code\":\"TSJ-SPRING-PACKAGE-SUCCESS\""));
-        assertTrue(stdoutText.contains("\"code\":\"TSJ-SPRING-SMOKE-SUCCESS\""));
+        assertTrue(stdoutText.contains("\"code\":\"TSJ-PACKAGE-SUCCESS\""));
+        assertTrue(stdoutText.contains("\"code\":\"TSJ-PACKAGE-SMOKE-SUCCESS\""));
 
-        final Path jarPath = outDir.resolve("tsj-spring-app.jar");
+        final Path jarPath = outDir.resolve("tsj-app.jar");
         assertTrue(Files.exists(jarPath));
         try (JarFile jarFile = new JarFile(jarPath.toFile())) {
             assertNotNull(jarFile.getJarEntry("dev/tsj/generated/MainProgram.class"));
@@ -8707,7 +8709,7 @@ class TsjCliTest {
     }
 
     @Test
-    void springPackageSupportsCustomJarPathAndExplicitResourceDirectory() throws Exception {
+    void packageSupportsCustomJarPathAndExplicitResourceDirectory() throws Exception {
         final Path entryFile = tempDir.resolve("tsj36-custom-main.ts");
         Files.writeString(entryFile, "console.log('custom-jar');\n", UTF_8);
         final Path explicitResources = tempDir.resolve("tsj36-explicit-resources");
@@ -8721,7 +8723,7 @@ class TsjCliTest {
         final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
         final int exitCode = TsjCli.execute(
                 new String[]{
-                        "spring-package",
+                        "package",
                         entryFile.toString(),
                         "--out",
                         outDir.toString(),
@@ -8736,7 +8738,7 @@ class TsjCliTest {
 
         assertEquals(0, exitCode);
         assertEquals("", stderr.toString(UTF_8));
-        assertTrue(stdout.toString(UTF_8).contains("\"code\":\"TSJ-SPRING-PACKAGE-SUCCESS\""));
+        assertTrue(stdout.toString(UTF_8).contains("\"code\":\"TSJ-PACKAGE-SUCCESS\""));
         assertTrue(Files.exists(bootJar));
         try (JarFile jarFile = new JarFile(bootJar.toFile())) {
             assertNotNull(jarFile.getJarEntry("application.yml"));
@@ -8749,7 +8751,7 @@ class TsjCliTest {
     }
 
     @Test
-    void springPackageMergesSpringFactoriesFromDependencyJars() throws Exception {
+    void packageMergesSpringFactoriesFromDependencyJars() throws Exception {
         final Path entryFile = tempDir.resolve("tsj36d-merge-main.ts");
         Files.writeString(entryFile, "console.log('merge-check');\n", UTF_8);
         final Path firstJar = createMetadataJar(
@@ -8771,7 +8773,7 @@ class TsjCliTest {
 
         final int exitCode = TsjCli.execute(
                 new String[]{
-                        "spring-package",
+                        "package",
                         entryFile.toString(),
                         "--out",
                         outDir.toString(),
@@ -8785,7 +8787,7 @@ class TsjCliTest {
         assertEquals(0, exitCode, "stderr=" + stderr.toString(UTF_8) + "\nstdout=" + stdout.toString(UTF_8));
         assertEquals("", stderr.toString(UTF_8));
 
-        try (JarFile jarFile = new JarFile(outDir.resolve("tsj-spring-app.jar").toFile())) {
+        try (JarFile jarFile = new JarFile(outDir.resolve("tsj-app.jar").toFile())) {
             final JarEntry springFactoriesEntry = jarFile.getJarEntry("META-INF/spring.factories");
             assertNotNull(springFactoriesEntry);
             final String springFactoriesContent;
@@ -8799,7 +8801,60 @@ class TsjCliTest {
     }
 
     @Test
-    void springPackageRejectsMissingExplicitResourceDirectory() throws Exception {
+    void packageMergesImportsMetadataFromDependencyJars() throws Exception {
+        final Path entryFile = tempDir.resolve("tsj36d-imports-main.ts");
+        Files.writeString(entryFile, "console.log('imports-check');\n", UTF_8);
+        final String importsEntry = "META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports";
+        final Path firstJar = createMetadataJar(
+                "tsj36d-imports-first.jar",
+                importsEntry,
+                "a.b.AutoOne\n"
+        );
+        final Path secondJar = createMetadataJar(
+                "tsj36d-imports-second.jar",
+                importsEntry,
+                """
+                a.b.AutoTwo
+                # comment
+                a.b.AutoThree
+                """
+        );
+        final Path outDir = tempDir.resolve("tsj36d-imports-out");
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+
+        final int exitCode = TsjCli.execute(
+                new String[]{
+                        "package",
+                        entryFile.toString(),
+                        "--out",
+                        outDir.toString(),
+                        "--classpath",
+                        firstJar + File.pathSeparator + secondJar
+                },
+                new PrintStream(stdout),
+                new PrintStream(stderr)
+        );
+
+        assertEquals(0, exitCode, "stderr=" + stderr.toString(UTF_8) + "\nstdout=" + stdout.toString(UTF_8));
+        assertEquals("", stderr.toString(UTF_8));
+
+        try (JarFile jarFile = new JarFile(outDir.resolve("tsj-app.jar").toFile())) {
+            final JarEntry importsJarEntry = jarFile.getJarEntry(importsEntry);
+            assertNotNull(importsJarEntry);
+            final String importsContent;
+            try (InputStream inputStream = jarFile.getInputStream(importsJarEntry)) {
+                importsContent = new String(inputStream.readAllBytes(), UTF_8);
+            }
+            assertTrue(importsContent.contains("a.b.AutoOne"), importsContent);
+            assertTrue(importsContent.contains("a.b.AutoTwo"), importsContent);
+            assertTrue(importsContent.contains("a.b.AutoThree"), importsContent);
+            assertFalse(importsContent.contains("# comment"), importsContent);
+        }
+    }
+
+    @Test
+    void packageRejectsMissingExplicitResourceDirectory() throws Exception {
         final Path entryFile = tempDir.resolve("tsj36-missing-resource-main.ts");
         Files.writeString(entryFile, "console.log('missing-resource');\n", UTF_8);
         final Path outDir = tempDir.resolve("tsj36-missing-resource-out");
@@ -8809,7 +8864,7 @@ class TsjCliTest {
         final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
         final int exitCode = TsjCli.execute(
                 new String[]{
-                        "spring-package",
+                        "package",
                         entryFile.toString(),
                         "--out",
                         outDir.toString(),
@@ -8822,14 +8877,14 @@ class TsjCliTest {
 
         final String stderrText = stderr.toString(UTF_8);
         assertEquals(1, exitCode);
-        assertTrue(stderrText.contains("\"code\":\"TSJ-SPRING-PACKAGE\""));
+        assertTrue(stderrText.contains("\"code\":\"TSJ-PACKAGE\""));
         assertTrue(stderrText.contains("\"stage\":\"package\""));
         assertTrue(stderrText.contains("\"failureKind\":\"resource\""));
         assertEquals("", stdout.toString(UTF_8));
     }
 
     @Test
-    void springPackageMarksCompileFailuresWithCompileStage() throws Exception {
+    void packageMarksCompileFailuresWithCompileStage() throws Exception {
         final Path entryFile = tempDir.resolve("tsj36-compile-failure.ts");
         Files.writeString(entryFile, "const = ;\n", UTF_8);
         final Path outDir = tempDir.resolve("tsj36-compile-failure-out");
@@ -8837,7 +8892,7 @@ class TsjCliTest {
         final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
 
         final int exitCode = TsjCli.execute(
-                new String[]{"spring-package", entryFile.toString(), "--out", outDir.toString()},
+                new String[]{"package", entryFile.toString(), "--out", outDir.toString()},
                 new PrintStream(stdout),
                 new PrintStream(stderr)
         );
@@ -8849,7 +8904,7 @@ class TsjCliTest {
     }
 
     @Test
-    void springPackageMarksInteropBridgeFailuresWithBridgeStage() throws Exception {
+    void packageMarksInteropBridgeFailuresWithBridgeStage() throws Exception {
         final Path entryFile = tempDir.resolve("tsj36-bridge-failure.ts");
         Files.writeString(
                 entryFile,
@@ -8873,7 +8928,7 @@ class TsjCliTest {
 
         final int exitCode = TsjCli.execute(
                 new String[]{
-                        "spring-package",
+                        "package",
                         entryFile.toString(),
                         "--out",
                         outDir.toString(),
@@ -8892,7 +8947,7 @@ class TsjCliTest {
     }
 
     @Test
-    void springPackageMarksSmokeRunFailuresWithRuntimeStage() throws Exception {
+    void packageMarksSmokeRunFailuresWithRuntimeStage() throws Exception {
         final Path entryFile = tempDir.resolve("tsj36-runtime-failure.ts");
         Files.writeString(
                 entryFile,
@@ -8910,7 +8965,7 @@ class TsjCliTest {
 
         final int exitCode = TsjCli.execute(
                 new String[]{
-                        "spring-package",
+                        "package",
                         entryFile.toString(),
                         "--out",
                         outDir.toString(),
@@ -8922,13 +8977,13 @@ class TsjCliTest {
 
         final String stderrText = stderr.toString(UTF_8);
         assertEquals(1, exitCode);
-        assertTrue(stderrText.contains("\"code\":\"TSJ-SPRING-BOOT\""));
+        assertTrue(stderrText.contains("\"code\":\"TSJ-PACKAGE-BOOT\""));
         assertTrue(stderrText.contains("\"stage\":\"runtime\""));
-        assertTrue(stdout.toString(UTF_8).contains("\"code\":\"TSJ-SPRING-PACKAGE-SUCCESS\""));
+        assertTrue(stdout.toString(UTF_8).contains("\"code\":\"TSJ-PACKAGE-SUCCESS\""));
     }
 
     @Test
-    void springPackageSmokeRunVerifiesEmbeddedEndpointAvailability() throws Exception {
+    void packageSmokeRunVerifiesEmbeddedEndpointAvailability() throws Exception {
         final Path entryFile = tempDir.resolve("tsj36b-endpoint-ok.ts");
         Files.writeString(
                 entryFile,
@@ -8945,7 +9000,7 @@ class TsjCliTest {
 
         final int exitCode = TsjCli.execute(
                 new String[]{
-                        "spring-package",
+                        "package",
                         entryFile.toString(),
                         "--out",
                         outDir.toString(),
@@ -8967,14 +9022,14 @@ class TsjCliTest {
         final String stdoutText = stdout.toString(UTF_8);
         assertEquals(0, exitCode, "stderr=" + stderr.toString(UTF_8) + "\nstdout=" + stdoutText);
         assertEquals("", stderr.toString(UTF_8));
-        assertTrue(stdoutText.contains("\"code\":\"TSJ-SPRING-PACKAGE-SUCCESS\""));
-        assertTrue(stdoutText.contains("\"code\":\"TSJ-SPRING-SMOKE-ENDPOINT-SUCCESS\""));
-        assertTrue(stdoutText.contains("\"code\":\"TSJ-SPRING-SMOKE-SUCCESS\""));
+        assertTrue(stdoutText.contains("\"code\":\"TSJ-PACKAGE-SUCCESS\""));
+        assertTrue(stdoutText.contains("\"code\":\"TSJ-PACKAGE-SMOKE-ENDPOINT-SUCCESS\""));
+        assertTrue(stdoutText.contains("\"code\":\"TSJ-PACKAGE-SMOKE-SUCCESS\""));
         assertTrue(stdoutText.contains("\"endpointUrl\":\"stdout://TSJ36B_ENDPOINT_OK\""));
     }
 
     @Test
-    void springPackageMarksEndpointSmokeFailuresSeparatelyFromStartupFailures() throws Exception {
+    void packageMarksEndpointSmokeFailuresSeparatelyFromStartupFailures() throws Exception {
         final Path entryFile = tempDir.resolve("tsj36b-endpoint-failure.ts");
         Files.writeString(
                 entryFile,
@@ -8991,7 +9046,7 @@ class TsjCliTest {
 
         final int exitCode = TsjCli.execute(
                 new String[]{
-                        "spring-package",
+                        "package",
                         entryFile.toString(),
                         "--out",
                         outDir.toString(),
@@ -9012,16 +9067,16 @@ class TsjCliTest {
 
         final String stderrText = stderr.toString(UTF_8);
         assertEquals(1, exitCode);
-        assertTrue(stderrText.contains("\"code\":\"TSJ-SPRING-ENDPOINT\""), stderrText);
+        assertTrue(stderrText.contains("\"code\":\"TSJ-PACKAGE-ENDPOINT\""), stderrText);
         assertTrue(stderrText.contains("\"stage\":\"runtime\""));
         assertTrue(stderrText.contains("\"failureKind\":\"endpoint\""));
         assertTrue(stderrText.contains("\"endpointUrl\":\"stdout://TSJ36B_ENDPOINT_OK\""));
         assertTrue(stderrText.contains("\"endpointError\":\"Marker not observed: TSJ36B_ENDPOINT_OK\""), stderrText);
-        assertTrue(stdout.toString(UTF_8).contains("\"code\":\"TSJ-SPRING-PACKAGE-SUCCESS\""));
+        assertTrue(stdout.toString(UTF_8).contains("\"code\":\"TSJ-PACKAGE-SUCCESS\""));
     }
 
     @Test
-    void springPackageRejectsSmokeEndpointOptionsWithoutSmokeRun() throws Exception {
+    void packageRejectsSmokeEndpointOptionsWithoutSmokeRun() throws Exception {
         final Path entryFile = tempDir.resolve("tsj36b-endpoint-option.ts");
         Files.writeString(entryFile, "console.log('endpoint-option');\n", UTF_8);
         final Path outDir = tempDir.resolve("tsj36b-endpoint-option-out");
@@ -9030,7 +9085,7 @@ class TsjCliTest {
 
         final int exitCode = TsjCli.execute(
                 new String[]{
-                        "spring-package",
+                        "package",
                         entryFile.toString(),
                         "--out",
                         outDir.toString(),
@@ -9534,34 +9589,6 @@ class TsjCliTest {
     }
 
     private record ProcessResult(int exitCode, String output) {
-    }
-
-    public static final class SpringBeanFixture {
-        private final String value;
-
-        public SpringBeanFixture(final String value) {
-            this.value = value;
-        }
-
-        public String value() {
-            return value;
-        }
-    }
-
-    public static final class SpringWebFixture {
-        private SpringWebFixture() {
-        }
-
-        public static String echo(final String value) {
-            return "echo:" + value;
-        }
-
-        public static String validate(final String value) {
-            if ("bad".equals(value)) {
-                throw new IllegalArgumentException("bad value");
-            }
-            return value;
-        }
     }
 
     private record MavenCoordinate(String groupId, String artifactId, String version) {

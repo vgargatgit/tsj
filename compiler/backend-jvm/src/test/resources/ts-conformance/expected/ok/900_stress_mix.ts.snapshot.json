@@ -1977,6 +1977,16 @@
           "parameters" : [ "fn" ]
         } ],
         "name" : "StressBox",
+        "staticFields" : [ {
+          "initializer" : {
+            "column" : 45,
+            "entries" : [ ],
+            "kind" : "ObjectLiteralExpression",
+            "line" : 13
+          },
+          "name" : "registry"
+        } ],
+        "staticMethods" : [ ],
         "superClassName" : null
       },
       "kind" : "ClassDeclarationStatement",

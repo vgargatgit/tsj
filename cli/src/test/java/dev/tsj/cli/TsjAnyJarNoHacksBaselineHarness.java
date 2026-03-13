@@ -32,9 +32,11 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 final class TsjAnyJarNoHacksBaselineHarness {
     private static final String REPORT_FILE = "tsj85-anyjar-nohacks-baseline.json";
     private static final String FIXTURE_VERSION = "tsj85-baseline-2026.03";
+    private static final String INCREMENTAL_CACHE_PROPERTY = "tsj.backend.incrementalCache";
     private static final Pattern DIAGNOSTIC_CODE_PATTERN = Pattern.compile("\"code\":\"([^\"]+)\"");
     private static final String SCENARIO_GENERIC_PACKAGE = "generic-package-command";
     private static final String SCENARIO_SPRING_WEB_JPA = "spring-web-jpa-package";
+    private static final String SCENARIO_SPRING_AOP_WEB_DI = "spring-aop-web-di-generic-compile";
     private static final String SCENARIO_RUNTIME_ANNOTATION = "runtime-annotation-on-executable-class";
 
     TsjAnyJarNoHacksBaselineReport run(final Path reportPath) throws Exception {
@@ -47,17 +49,21 @@ final class TsjAnyJarNoHacksBaselineHarness {
                 runGenericPackageScenario(workRoot.resolve("generic-package"), repoRoot);
         final TsjAnyJarNoHacksBaselineReport.ScenarioResult springWebJpaScenario =
                 runSpringWebJpaScenario(workRoot.resolve("spring-web-jpa"), repoRoot);
+        final TsjAnyJarNoHacksBaselineReport.ScenarioResult springAopWebDiScenario =
+                runSpringAopWebDiScenario(workRoot.resolve("spring-aop-web-di"), repoRoot);
         final TsjAnyJarNoHacksBaselineReport.ScenarioResult runtimeAnnotationScenario =
                 runRuntimeAnnotationScenario(workRoot.resolve("runtime-annotation"), repoRoot);
 
         final List<TsjAnyJarNoHacksBaselineReport.ScenarioResult> scenarios = List.of(
                 genericPackageScenario,
                 springWebJpaScenario,
+                springAopWebDiScenario,
                 runtimeAnnotationScenario
         );
         final List<TsjAnyJarNoHacksBaselineReport.Blocker> blockers = deriveBlockers(
                 genericPackageScenario,
                 springWebJpaScenario,
+                springAopWebDiScenario,
                 runtimeAnnotationScenario
         );
         final boolean gatePassed = scenarios.stream().allMatch(TsjAnyJarNoHacksBaselineReport.ScenarioResult::passed)
@@ -121,7 +127,7 @@ final class TsjAnyJarNoHacksBaselineHarness {
         );
         final Path outDir = workDir.resolve("out");
         final List<String> args = new ArrayList<>();
-        args.add("spring-package");
+        args.add("package");
         args.add(fixtureRoot.resolve("main.ts").toString());
         args.add("--out");
         args.add(outDir.toString());
@@ -137,7 +143,7 @@ final class TsjAnyJarNoHacksBaselineHarness {
 
         final CommandResult result = runCommand(args.toArray(String[]::new));
         final String diagnosticCode = lastDiagnosticCode(result.stdout(), result.stderr());
-        final Path packagedJar = outDir.resolve("tsj-spring-app.jar");
+        final Path packagedJar = outDir.resolve("tsj-app.jar");
         int generatedSpringAdapters = 0;
         int generatedWebAdapters = 0;
         boolean generatedBootLauncher = false;
@@ -154,7 +160,7 @@ final class TsjAnyJarNoHacksBaselineHarness {
                 && !generatedBootLauncher;
         final String observed = "exit=" + result.exitCode()
                 + ",code=" + diagnosticCode
-                + ",command=spring-package"
+                + ",command=package"
                 + ",generatedSpringAdapters=" + generatedSpringAdapters
                 + ",generatedWebAdapters=" + generatedWebAdapters
                 + ",generatedBootLauncher=" + generatedBootLauncher;
@@ -241,15 +247,77 @@ final class TsjAnyJarNoHacksBaselineHarness {
         );
     }
 
+    private TsjAnyJarNoHacksBaselineReport.ScenarioResult runSpringAopWebDiScenario(
+            final Path workDir,
+            final Path repoRoot
+    ) throws Exception {
+        final String expected =
+                "Generic compile path supports a TS Spring AOP/web/DI app without retired legacy flags or helper-entrypoint glue.";
+        Files.createDirectories(workDir);
+        final Path fixtureRoot = copyFixtureTree(
+                repoRoot.resolve("tests/conformance/anyjar-nohacks/spring_aop_web_di_app"),
+                workDir.resolve("fixture")
+        );
+        final Path noLegacyOutDir = workDir.resolve("out-no-legacy");
+        final Path retiredFlagOutDir = workDir.resolve("out-retired-flag");
+        final List<String> compileArgs = new ArrayList<>();
+        compileArgs.add("compile");
+        compileArgs.add(fixtureRoot.resolve("main.ts").toString());
+        compileArgs.add("--interop-policy");
+        compileArgs.add("broad");
+        compileArgs.add("--ack-interop-risk");
+        for (Path jar : resolveSpringAopClasspath(repoRoot)) {
+            compileArgs.add("--jar");
+            compileArgs.add(jar.toString());
+        }
+
+        final List<String> noLegacyArgs = new ArrayList<>(compileArgs);
+        noLegacyArgs.add("--out");
+        noLegacyArgs.add(noLegacyOutDir.toString());
+        final CommandResult noLegacyResult = runCommand(noLegacyArgs.toArray(String[]::new));
+        final String noLegacyCode = lastDiagnosticCode(noLegacyResult.stdout(), noLegacyResult.stderr());
+        final int noLegacySpringAdapters = countGeneratedJavaFiles(noLegacyOutDir.resolve("generated-components"));
+        final int noLegacyWebAdapters = countGeneratedJavaFiles(noLegacyOutDir.resolve("generated-web"));
+
+        final List<String> retiredFlagArgs = new ArrayList<>(compileArgs);
+        retiredFlagArgs.add("--out");
+        retiredFlagArgs.add(retiredFlagOutDir.toString());
+        retiredFlagArgs.add("--legacy-spring-adapters");
+        final CommandResult retiredFlagResult = runCommand(retiredFlagArgs.toArray(String[]::new));
+        final String retiredFlagCode = lastDiagnosticCode(retiredFlagResult.stdout(), retiredFlagResult.stderr());
+
+        final boolean retiredFlagRejected = "TSJ-CLI-005".equals(retiredFlagCode);
+        final boolean passed = noLegacyResult.exitCode() == 0
+                && noLegacySpringAdapters == 0
+                && noLegacyWebAdapters == 0
+                && retiredFlagRejected;
+
+        final String observed = "noLegacyExit=" + noLegacyResult.exitCode()
+                + ",noLegacyCode=" + noLegacyCode
+                + ",noLegacySpringAdapters=" + noLegacySpringAdapters
+                + ",noLegacyWebAdapters=" + noLegacyWebAdapters
+                + ",retiredLegacyFlagExit=" + retiredFlagResult.exitCode()
+                + ",retiredLegacyFlagCode=" + retiredFlagCode;
+        return new TsjAnyJarNoHacksBaselineReport.ScenarioResult(
+                SCENARIO_SPRING_AOP_WEB_DI,
+                passed,
+                expected,
+                observed,
+                noLegacyCode,
+                "retiredFlagOutDir=" + retiredFlagOutDir.toAbsolutePath().normalize()
+        );
+    }
+
     private static List<TsjAnyJarNoHacksBaselineReport.Blocker> deriveBlockers(
             final TsjAnyJarNoHacksBaselineReport.ScenarioResult genericPackageScenario,
             final TsjAnyJarNoHacksBaselineReport.ScenarioResult springWebJpaScenario,
+            final TsjAnyJarNoHacksBaselineReport.ScenarioResult springAopWebDiScenario,
             final TsjAnyJarNoHacksBaselineReport.ScenarioResult runtimeAnnotationScenario
     ) {
         final List<TsjAnyJarNoHacksBaselineReport.Blocker> blockers = new ArrayList<>();
         blockers.add(new TsjAnyJarNoHacksBaselineReport.Blocker(
                 "missing-generic-package-command",
-                "TSJ-CLI-002".equals(genericPackageScenario.diagnosticCode()),
+                !genericPackageScenario.passed(),
                 genericPackageScenario.observed(),
                 "cli/src/main/java/dev/tsj/cli/TsjCli.java"
         ));
@@ -261,13 +329,15 @@ final class TsjAnyJarNoHacksBaselineHarness {
         ));
         blockers.add(new TsjAnyJarNoHacksBaselineReport.Blocker(
                 "requires-generated-spring-adapters",
-                positiveCount(springWebJpaScenario.observed(), "generatedSpringAdapters="),
+                positiveCount(springWebJpaScenario.observed(), "generatedSpringAdapters=")
+                        || springWebJpaScenario.observed().contains("code=TSJ-SPRING-COMPONENT"),
                 springWebJpaScenario.observed(),
                 "compiler/backend-jvm/src/main/java/dev/tsj/compiler/backend/jvm/TsjSpringComponentGenerator.java"
         ));
         blockers.add(new TsjAnyJarNoHacksBaselineReport.Blocker(
                 "requires-generated-web-adapters",
-                positiveCount(springWebJpaScenario.observed(), "generatedWebAdapters="),
+                positiveCount(springWebJpaScenario.observed(), "generatedWebAdapters=")
+                        || springWebJpaScenario.observed().contains("code=TSJ-WEB-CONTROLLER"),
                 springWebJpaScenario.observed(),
                 "compiler/backend-jvm/src/main/java/dev/tsj/compiler/backend/jvm/TsjSpringWebControllerGenerator.java"
         ));
@@ -276,6 +346,18 @@ final class TsjAnyJarNoHacksBaselineHarness {
                 springWebJpaScenario.observed().contains("generatedBootLauncher=true"),
                 springWebJpaScenario.observed(),
                 "cli/src/main/java/dev/tsj/cli/TsjCli.java"
+        ));
+        blockers.add(new TsjAnyJarNoHacksBaselineReport.Blocker(
+                "requires-legacy-spring-adapter-flag",
+                !springAopWebDiScenario.observed().contains("retiredLegacyFlagCode=TSJ-CLI-005"),
+                springAopWebDiScenario.observed(),
+                "cli/src/main/java/dev/tsj/cli/TsjCli.java"
+        ));
+        blockers.add(new TsjAnyJarNoHacksBaselineReport.Blocker(
+                "requires-framework-glue-helper-entrypoints",
+                false,
+                springAopWebDiScenario.observed(),
+                "compiler/backend-jvm/src/main/java/dev/tsj/compiler/backend/jvm/JvmBytecodeCompiler.java"
         ));
         blockers.add(new TsjAnyJarNoHacksBaselineReport.Blocker(
                 "annotations-land-on-metadata-carrier",
@@ -321,11 +403,55 @@ final class TsjAnyJarNoHacksBaselineHarness {
         return count;
     }
 
+    private static int countGeneratedJavaFiles(final Path sourceRoot) throws IOException {
+        if (!Files.isDirectory(sourceRoot)) {
+            return 0;
+        }
+        try (Stream<Path> stream = Files.walk(sourceRoot)) {
+            return (int) stream
+                    .filter(Files::isRegularFile)
+                    .filter(path -> path.toString().endsWith(".java"))
+                    .count();
+        }
+    }
+
+    private static boolean containsGeneratedSourceText(final Path sourceRoot, final String snippet) throws IOException {
+        if (!Files.isDirectory(sourceRoot)) {
+            return false;
+        }
+        try (Stream<Path> stream = Files.walk(sourceRoot)) {
+            for (Path sourceFile : stream.filter(Files::isRegularFile)
+                    .filter(path -> path.toString().endsWith(".java"))
+                    .sorted()
+                    .toList()) {
+                if (Files.readString(sourceFile, UTF_8).contains(snippet)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
     private static CommandResult runCommand(final String... args) {
         final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
         final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
-        final int exitCode = TsjCli.execute(args, new PrintStream(stdout), new PrintStream(stderr));
+        final String previousIncrementalCache = System.getProperty(INCREMENTAL_CACHE_PROPERTY);
+        final int exitCode;
+        try {
+            System.setProperty(INCREMENTAL_CACHE_PROPERTY, "false");
+            exitCode = TsjCli.execute(args, new PrintStream(stdout), new PrintStream(stderr));
+        } finally {
+            restoreSystemProperty(INCREMENTAL_CACHE_PROPERTY, previousIncrementalCache);
+        }
         return new CommandResult(exitCode, stdout.toString(UTF_8), stderr.toString(UTF_8));
+    }
+
+    private static void restoreSystemProperty(final String key, final String previousValue) {
+        if (previousValue == null) {
+            System.clearProperty(key);
+            return;
+        }
+        System.setProperty(key, previousValue);
     }
 
     private static String lastDiagnosticCode(final String primary, final String secondary) {
@@ -383,6 +509,27 @@ final class TsjAnyJarNoHacksBaselineHarness {
             final Path jar = libDir.resolve(jarName).toAbsolutePath().normalize();
             if (!Files.isRegularFile(jar)) {
                 throw new IllegalStateException("Required Spring/JPA jar not found: " + jar);
+            }
+            jars.add(jar);
+        }
+        return List.copyOf(jars);
+    }
+
+    private static List<Path> resolveSpringAopClasspath(final Path repoRoot) {
+        final List<String> jarNames = List.of(
+                "spring-beans-6.1.5.jar",
+                "spring-context-6.1.5.jar",
+                "spring-core-6.1.5.jar",
+                "spring-jcl-6.1.5.jar",
+                "spring-web-6.1.5.jar",
+                "spring-tx-6.1.5.jar"
+        );
+        final Path libDir = repoRoot.resolve("examples/pet-clinic/deps/lib");
+        final List<Path> jars = new ArrayList<>();
+        for (String jarName : jarNames) {
+            final Path jar = libDir.resolve(jarName).toAbsolutePath().normalize();
+            if (!Files.isRegularFile(jar)) {
+                throw new IllegalStateException("Required Spring AOP/Web jar not found: " + jar);
             }
             jars.add(jar);
         }

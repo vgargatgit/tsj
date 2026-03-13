@@ -134,6 +134,22 @@ jobs:
           -Dtest=TsjAnyJarAnnotationSurvivalCertificationTest#certificationGateRequiresResolutionEmissionAndReflectionConsumerParity
           test
 
+      - name: TSJ-85 Any-JAR No-Hacks Baseline
+        run: >
+          mvn -B -ntp -pl cli -am
+          -Dcheckstyle.skip=true
+          -Dsurefire.failIfNoSpecifiedTests=false
+          -Dtest=TsjAnyJarNoHacksBaselineTest
+          test
+
+      - name: TSJ-92 Final Any-JAR No-Hacks Certification
+        run: >
+          mvn -B -ntp -pl cli -am
+          -Dcheckstyle.skip=true
+          -Dsurefire.failIfNoSpecifiedTests=false
+          -Dtest=TsjAnyJarNoHacksCertificationTest
+          test
+
       - name: TSJ-34f Packaged Web Conformance
         run: >
           mvn -B -ntp -pl cli -am
@@ -388,6 +404,22 @@ jobs:
         with:
           name: tsj75-anyjar-annotation-survival-certification-report
           path: compiler/backend-jvm/target/tsj75-anyjar-annotation-survival-certification.json
+          if-no-files-found: warn
+
+      - name: Upload TSJ-85 any-jar no-hacks baseline report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tsj85-anyjar-nohacks-baseline-report
+          path: cli/target/tsj85-anyjar-nohacks-baseline.json
+          if-no-files-found: warn
+
+      - name: Upload TSJ-92 any-jar no-hacks certification report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tsj92-anyjar-nohacks-certification-report
+          path: cli/target/tsj92-anyjar-nohacks-certification.json
           if-no-files-found: warn
 
       - name: Upload TSJ-39 metadata conformance report

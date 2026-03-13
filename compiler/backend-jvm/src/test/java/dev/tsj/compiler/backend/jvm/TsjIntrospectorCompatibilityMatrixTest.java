@@ -20,13 +20,15 @@ class TsjIntrospectorCompatibilityMatrixTest {
         final TsjIntrospectorCompatibilityMatrixReport report =
                 new TsjIntrospectorCompatibilityMatrixHarness().run(reportPath);
 
-        assertEquals(3, report.scenarios().size());
+        assertEquals(5, report.scenarios().size());
         assertTrue(Files.exists(report.reportPath()));
         assertTrue(Files.exists(report.moduleReportPath()));
         final String json = Files.readString(report.reportPath());
         assertTrue(json.contains("\"suite\":\"TSJ-39b-introspector-compatibility-matrix\""));
-        assertTrue(json.contains("\"scenario\":\"bridge-generic-signature\""));
-        assertTrue(json.contains("\"scenario\":\"spring-web-mapping-introspection\""));
+        assertTrue(json.contains("\"scenario\":\"hibernate-executable-entity-introspection\""));
+        assertTrue(json.contains("\"scenario\":\"jackson-executable-dto-introspection\""));
+        assertTrue(json.contains("\"scenario\":\"validation-executable-dto-introspection\""));
+        assertTrue(json.contains("\"scenario\":\"strict-spring-web-executable-introspection\""));
         assertTrue(json.contains("\"scenario\":\"jackson-unsupported\""));
     }
 
@@ -40,7 +42,7 @@ class TsjIntrospectorCompatibilityMatrixTest {
         final List<TsjIntrospectorCompatibilityMatrixReport.ScenarioResult> supported = report.scenarios().stream()
                 .filter(TsjIntrospectorCompatibilityMatrixReport.ScenarioResult::supported)
                 .toList();
-        assertEquals(2, supported.size());
+        assertEquals(4, supported.size());
         assertTrue(supported.stream().allMatch(TsjIntrospectorCompatibilityMatrixReport.ScenarioResult::passed));
         assertTrue(supported.stream().allMatch(scenario -> "".equals(scenario.diagnosticCode())));
     }

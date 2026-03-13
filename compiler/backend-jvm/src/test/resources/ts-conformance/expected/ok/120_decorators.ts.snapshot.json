@@ -490,6 +490,8 @@
           "parameters" : [ "input" ]
         } ],
         "name" : "DecoratedClass",
+        "staticFields" : [ ],
+        "staticMethods" : [ ],
         "superClassName" : null
       },
       "kind" : "ClassDeclarationStatement",

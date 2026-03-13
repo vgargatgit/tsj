@@ -296,218 +296,53 @@ class InteropBridgeGeneratorTest {
     }
 
     @Test
-    void emitsSpringConfigurationBeanMethodsForConstructorTarget() throws Exception {
-        final String serviceClass = "dev.tsj.compiler.backend.jvm.fixtures.InteropSpringFixtureType$Service";
-        final String dependencyAClass = "dev.tsj.compiler.backend.jvm.fixtures.InteropSpringFixtureType$DependencyA";
-        final String dependencyBClass = "dev.tsj.compiler.backend.jvm.fixtures.InteropSpringFixtureType$DependencyB";
+    void rejectsRetiredSpringBeanInteropSpecKeys() throws Exception {
         final Path specFile = tempDir.resolve("interop-spring-constructor.properties");
         Files.writeString(
                 specFile,
                 """
-                allowlist=%s#$new
-                targets=%s#$new
+                allowlist=java.lang.Math#max
+                targets=java.lang.Math#max
                 springConfiguration=true
-                springBeanTargets=%s#$new
-                """.formatted(serviceClass, serviceClass, serviceClass),
-                UTF_8
-        );
-
-        final InteropBridgeArtifact artifact = new InteropBridgeGenerator().generate(
-                specFile,
-                tempDir.resolve("out-spring-constructor")
-        );
-        final String source = Files.readString(artifact.sourceFiles().getFirst(), UTF_8);
-
-        assertTrue(source.contains("@org.springframework.context.annotation.Configuration"));
-        assertTrue(source.contains("@org.springframework.context.annotation.Bean"));
-        assertTrue(source.contains("public dev.tsj.compiler.backend.jvm.fixtures.InteropSpringFixtureType.Service _new("));
-        assertTrue(source.contains(dependencyAClass.replace('$', '.') + " arg0"));
-        assertTrue(source.contains(dependencyBClass.replace('$', '.') + " arg1"));
-        assertTrue(source.contains("invokeBinding(\"" + serviceClass + "\", \"$new\", arg0, arg1)"));
-    }
-
-    @Test
-    void springBeanTargetPreservesParameterizedSignatureMetadata() throws Exception {
-        final String fixtureClass = "dev.tsj.compiler.backend.jvm.fixtures.InteropSpringFixtureType";
-        final Path specFile = tempDir.resolve("interop-spring-generics.properties");
-        Files.writeString(
-                specFile,
-                """
-                allowlist=%s#copyLabels
-                targets=%s#copyLabels
-                springConfiguration=true
-                springBeanTargets=%s#copyLabels
-                """.formatted(fixtureClass, fixtureClass, fixtureClass),
-                UTF_8
-        );
-
-        final InteropBridgeArtifact artifact = new InteropBridgeGenerator().generate(
-                specFile,
-                tempDir.resolve("out-spring-generics")
-        );
-        final String source = Files.readString(artifact.sourceFiles().getFirst(), UTF_8);
-
-        assertTrue(source.contains("public java.util.List<java.lang.String> copyLabels("));
-        assertTrue(source.contains("final java.util.List<java.lang.String> arg0"));
-    }
-
-    @Test
-    void springBeanTargetWithTypeVariableSignatureFailsWithMetadataDiagnostic() throws Exception {
-        final String fixtureClass = "dev.tsj.compiler.backend.jvm.fixtures.InteropSpringFixtureType";
-        final Path specFile = tempDir.resolve("interop-spring-generic-typevar.properties");
-        Files.writeString(
-                specFile,
-                """
-                allowlist=%s#identity
-                targets=%s#identity
-                springConfiguration=true
-                springBeanTargets=%s#identity
-                """.formatted(fixtureClass, fixtureClass, fixtureClass),
+                springBeanTargets=java.lang.Math#max
+                """,
                 UTF_8
         );
 
         final JvmCompilationException exception = org.junit.jupiter.api.Assertions.assertThrows(
                 JvmCompilationException.class,
-                () -> new InteropBridgeGenerator().generate(specFile, tempDir.resolve("out-spring-generic-typevar"))
+                () -> new InteropBridgeGenerator().generate(specFile, tempDir.resolve("out-spring-constructor"))
         );
 
-        assertEquals("TSJ-INTEROP-METADATA", exception.code());
-        assertEquals("TSJ39-ABI-METADATA", exception.featureId());
-        assertTrue(exception.getMessage().contains("identity"));
+        assertEquals("TSJ-INTEROP-INVALID", exception.code());
+        assertTrue(exception.getMessage().contains("springConfiguration"));
+        assertTrue(exception.getMessage().contains("retired"));
     }
 
     @Test
-    void springBeanTargetWithAmbiguousConstructorsFailsWithDiagnostic() throws Exception {
-        final String multiConstructorClass =
-                "dev.tsj.compiler.backend.jvm.fixtures.InteropSpringFixtureType$MultiConstructorService";
-        final Path specFile = tempDir.resolve("interop-spring-ambiguous.properties");
-        Files.writeString(
-                specFile,
-                """
-                allowlist=%s#$new
-                targets=%s#$new
-                springConfiguration=true
-                springBeanTargets=%s#$new
-                """.formatted(multiConstructorClass, multiConstructorClass, multiConstructorClass),
-                UTF_8
-        );
-
-        final JvmCompilationException exception = org.junit.jupiter.api.Assertions.assertThrows(
-                JvmCompilationException.class,
-                () -> new InteropBridgeGenerator().generate(specFile, tempDir.resolve("out-spring-ambiguous"))
-        );
-
-        assertEquals("TSJ-INTEROP-SPRING", exception.code());
-        assertEquals("TSJ33-SPRING-BEAN", exception.featureId());
-        assertTrue(exception.getMessage().contains("exactly one public constructor"));
-    }
-
-    @Test
-    void springBeanTargetRequiresSpringConfigurationFlag() throws Exception {
-        final String serviceClass = "dev.tsj.compiler.backend.jvm.fixtures.InteropSpringFixtureType$Service";
-        final Path specFile = tempDir.resolve("interop-spring-missing-config.properties");
-        Files.writeString(
-                specFile,
-                """
-                allowlist=%s#$new
-                targets=%s#$new
-                springBeanTargets=%s#$new
-                """.formatted(serviceClass, serviceClass, serviceClass),
-                UTF_8
-        );
-
-        final JvmCompilationException exception = org.junit.jupiter.api.Assertions.assertThrows(
-                JvmCompilationException.class,
-                () -> new InteropBridgeGenerator().generate(specFile, tempDir.resolve("out-spring-missing-config"))
-        );
-
-        assertEquals("TSJ-INTEROP-SPRING", exception.code());
-        assertTrue(exception.getMessage().contains("springConfiguration=true"));
-    }
-
-    @Test
-    void emitsSpringWebControllerMappingsAndErrorHandlers() throws Exception {
-        final String fixtureClass = "dev.tsj.compiler.backend.jvm.fixtures.InteropSpringWebFixtureType";
-        final String dtoClass = "dev.tsj.compiler.backend.jvm.fixtures.InteropSpringWebFixtureType$UserDto";
+    void rejectsRetiredSpringWebInteropSpecKeys() throws Exception {
         final Path specFile = tempDir.resolve("interop-spring-web.properties");
         Files.writeString(
                 specFile,
                 """
-                allowlist=%s#findUser,%s#validateUser
-                targets=%s#findUser,%s#validateUser
+                allowlist=java.lang.Math#max
+                targets=java.lang.Math#max
                 springWebController=true
                 springWebBasePath=/users
-                springRequestMappings.findUser=GET /find
-                springRequestMappings.validateUser=GET /validate
+                springRequestMappings.max=GET /find
                 springErrorMappings=java.lang.IllegalArgumentException:400
-                """.formatted(fixtureClass, fixtureClass, fixtureClass, fixtureClass),
-                UTF_8
-        );
-
-        final InteropBridgeArtifact artifact = new InteropBridgeGenerator().generate(
-                specFile,
-                tempDir.resolve("out-spring-web")
-        );
-        final String source = Files.readString(artifact.sourceFiles().getFirst(), UTF_8);
-
-        assertTrue(source.contains("@org.springframework.web.bind.annotation.RestController"));
-        assertTrue(source.contains("@org.springframework.web.bind.annotation.RequestMapping(\"/users\")"));
-        assertTrue(source.contains("@org.springframework.web.bind.annotation.GetMapping(\"/find\")"));
-        assertTrue(source.contains("@org.springframework.web.bind.annotation.GetMapping(\"/validate\")"));
-        assertTrue(source.contains("@org.springframework.web.bind.annotation.RequestParam(\"arg0\")"));
-        assertTrue(source.contains("public " + dtoClass.replace('$', '.') + " findUser("));
-        assertTrue(source.contains("@org.springframework.web.bind.annotation.ExceptionHandler(java.lang.IllegalArgumentException.class)"));
-        assertTrue(source.contains(
-                "@org.springframework.web.bind.annotation.ResponseStatus(org.springframework.http.HttpStatus.BAD_REQUEST)"
-        ));
-    }
-
-    @Test
-    void springRequestMappingsRequireWebControllerFlag() throws Exception {
-        final String fixtureClass = "dev.tsj.compiler.backend.jvm.fixtures.InteropSpringWebFixtureType";
-        final Path specFile = tempDir.resolve("interop-spring-web-flag.properties");
-        Files.writeString(
-                specFile,
-                """
-                allowlist=%s#findUser
-                targets=%s#findUser
-                springRequestMappings.findUser=GET /find
-                """.formatted(fixtureClass, fixtureClass),
+                """,
                 UTF_8
         );
 
         final JvmCompilationException exception = org.junit.jupiter.api.Assertions.assertThrows(
                 JvmCompilationException.class,
-                () -> new InteropBridgeGenerator().generate(specFile, tempDir.resolve("out-spring-web-flag"))
+                () -> new InteropBridgeGenerator().generate(specFile, tempDir.resolve("out-spring-web"))
         );
 
-        assertEquals("TSJ-INTEROP-WEB", exception.code());
-        assertEquals("TSJ34-SPRING-WEB", exception.featureId());
-        assertTrue(exception.getMessage().contains("springWebController=true"));
-    }
-
-    @Test
-    void springRequestMappingRejectsInstanceBindingTarget() throws Exception {
-        final String fixtureClass = "dev.tsj.compiler.backend.jvm.fixtures.InteropSpringWebFixtureType$InstanceService";
-        final Path specFile = tempDir.resolve("interop-spring-web-instance.properties");
-        Files.writeString(
-                specFile,
-                """
-                allowlist=%s#$instance$find
-                targets=%s#$instance$find
-                springWebController=true
-                springRequestMappings.$instance$find=GET /find
-                """.formatted(fixtureClass, fixtureClass),
-                UTF_8
-        );
-
-        final JvmCompilationException exception = org.junit.jupiter.api.Assertions.assertThrows(
-                JvmCompilationException.class,
-                () -> new InteropBridgeGenerator().generate(specFile, tempDir.resolve("out-spring-web-instance"))
-        );
-
-        assertEquals("TSJ-INTEROP-WEB", exception.code());
-        assertTrue(exception.getMessage().contains("constructor"));
+        assertEquals("TSJ-INTEROP-INVALID", exception.code());
+        assertTrue(exception.getMessage().contains("springWebController"));
+        assertTrue(exception.getMessage().contains("retired"));
     }
 
     private static Properties readProperties(final Path path) throws Exception {

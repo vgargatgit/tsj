@@ -41,7 +41,7 @@ curl 'http://127.0.0.1:8080/api/petclinic/owners/1/pets'
 
 ## Notes
 
-- `run-http.sh` uses `tsj spring-package ... --mode jvm-strict` and runs the packaged jar.
+- `run-http.sh` uses `tsj package ... --mode jvm-strict` and runs the packaged jar.
 - H2 is configured through `examples/pet-clinic/resources/application.properties`.
 - schema/data initialization is in:
   - `examples/pet-clinic/resources/schema.sql`

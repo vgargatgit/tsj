@@ -18,24 +18,6 @@ Optional:
 2. `classAnnotations`: comma-separated fully-qualified annotation types applied to generated bridge classes.
 3. `bindingAnnotations.<binding>`: comma-separated annotation types applied to one generated bridge method.
    - Example: `bindingAnnotations.max=java.lang.Deprecated`
-4. `springConfiguration`: boolean (`true`/`false`), default `false`.
-   - When `true`, generated bridge classes are annotated with
-     `@org.springframework.context.annotation.Configuration`.
-5. `springBeanTargets`: comma-separated `<class>#<binding>` entries.
-   - Requires `springConfiguration=true`.
-   - For listed targets, generated bridge methods are annotated with
-     `@org.springframework.context.annotation.Bean`
-     and emitted with typed method signatures for DI wiring.
-6. `springWebController`: boolean (`true`/`false`), default `false`.
-   - When `true`, generated bridge classes are annotated with
-     `@org.springframework.web.bind.annotation.RestController`.
-7. `springWebBasePath`: optional base path (must start with `/`) applied via class-level `@RequestMapping`.
-8. `springRequestMappings.<binding>`: request mapping declaration for one binding.
-   - value format: `<HTTP_METHOD> <path>`, example:
-     `springRequestMappings.findUser=GET /find`
-9. `springErrorMappings`: comma-separated exception/status mappings for controller handlers.
-   - format: `<exceptionFqcn>:<statusCode>`, example:
-     `springErrorMappings=java.lang.IllegalArgumentException:400`
 
 Example:
 
@@ -63,24 +45,14 @@ TSJ-29 binding forms are also supported:
    - instance method binding requires public instance method,
    - field bindings require matching public static/instance field.
 4. Configured annotation types must resolve on classpath and be Java annotation types.
-5. `springBeanTargets` entries must also appear in `targets`.
-6. Spring bean targets support this subset:
-   - constructor binding (`$new`) with exactly one public constructor and non-primitive parameter types,
-   - static method binding with an unambiguous public static method, non-void non-primitive return type,
-     and non-primitive parameter types.
-   - parameterized generic signatures are preserved for concrete generic types.
-   - signatures containing unresolved generic type variables are rejected with metadata diagnostics.
-   - instance method and field bindings are not valid Spring bean targets in this subset.
-7. Spring web mappings require `springWebController=true`.
-8. Spring web target bindings must also appear in `targets`.
-9. Spring web targets support this subset:
-   - constructor binding (`$new`) with exactly one public constructor,
-   - unambiguous static method bindings (`<class>#<method>`),
-   - instance/field bindings are rejected for web routes.
-10. `springErrorMappings` exception types must resolve and be throwable types.
-11. `springErrorMappings` status codes are limited to:
-   `400, 401, 403, 404, 409, 422, 500`.
-12. Typed bridge metadata subset rejects signatures containing unresolved type variables.
+5. Retired Spring-specific keys are rejected with `TSJ-INTEROP-INVALID`:
+   - `springConfiguration`
+   - `springBeanTargets`
+   - `springWebController`
+   - `springWebBasePath`
+   - `springRequestMappings.<binding>`
+   - `springErrorMappings`
+6. For framework integration, prefer TS executable classes with imported `java:` annotations instead of interop-generated framework adapters.
 
 ## Generated Outputs
 1. Java bridge stubs under:
@@ -98,12 +70,4 @@ TSJ-29 binding forms are also supported:
 4. `TSJ-INTEROP-ANNOTATION`: invalid annotation configuration.
    - `featureId`: `TSJ32-ANNOTATION-SYNTAX`
    - includes annotation guidance in diagnostic context.
-5. `TSJ-INTEROP-SPRING`: invalid Spring bridge configuration/target shape.
-   - `featureId`: `TSJ33-SPRING-BEAN`
-   - includes Spring bean-target guidance in diagnostic context.
-6. `TSJ-INTEROP-WEB`: invalid Spring web bridge configuration/target shape.
-   - `featureId`: `TSJ34-SPRING-WEB`
-   - includes Spring web-target guidance in diagnostic context.
-7. `TSJ-INTEROP-METADATA`: unsupported bridge metadata signature shape.
-   - `featureId`: `TSJ39-ABI-METADATA`
-   - emitted when target signatures include unresolved generic type variables.
+5. `TSJ-INTEROP-INVALID` also covers retired Spring-specific interop bridge keys.

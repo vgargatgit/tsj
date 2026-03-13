@@ -46,8 +46,8 @@ final class TsjKotlinParityReadinessGateHarness {
                 "web-module-parity-signal",
                 webParity,
                 webParity
-                        ? "TS web adapter parity signal passes against Java reference path."
-                        : "TS web adapter parity signal is failing."
+                        ? "TS web parity signal passes against the Java reference path."
+                        : "TS web parity signal is failing."
         ));
 
         final boolean unsupportedDiagnosticsStable = matrix.modules().stream()

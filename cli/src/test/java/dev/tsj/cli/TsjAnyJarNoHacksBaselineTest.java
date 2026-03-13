@@ -29,11 +29,13 @@ class TsjAnyJarNoHacksBaselineTest {
                         Function.identity()
                 )
         );
-        assertTrue(blockers.get("missing-generic-package-command").present());
-        assertTrue(blockers.get("requires-spring-package-command").present());
-        assertTrue(blockers.get("requires-generated-spring-adapters").present());
-        assertTrue(blockers.get("requires-generated-web-adapters").present());
-        assertTrue(blockers.get("requires-generated-boot-launcher").present());
+        assertFalse(blockers.get("missing-generic-package-command").present());
+        assertFalse(blockers.get("requires-spring-package-command").present());
+        assertFalse(blockers.get("requires-generated-spring-adapters").present());
+        assertFalse(blockers.get("requires-generated-web-adapters").present());
+        assertFalse(blockers.get("requires-generated-boot-launcher").present());
+        assertFalse(blockers.get("requires-legacy-spring-adapter-flag").present());
+        assertFalse(blockers.get("requires-framework-glue-helper-entrypoints").present());
         assertTrue(blockers.get("annotations-land-on-metadata-carrier").present());
         assertTrue(blockers.get("executable-class-missing-runtime-annotations").present());
     }
@@ -48,10 +50,16 @@ class TsjAnyJarNoHacksBaselineTest {
                         Function.identity()
                 )
         );
-        assertEquals("TSJ-CLI-002", scenarios.get("generic-package-command").diagnosticCode());
-        assertTrue(scenarios.get("spring-web-jpa-package").observed().contains("generatedSpringAdapters="));
-        assertTrue(scenarios.get("spring-web-jpa-package").observed().contains("generatedWebAdapters="));
-        assertTrue(scenarios.get("spring-web-jpa-package").observed().contains("generatedBootLauncher=true"));
+        assertEquals("TSJ-PACKAGE-SUCCESS", scenarios.get("generic-package-command").diagnosticCode());
+        assertTrue(scenarios.get("spring-web-jpa-package").observed().contains("command=package"));
+        assertEquals("TSJ-PACKAGE-SUCCESS", scenarios.get("spring-web-jpa-package").diagnosticCode());
+        assertTrue(scenarios.get("spring-web-jpa-package").observed().contains("generatedSpringAdapters=0"));
+        assertTrue(scenarios.get("spring-web-jpa-package").observed().contains("generatedWebAdapters=0"));
+        assertTrue(scenarios.get("spring-web-jpa-package").observed().contains("generatedBootLauncher=false"));
+        assertEquals("TSJ-COMPILE-SUCCESS", scenarios.get("spring-aop-web-di-generic-compile").diagnosticCode());
+        assertTrue(scenarios.get("spring-aop-web-di-generic-compile").observed().contains("noLegacySpringAdapters=0"));
+        assertTrue(scenarios.get("spring-aop-web-di-generic-compile").observed().contains("noLegacyWebAdapters=0"));
+        assertTrue(scenarios.get("spring-aop-web-di-generic-compile").observed().contains("retiredLegacyFlagCode=TSJ-CLI-005"));
         assertEquals("TSJ-COMPILE-SUCCESS", scenarios.get("runtime-annotation-on-executable-class").diagnosticCode());
         assertTrue(scenarios.get("runtime-annotation-on-executable-class").observed().contains("carrierAnnotated=true"));
         assertTrue(scenarios.get("runtime-annotation-on-executable-class").observed().contains("nativeAnnotated=false"));

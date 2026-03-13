@@ -237,12 +237,16 @@ final class TypeScriptSyntaxBridge {
         final JsonNode normalizedProgram = root.has("normalizedProgram") && !root.get("normalizedProgram").isNull()
                 ? root.get("normalizedProgram").deepCopy()
                 : null;
+        final JsonNode decoratorDeclarations = root.has("decoratorDeclarations") && !root.get("decoratorDeclarations").isNull()
+                ? root.get("decoratorDeclarations").deepCopy()
+                : null;
         return new BridgeResult(
                 List.copyOf(tokens),
                 List.copyOf(diagnostics),
                 List.copyOf(normalizationDiagnostics),
                 List.copyOf(astNodes),
-                normalizedProgram
+                normalizedProgram,
+                decoratorDeclarations
         );
     }
 
@@ -266,7 +270,8 @@ final class TypeScriptSyntaxBridge {
             List<BridgeDiagnostic> diagnostics,
             List<BridgeDiagnostic> normalizationDiagnostics,
             List<BridgeAstNode> astNodes,
-            JsonNode normalizedProgram
+            JsonNode normalizedProgram,
+            JsonNode decoratorDeclarations
     ) {
     }
 

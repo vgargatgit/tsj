@@ -10,7 +10,7 @@ Purpose:
 ```bash
 tsj compile app/main.ts --out build --mode jvm-strict
 tsj run app/main.ts --out build --mode jvm-strict
-tsj spring-package app/main.ts --out build --mode jvm-strict
+tsj package app/main.ts --out build --mode jvm-strict
 ```
 
 Mode values:
@@ -28,13 +28,13 @@ TSJ emits `strict.loweringPath=jvm-native-class-subset` and dispatches class inv
 Class members outside that subset fail deterministically with `TSJ-STRICT-BRIDGE` (`featureId=TSJ80-STRICT-BRIDGE`).
 Strict-native DTO classes now emit JVM-friendly shape for framework boundaries
 (no-arg constructor + getters/setters), enabling baseline Jackson serialize/deserialize round-trip.
-TS-authored Spring controller adapters now coerce typed `@RequestBody` payloads into strict-native DTOs
-for supported named class shapes.
+TS-authored controllers and services can bind typed framework-facing DTO parameters directly to
+strict-native classes for the supported named-class subset.
 Collection/nullability boundary mapping is available for strict request-body subset shapes:
 `T`, `T[]`, `Array<T>`, `Record<string, T>`, and nullable unions (`T | null | undefined`).
-Generated Spring adapters also emit parameterized JVM request-body signatures for supported collection shapes
-(`List<Object>`, `Map<String, Object>`, including nested combinations).
-`spring-package` also honors strict mode (`--mode jvm-strict`) for packaged web runtime flow.
+`package` also honors strict mode (`--mode jvm-strict`) for packaged runtime flow.
+When a strict-native TS class defines `static main(args: string[])`,
+TSJ emits a real JVM bridge `main(String[])` and packaged jars use that TS-authored entrypoint directly.
 
 These checks now evaluate the relative import module graph, not only the entry file.
 Implementation note:
@@ -67,7 +67,7 @@ Write TypeScript as a statically-shaped JVM-friendly subset.
    no runtime shape drift between requests.
 3. Treat framework boundaries as typed contracts:
    request body type in, typed DTO out.
-4. Separate dynamic interop into isolated adapters:
+4. Separate dynamic interop into isolated boundary modules:
    keep main domain/service paths strict-safe.
 
 ## Migration Strategy (Default Mode -> JVM-Strict)
@@ -111,7 +111,7 @@ delete owner.lastName;
 
 With TSJ-83 complete, `jvm-strict` mode provides deterministic mode selection,
 strict diagnostics, JVM-native class lowering for covered strict class shapes,
-typed request-body collection/nullability mapping with generic adapter signatures,
+typed request-body collection/nullability mapping with JVM-friendly method signatures,
 and strict conformance/release gate artifacts.
 Use `docs/jvm-strict-release-checklist.md` for release signoff.
 

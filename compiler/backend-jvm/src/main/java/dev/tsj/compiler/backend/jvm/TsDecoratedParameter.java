@@ -10,12 +10,16 @@ import java.util.Objects;
  * @param name parameter identifier
  * @param decorators decorators attached to this parameter
  * @param typeAnnotation raw TS type annotation (without leading colon), or {@code null} when absent
+ * @param span source span covering the parameter declaration
+ * @param visibility parameter-property visibility, defaults to public
  */
 public record TsDecoratedParameter(
         int index,
         String name,
         List<TsDecoratorUse> decorators,
-        String typeAnnotation
+        String typeAnnotation,
+        TsSourceSpan span,
+        TsVisibility visibility
 ) {
     public TsDecoratedParameter {
         if (index < 0) {
@@ -29,6 +33,8 @@ public record TsDecoratedParameter(
                 typeAnnotation = null;
             }
         }
+        span = Objects.requireNonNull(span, "span");
+        visibility = Objects.requireNonNull(visibility, "visibility");
     }
 
     public TsDecoratedParameter(
@@ -36,6 +42,15 @@ public record TsDecoratedParameter(
             final String name,
             final List<TsDecoratorUse> decorators
     ) {
-        this(index, name, decorators, null);
+        this(index, name, decorators, null, TsSourceSpan.singleLine(1), TsVisibility.PUBLIC);
+    }
+
+    public TsDecoratedParameter(
+            final int index,
+            final String name,
+            final List<TsDecoratorUse> decorators,
+            final String typeAnnotation
+    ) {
+        this(index, name, decorators, typeAnnotation, TsSourceSpan.singleLine(1), TsVisibility.PUBLIC);
     }
 }

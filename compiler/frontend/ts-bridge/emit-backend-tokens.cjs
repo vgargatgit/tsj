@@ -130,6 +130,19 @@ function nodeLocation(sourceFile, node) {
   };
 }
 
+function nodeSpan(sourceFile, node) {
+  const start = node.getStart(sourceFile, false);
+  const end = node.getEnd();
+  const startPosition = sourceFile.getLineAndCharacterOfPosition(start);
+  const endPosition = sourceFile.getLineAndCharacterOfPosition(end);
+  return {
+    line: startPosition.line + 1,
+    column: startPosition.character + 1,
+    endLine: endPosition.line + 1,
+    endColumn: endPosition.character + 1
+  };
+}
+
 function withLocation(sourceFile, node, payload) {
   const loc = nodeLocation(sourceFile, node);
   return {
@@ -2642,6 +2655,8 @@ function normalizeClassDeclaration(ts, sourceFile, statement) {
 
   let constructorMethod = null;
   const methods = [];
+  const staticMethods = [];
+  const staticFields = [];
   const fieldNames = [];
   const instanceFieldInitializers = [];
   const postClassStatements = [];
@@ -2689,6 +2704,12 @@ function normalizeClassDeclaration(ts, sourceFile, statement) {
         memberLoc.column
       );
       if (staticField) {
+        if (keySpec.keyExpression === null) {
+          staticFields.push({
+            name: keySpec.literalKey,
+            initializer: loweredInitializerExpression
+          });
+        }
         postClassStatements.push(assignmentStatement);
       } else {
         instanceFieldInitializers.push(assignmentStatement);
@@ -2759,6 +2780,14 @@ function normalizeClassDeclaration(ts, sourceFile, statement) {
       );
       const staticMethod = hasModifier(ts, member, ts.SyntaxKind.StaticKeyword);
       if (staticMethod) {
+        if (keySpec.keyExpression === null) {
+          staticMethods.push({
+            name: keySpec.literalKey,
+            parameters: methodDefinition.parameters,
+            body: methodDefinition.body,
+            async: methodDefinition.async
+          });
+        }
         postClassStatements.push(createClassPropertyWriteStatement(
           classReference,
           keySpec,
@@ -2937,7 +2966,9 @@ function normalizeClassDeclaration(ts, sourceFile, statement) {
       superClassName,
       fieldNames,
       constructorMethod,
-      methods
+      methods,
+      staticFields,
+      staticMethods
     }
   });
   const classDecoratorStatements = createClassDecoratorApplicationStatements(
@@ -4311,10 +4342,208 @@ function collectAstNodes(ts, sourceFile) {
   return nodes;
 }
 
+function decoratorUsePayload(ts, sourceFile, decorator) {
+  const loc = nodeLocation(sourceFile, decorator);
+  const span = nodeSpan(sourceFile, decorator);
+  const expression = decorator.expression;
+  if (ts.isIdentifier(expression)) {
+    return {
+      name: expression.text,
+      rawArgs: null,
+      line: loc.line,
+      span
+    };
+  }
+  if (ts.isCallExpression(expression) && ts.isIdentifier(expression.expression)) {
+    const rawArgs = expression.arguments.length === 0
+      ? null
+      : expression.arguments.map((argument) => argument.getText(sourceFile)).join(', ');
+    return {
+      name: expression.expression.text,
+      rawArgs,
+      line: loc.line,
+      span
+    };
+  }
+  return null;
+}
+
+function decoratorUsesForNode(ts, sourceFile, node) {
+  return decoratorNodes(ts, node)
+    .map((decorator) => decoratorUsePayload(ts, sourceFile, decorator))
+    .filter((decorator) => decorator !== null);
+}
+
+function declarationNameText(ts, sourceFile, nameNode) {
+  if (!nameNode) {
+    return null;
+  }
+  if (ts.isIdentifier(nameNode) || ts.isStringLiteral(nameNode) || ts.isNumericLiteral(nameNode)) {
+    return nameNode.text;
+  }
+  return nameNode.getText(sourceFile);
+}
+
+function parameterPayload(ts, sourceFile, parameter, index) {
+  const span = nodeSpan(sourceFile, parameter);
+  return {
+    index,
+    name: declarationNameText(ts, sourceFile, parameter.name),
+    line: span.line,
+    span,
+    visibility: declarationVisibility(ts, parameter),
+    typeAnnotation: parameter.type ? parameter.type.getText(sourceFile).trim() : null,
+    decorators: decoratorUsesForNode(ts, sourceFile, parameter)
+  };
+}
+
+function declarationVisibility(ts, node) {
+  if (hasModifier(ts, node, ts.SyntaxKind.PrivateKeyword)) {
+    return 'private';
+  }
+  if (hasModifier(ts, node, ts.SyntaxKind.ProtectedKeyword)) {
+    return 'protected';
+  }
+  return 'public';
+}
+
+function rawTypeParameters(sourceFile, node) {
+  if (!node.typeParameters || node.typeParameters.length === 0) {
+    return [];
+  }
+  return node.typeParameters.map((typeParameter) => typeParameter.getText(sourceFile).trim());
+}
+
+function rawExtendsType(ts, sourceFile, node) {
+  const heritageClause = (node.heritageClauses || []).find((clause) => clause.token === ts.SyntaxKind.ExtendsKeyword);
+  if (!heritageClause || heritageClause.types.length === 0) {
+    return null;
+  }
+  return heritageClause.types[0].getText(sourceFile).trim();
+}
+
+function rawImplementsTypes(ts, sourceFile, node) {
+  const heritageClause = (node.heritageClauses || []).find((clause) => clause.token === ts.SyntaxKind.ImplementsKeyword);
+  if (!heritageClause || heritageClause.types.length === 0) {
+    return [];
+  }
+  return heritageClause.types.map((typeNode) => typeNode.getText(sourceFile).trim());
+}
+
+function extractDecoratorDeclarations(ts, sourceFile) {
+  const javaImports = [];
+  const relativeImports = [];
+  const classes = [];
+
+  for (const statement of sourceFile.statements) {
+    if (ts.isImportDeclaration(statement) && ts.isStringLiteral(statement.moduleSpecifier)) {
+      const importPath = statement.moduleSpecifier.text;
+      if (importPath.startsWith('.')) {
+        relativeImports.push(importPath);
+      }
+      if (
+        importPath.startsWith('java:')
+        && statement.importClause
+        && statement.importClause.namedBindings
+        && ts.isNamedImports(statement.importClause.namedBindings)
+      ) {
+        const importLoc = nodeLocation(sourceFile, statement);
+        for (const element of statement.importClause.namedBindings.elements) {
+          javaImports.push({
+            localName: element.name.text,
+            annotationClassName: importPath.substring('java:'.length),
+            line: importLoc.line
+          });
+        }
+      }
+      continue;
+    }
+    if (!ts.isClassDeclaration(statement) || !statement.name || !ts.isIdentifier(statement.name)) {
+      continue;
+    }
+
+    const classLoc = nodeLocation(sourceFile, statement);
+    const classSpan = nodeSpan(sourceFile, statement);
+    const fields = [];
+    const methods = [];
+
+    for (const member of statement.members) {
+      if (ts.isPropertyDeclaration(member)) {
+        const fieldName = declarationNameText(ts, sourceFile, member.name);
+        if (!fieldName) {
+          continue;
+        }
+        const fieldSpan = nodeSpan(sourceFile, member);
+        fields.push({
+          fieldName,
+          line: fieldSpan.line,
+          span: fieldSpan,
+          visibility: declarationVisibility(ts, member),
+          typeAnnotation: member.type ? member.type.getText(sourceFile).trim() : null,
+          decorators: decoratorUsesForNode(ts, sourceFile, member)
+        });
+        continue;
+      }
+      if (ts.isConstructorDeclaration(member)) {
+        const methodSpan = nodeSpan(sourceFile, member);
+        methods.push({
+          methodName: 'constructor',
+          line: methodSpan.line,
+          span: methodSpan,
+          constructor: true,
+          visibility: declarationVisibility(ts, member),
+          genericParameters: rawTypeParameters(sourceFile, member),
+          returnTypeAnnotation: null,
+          decorators: decoratorUsesForNode(ts, sourceFile, member),
+          parameters: member.parameters.map((parameter, index) => parameterPayload(ts, sourceFile, parameter, index))
+        });
+        continue;
+      }
+      if (ts.isMethodDeclaration(member)) {
+        const methodName = declarationNameText(ts, sourceFile, member.name);
+        if (!methodName) {
+          continue;
+        }
+        const methodSpan = nodeSpan(sourceFile, member);
+        methods.push({
+          methodName,
+          line: methodSpan.line,
+          span: methodSpan,
+          constructor: false,
+          visibility: declarationVisibility(ts, member),
+          genericParameters: rawTypeParameters(sourceFile, member),
+          returnTypeAnnotation: member.type ? member.type.getText(sourceFile).trim() : null,
+          decorators: decoratorUsesForNode(ts, sourceFile, member),
+          parameters: member.parameters.map((parameter, index) => parameterPayload(ts, sourceFile, parameter, index))
+        });
+      }
+    }
+
+    classes.push({
+      className: statement.name.text,
+      line: classLoc.line,
+      span: classSpan,
+      genericParameters: rawTypeParameters(sourceFile, statement),
+      extendsType: rawExtendsType(ts, sourceFile, statement),
+      implementsTypes: rawImplementsTypes(ts, sourceFile, statement),
+      decorators: decoratorUsesForNode(ts, sourceFile, statement),
+      fields,
+      methods
+    });
+  }
+
+  return {
+    javaImports,
+    relativeImports: [...new Set(relativeImports)],
+    classes
+  };
+}
+
 function tokenize(ts, sourcePath, sourceText) {
   const sourceFile = ts.createSourceFile(sourcePath, sourceText, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
   const diagnostics = sourceFile.parseDiagnostics.map((diagnostic) => diagnosticToJson(ts, sourceFile, diagnostic));
   const astNodes = collectAstNodes(ts, sourceFile);
+  const decoratorDeclarations = extractDecoratorDeclarations(ts, sourceFile);
   const normalization = normalizeProgram(ts, sourceFile);
   const normalizedProgram = normalization.program;
   const normalizationDiagnostics = normalization.diagnostics;
@@ -4324,6 +4553,7 @@ function tokenize(ts, sourcePath, sourceText) {
       diagnostics,
       tokens: [],
       astNodes,
+      decoratorDeclarations,
       normalizedProgram,
       normalizationDiagnostics
     };
@@ -4359,6 +4589,7 @@ function tokenize(ts, sourcePath, sourceText) {
     diagnostics: [],
     tokens,
     astNodes,
+    decoratorDeclarations,
     normalizedProgram,
     normalizationDiagnostics
   };

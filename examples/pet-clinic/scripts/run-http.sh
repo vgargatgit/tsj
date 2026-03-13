@@ -29,7 +29,7 @@ if printf '%s\n' "$build_raw" | grep -qE '^\[ERROR\]'; then
   exit 1
 fi
 
-package_args="spring-package examples/pet-clinic/http-main.ts --out $OUT_DIR --classpath $spring_classpath --interop-policy broad --ack-interop-risk --mode jvm-strict --resource-dir examples/pet-clinic/resources"
+package_args="package examples/pet-clinic/http-main.ts --out $OUT_DIR --classpath $spring_classpath --interop-policy broad --ack-interop-risk --mode jvm-strict --resource-dir examples/pet-clinic/resources"
 package_raw="$(
   cd "$REPO_ROOT" && mvn -B -ntp -q -f cli/pom.xml exec:java \
     -Dexec.mainClass=dev.tsj.cli.TsjCli \
@@ -39,16 +39,16 @@ printf '%s\n' "$package_raw"
 
 if printf '%s\n' "$package_raw" | grep -qE '"level":"ERROR"'; then
   echo
-  echo "PET-CLINIC HTTP RESULT: FAIL (spring-package emitted TSJ diagnostics)"
+  echo "PET-CLINIC HTTP RESULT: FAIL (package emitted TSJ diagnostics)"
   exit 1
 fi
 if printf '%s\n' "$package_raw" | grep -qE '^\[ERROR\]'; then
   echo
-  echo "PET-CLINIC HTTP RESULT: FAIL (spring-package invocation failed)"
+  echo "PET-CLINIC HTTP RESULT: FAIL (package invocation failed)"
   exit 1
 fi
 
-JAR_PATH="$OUT_DIR/tsj-spring-app.jar"
+JAR_PATH="$OUT_DIR/tsj-app.jar"
 if [ ! -f "$JAR_PATH" ]; then
   echo
   echo "PET-CLINIC HTTP RESULT: FAIL (packaged jar missing: $JAR_PATH)"
@@ -61,13 +61,6 @@ echo "Try:"
 echo "  curl 'http://127.0.0.1:8080/api/petclinic/owners?lastName=Frank'"
 echo "  curl 'http://127.0.0.1:8080/api/petclinic/owners/1/pets'"
 echo
-
-LAUNCHER_CLASS='dev.tsj.generated.boot.TsjSpringBootLauncher'
-if jar tf "$JAR_PATH" | grep -q '^dev/tsj/generated/boot/TsjSpringBootLauncher.class$'; then
-  exec java -cp "$JAR_PATH" "$LAUNCHER_CLASS" \
-    --server.address=127.0.0.1 \
-    --server.port=8080
-fi
 
 exec java -jar "$JAR_PATH" \
   --server.address=127.0.0.1 \

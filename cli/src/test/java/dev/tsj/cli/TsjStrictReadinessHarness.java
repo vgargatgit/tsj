@@ -263,26 +263,19 @@ final class TsjStrictReadinessHarness {
                 new URL[]{classesDir.toUri().toURL()},
                 TsjStrictReadinessHarness.class.getClassLoader()
         )) {
-            final Class<?> programClass = Class.forName(programClassName, true, classLoader);
-            final Method invokeClass = programClass.getMethod(
-                    "__tsjInvokeClass",
-                    String.class,
-                    String.class,
-                    Object[].class,
-                    Object[].class
+            final Class<?> dtoClass = Class.forName(
+                    "dev.tsj.generated.SerializableOwner__TsjStrictNative",
+                    true,
+                    classLoader
             );
-            final Object dto = invokeClass.invoke(
-                    null,
-                    "SerializableOwner",
-                    "asDto",
-                    new Object[0],
-                    new Object[0]
-            );
-            final String json = OBJECT_MAPPER.writeValueAsString(dto);
+            final Object dto = dtoClass.getDeclaredConstructor().newInstance();
+            final Method asDto = dtoClass.getDeclaredMethod("asDto");
+            final Object dtoView = asDto.invoke(dto);
+            final String json = OBJECT_MAPPER.writeValueAsString(dtoView);
             if (!json.contains("\"id\":\"101\"") || !json.contains("\"name\":\"Lin\"")) {
                 return new SerializationParityResult(false, "serialized DTO payload mismatch: " + json);
             }
-            final Object rebound = OBJECT_MAPPER.readValue(json, dto.getClass());
+            final Object rebound = OBJECT_MAPPER.readValue(json, dtoClass);
             final Method getId = rebound.getClass().getDeclaredMethod("getId");
             final Method getName = rebound.getClass().getDeclaredMethod("getName");
             final Object idValue = getId.invoke(rebound);

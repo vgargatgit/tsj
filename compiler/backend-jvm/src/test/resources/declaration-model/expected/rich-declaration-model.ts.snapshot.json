@@ -1,0 +1,188 @@
+{
+  "declarationModel" : {
+    "classes" : [ {
+      "className" : "BaseRepo",
+      "decorators" : [ ],
+      "extendsType" : null,
+      "fields" : [ ],
+      "genericParameters" : [ "TBase" ],
+      "implementsTypes" : [ ],
+      "line" : 10,
+      "methods" : [ ],
+      "span" : {
+        "column" : 1,
+        "endColumn" : 34,
+        "endLine" : 10,
+        "line" : 10
+      }
+    }, {
+      "className" : "Repo",
+      "decorators" : [ {
+        "line" : 12,
+        "name" : "TypeMark",
+        "rawArgs" : null,
+        "span" : {
+          "column" : 1,
+          "endColumn" : 10,
+          "endLine" : 12,
+          "line" : 12
+        }
+      } ],
+      "extendsType" : "BaseRepo<TValue>",
+      "fields" : [ {
+        "decorators" : [ {
+          "line" : 14,
+          "name" : "FieldMark",
+          "rawArgs" : null,
+          "span" : {
+            "column" : 3,
+            "endColumn" : 13,
+            "endLine" : 14,
+            "line" : 14
+          }
+        } ],
+        "fieldName" : "store",
+        "line" : 14,
+        "span" : {
+          "column" : 3,
+          "endColumn" : 48,
+          "endLine" : 15,
+          "line" : 14
+        },
+        "typeAnnotation" : "Map<string, TValue>",
+        "visibility" : "private"
+      } ],
+      "genericParameters" : [ "TValue extends string" ],
+      "implementsTypes" : [ "Runner" ],
+      "line" : 12,
+      "methods" : [ {
+        "constructor" : true,
+        "decorators" : [ ],
+        "genericParameters" : [ ],
+        "line" : 17,
+        "methodName" : "constructor",
+        "parameters" : [ {
+          "decorators" : [ {
+            "line" : 17,
+            "name" : "ParamMark",
+            "rawArgs" : null,
+            "span" : {
+              "column" : 15,
+              "endColumn" : 25,
+              "endLine" : 17,
+              "line" : 17
+            }
+          } ],
+          "index" : 0,
+          "line" : 17,
+          "name" : "source",
+          "span" : {
+            "column" : 15,
+            "endColumn" : 57,
+            "endLine" : 17,
+            "line" : 17
+          },
+          "typeAnnotation" : "string",
+          "visibility" : "private"
+        } ],
+        "returnTypeAnnotation" : null,
+        "span" : {
+          "column" : 3,
+          "endColumn" : 61,
+          "endLine" : 17,
+          "line" : 17
+        },
+        "visibility" : "public"
+      }, {
+        "constructor" : false,
+        "decorators" : [ {
+          "line" : 19,
+          "name" : "MethodMark",
+          "rawArgs" : null,
+          "span" : {
+            "column" : 3,
+            "endColumn" : 14,
+            "endLine" : 19,
+            "line" : 19
+          }
+        } ],
+        "genericParameters" : [ "TQuery extends TValue" ],
+        "line" : 19,
+        "methodName" : "load",
+        "parameters" : [ {
+          "decorators" : [ {
+            "line" : 20,
+            "name" : "ParamMark",
+            "rawArgs" : null,
+            "span" : {
+              "column" : 41,
+              "endColumn" : 51,
+              "endLine" : 20,
+              "line" : 20
+            }
+          } ],
+          "index" : 0,
+          "line" : 20,
+          "name" : "id",
+          "span" : {
+            "column" : 41,
+            "endColumn" : 62,
+            "endLine" : 20,
+            "line" : 20
+          },
+          "typeAnnotation" : "TQuery",
+          "visibility" : "public"
+        } ],
+        "returnTypeAnnotation" : "TValue",
+        "span" : {
+          "column" : 3,
+          "endColumn" : 4,
+          "endLine" : 22,
+          "line" : 19
+        },
+        "visibility" : "protected"
+      }, {
+        "constructor" : false,
+        "decorators" : [ ],
+        "genericParameters" : [ ],
+        "line" : 24,
+        "methodName" : "run",
+        "parameters" : [ ],
+        "returnTypeAnnotation" : "string",
+        "span" : {
+          "column" : 3,
+          "endColumn" : 4,
+          "endLine" : 26,
+          "line" : 24
+        },
+        "visibility" : "public"
+      } ],
+      "span" : {
+        "column" : 1,
+        "endColumn" : 2,
+        "endLine" : 27,
+        "line" : 12
+      }
+    } ],
+    "javaImports" : [ {
+      "annotationClassName" : "dev.tsj.compiler.backend.jvm.fixtures.annotations.TypeMark",
+      "line" : 1,
+      "localName" : "TypeMark"
+    }, {
+      "annotationClassName" : "dev.tsj.compiler.backend.jvm.fixtures.annotations.FieldMark",
+      "line" : 2,
+      "localName" : "FieldMark"
+    }, {
+      "annotationClassName" : "dev.tsj.compiler.backend.jvm.fixtures.annotations.MethodMark",
+      "line" : 3,
+      "localName" : "MethodMark"
+    }, {
+      "annotationClassName" : "dev.tsj.compiler.backend.jvm.fixtures.annotations.ParamMark",
+      "line" : 4,
+      "localName" : "ParamMark"
+    } ],
+    "relativeImports" : [ ]
+  },
+  "fixture" : "rich-declaration-model.ts",
+  "schemaVersion" : "tsj-backend-token-v1"
+}

@@ -25,6 +25,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Properties;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.jar.JarOutputStream;
@@ -40,9 +41,8 @@ class TsjSpringPackagedWebConformanceTest {
     Path tempDir;
 
     @Test
-    void springPackageIncludesCompiledTsWebControllerAdaptersForPackagedRuntime() throws Exception {
+    void packageDoesNotEmitCompiledTsWebControllerAdaptersForPackagedRuntime() throws Exception {
         final Path supportJar = buildPackagedWebSupportJar();
-        final Path scenarioOutput = tempDir.resolve("tsj34f-scenarios.txt");
         final Path entryFile = writeWebEntryFixture();
         final Path outDir = tempDir.resolve("tsj34f-package-out");
 
@@ -50,7 +50,7 @@ class TsjSpringPackagedWebConformanceTest {
         final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
         final int exitCode = TsjCli.execute(
                 new String[]{
-                        "spring-package",
+                        "package",
                         entryFile.toString(),
                         "--out",
                         outDir.toString(),
@@ -66,20 +66,32 @@ class TsjSpringPackagedWebConformanceTest {
 
         assertEquals(0, exitCode, "stderr:\n" + stderr.toString(UTF_8));
         assertEquals("", stderr.toString(UTF_8));
-        assertTrue(stdout.toString(UTF_8).contains("\"code\":\"TSJ-SPRING-PACKAGE-SUCCESS\""));
+        assertTrue(stdout.toString(UTF_8).contains("\"code\":\"TSJ-PACKAGE-SUCCESS\""));
 
-        final Path packagedJar = outDir.resolve("tsj-spring-app.jar");
+        final Path packagedJar = outDir.resolve("tsj-app.jar");
         assertTrue(Files.exists(packagedJar));
         try (JarFile jarFile = new JarFile(packagedJar.toFile())) {
             assertTrue(
-                    jarFile.getJarEntry("dev/tsj/generated/web/EchoControllerTsjController.class") != null,
-                    "Expected generated TS web adapter class in packaged jar."
+                    jarFile.getJarEntry("dev/tsj/generated/web/EchoControllerTsjController.class") == null,
+                    "Generic package command should package the authored program only, not generated TS web adapter classes."
+            );
+            assertTrue(
+                    jarFile.getJarEntry("dev/tsj/generated/boot/TsjSpringBootLauncher.class") == null,
+                    "Generic package command should not emit a generated Spring Boot launcher for controller-only packaging."
             );
         }
+        assertTrue(
+                Files.notExists(outDir.resolve("generated-web")),
+                "Generic package command should not create generated web adapter sources on disk."
+        );
+        assertTrue(
+                Files.notExists(outDir.resolve("generated-components")),
+                "Generic package command should not create generated component adapter sources on disk."
+        );
     }
 
     @Test
-    void springPackageSupportsJvmStrictModeForWebAdapters() throws Exception {
+    void packageSupportsJvmStrictModeWithoutLegacyWebAdapters() throws Exception {
         final Path supportJar = buildPackagedWebSupportJar();
         final Path entryFile = writeWebEntryFixture();
         final Path outDir = tempDir.resolve("tsj34f-package-out-strict");
@@ -88,7 +100,7 @@ class TsjSpringPackagedWebConformanceTest {
         final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
         final int exitCode = TsjCli.execute(
                 new String[]{
-                        "spring-package",
+                        "package",
                         entryFile.toString(),
                         "--out",
                         outDir.toString(),
@@ -106,66 +118,69 @@ class TsjSpringPackagedWebConformanceTest {
 
         assertEquals(0, exitCode, "stderr:\n" + stderr.toString(UTF_8));
         assertEquals("", stderr.toString(UTF_8));
-        assertTrue(stdout.toString(UTF_8).contains("\"code\":\"TSJ-SPRING-PACKAGE-SUCCESS\""));
-        assertTrue(Files.exists(outDir.resolve("tsj-spring-app.jar")));
-    }
-
-    @Test
-    void springPackageStrictModeGeneratesLauncherForJavaImportedDecoratorsAcrossModuleGraph() throws Exception {
-        final Path supportJar = buildPackagedWebSupportJar();
-        final Path entryFile = writeJavaImportedWebModuleGraphEntryFixture();
-        final Path outDir = tempDir.resolve("tsj34f-package-out-java-imported");
-
-        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
-        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
-        final int exitCode = TsjCli.execute(
-                new String[]{
-                        "spring-package",
-                        entryFile.toString(),
-                        "--out",
-                        outDir.toString(),
-                        "--jar",
-                        supportJar.toString(),
-                        "--interop-policy",
-                        "broad",
-                        "--ack-interop-risk",
-                        "--mode",
-                        "jvm-strict"
-                },
-                new PrintStream(stdout),
-                new PrintStream(stderr)
-        );
-
-        assertEquals(0, exitCode, "stderr:\n" + stderr.toString(UTF_8));
-        assertEquals("", stderr.toString(UTF_8));
-        assertTrue(stdout.toString(UTF_8).contains("\"code\":\"TSJ-SPRING-PACKAGE-SUCCESS\""));
-
-        final Path packagedJar = outDir.resolve("tsj-spring-app.jar");
-        assertTrue(Files.exists(packagedJar));
-        try (JarFile jarFile = new JarFile(packagedJar.toFile())) {
+        assertTrue(stdout.toString(UTF_8).contains("\"code\":\"TSJ-PACKAGE-SUCCESS\""));
+        try (JarFile jarFile = new JarFile(outDir.resolve("tsj-app.jar").toFile())) {
             assertTrue(
-                    jarFile.getJarEntry("dev/tsj/generated/web/ImportedEchoControllerTsjController.class") != null,
-                    "Expected generated controller adapter from java:-imported decorators."
+                    jarFile.getJarEntry("dev/tsj/generated/web/EchoControllerTsjController.class") == null,
+                    "Generic package command strict mode should not emit generated TS web adapters."
             );
             assertTrue(
-                    jarFile.getJarEntry("dev/tsj/generated/boot/TsjSpringBootLauncher.class") != null,
-                    "Expected generated Spring Boot launcher for packaged HTTP runtime."
+                    jarFile.getJarEntry("dev/tsj/generated/boot/TsjSpringBootLauncher.class") == null,
+                    "Generic package command strict mode should not emit a generated Spring Boot launcher."
             );
         }
     }
 
     @Test
-    void packagedWebConformanceGateProducesTsJavaKotlinReport() throws Exception {
+    void packageCommandSupportsJvmStrictModeWithoutLegacyWebAdapters() throws Exception {
         final Path supportJar = buildPackagedWebSupportJar();
-        final Path scenarioOutput = tempDir.resolve("tsj34f-scenario-output.txt");
         final Path entryFile = writeWebEntryFixture();
-        final Path outDir = tempDir.resolve("tsj34f-http-out");
+        final Path outDir = tempDir.resolve("tsj90-package-out-strict");
 
-        final ByteArrayOutputStream packageStdout = new ByteArrayOutputStream();
-        final ByteArrayOutputStream packageStderr = new ByteArrayOutputStream();
-        final int packageExitCode = TsjCli.execute(
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+        final int exitCode = TsjCli.execute(
                 new String[]{
-                        "spring-package",
+                        "package",
+                        entryFile.toString(),
+                        "--out",
+                        outDir.toString(),
+                        "--jar",
+                        supportJar.toString(),
+                        "--interop-policy",
+                        "broad",
+                        "--ack-interop-risk",
+                        "--mode",
+                        "jvm-strict"
+                },
+                new PrintStream(stdout),
+                new PrintStream(stderr)
+        );
+
+        assertEquals(0, exitCode, "stderr:\n" + stderr.toString(UTF_8));
+        assertEquals("", stderr.toString(UTF_8));
+        assertTrue(stdout.toString(UTF_8).contains("\"code\":\"TSJ-PACKAGE-SUCCESS\""));
+        final Path packagedJar = outDir.resolve("tsj-app.jar");
+        assertTrue(Files.exists(packagedJar));
+        try (JarFile jarFile = new JarFile(packagedJar.toFile())) {
+            assertTrue(
+                    jarFile.getJarEntry("dev/tsj/generated/web/EchoControllerTsjController.class") == null,
+                    "Generic package command should not emit legacy generated web adapters in strict mode."
+            );
+        }
+    }
+
+    @Test
+    void packageCommandKeepsProgramMainClassForControllerOnlyWebFixture() throws Exception {
+        final Path supportJar = buildPackagedWebSupportJar();
+        final Path entryFile = writeWebEntryFixture();
+        final Path outDir = tempDir.resolve("tsj90-package-manifest-web");
+
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+        final int exitCode = TsjCli.execute(
+                new String[]{
+                        "package",
                         entryFile.toString(),
                         "--out",
                         outDir.toString(),
@@ -175,20 +190,451 @@ class TsjSpringPackagedWebConformanceTest {
                         "broad",
                         "--ack-interop-risk"
                 },
+                new PrintStream(stdout),
+                new PrintStream(stderr)
+        );
+
+        assertEquals(0, exitCode, "stderr:\n" + stderr.toString(UTF_8));
+        assertEquals("", stderr.toString(UTF_8));
+
+        final Properties artifact = new Properties();
+        try (InputStream inputStream = Files.newInputStream(outDir.resolve("program.tsj.properties"))) {
+            artifact.load(inputStream);
+        }
+        final String programMainClass = artifact.getProperty("mainClass");
+        assertTrue(programMainClass != null && !programMainClass.isBlank());
+
+        try (JarFile jarFile = new JarFile(outDir.resolve("tsj-app.jar").toFile())) {
+            assertEquals(
+                    programMainClass,
+                    jarFile.getManifest().getMainAttributes().getValue("Main-Class")
+            );
+            assertTrue(
+                    jarFile.getJarEntry("dev/tsj/generated/web/EchoControllerTsjController.class") == null,
+                    "Generic package command should not emit legacy generated web adapters."
+            );
+            assertTrue(
+                    jarFile.getJarEntry("dev/tsj/generated/boot/TsjSpringBootLauncher.class") == null,
+                    "Generic package command should not invent a Spring Boot launcher."
+            );
+        }
+    }
+
+    @Test
+    void packageKeepsProgramMainClassForControllerOnlyWebFixture() throws Exception {
+        final Path supportJar = buildPackagedWebSupportJar();
+        final Path entryFile = writeWebEntryFixture();
+        final Path outDir = tempDir.resolve("tsj90-spring-package-manifest-web");
+
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+        final int exitCode = TsjCli.execute(
+                new String[]{
+                        "package",
+                        entryFile.toString(),
+                        "--out",
+                        outDir.toString(),
+                        "--jar",
+                        supportJar.toString(),
+                        "--interop-policy",
+                        "broad",
+                        "--ack-interop-risk"
+                },
+                new PrintStream(stdout),
+                new PrintStream(stderr)
+        );
+
+        assertEquals(0, exitCode, "stderr:\n" + stderr.toString(UTF_8));
+        assertEquals("", stderr.toString(UTF_8));
+
+        final Properties artifact = new Properties();
+        try (InputStream inputStream = Files.newInputStream(outDir.resolve("program.tsj.properties"))) {
+            artifact.load(inputStream);
+        }
+        final String programMainClass = artifact.getProperty("mainClass");
+        assertTrue(programMainClass != null && !programMainClass.isBlank());
+
+        try (JarFile jarFile = new JarFile(outDir.resolve("tsj-app.jar").toFile())) {
+            assertEquals(
+                    programMainClass,
+                    jarFile.getManifest().getMainAttributes().getValue("Main-Class")
+            );
+            assertTrue(
+                    jarFile.getJarEntry("dev/tsj/generated/boot/TsjSpringBootLauncher.class") == null,
+                    "Generic package command should not include the generated Spring Boot launcher."
+            );
+            assertTrue(
+                    jarFile.getJarEntry("dev/tsj/generated/web/EchoControllerTsjController.class") == null,
+                    "Generic package command should not emit generated TS web adapters."
+            );
+        }
+        assertTrue(
+                Files.notExists(outDir.resolve("generated-web")),
+                "Generic package command should not leave generated web adapter sources on disk."
+        );
+        assertTrue(
+                Files.notExists(outDir.resolve("generated-components")),
+                "Generic package command should not leave generated component adapter sources on disk."
+        );
+    }
+
+    @Test
+    void packageCommandClearsLegacyGeneratedArtifactsWhenReusingOutDir() throws Exception {
+        final Path supportJar = buildPackagedWebSupportJar();
+        final Path entryFile = writeWebEntryFixture();
+        final Path outDir = tempDir.resolve("tsj90-package-reuse-outdir");
+
+        final StageResult legacyStage = runSpringPackage(
+                new String[]{
+                        "package",
+                        entryFile.toString(),
+                        "--out",
+                        outDir.toString(),
+                        "--jar",
+                        supportJar.toString(),
+                        "--interop-policy",
+                        "broad",
+                        "--ack-interop-risk"
+                }
+        );
+        assertEquals(0, legacyStage.exitCode(), legacyStage.stderr());
+
+        final StageResult genericStage = runSpringPackage(
+                new String[]{
+                        "package",
+                        entryFile.toString(),
+                        "--out",
+                        outDir.toString(),
+                        "--jar",
+                        supportJar.toString(),
+                        "--interop-policy",
+                        "broad",
+                        "--ack-interop-risk"
+                }
+        );
+        assertEquals(0, genericStage.exitCode(), genericStage.stderr());
+
+        try (JarFile jarFile = new JarFile(outDir.resolve("tsj-app.jar").toFile())) {
+            assertTrue(
+                    jarFile.getJarEntry("dev/tsj/generated/web/EchoControllerTsjController.class") == null,
+                    "Generic package command should clear stale legacy web adapters when reusing an output directory."
+            );
+            assertTrue(
+                    jarFile.getJarEntry("dev/tsj/generated/boot/TsjSpringBootLauncher.class") == null,
+                    "Generic package command should clear stale legacy boot launchers when reusing an output directory."
+            );
+        }
+    }
+
+    @Test
+    void packageCommandUsesTsAuthoredStrictBootMainClassWithoutGeneratedLauncher() throws Exception {
+        final Path supportJar = buildPackagedWebSupportJar();
+        final Path entryFile = writeTsBootApplicationEntryFixture();
+        final Path outDir = tempDir.resolve("tsj90-package-manifest-ts-main");
+
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+        final int exitCode = TsjCli.execute(
+                new String[]{
+                        "package",
+                        entryFile.toString(),
+                        "--out",
+                        outDir.toString(),
+                        "--jar",
+                        supportJar.toString(),
+                        "--interop-policy",
+                        "broad",
+                        "--ack-interop-risk",
+                        "--mode",
+                        "jvm-strict"
+                },
+                new PrintStream(stdout),
+                new PrintStream(stderr)
+        );
+
+        assertEquals(0, exitCode, "stderr:\n" + stderr.toString(UTF_8));
+        assertEquals("", stderr.toString(UTF_8));
+
+        final Path packagedJar = outDir.resolve("tsj-app.jar");
+        assertTrue(Files.exists(packagedJar));
+        try (JarFile jarFile = new JarFile(packagedJar.toFile())) {
+            assertEquals(
+                    "dev.tsj.generated.TsjBootApp__TsjStrictNative",
+                    jarFile.getManifest().getMainAttributes().getValue("Main-Class")
+            );
+            assertTrue(
+                    jarFile.getJarEntry("dev/tsj/generated/TsjBootApp__TsjStrictNative.class") != null,
+                    "Expected TS-authored strict-native boot application class in packaged jar."
+            );
+            assertTrue(
+                    jarFile.getJarEntry("dev/tsj/generated/web/EchoControllerTsjController.class") == null,
+                    "Generic package command should not emit legacy generated web adapters."
+            );
+            assertTrue(
+                    jarFile.getJarEntry("dev/tsj/generated/boot/TsjSpringBootLauncher.class") == null,
+                    "Packaged jar should not need generated Spring Boot launcher when TS app provides main class."
+            );
+        }
+
+        final ProcessResult run = runJarAndCaptureOutput(packagedJar);
+        assertEquals(0, run.exitCode(), run.output());
+        assertTrue(
+                run.output().contains("spring-run=dev.tsj.generated.TsjBootApp__TsjStrictNative;args=0"),
+                run.output()
+        );
+    }
+
+    @Test
+    void packageCommandSmokeRunsTsAuthoredStrictBootMainClassThroughGenericContract() throws Exception {
+        final Path supportJar = buildPackagedWebSupportJar();
+        final Path entryFile = writeTsBootApplicationEntryFixture();
+        final Path outDir = tempDir.resolve("tsj90-package-smoke-ts-main");
+
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+        final int exitCode = TsjCli.execute(
+                new String[]{
+                        "package",
+                        entryFile.toString(),
+                        "--out",
+                        outDir.toString(),
+                        "--jar",
+                        supportJar.toString(),
+                        "--interop-policy",
+                        "broad",
+                        "--ack-interop-risk",
+                        "--mode",
+                        "jvm-strict",
+                        "--smoke-run",
+                        "--smoke-endpoint-url",
+                        "stdout://spring-run=dev.tsj.generated.TsjBootApp__TsjStrictNative;args=0"
+                },
+                new PrintStream(stdout),
+                new PrintStream(stderr)
+        );
+
+        assertEquals(0, exitCode, "stderr:\n" + stderr.toString(UTF_8));
+        assertEquals("", stderr.toString(UTF_8));
+        final String stdoutText = stdout.toString(UTF_8);
+        assertTrue(stdoutText.contains("\"code\":\"TSJ-PACKAGE-SUCCESS\""), stdoutText);
+        assertTrue(stdoutText.contains("\"code\":\"TSJ-PACKAGE-SMOKE-ENDPOINT-SUCCESS\""), stdoutText);
+        assertTrue(stdoutText.contains("\"code\":\"TSJ-PACKAGE-SMOKE-SUCCESS\""), stdoutText);
+
+        try (JarFile jarFile = new JarFile(outDir.resolve("tsj-app.jar").toFile())) {
+            assertTrue(
+                    jarFile.getJarEntry("dev/tsj/generated/boot/TsjSpringBootLauncher.class") == null,
+                    "Generic package smoke-run should not require a generated Spring Boot launcher."
+            );
+        }
+    }
+
+    @Test
+    void packageUsesTsAuthoredStrictBootMainClassWithoutGeneratedLauncherOrAdapters() throws Exception {
+        final Path supportJar = buildPackagedWebSupportJar();
+        final Path entryFile = writeTsBootApplicationEntryFixture();
+        final Path outDir = tempDir.resolve("tsj90-spring-package-manifest-ts-main");
+
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+        final int exitCode = TsjCli.execute(
+                new String[]{
+                        "package",
+                        entryFile.toString(),
+                        "--out",
+                        outDir.toString(),
+                        "--jar",
+                        supportJar.toString(),
+                        "--interop-policy",
+                        "broad",
+                        "--ack-interop-risk",
+                        "--mode",
+                        "jvm-strict"
+                },
+                new PrintStream(stdout),
+                new PrintStream(stderr)
+        );
+
+        assertEquals(0, exitCode, "stderr:\n" + stderr.toString(UTF_8));
+        assertEquals("", stderr.toString(UTF_8));
+
+        final Path packagedJar = outDir.resolve("tsj-app.jar");
+        assertTrue(Files.exists(packagedJar));
+        try (JarFile jarFile = new JarFile(packagedJar.toFile())) {
+            assertEquals(
+                    "dev.tsj.generated.TsjBootApp__TsjStrictNative",
+                    jarFile.getManifest().getMainAttributes().getValue("Main-Class")
+            );
+            assertTrue(
+                    jarFile.getJarEntry("dev/tsj/generated/TsjBootApp__TsjStrictNative.class") != null,
+                    "Expected TS-authored strict-native boot application class in packaged jar."
+            );
+            assertTrue(
+                    jarFile.getJarEntry("dev/tsj/generated/web/EchoControllerTsjController.class") == null,
+                    "Generic package command should not emit generated web adapters when TS app already provides an explicit main."
+            );
+            assertTrue(
+                    jarFile.getJarEntry("dev/tsj/generated/boot/TsjSpringBootLauncher.class") == null,
+                    "Generic package command should not emit a generated Spring Boot launcher when TS app already provides an explicit main."
+            );
+        }
+    }
+
+    @Test
+    void packageSmokeRunsTsAuthoredStrictBootMainClassWithoutGeneratedLauncher() throws Exception {
+        final Path supportJar = buildPackagedWebSupportJar();
+        final Path entryFile = writeTsBootApplicationEntryFixture();
+        final Path outDir = tempDir.resolve("tsj90-spring-package-smoke-ts-main");
+
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+        final int exitCode = TsjCli.execute(
+                new String[]{
+                        "package",
+                        entryFile.toString(),
+                        "--out",
+                        outDir.toString(),
+                        "--jar",
+                        supportJar.toString(),
+                        "--interop-policy",
+                        "broad",
+                        "--ack-interop-risk",
+                        "--mode",
+                        "jvm-strict",
+                        "--smoke-run",
+                        "--smoke-endpoint-url",
+                        "stdout://spring-run=dev.tsj.generated.TsjBootApp__TsjStrictNative;args=0"
+                },
+                new PrintStream(stdout),
+                new PrintStream(stderr)
+        );
+
+        assertEquals(0, exitCode, "stderr:\n" + stderr.toString(UTF_8));
+        assertEquals("", stderr.toString(UTF_8));
+        final String stdoutText = stdout.toString(UTF_8);
+        assertTrue(stdoutText.contains("\"code\":\"TSJ-PACKAGE-SUCCESS\""), stdoutText);
+        assertTrue(stdoutText.contains("\"code\":\"TSJ-PACKAGE-SMOKE-ENDPOINT-SUCCESS\""), stdoutText);
+        assertTrue(stdoutText.contains("\"code\":\"TSJ-PACKAGE-SMOKE-SUCCESS\""), stdoutText);
+
+        try (JarFile jarFile = new JarFile(outDir.resolve("tsj-app.jar").toFile())) {
+            assertTrue(
+                    jarFile.getJarEntry("dev/tsj/generated/boot/TsjSpringBootLauncher.class") == null,
+                    "Generic package command smoke-run should not require a generated Spring Boot launcher when TS app already provides an explicit main."
+            );
+        }
+    }
+
+    @Test
+    void packageStrictModePackagesJavaImportedDecoratorsAcrossModuleGraphWithoutLegacyAdapters() throws Exception {
+        final Path supportJar = buildPackagedWebSupportJar();
+        final Path entryFile = writeJavaImportedWebModuleGraphEntryFixture();
+        final Path outDir = tempDir.resolve("tsj34f-package-out-java-imported");
+
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+        final int exitCode = TsjCli.execute(
+                new String[]{
+                        "package",
+                        entryFile.toString(),
+                        "--out",
+                        outDir.toString(),
+                        "--jar",
+                        supportJar.toString(),
+                        "--interop-policy",
+                        "broad",
+                        "--ack-interop-risk",
+                        "--mode",
+                        "jvm-strict"
+                },
+                new PrintStream(stdout),
+                new PrintStream(stderr)
+        );
+
+        assertEquals(0, exitCode, "stderr:\n" + stderr.toString(UTF_8));
+        assertEquals("", stderr.toString(UTF_8));
+        assertTrue(stdout.toString(UTF_8).contains("\"code\":\"TSJ-PACKAGE-SUCCESS\""));
+
+        final Path packagedJar = outDir.resolve("tsj-app.jar");
+        assertTrue(Files.exists(packagedJar));
+        try (JarFile jarFile = new JarFile(packagedJar.toFile())) {
+            assertTrue(
+                    jarFile.getJarEntry("dev/tsj/generated/ImportedEchoController__TsjStrictNative.class") != null,
+                    "Expected authored strict-native controller class from java:-imported decorators."
+            );
+            assertTrue(
+                    jarFile.getJarEntry("dev/tsj/generated/web/ImportedEchoControllerTsjController.class") == null,
+                    "Generic package command should not emit generated controller adapters for java:-imported decorators."
+            );
+            assertTrue(
+                    jarFile.getJarEntry("dev/tsj/generated/boot/TsjSpringBootLauncher.class") == null,
+                    "Generic package command should not emit a generated Spring Boot launcher for packaged strict-native output."
+            );
+        }
+        assertTrue(
+                Files.notExists(outDir.resolve("generated-web")),
+                "Generic package command should not create generated web adapter sources for packaged strict-native output."
+        );
+        assertTrue(
+                Files.notExists(outDir.resolve("generated-components")),
+                "Generic package command should not create generated component adapter sources for packaged strict-native output."
+        );
+    }
+
+    @Test
+    void packagedWebConformanceGateProducesTsJavaKotlinReport() throws Exception {
+        final Path supportJar = buildPackagedWebSupportJar();
+        final Path scenarioOutput = tempDir.resolve("tsj34f-scenario-output.txt");
+        final Path entryFile = writeStrictPackagedHarnessEntryFixture();
+        final Path outDir = tempDir.resolve("tsj34f-http-out");
+
+        final ByteArrayOutputStream packageStdout = new ByteArrayOutputStream();
+        final ByteArrayOutputStream packageStderr = new ByteArrayOutputStream();
+        final int packageExitCode = TsjCli.execute(
+                new String[]{
+                        "package",
+                        entryFile.toString(),
+                        "--out",
+                        outDir.toString(),
+                        "--jar",
+                        supportJar.toString(),
+                        "--interop-policy",
+                        "broad",
+                        "--ack-interop-risk",
+                        "--mode",
+                        "jvm-strict"
+                },
                 new PrintStream(packageStdout),
                 new PrintStream(packageStderr)
         );
 
         assertEquals(0, packageExitCode, "stderr:\n" + packageStderr.toString(UTF_8));
         assertEquals("", packageStderr.toString(UTF_8));
-        final Path packagedJar = outDir.resolve("tsj-spring-app.jar");
+        final Path packagedJar = outDir.resolve("tsj-app.jar");
         assertTrue(Files.exists(packagedJar));
 
         final ProcessResult run = runJarAndCaptureOutput(packagedJar);
         assertEquals(0, run.exitCode(), run.output());
-        assertTrue(run.output().contains("tsj34f-boot"), run.output());
+        assertEquals("", run.output());
 
-        runPackagedHarnessScenarios(packagedJar, scenarioOutput);
+        try (JarFile jarFile = new JarFile(packagedJar.toFile())) {
+            assertTrue(
+                    jarFile.getJarEntry("dev/tsj/generated/EchoController__TsjStrictNative.class") != null,
+                    "Expected authored strict-native controller class in packaged jar."
+            );
+            assertTrue(
+                    jarFile.getJarEntry("dev/tsj/generated/web/EchoControllerTsjController.class") == null,
+                    "Packaged web conformance should execute against authored controller classes, not generated adapters."
+            );
+            assertTrue(
+                    jarFile.getJarEntry("dev/tsj/generated/boot/TsjSpringBootLauncher.class") == null,
+                    "Packaged web conformance should not require a generated Spring Boot launcher."
+            );
+        }
+
+        runPackagedHarnessScenarios(
+                packagedJar,
+                "dev.tsj.generated.EchoController__TsjStrictNative",
+                scenarioOutput
+        );
         assertTrue(Files.exists(scenarioOutput));
 
         final Map<String, HttpResult> tsjResults = readScenarioResults(scenarioOutput);
@@ -214,12 +660,12 @@ class TsjSpringPackagedWebConformanceTest {
     }
 
     @Test
-    void springPackageStartupDiagnosticsSeparateCompileBridgePackageAndRuntimeStages() throws Exception {
+    void packageStartupDiagnosticsSeparateCompileBridgePackageAndRuntimeStages() throws Exception {
         final Path compileFailureEntry = tempDir.resolve("tsj34f-compile-failure.ts");
         Files.writeString(compileFailureEntry, "const = ;\n", UTF_8);
         final StageResult compileFailure = runSpringPackage(
                 new String[]{
-                        "spring-package",
+                        "package",
                         compileFailureEntry.toString(),
                         "--out",
                         tempDir.resolve("compile-fail").toString()
@@ -238,7 +684,7 @@ class TsjSpringPackagedWebConformanceTest {
         Files.writeString(bridgeSpec, "allowlist=sample.missing.Bridge#ping\n", UTF_8);
         final StageResult bridgeFailure = runSpringPackage(
                 new String[]{
-                        "spring-package",
+                        "package",
                         bridgeFailureEntry.toString(),
                         "--out",
                         tempDir.resolve("bridge-fail").toString(),
@@ -253,7 +699,7 @@ class TsjSpringPackagedWebConformanceTest {
         Files.writeString(packageFailureEntry, "console.log('package');\n", UTF_8);
         final StageResult packageFailure = runSpringPackage(
                 new String[]{
-                        "spring-package",
+                        "package",
                         packageFailureEntry.toString(),
                         "--out",
                         tempDir.resolve("package-fail").toString(),
@@ -277,7 +723,7 @@ class TsjSpringPackagedWebConformanceTest {
         );
         final StageResult runtimeFailure = runSpringPackage(
                 new String[]{
-                        "spring-package",
+                        "package",
                         runtimeFailureEntry.toString(),
                         "--out",
                         tempDir.resolve("runtime-fail").toString(),
@@ -286,7 +732,78 @@ class TsjSpringPackagedWebConformanceTest {
         );
         assertEquals(1, runtimeFailure.exitCode());
         assertTrue(runtimeFailure.stderr().contains("\"stage\":\"runtime\""));
-        assertTrue(runtimeFailure.stderr().contains("\"code\":\"TSJ-SPRING-BOOT\""));
+        assertTrue(runtimeFailure.stderr().contains("\"code\":\"TSJ-PACKAGE-BOOT\""));
+    }
+
+    @Test
+    void packageCommandStartupDiagnosticsUseGenericPackageCodeFamilies() throws Exception {
+        final Path packageFailureEntry = tempDir.resolve("tsj90-package-failure.ts");
+        Files.writeString(packageFailureEntry, "console.log('package');\n", UTF_8);
+        final StageResult packageFailure = runSpringPackage(
+                new String[]{
+                        "package",
+                        packageFailureEntry.toString(),
+                        "--out",
+                        tempDir.resolve("tsj90-package-fail").toString(),
+                        "--resource-dir",
+                        tempDir.resolve("missing-package-resource-dir").toString()
+                }
+        );
+        assertEquals(1, packageFailure.exitCode());
+        assertTrue(packageFailure.stderr().contains("\"stage\":\"package\""));
+        assertTrue(packageFailure.stderr().contains("\"code\":\"TSJ-PACKAGE\""));
+
+        final Path runtimeFailureEntry = tempDir.resolve("tsj90-runtime-failure.ts");
+        Files.writeString(
+                runtimeFailureEntry,
+                """
+                function fail() {
+                  throw "runtime-failure";
+                }
+                fail();
+                """,
+                UTF_8
+        );
+        final StageResult runtimeFailure = runSpringPackage(
+                new String[]{
+                        "package",
+                        runtimeFailureEntry.toString(),
+                        "--out",
+                        tempDir.resolve("tsj90-runtime-fail").toString(),
+                        "--smoke-run"
+                }
+        );
+        assertEquals(1, runtimeFailure.exitCode());
+        assertTrue(runtimeFailure.stderr().contains("\"stage\":\"runtime\""));
+        assertTrue(runtimeFailure.stderr().contains("\"code\":\"TSJ-PACKAGE-BOOT\""));
+
+        final Path endpointFailureEntry = tempDir.resolve("tsj90-endpoint-failure.ts");
+        Files.writeString(
+                endpointFailureEntry,
+                """
+                while (true) {
+                }
+                """,
+                UTF_8
+        );
+        final StageResult endpointFailure = runSpringPackage(
+                new String[]{
+                        "package",
+                        endpointFailureEntry.toString(),
+                        "--out",
+                        tempDir.resolve("tsj90-endpoint-fail").toString(),
+                        "--smoke-run",
+                        "--smoke-endpoint-url",
+                        "stdout://missing-endpoint-marker",
+                        "--smoke-timeout-ms",
+                        "200",
+                        "--smoke-poll-ms",
+                        "50"
+                }
+        );
+        assertEquals(1, endpointFailure.exitCode());
+        assertTrue(endpointFailure.stderr().contains("\"stage\":\"runtime\""));
+        assertTrue(endpointFailure.stderr().contains("\"code\":\"TSJ-PACKAGE-ENDPOINT\""));
     }
 
     private ScenarioResult runConformanceScenario(
@@ -382,6 +899,7 @@ class TsjSpringPackagedWebConformanceTest {
 
     private void runPackagedHarnessScenarios(
             final Path packagedJar,
+            final String controllerClassName,
             final Path scenarioOutput
     ) throws Exception {
         try (URLClassLoader classLoader = new URLClassLoader(
@@ -393,7 +911,7 @@ class TsjSpringPackagedWebConformanceTest {
             try {
                 runScenarios.invoke(
                         null,
-                        "dev.tsj.generated.web.EchoControllerTsjController",
+                        controllerClassName,
                         scenarioOutput.toAbsolutePath().normalize().toString()
                 );
             } catch (final InvocationTargetException invocationTargetException) {
@@ -411,6 +929,11 @@ class TsjSpringPackagedWebConformanceTest {
         Files.writeString(
                 entry,
                 """
+                import type { GetMapping } from "java:org.springframework.web.bind.annotation.GetMapping";
+                import type { RequestMapping } from "java:org.springframework.web.bind.annotation.RequestMapping";
+                import type { RequestParam } from "java:org.springframework.web.bind.annotation.RequestParam";
+                import type { RestController } from "java:org.springframework.web.bind.annotation.RestController";
+
                 @RestController
                 @RequestMapping("/api")
                 class EchoController {
@@ -475,6 +998,68 @@ class TsjSpringPackagedWebConformanceTest {
                 """
                 import "./src/web/imported-echo-controller";
                 console.log("tsj34f-boot");
+                """,
+                UTF_8
+        );
+        return entry;
+    }
+
+    private Path writeTsBootApplicationEntryFixture() throws Exception {
+        final Path entry = tempDir.resolve("tsj90-ts-main.ts");
+        Files.writeString(
+                entry,
+                """
+                import type { GetMapping } from "java:org.springframework.web.bind.annotation.GetMapping";
+                import type { RequestMapping } from "java:org.springframework.web.bind.annotation.RequestMapping";
+                import type { RequestParam } from "java:org.springframework.web.bind.annotation.RequestParam";
+                import type { RestController } from "java:org.springframework.web.bind.annotation.RestController";
+                import { run } from "java:org.springframework.boot.SpringApplication";
+                import type { SpringBootApplication } from "java:org.springframework.boot.autoconfigure.SpringBootApplication";
+
+                @RestController
+                @RequestMapping("/api")
+                class EchoController {
+                  @GetMapping("/echo")
+                  echo(@RequestParam("value") value: string) {
+                    return "echo:" + value;
+                  }
+                }
+
+                @SpringBootApplication({ scanBasePackages: ["dev.tsj.generated"] })
+                class TsjBootApp {
+                  static main(args: string[]) {
+                    run(TsjBootApp, args);
+                  }
+                }
+                """,
+                UTF_8
+        );
+        return entry;
+    }
+
+    private Path writeStrictPackagedHarnessEntryFixture() throws Exception {
+        final Path entry = tempDir.resolve("tsj34f-strict-main.ts");
+        Files.writeString(
+                entry,
+                """
+                import type { GetMapping } from "java:org.springframework.web.bind.annotation.GetMapping";
+                import type { RequestMapping } from "java:org.springframework.web.bind.annotation.RequestMapping";
+                import type { RequestParam } from "java:org.springframework.web.bind.annotation.RequestParam";
+                import type { RestController } from "java:org.springframework.web.bind.annotation.RestController";
+
+                @RestController
+                @RequestMapping("/api")
+                class EchoController {
+                  @GetMapping("/echo")
+                  echo(@RequestParam("value") value: string) {
+                    return "echo:" + value;
+                  }
+                }
+
+                class StrictHarnessApp {
+                  static main(args: string[]) {
+                  }
+                }
                 """,
                 UTF_8
         );
@@ -611,7 +1196,10 @@ class TsjSpringPackagedWebConformanceTest {
                     }
 
                     public static void run(final Class<?> applicationClass, final String[] args) {
-                        // no-op support stub for packaged-web conformance tests.
+                        System.out.println(
+                                "spring-run=" + applicationClass.getName() + ";args="
+                                        + (args == null ? 0 : args.length)
+                        );
                     }
                 }
                 """
@@ -645,6 +1233,7 @@ class TsjSpringPackagedWebConformanceTest {
                 import org.springframework.web.bind.annotation.RequestParam;
                 import org.springframework.web.bind.annotation.RestController;
 
+                import java.lang.annotation.Annotation;
                 import java.lang.reflect.InvocationTargetException;
                 import java.lang.reflect.Method;
                 import java.lang.reflect.Parameter;
@@ -730,9 +1319,9 @@ class TsjSpringPackagedWebConformanceTest {
                         final Object[] args = new Object[parameters.length];
                         for (int index = 0; index < parameters.length; index++) {
                             final RequestParam requestParam = parameters[index].getAnnotation(RequestParam.class);
-                            final String key = requestParam == null || requestParam.value().isBlank()
+                            final String key = requestParam == null || firstAnnotationStringValue(requestParam, "value").isBlank()
                                     ? "arg" + index
-                                    : requestParam.value();
+                                    : firstAnnotationStringValue(requestParam, "value");
                             final String value = query.get(key);
                             if (value == null) {
                                 throw new IllegalArgumentException("Request binding failure for request parameter `" + key + "`");
@@ -744,7 +1333,7 @@ class TsjSpringPackagedWebConformanceTest {
 
                     private static String resolveBasePath(final Class<?> controllerClass) {
                         final RequestMapping requestMapping = controllerClass.getAnnotation(RequestMapping.class);
-                        return requestMapping == null ? "" : requestMapping.value();
+                        return requestMapping == null ? "" : firstAnnotationStringValue(requestMapping, "value");
                     }
 
                     private static List<Route> resolveRoutes(final Class<?> controllerClass, final String basePath) {
@@ -754,9 +1343,28 @@ class TsjSpringPackagedWebConformanceTest {
                             if (getMapping == null) {
                                 continue;
                             }
-                            routes.add(new Route("GET", normalizePath(basePath, getMapping.value()), method));
+                            routes.add(new Route("GET", normalizePath(basePath, firstAnnotationStringValue(getMapping, "value")), method));
                         }
                         return List.copyOf(routes);
+                    }
+
+                    private static String firstAnnotationStringValue(final Annotation annotation, final String attributeName) {
+                        try {
+                            final Object value = annotation.annotationType().getMethod(attributeName).invoke(annotation);
+                            if (value instanceof String stringValue) {
+                                return stringValue;
+                            }
+                            if (value instanceof String[] stringArrayValue) {
+                                return stringArrayValue.length == 0 ? "" : stringArrayValue[0];
+                            }
+                            return "";
+                        } catch (ReflectiveOperationException reflectiveOperationException) {
+                            throw new IllegalStateException(
+                                    "Failed to read annotation attribute `" + attributeName + "` from "
+                                            + annotation.annotationType().getName(),
+                                    reflectiveOperationException
+                            );
+                        }
                     }
 
                     private static String normalizePath(final String basePath, final String methodPath) {

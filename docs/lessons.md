@@ -57,3 +57,16 @@
 - Pattern: I kept pushing feature work while the user wanted the dirty worktree problem addressed first.
 - Rule: When the user redirects to worktree hygiene, pause feature execution and fix generated-output tracking/noise before resuming implementation.
 - Guardrail: Before the next code feature change, re-run `git status --short` and separate generated dirt from authored changes so cleanup work does not trample in-flight source edits.
+
+## 2026-03-12
+- Pattern: I preserved retired compatibility code and tests after the supported path had already moved to the generic executable-class flow.
+- Rule: Once a legacy path is retired from the supported contract, prefer deleting its orphaned code/tests over hiding it behind compatibility scaffolding.
+- Guardrail: For cleanup stories, trace every remaining reference; if a path is only exercised by legacy-only tests or docs, rewrite the last live harnesses first and then remove the entire cluster in one pass.
+
+## 2026-03-13
+- Pattern: I started steering a failing any-jar certification lane toward a Spring-specific harness workaround before restating the framework-agnostic constraint.
+- Rule: When the user requires no framework-specific hacks, treat framework tests only as consumers of the generic TSJ path; do not add Spring-only behavior to TSJ or hide general bytecode gaps behind Spring-only test wiring.
+- Guardrail: Before fixing a framework integration failure, write down whether the proposed change generalizes to arbitrary jars; if not, keep it out of production code and redesign the proof/fix.
+- Pattern: I let overlapping long-running Maven/test sessions accumulate until they consumed the available exec slots and obscured the real regression state.
+- Rule: Before starting another long regression or module rerun, check whether an equivalent run is already active; reuse it if valid or terminate the older duplicate before launching a replacement.
+- Guardrail: Keep at most one active long-running regression per module/goal. If a rerun is needed, stop the stale process tree first and then restart cleanly.

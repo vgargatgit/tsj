@@ -985,6 +985,8 @@
         "fieldNames" : [ "count" ],
         "methods" : [ ],
         "name" : "BaseClass",
+        "staticFields" : [ ],
+        "staticMethods" : [ ],
         "superClassName" : null
       },
       "kind" : "ClassDeclarationStatement",
@@ -1259,6 +1261,16 @@
           "parameters" : [ "this" ]
         } ],
         "name" : "DerivedClass",
+        "staticFields" : [ {
+          "initializer" : {
+            "column" : 18,
+            "kind" : "NumberLiteral",
+            "line" : 15,
+            "text" : "0"
+          },
+          "name" : "total"
+        } ],
+        "staticMethods" : [ ],
         "superClassName" : "BaseClass"
       },
       "kind" : "ClassDeclarationStatement",
@@ -1496,6 +1508,8 @@
                 "parameters" : [ "this" ]
               } ],
               "name" : "LocalExpr",
+              "staticFields" : [ ],
+              "staticMethods" : [ ],
               "superClassName" : null
             },
             "kind" : "ClassDeclarationStatement",

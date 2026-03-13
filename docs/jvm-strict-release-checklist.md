@@ -14,7 +14,7 @@ This checklist is the release signoff contract for `--mode jvm-strict`.
 ```bash
 tsj compile app/main.ts --out build --mode jvm-strict
 tsj run app/main.ts --out build --mode jvm-strict
-tsj spring-package app/main.ts --out build --mode jvm-strict
+tsj package app/main.ts --out build --mode jvm-strict
 ```
 
 ## Known Exclusions

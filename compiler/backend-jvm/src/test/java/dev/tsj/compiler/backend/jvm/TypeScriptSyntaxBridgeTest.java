@@ -1,5 +1,6 @@
 package dev.tsj.compiler.backend.jvm;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -973,6 +974,86 @@ class TypeScriptSyntaxBridgeTest {
         final String normalized = result.normalizedProgram().toString();
         assertTrue(normalized.contains("\"key\":\"defaultPayload\""));
         assertFalse(normalized.contains("\"key\":\"hidden\""));
+    }
+
+    @Test
+    void exposesDeclarationModelForGenericHeritageVisibilityAndSourceSpans() throws Exception {
+        final Path sourceFile = tempDir.resolve("declaration-model.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                interface Runner {
+                  run(): string;
+                }
+
+                abstract class BaseRepo<TBase> {}
+
+                class Repo<TValue extends string> extends BaseRepo<TValue> implements Runner {
+                  private readonly store!: Map<string, TValue>;
+
+                  constructor(private readonly source: string) {}
+
+                  protected load<TQuery extends TValue>(id: TQuery): TValue {
+                    return id;
+                  }
+
+                  run(): string {
+                    return this.source;
+                  }
+                }
+                """,
+                UTF_8
+        );
+
+        final TypeScriptSyntaxBridge.BridgeResult result = new TypeScriptSyntaxBridge().tokenize(
+                Files.readString(sourceFile, UTF_8),
+                sourceFile
+        );
+
+        assertTrue(result.diagnostics().isEmpty());
+        final JsonNode repo = declarationClass(result.decoratorDeclarations(), "Repo");
+        assertEquals("TValue extends string", repo.path("genericParameters").get(0).asText());
+        assertEquals("BaseRepo<TValue>", repo.path("extendsType").asText());
+        assertEquals("Runner", repo.path("implementsTypes").get(0).asText());
+        assertEquals(7, repo.path("span").path("line").asInt());
+        assertEquals(1, repo.path("span").path("column").asInt());
+        assertTrue(repo.path("span").path("endLine").asInt() > repo.path("span").path("line").asInt());
+
+        final JsonNode field = repo.path("fields").get(0);
+        assertEquals("private", field.path("visibility").asText());
+        assertEquals("Map<string, TValue>", field.path("typeAnnotation").asText());
+        assertEquals(8, field.path("span").path("line").asInt());
+        assertEquals(3, field.path("span").path("column").asInt());
+
+        final JsonNode constructor = declarationMethod(repo, "constructor");
+        assertEquals(10, constructor.path("span").path("line").asInt());
+        assertEquals("public", constructor.path("visibility").asText());
+        assertEquals("private", constructor.path("parameters").get(0).path("visibility").asText());
+
+        final JsonNode load = declarationMethod(repo, "load");
+        assertEquals("protected", load.path("visibility").asText());
+        assertEquals("TQuery extends TValue", load.path("genericParameters").get(0).asText());
+        assertEquals("TValue", load.path("returnTypeAnnotation").asText());
+        assertEquals(12, load.path("span").path("line").asInt());
+        assertEquals(3, load.path("span").path("column").asInt());
+    }
+
+    private static JsonNode declarationClass(final JsonNode declarations, final String className) {
+        for (JsonNode classNode : declarations.path("classes")) {
+            if (className.equals(classNode.path("className").asText())) {
+                return classNode;
+            }
+        }
+        throw new AssertionError("Missing declaration class: " + className);
+    }
+
+    private static JsonNode declarationMethod(final JsonNode classNode, final String methodName) {
+        for (JsonNode methodNode : classNode.path("methods")) {
+            if (methodName.equals(methodNode.path("methodName").asText())) {
+                return methodNode;
+            }
+        }
+        throw new AssertionError("Missing declaration method: " + methodName);
     }
 
     private static void restoreSystemProperty(final String key, final String value) {

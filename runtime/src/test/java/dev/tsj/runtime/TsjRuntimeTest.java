@@ -687,6 +687,22 @@ class TsjRuntimeTest {
     }
 
     @Test
+    void getAndSetPropertySupportJavaBeanAccessors() {
+        final SampleBean bean = new SampleBean();
+        assertEquals("tsj", TsjRuntime.getProperty(bean, "name"));
+
+        TsjRuntime.setProperty(bean, "name", "next");
+
+        assertEquals("next", TsjRuntime.getProperty(bean, "name"));
+        assertEquals("next", bean.getName());
+    }
+
+    @Test
+    void getPropertySupportsJavaRecordComponentAccessors() {
+        assertEquals("saved", TsjRuntime.getProperty(new SampleRecord("saved"), "message"));
+    }
+
+    @Test
     void objectLiteralSupportsGetAndSetProperty() {
         final Object object = TsjRuntime.objectLiteral("name", "tsj", "count", 1);
         assertEquals("tsj", TsjRuntime.getProperty(object, "name"));
@@ -1061,5 +1077,20 @@ class TsjRuntimeTest {
 
         final IllegalStateException direct = new IllegalStateException("x");
         assertEquals(direct, TsjRuntime.normalizeThrown(TsjRuntime.raise(direct)));
+    }
+
+    private static final class SampleBean {
+        private String name = "tsj";
+
+        public String getName() {
+            return name;
+        }
+
+        public void setName(final String name) {
+            this.name = name;
+        }
+    }
+
+    private record SampleRecord(String message) {
     }
 }

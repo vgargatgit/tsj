@@ -1,93 +1,52 @@
-# JVM Annotation Mapping (TSJ-32)
+# JVM Annotation Emission
 
-## Scope
-TSJ-32 currently covers runtime-visible annotation and reflection metadata behavior for:
-1. Interop-generated bridge classes/methods.
-2. TS-authored Spring web adapter classes generated from decorators.
+## Current Supported Path
 
-Supported:
-1. Runtime-visible class and method annotations on generated bridge and adapter classes.
-2. Method parameter name metadata (`-parameters`) on generated classes.
-3. TS decorator extraction/mapping model (`TsDecoratorModelExtractor`, `TsDecoratorAnnotationMapping`).
-4. TSJ-32b annotation attribute/value parsing subset.
-5. TSJ-32c parameter decorator extraction/mapping subset.
-6. TSJ-35 transactional decorator mapping subset (`@Transactional`).
+TSJ now preserves JVM-visible annotations through two generic paths:
 
-Not yet supported:
-1. General-purpose TS decorator lowering to arbitrary JVM annotations.
-2. Generic parameter-annotation lowering outside documented Spring-focused subset.
-3. Full annotation-expression parity beyond documented TSJ-32b syntax.
+1. executable strict-native classes authored in TypeScript
+2. generic interop bridge classes described by `docs/interop-bridge-spec.md`
 
-## TSJ-32a Decorator Mapping Contract
-Class decorators:
-1. `@Component` -> `org.springframework.stereotype.Component`
-2. `@Service` -> `org.springframework.stereotype.Service`
-3. `@Repository` -> `org.springframework.stereotype.Repository`
-4. `@Controller` -> `org.springframework.stereotype.Controller`
-5. `@RestController` -> `org.springframework.web.bind.annotation.RestController`
-6. `@RequestMapping` -> `org.springframework.web.bind.annotation.RequestMapping`
-7. `@Configuration` -> `org.springframework.context.annotation.Configuration`
-8. `@Transactional` -> `org.springframework.transaction.annotation.Transactional`
+The supported user model is:
 
-Method decorators:
-1. `@Bean` -> `org.springframework.context.annotation.Bean`
-2. `@Autowired` -> `org.springframework.beans.factory.annotation.Autowired`
-3. `@RequestMapping` -> `org.springframework.web.bind.annotation.RequestMapping`
-4. `@GetMapping` -> `org.springframework.web.bind.annotation.GetMapping`
-5. `@PostMapping` -> `org.springframework.web.bind.annotation.PostMapping`
-6. `@PutMapping` -> `org.springframework.web.bind.annotation.PutMapping`
-7. `@DeleteMapping` -> `org.springframework.web.bind.annotation.DeleteMapping`
-8. `@PatchMapping` -> `org.springframework.web.bind.annotation.PatchMapping`
-9. `@ExceptionHandler` -> `org.springframework.web.bind.annotation.ExceptionHandler`
-10. `@ResponseStatus` -> `org.springframework.web.bind.annotation.ResponseStatus`
-11. `@Transactional` -> `org.springframework.transaction.annotation.Transactional`
+1. import annotation types from `java:<fully.qualified.Type>`
+2. apply them in TS source
+3. compile/package through the normal TSJ command surface
+4. let Java reflection frameworks inspect the emitted JVM classes directly
 
-Parameter decorators (TSJ-32c subset):
-1. `@RequestParam` -> `org.springframework.web.bind.annotation.RequestParam`
-2. `@PathVariable` -> `org.springframework.web.bind.annotation.PathVariable`
-3. `@RequestHeader` -> `org.springframework.web.bind.annotation.RequestHeader`
-4. `@RequestBody` -> `org.springframework.web.bind.annotation.RequestBody`
+## Supported Capabilities
 
-## TSJ-32b Attribute/Value Subset
-Supported decorator attribute forms:
-1. Single positional value, treated as implicit `value`.
-2. Object-literal attributes (`{ value: "...", ... }`).
-3. Value kinds: string, number, boolean, arrays.
-4. Helpers: `enum("<fqcn>.<CONST>")`, `classOf("<fqcn>")`.
+1. Runtime-visible class, field, constructor, method, and parameter annotations on supported strict-native classes.
+2. Runtime-visible annotations on generic interop bridge declarations.
+3. Supported annotation attribute values:
+   - strings
+   - booleans
+   - numbers
+   - arrays
+   - enum constants
+   - class literals
+   - nested object-literal attribute bags used by supported consumers
+4. Parameter name metadata (`-parameters`) on emitted JVM classes.
+5. Generic signature preservation needed by common reflection consumers and proxy libraries.
 
-Supported adapter use cases:
-1. `@RequestMapping` and route mapping path extraction from `value` or `path`.
-2. `@ExceptionHandler` with string/class literal and array forms.
-3. `@ResponseStatus` with numeric code or enum constant (`HttpStatus` subset).
+## Constraints
 
-Validation diagnostics:
-1. `code=TSJ-DECORATOR-ATTRIBUTE`
-2. `featureId=TSJ32B-ANNOTATION-ATTRIBUTES`
+1. Annotation types must be runtime-retained and target-compatible.
+2. Source must use the TSJ-supported decorator/expression subset.
+3. Dynamic decorator construction outside the supported frontend model still fails deterministically.
 
-## TSJ-32c Parameter Subset
-Supported parameter decorator argument forms:
-1. `@RequestBody` with no arguments.
-2. `@RequestParam`, `@PathVariable`, `@RequestHeader` with:
-   - positional string (`@RequestParam("q")`)
-   - object form (`@RequestParam({ value: "q" })`)
-   - object aliases (`name`, `path`) where applicable.
-3. Undecorated route parameters default to generated `@RequestParam("argN")`.
+## Diagnostics
 
-Validation diagnostics:
-1. `code=TSJ-DECORATOR-PARAM`
-2. `featureId=TSJ32C-PARAM-ANNOTATIONS`
+1. `TSJ-DECORATOR-RESOLUTION`: unresolved or invalid `java:` decorator imports.
+2. `TSJ-DECORATOR-ATTRIBUTE`: unsupported attribute/value syntax.
+3. `TSJ-DECORATOR-PARAM`: unsupported parameter-decorator shape.
+4. `TSJ-INTEROP-ANNOTATION`: invalid annotation configuration in generic interop bridge specs.
 
-## Interop Spec Validation
-Use `docs/interop-bridge-spec.md` keys:
-1. `classAnnotations=<fqcn>,<fqcn>,...`
-2. `bindingAnnotations.<binding>=<fqcn>,<fqcn>,...`
+## Verification Coverage
 
-Invalid configuration emits:
-1. `code=TSJ-INTEROP-ANNOTATION`
-2. `featureId=TSJ32-ANNOTATION-SYNTAX`
+TSJ regression and certification tests currently prove:
 
-## Reflection Coverage
-TSJ tests validate:
-1. Class annotation visibility via reflection.
-2. Method annotation visibility and mapped attribute values via reflection.
-3. Method parameter names and parameter-level binding annotations via reflection.
+1. annotation visibility on executable strict-native classes
+2. annotation attribute fidelity for enum/class-literal values
+3. repeatable annotation preservation
+4. direct consumption by Spring, Hibernate/JPA, Jackson, Bean Validation, and generic reflection consumers

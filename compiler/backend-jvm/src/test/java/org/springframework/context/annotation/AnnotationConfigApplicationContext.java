@@ -42,6 +42,7 @@ public final class AnnotationConfigApplicationContext implements AutoCloseable {
     private static final String WEB_CONTROLLER_DI_FEATURE_ID = "TSJ34D-CONTROLLER-DI";
 
     private final List<Class<?>> registered = new ArrayList<>();
+    private final Map<Class<?>, String> registeredBeanNames = new LinkedHashMap<>();
     private final Map<Class<?>, Object> beansByType = new LinkedHashMap<>();
     private final List<BeanRegistration> beans = new ArrayList<>();
     private final List<String> lifecycleEvents = new ArrayList<>();
@@ -52,6 +53,11 @@ public final class AnnotationConfigApplicationContext implements AutoCloseable {
 
     public void register(final Class<?> configClass) {
         registered.add(configClass);
+    }
+
+    public void registerBean(final String beanName, final Class<?> configClass) {
+        registered.add(configClass);
+        registeredBeanNames.put(configClass, beanName);
     }
 
     public List<String> lifecycleEvents() {
@@ -117,12 +123,13 @@ public final class AnnotationConfigApplicationContext implements AutoCloseable {
                 if (component == null) {
                     continue;
                 }
+                final String beanName = registeredBeanNames.getOrDefault(componentClass, defaultBeanName(componentClass));
                 registerBean(
                         componentClass,
                         component,
-                        defaultBeanName(componentClass),
+                        beanName,
                         isPrimary(componentClass),
-                        collectQualifiers(componentClass.getAnnotation(Qualifier.class), defaultBeanName(componentClass))
+                        collectQualifiers(componentClass.getAnnotation(Qualifier.class), beanName)
                 );
                 invokePostConstruct(component);
                 unresolvedComponents.remove(index);
@@ -130,7 +137,7 @@ public final class AnnotationConfigApplicationContext implements AutoCloseable {
                 progressed = true;
             }
             if (!progressed) {
-                final List<Class<?>> cycle = detectCircularDependency(unresolvedComponents);
+                final List<Class<?>> cycle = detectCircularDependency(unresolvedComponents, registeredBeanNames);
                 if (!cycle.isEmpty()) {
                     throw lifecycleError(
                             "refresh",
@@ -166,6 +173,7 @@ public final class AnnotationConfigApplicationContext implements AutoCloseable {
             invokePreDestroy(uniqueBeans.get(index));
         }
         registered.clear();
+        registeredBeanNames.clear();
         beansByType.clear();
         beans.clear();
     }
@@ -217,6 +225,9 @@ public final class AnnotationConfigApplicationContext implements AutoCloseable {
         try {
             strategyMethod = bean.getClass().getMethod("__tsjProxyStrategy");
         } catch (final NoSuchMethodException noSuchMethodException) {
+            if (usesClassProxyStrategy(bean.getClass())) {
+                return ProxyStrategy.CLASS;
+            }
             return ProxyStrategy.JDK;
         }
         if (strategyMethod.getParameterCount() != 0 || !String.class.equals(strategyMethod.getReturnType())) {
@@ -617,15 +628,19 @@ public final class AnnotationConfigApplicationContext implements AutoCloseable {
         beans.add(new BeanRegistration(exposedType, instance, beanName, primary, qualifiers));
     }
 
-    private List<Class<?>> detectCircularDependency(final List<Class<?>> unresolvedComponents) {
+    private List<Class<?>> detectCircularDependency(
+            final List<Class<?>> unresolvedComponents,
+            final Map<Class<?>, String> beanNameOverrides
+    ) {
         final Map<Class<?>, List<Class<?>>> graph = new LinkedHashMap<>();
         final Map<Class<?>, Set<String>> qualifiersByType = new LinkedHashMap<>();
         for (Class<?> componentClass : unresolvedComponents) {
+            final String beanName = beanNameOverrides.getOrDefault(componentClass, defaultBeanName(componentClass));
             qualifiersByType.put(
                     componentClass,
                     collectQualifiers(
                             componentClass.getAnnotation(Qualifier.class),
-                            defaultBeanName(componentClass)
+                            beanName
                     )
             );
             graph.put(componentClass, new ArrayList<>());
@@ -764,6 +779,20 @@ public final class AnnotationConfigApplicationContext implements AutoCloseable {
 
     private static boolean isPrimary(final Method method) {
         return method.isAnnotationPresent(Primary.class);
+    }
+
+    private static boolean usesClassProxyStrategy(final Class<?> beanType) {
+        final Transactional classAnnotation = beanType.getAnnotation(Transactional.class);
+        if (classAnnotation != null && classAnnotation.proxyTargetClass()) {
+            return true;
+        }
+        for (Method method : beanType.getDeclaredMethods()) {
+            final Transactional methodAnnotation = method.getAnnotation(Transactional.class);
+            if (methodAnnotation != null && methodAnnotation.proxyTargetClass()) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static String defaultBeanName(final Class<?> type) {

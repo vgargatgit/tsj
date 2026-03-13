@@ -4,18 +4,30 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.tsj.compiler.backend.jvm.fixtures.annotations.CtorMark;
 import dev.tsj.compiler.backend.jvm.fixtures.annotations.FieldMark;
 import dev.tsj.compiler.backend.jvm.fixtures.annotations.MethodMark;
+import dev.tsj.compiler.backend.jvm.fixtures.annotations.NestedOuterMark;
 import dev.tsj.compiler.backend.jvm.fixtures.annotations.ParamMark;
+import dev.tsj.compiler.backend.jvm.fixtures.annotations.RepeatableTag;
 import dev.tsj.compiler.backend.jvm.fixtures.annotations.RichMark;
+import dev.tsj.compiler.backend.jvm.fixtures.annotations.TypedAttributeMark;
+import dev.tsj.compiler.backend.jvm.fixtures.annotations.TypedAttributeMode;
 import dev.tsj.compiler.backend.jvm.fixtures.annotations.TypeMark;
+import dev.tsj.runtime.TsjRuntime;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
+import java.lang.reflect.ParameterizedType;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
+import java.util.Map;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
@@ -97,13 +109,20 @@ class JvmBytecodeCompilerTest {
         );
 
         assertEquals("jvm-native-class-subset", artifact.strictLoweringPath());
-        final String generatedSource = Files.readString(
-                outDir.resolve("generated-src/dev/tsj/generated/StrictNativeClassProgram.java"),
-                UTF_8
-        );
-        assertTrue(generatedSource.contains("__TSJ_STRICT_FACTORIES"));
-        assertTrue(generatedSource.contains("__tsjStrictFactory"));
-        assertTrue(generatedSource.contains("Counter__TsjStrictNative"));
+        final Path executableClass = artifact.outputDirectory()
+                .resolve("dev/tsj/generated/Counter__TsjStrictNative.class");
+        assertTrue(Files.exists(executableClass));
+
+        try (URLClassLoader classLoader = new URLClassLoader(new URL[]{artifact.outputDirectory().toUri().toURL()})) {
+            final Object result = invokeStrictInstanceMethod(
+                    classLoader,
+                    "Counter",
+                    "increment",
+                    new Object[]{40},
+                    new Object[]{2}
+            );
+            assertEquals(42.0d, ((Number) result).doubleValue());
+        }
     }
 
     @Test
@@ -136,16 +155,8 @@ class JvmBytecodeCompilerTest {
         );
 
         try (URLClassLoader classLoader = new URLClassLoader(new URL[]{artifact.outputDirectory().toUri().toURL()})) {
-            final Class<?> programClass = Class.forName(artifact.className(), true, classLoader);
-            final java.lang.reflect.Method invokeClass = programClass.getDeclaredMethod(
-                    "__tsjInvokeClass",
-                    String.class,
-                    String.class,
-                    Object[].class,
-                    Object[].class
-            );
-            final Object result = invokeClass.invoke(
-                    null,
+            final Object result = invokeStrictInstanceMethod(
+                    classLoader,
                     "Person",
                     "self",
                     new Object[]{"Ada"},
@@ -158,23 +169,556 @@ class JvmBytecodeCompilerTest {
     }
 
     @Test
+    void strictJvmEligibleAnnotatedClassEmitsExecutableTopLevelClassWithoutMetadataCarrier() throws Exception {
+        final Path sourceFile = tempDir.resolve("strict-native-executable-class.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                import { TypeMark } from "java:dev.tsj.compiler.backend.jvm.fixtures.annotations.TypeMark";
+                import { FieldMark } from "java:dev.tsj.compiler.backend.jvm.fixtures.annotations.FieldMark";
+                import { CtorMark } from "java:dev.tsj.compiler.backend.jvm.fixtures.annotations.CtorMark";
+                import { MethodMark } from "java:dev.tsj.compiler.backend.jvm.fixtures.annotations.MethodMark";
+                import { ParamMark } from "java:dev.tsj.compiler.backend.jvm.fixtures.annotations.ParamMark";
+
+                @TypeMark
+                class Person {
+                  @FieldMark
+                  name: string;
+
+                  @CtorMark
+                  constructor(@ParamMark name: string) {
+                    this.name = name;
+                  }
+
+                  @MethodMark
+                  greet(@ParamMark prefix: string) {
+                    return prefix + this.name;
+                  }
+                }
+                """,
+                UTF_8
+        );
+
+        final Path outDir = tempDir.resolve("strict-native-executable-class-out");
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(
+                sourceFile,
+                outDir,
+                JvmOptimizationOptions.defaults(),
+                JvmBytecodeCompiler.BackendMode.JVM_STRICT
+        );
+
+        assertEquals("jvm-native-class-subset", artifact.strictLoweringPath());
+        final Path executableClass = artifact.outputDirectory()
+                .resolve("dev/tsj/generated/Person__TsjStrictNative.class");
+        final Path metadataCarrier = artifact.outputDirectory()
+                .resolve("dev/tsj/generated/metadata/PersonTsjCarrier.class");
+        assertTrue(Files.exists(executableClass));
+        assertFalse(Files.exists(metadataCarrier));
+
+        try (URLClassLoader classLoader = new URLClassLoader(new URL[]{artifact.outputDirectory().toUri().toURL()})) {
+            final Class<?> executableClassType = Class.forName(
+                    "dev.tsj.generated.Person__TsjStrictNative",
+                    true,
+                    classLoader
+            );
+            assertTrue(executableClassType.isAnnotationPresent(TypeMark.class));
+            assertTrue(executableClassType.getDeclaredField("name").isAnnotationPresent(FieldMark.class));
+
+            final java.lang.reflect.Constructor<?> constructor = executableClassType.getDeclaredConstructor(String.class);
+            assertTrue(constructor.isAnnotationPresent(CtorMark.class));
+            assertEquals("name", constructor.getParameters()[0].getName());
+            assertTrue(constructor.getParameters()[0].isAnnotationPresent(ParamMark.class));
+
+            final Object instance = constructor.newInstance("Ada");
+            final java.lang.reflect.Method greet = executableClassType.getDeclaredMethod("greet", String.class);
+            assertTrue(greet.isAnnotationPresent(MethodMark.class));
+            assertEquals("prefix", greet.getParameters()[0].getName());
+            assertTrue(greet.getParameters()[0].isAnnotationPresent(ParamMark.class));
+            assertEquals("hi Ada", greet.invoke(instance, "hi "));
+        }
+    }
+
+    @Test
+    void strictJvmExecutableClassDoesNotExposeRawObjectBridgeConstructor() throws Exception {
+        final Path sourceFile = tempDir.resolve("strict-native-constructor-bridge.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                class Service {
+                  name: string;
+
+                  constructor(name: string) {
+                    this.name = name;
+                  }
+                }
+                """,
+                UTF_8
+        );
+
+        final Path outDir = tempDir.resolve("strict-native-constructor-bridge-out");
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(
+                sourceFile,
+                outDir,
+                JvmOptimizationOptions.defaults(),
+                JvmBytecodeCompiler.BackendMode.JVM_STRICT
+        );
+
+        try (URLClassLoader classLoader = new URLClassLoader(new URL[]{artifact.outputDirectory().toUri().toURL()})) {
+            final Class<?> executableClassType = Class.forName(
+                    "dev.tsj.generated.Service__TsjStrictNative",
+                    true,
+                    classLoader
+            );
+
+            assertEquals(1, executableClassType.getConstructors().length);
+
+            final Constructor<?> typedConstructor = executableClassType.getDeclaredConstructor(String.class);
+            assertTrue(Modifier.isPublic(typedConstructor.getModifiers()));
+            assertThrows(NoSuchMethodException.class, () -> executableClassType.getDeclaredConstructor(Object.class));
+        }
+    }
+
+    @Test
+    void strictJvmExecutableClassEmitsEnumAndClassLiteralAnnotationAttributes() throws Exception {
+        final Path sourceFile = tempDir.resolve("strict-native-typed-annotation-values.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                import { TypedAttributeMark } from "java:dev.tsj.compiler.backend.jvm.fixtures.annotations.TypedAttributeMark";
+                import { TypedAttributeMode as Mode } from "java:dev.tsj.compiler.backend.jvm.fixtures.annotations.TypedAttributeMode";
+                import { String as JString } from "java:java.lang.String";
+                import { Integer as JInteger } from "java:java.lang.Integer";
+                import { Long as JLong } from "java:java.lang.Long";
+                import { Double as JDouble } from "java:java.lang.Double";
+                import { Boolean as JBoolean } from "java:java.lang.Boolean";
+                import { Float as JFloat } from "java:java.lang.Float";
+                import { Short as JShort } from "java:java.lang.Short";
+                import { Byte as JByte } from "java:java.lang.Byte";
+
+                @TypedAttributeMark({
+                  mode: Mode.TYPE,
+                  type: JString,
+                  modes: [Mode.TYPE, Mode.METHOD],
+                  types: [JString, JInteger]
+                })
+                class AnnotatedShape {
+                  @TypedAttributeMark({
+                    mode: Mode.FIELD,
+                    type: JLong,
+                    types: [JLong, JDouble]
+                  })
+                  value: number = 1;
+
+                  @TypedAttributeMark({
+                    mode: Mode.CONSTRUCTOR,
+                    type: JBoolean
+                  })
+                  constructor(
+                    @TypedAttributeMark({
+                      mode: Mode.PARAMETER,
+                      type: JFloat
+                    })
+                    name: string
+                  ) {
+                    this.value = 2;
+                  }
+
+                  @TypedAttributeMark({
+                    mode: Mode.METHOD,
+                    type: JShort,
+                    modes: [Mode.METHOD],
+                    types: [JShort, JByte]
+                  })
+                  greet(
+                    @TypedAttributeMark({
+                      mode: Mode.PARAMETER,
+                      type: JByte
+                    })
+                    prefix: string
+                  ) {
+                    return prefix + this.value;
+                  }
+                }
+                """,
+                UTF_8
+        );
+
+        final Path outDir = tempDir.resolve("strict-native-typed-annotation-values-out");
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(
+                sourceFile,
+                outDir,
+                JvmOptimizationOptions.defaults(),
+                JvmBytecodeCompiler.BackendMode.JVM_STRICT
+        );
+
+        assertEquals("jvm-native-class-subset", artifact.strictLoweringPath());
+        final Path executableClass = artifact.outputDirectory()
+                .resolve("dev/tsj/generated/AnnotatedShape__TsjStrictNative.class");
+        assertTrue(Files.exists(executableClass));
+
+        try (URLClassLoader classLoader = new URLClassLoader(new URL[]{artifact.outputDirectory().toUri().toURL()})) {
+            final Class<?> executableClassType = Class.forName(
+                    "dev.tsj.generated.AnnotatedShape__TsjStrictNative",
+                    true,
+                    classLoader
+            );
+            final TypedAttributeMark classMark = executableClassType.getAnnotation(TypedAttributeMark.class);
+            assertEquals(TypedAttributeMode.TYPE, classMark.mode());
+            assertEquals(String.class, classMark.type());
+            assertArrayEquals(
+                    new TypedAttributeMode[]{TypedAttributeMode.TYPE, TypedAttributeMode.METHOD},
+                    classMark.modes()
+            );
+            assertArrayEquals(new Class<?>[]{String.class, Integer.class}, classMark.types());
+
+            final TypedAttributeMark fieldMark =
+                    executableClassType.getDeclaredField("value").getAnnotation(TypedAttributeMark.class);
+            assertEquals(TypedAttributeMode.FIELD, fieldMark.mode());
+            assertEquals(Long.class, fieldMark.type());
+            assertArrayEquals(new Class<?>[]{Long.class, Double.class}, fieldMark.types());
+
+            final java.lang.reflect.Constructor<?> constructor = executableClassType.getDeclaredConstructor(String.class);
+            final TypedAttributeMark constructorMark = constructor.getAnnotation(TypedAttributeMark.class);
+            assertEquals(TypedAttributeMode.CONSTRUCTOR, constructorMark.mode());
+            assertEquals(Boolean.class, constructorMark.type());
+
+            final TypedAttributeMark constructorParameterMark =
+                    constructor.getParameters()[0].getAnnotation(TypedAttributeMark.class);
+            assertEquals(TypedAttributeMode.PARAMETER, constructorParameterMark.mode());
+            assertEquals(Float.class, constructorParameterMark.type());
+
+            final java.lang.reflect.Method method = executableClassType.getDeclaredMethod("greet", String.class);
+            final TypedAttributeMark methodMark = method.getAnnotation(TypedAttributeMark.class);
+            assertEquals(TypedAttributeMode.METHOD, methodMark.mode());
+            assertEquals(Short.class, methodMark.type());
+            assertArrayEquals(new TypedAttributeMode[]{TypedAttributeMode.METHOD}, methodMark.modes());
+            assertArrayEquals(new Class<?>[]{Short.class, Byte.class}, methodMark.types());
+
+            final TypedAttributeMark methodParameterMark = method.getParameters()[0].getAnnotation(TypedAttributeMark.class);
+            assertEquals(TypedAttributeMode.PARAMETER, methodParameterMark.mode());
+            assertEquals(Byte.class, methodParameterMark.type());
+        }
+    }
+
+    @Test
+    void strictJvmExecutableClassPreservesRepeatableAnnotations() throws Exception {
+        final Path sourceFile = tempDir.resolve("strict-native-repeatable-annotations.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                import { RepeatableTag } from "java:dev.tsj.compiler.backend.jvm.fixtures.annotations.RepeatableTag";
+
+                @RepeatableTag("type-a")
+                @RepeatableTag("type-b")
+                class RepeatableShape {
+                  @RepeatableTag("method-a")
+                  @RepeatableTag("method-b")
+                  greet() {
+                    return "ok";
+                  }
+                }
+                """,
+                UTF_8
+        );
+
+        final Path outDir = tempDir.resolve("strict-native-repeatable-annotations-out");
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(
+                sourceFile,
+                outDir,
+                JvmOptimizationOptions.defaults(),
+                JvmBytecodeCompiler.BackendMode.JVM_STRICT
+        );
+
+        assertEquals("jvm-native-class-subset", artifact.strictLoweringPath());
+
+        try (URLClassLoader classLoader = new URLClassLoader(new URL[]{artifact.outputDirectory().toUri().toURL()})) {
+            final Class<?> executableClassType = Class.forName(
+                    "dev.tsj.generated.RepeatableShape__TsjStrictNative",
+                    true,
+                    classLoader
+            );
+            final RepeatableTag[] classTags = executableClassType.getAnnotationsByType(RepeatableTag.class);
+            assertArrayEquals(new String[]{"type-a", "type-b"}, List.of(classTags).stream().map(RepeatableTag::value).toArray(String[]::new));
+
+            final java.lang.reflect.Method greet = executableClassType.getDeclaredMethod("greet");
+            final RepeatableTag[] methodTags = greet.getAnnotationsByType(RepeatableTag.class);
+            assertArrayEquals(new String[]{"method-a", "method-b"}, List.of(methodTags).stream().map(RepeatableTag::value).toArray(String[]::new));
+        }
+    }
+
+    @Test
+    void strictJvmExecutableClassEmitsNestedAnnotationAttributes() throws Exception {
+        final Path sourceFile = tempDir.resolve("strict-native-nested-annotation-values.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                import { NestedOuterMark } from "java:dev.tsj.compiler.backend.jvm.fixtures.annotations.NestedOuterMark";
+
+                @NestedOuterMark({
+                  inner: { name: 'class-primary', count: 1 },
+                  inners: [
+                    { name: 'class-extra', count: 2 },
+                    { name: 'class-last', count: 3 }
+                  ]
+                })
+                class NestedShape {
+                  @NestedOuterMark({
+                    inner: { name: 'method-primary', count: 4 },
+                    inners: [{ name: 'method-extra', count: 5 }]
+                  })
+                  greet() {
+                    return "ok";
+                  }
+                }
+                """,
+                UTF_8
+        );
+
+        final Path outDir = tempDir.resolve("strict-native-nested-annotation-values-out");
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(
+                sourceFile,
+                outDir,
+                JvmOptimizationOptions.defaults(),
+                JvmBytecodeCompiler.BackendMode.JVM_STRICT
+        );
+
+        assertEquals("jvm-native-class-subset", artifact.strictLoweringPath());
+
+        try (URLClassLoader classLoader = new URLClassLoader(new URL[]{artifact.outputDirectory().toUri().toURL()})) {
+            final Class<?> executableClassType = Class.forName(
+                    "dev.tsj.generated.NestedShape__TsjStrictNative",
+                    true,
+                    classLoader
+            );
+            final NestedOuterMark classMark = executableClassType.getAnnotation(NestedOuterMark.class);
+            assertEquals("class-primary", classMark.inner().name());
+            assertEquals(1, classMark.inner().count());
+            assertEquals(2, classMark.inners().length);
+            assertEquals("class-extra", classMark.inners()[0].name());
+            assertEquals(2, classMark.inners()[0].count());
+            assertEquals("class-last", classMark.inners()[1].name());
+            assertEquals(3, classMark.inners()[1].count());
+
+            final java.lang.reflect.Method greet = executableClassType.getDeclaredMethod("greet");
+            final NestedOuterMark methodMark = greet.getAnnotation(NestedOuterMark.class);
+            assertEquals("method-primary", methodMark.inner().name());
+            assertEquals(4, methodMark.inner().count());
+            assertEquals(1, methodMark.inners().length);
+            assertEquals("method-extra", methodMark.inners()[0].name());
+            assertEquals(5, methodMark.inners()[0].count());
+        }
+    }
+
+    @Test
+    void strictJvmExecutableClassExposesBeanPropertyDescriptors() throws Exception {
+        final Path sourceFile = tempDir.resolve("strict-native-bean-properties.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                class BeanShape {
+                  name: string;
+                  city: string;
+
+                  constructor(name: string, city: string) {
+                    this.name = name;
+                    this.city = city;
+                  }
+                }
+                """,
+                UTF_8
+        );
+
+        final Path outDir = tempDir.resolve("strict-native-bean-properties-out");
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(
+                sourceFile,
+                outDir,
+                JvmOptimizationOptions.defaults(),
+                JvmBytecodeCompiler.BackendMode.JVM_STRICT
+        );
+
+        assertEquals("jvm-native-class-subset", artifact.strictLoweringPath());
+
+        try (URLClassLoader classLoader = new URLClassLoader(new URL[]{artifact.outputDirectory().toUri().toURL()})) {
+            final Class<?> executableClassType = Class.forName(
+                    "dev.tsj.generated.BeanShape__TsjStrictNative",
+                    true,
+                    classLoader
+            );
+            java.beans.PropertyDescriptor nameDescriptor = null;
+            java.beans.PropertyDescriptor cityDescriptor = null;
+            for (java.beans.PropertyDescriptor descriptor : java.beans.Introspector.getBeanInfo(executableClassType)
+                    .getPropertyDescriptors()) {
+                if ("name".equals(descriptor.getName())) {
+                    nameDescriptor = descriptor;
+                } else if ("city".equals(descriptor.getName())) {
+                    cityDescriptor = descriptor;
+                }
+            }
+
+            assertTrue(nameDescriptor != null);
+            assertEquals("getName", nameDescriptor.getReadMethod().getName());
+            assertEquals("setName", nameDescriptor.getWriteMethod().getName());
+
+            assertTrue(cityDescriptor != null);
+            assertEquals("getCity", cityDescriptor.getReadMethod().getName());
+            assertEquals("setCity", cityDescriptor.getWriteMethod().getName());
+
+            final Object instance = executableClassType.getDeclaredConstructor(String.class, String.class)
+                    .newInstance("Ada", "London");
+            assertEquals("Ada", nameDescriptor.getReadMethod().invoke(instance));
+            cityDescriptor.getWriteMethod().invoke(instance, "Paris");
+            assertEquals("Paris", cityDescriptor.getReadMethod().invoke(instance));
+        }
+    }
+
+    @Test
+    void strictJvmExecutableClassEmitsClasspathNullabilityAnnotations() throws Exception {
+        final Path sourceFile = tempDir.resolve("strict-native-nullability.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                class CustomerProfile {
+                  requiredName: string;
+                  nickname: string | null;
+
+                  constructor(requiredName: string, nickname: string | null) {
+                    this.requiredName = requiredName;
+                    this.nickname = nickname;
+                  }
+
+                  primaryName(): string {
+                    return this.requiredName;
+                  }
+
+                  displayName(prefix: string | null): string | null {
+                    if (prefix === null) {
+                      return null;
+                    }
+                    return prefix + this.requiredName;
+                  }
+                }
+                """,
+                UTF_8
+        );
+
+        final Path outDir = tempDir.resolve("strict-native-nullability-out");
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(
+                sourceFile,
+                outDir,
+                JvmOptimizationOptions.defaults(),
+                JvmBytecodeCompiler.BackendMode.JVM_STRICT
+        );
+
+        assertEquals("jvm-native-class-subset", artifact.strictLoweringPath());
+        final JavaClassfileReader.RawClassInfo executableClass = new JavaClassfileReader().read(
+                artifact.outputDirectory().resolve("dev/tsj/generated/CustomerProfile__TsjStrictNative.class")
+        );
+
+        final String nonNull = "Ljavax/annotation/Nonnull;";
+        final String nullable = "Ljavax/annotation/Nullable;";
+
+        final JavaClassfileReader.RawFieldInfo requiredName = executableClass.fields().stream()
+                .filter(candidate -> "requiredName".equals(candidate.name()))
+                .findFirst()
+                .orElseThrow();
+        assertTrue(hasAnnotation(requiredName.runtimeVisibleAnnotations(), requiredName.runtimeInvisibleAnnotations(), nonNull));
+
+        final JavaClassfileReader.RawFieldInfo nickname = executableClass.fields().stream()
+                .filter(candidate -> "nickname".equals(candidate.name()))
+                .findFirst()
+                .orElseThrow();
+        assertTrue(hasAnnotation(nickname.runtimeVisibleAnnotations(), nickname.runtimeInvisibleAnnotations(), nullable));
+
+        final JavaClassfileReader.RawMethodInfo constructor = executableClass.methods().stream()
+                .filter(candidate -> "<init>".equals(candidate.name()) && "(Ljava/lang/String;Ljava/lang/String;)V".equals(candidate.descriptor()))
+                .findFirst()
+                .orElseThrow();
+        assertTrue(hasParameterAnnotation(constructor, 0, nonNull));
+        assertTrue(hasParameterAnnotation(constructor, 1, nullable));
+
+        final JavaClassfileReader.RawMethodInfo primaryName = executableClass.methods().stream()
+                .filter(candidate -> "primaryName".equals(candidate.name()) && "()Ljava/lang/String;".equals(candidate.descriptor()))
+                .findFirst()
+                .orElseThrow();
+        assertTrue(hasAnnotation(primaryName.runtimeVisibleAnnotations(), primaryName.runtimeInvisibleAnnotations(), nonNull));
+
+        final JavaClassfileReader.RawMethodInfo displayName = executableClass.methods().stream()
+                .filter(candidate -> "displayName".equals(candidate.name()) && "(Ljava/lang/String;)Ljava/lang/String;".equals(candidate.descriptor()))
+                .findFirst()
+                .orElseThrow();
+        assertTrue(hasAnnotation(displayName.runtimeVisibleAnnotations(), displayName.runtimeInvisibleAnnotations(), nullable));
+        assertTrue(hasParameterAnnotation(displayName, 0, nullable));
+    }
+
+    @Test
+    void strictJvmExecutableClassPreservesGenericSignaturesAndProxyFriendlyShape() throws Exception {
+        final Path sourceFile = tempDir.resolve("strict-native-generic-shape.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                class OwnerDirectory {
+                  tags: Array<string>;
+
+                  constructor(tags: Array<string>) {
+                    this.tags = tags;
+                  }
+
+                  findAll(): Array<string> {
+                    return this.tags;
+                  }
+
+                  byName(input: Record<string, string>): Array<string> {
+                    return this.tags;
+                  }
+                }
+                """,
+                UTF_8
+        );
+
+        final Path outDir = tempDir.resolve("strict-native-generic-shape-out");
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(
+                sourceFile,
+                outDir,
+                JvmOptimizationOptions.defaults(),
+                JvmBytecodeCompiler.BackendMode.JVM_STRICT
+        );
+
+        assertEquals("jvm-native-class-subset", artifact.strictLoweringPath());
+        try (URLClassLoader classLoader = new URLClassLoader(new URL[]{artifact.outputDirectory().toUri().toURL()})) {
+            final Class<?> executableClassType = Class.forName(
+                    "dev.tsj.generated.OwnerDirectory__TsjStrictNative",
+                    true,
+                    classLoader
+            );
+            assertFalse(Modifier.isFinal(executableClassType.getModifiers()));
+
+            final Field tags = executableClassType.getDeclaredField("tags");
+            assertTrue(tags.getGenericType() instanceof ParameterizedType);
+            assertEquals("java.util.List<java.lang.String>", tags.getGenericType().getTypeName());
+
+            final Constructor<?> constructor = executableClassType.getDeclaredConstructor(List.class);
+            assertEquals("tags", constructor.getParameters()[0].getName());
+            assertEquals("java.util.List<java.lang.String>", constructor.getGenericParameterTypes()[0].getTypeName());
+
+            final Method findAll = executableClassType.getDeclaredMethod("findAll");
+            assertEquals("java.util.List<java.lang.String>", findAll.getGenericReturnType().getTypeName());
+
+            final Method byName = executableClassType.getDeclaredMethod("byName", Map.class);
+            assertEquals("input", byName.getParameters()[0].getName());
+            assertEquals("java.util.Map<java.lang.String, java.lang.String>", byName.getGenericParameterTypes()[0].getTypeName());
+            assertEquals("java.util.List<java.lang.String>", byName.getGenericReturnType().getTypeName());
+        }
+    }
+
+    @Test
     void strictJvmNativeDtoSupportsJacksonRoundTripForFrameworkBoundaries() throws Exception {
         final Path sourceFile = tempDir.resolve("strict-native-jackson-dto.ts");
         Files.writeString(
                 sourceFile,
                 """
                 class PersonDto {
-                  id: string;
-                  name: string;
-
-                  constructor(id: string, name: string) {
-                    this.id = id;
-                    this.name = name;
-                  }
-
-                  self() {
-                    return this;
-                  }
+                  id: string = "";
+                  name: string = "";
                 }
                 """,
                 UTF_8
@@ -190,28 +734,17 @@ class JvmBytecodeCompilerTest {
 
         assertEquals("jvm-native-class-subset", artifact.strictLoweringPath());
         try (URLClassLoader classLoader = new URLClassLoader(new URL[]{artifact.outputDirectory().toUri().toURL()})) {
-            final Class<?> programClass = Class.forName(artifact.className(), true, classLoader);
-            final java.lang.reflect.Method invokeClass = programClass.getDeclaredMethod(
-                    "__tsjInvokeClass",
-                    String.class,
-                    String.class,
-                    Object[].class,
-                    Object[].class
-            );
-            final Object dto = invokeClass.invoke(
-                    null,
-                    "PersonDto",
-                    "self",
-                    new Object[]{"42", "Ada"},
-                    new Object[0]
-            );
+            final Class<?> dtoClass = Class.forName("dev.tsj.generated.PersonDto__TsjStrictNative", true, classLoader);
+            final Object dto = dtoClass.getDeclaredConstructor().newInstance();
+            dtoClass.getDeclaredMethod("setId", String.class).invoke(dto, "42");
+            dtoClass.getDeclaredMethod("setName", String.class).invoke(dto, "Ada");
             final String serialized = OBJECT_MAPPER.writeValueAsString(dto);
             assertTrue(serialized.contains("\"id\":\"42\""));
             assertTrue(serialized.contains("\"name\":\"Ada\""));
 
             @SuppressWarnings("unchecked")
-            final Class<Object> dtoClass = (Class<Object>) dto.getClass();
-            final Object rebound = OBJECT_MAPPER.readValue(serialized, dtoClass);
+            final Class<Object> reboundType = (Class<Object>) dtoClass;
+            final Object rebound = OBJECT_MAPPER.readValue(serialized, reboundType);
             final java.lang.reflect.Method getId = dtoClass.getDeclaredMethod("getId");
             final java.lang.reflect.Method getName = dtoClass.getDeclaredMethod("getName");
             assertEquals("42", getId.invoke(rebound));
@@ -255,24 +788,15 @@ class JvmBytecodeCompilerTest {
 
         assertEquals("jvm-native-class-subset", artifact.strictLoweringPath());
         try (URLClassLoader classLoader = new URLClassLoader(new URL[]{artifact.outputDirectory().toUri().toURL()})) {
-            final Class<?> programClass = Class.forName(artifact.className(), true, classLoader);
-            final java.lang.reflect.Method invokeClass = programClass.getDeclaredMethod(
-                    "__tsjInvokeClass",
-                    String.class,
-                    String.class,
-                    Object[].class,
-                    Object[].class
-            );
-
-            final Object high = invokeClass.invoke(
-                    null,
+            final Object high = invokeStrictInstanceMethod(
+                    classLoader,
                     "Threshold",
                     "normalize",
                     new Object[]{5},
                     new Object[]{3}
             );
-            final Object low = invokeClass.invoke(
-                    null,
+            final Object low = invokeStrictInstanceMethod(
+                    classLoader,
                     "Threshold",
                     "normalize",
                     new Object[]{2},
@@ -330,7 +854,1696 @@ class JvmBytecodeCompilerTest {
     }
 
     @Test
-    void strictRuntimeCarrierRegistersTopLevelClassesFromBundledModuleInitializers() throws Exception {
+    void strictJvmNativeSubsetSupportsMultiClassServiceChainWithArrayLiteralRepositoryResult() throws Exception {
+        final Path sourceFile = tempDir.resolve("strict-native-service-chain.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                class Repo {
+                  findAll() {
+                    return ["Ada", "Linus"];
+                  }
+                }
+
+                class Service {
+                  repo: Repo;
+
+                  list() {
+                    return this.repo.findAll();
+                  }
+                }
+
+                class Controller {
+                  service: Service;
+
+                  handle() {
+                    return this.service.list();
+                  }
+                }
+                """,
+                UTF_8
+        );
+
+        final Path outDir = tempDir.resolve("strict-native-service-chain-out");
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(
+                sourceFile,
+                outDir,
+                JvmOptimizationOptions.defaults(),
+                JvmBytecodeCompiler.BackendMode.JVM_STRICT
+        );
+
+        assertEquals("jvm-native-class-subset", artifact.strictLoweringPath());
+        try (URLClassLoader classLoader = new URLClassLoader(new URL[]{artifact.outputDirectory().toUri().toURL()})) {
+            final Class<?> repoClass = Class.forName("dev.tsj.generated.Repo__TsjStrictNative", true, classLoader);
+            final Object repo = repoClass.getDeclaredConstructor().newInstance();
+
+            final Class<?> serviceClass = Class.forName("dev.tsj.generated.Service__TsjStrictNative", true, classLoader);
+            final Object service = serviceClass.getDeclaredConstructor().newInstance();
+            serviceClass.getDeclaredMethod("setRepo", repoClass).invoke(service, repo);
+
+            final Class<?> controllerClass = Class.forName(
+                    "dev.tsj.generated.Controller__TsjStrictNative",
+                    true,
+                    classLoader
+            );
+            final Object controller = controllerClass.getDeclaredConstructor().newInstance();
+            controllerClass.getDeclaredMethod("setService", serviceClass).invoke(controller, service);
+
+            final Object result = controllerClass.getDeclaredMethod("handle").invoke(controller);
+            assertEquals(2.0d, ((Number) TsjRuntime.getProperty(result, "length")).doubleValue());
+            assertEquals("Ada", TsjRuntime.getProperty(result, "0"));
+            assertEquals("Linus", TsjRuntime.getProperty(result, "1"));
+        }
+    }
+
+    @Test
+    void strictJvmNativeSubsetSupportsTryCatchFinallyInClassMethodBody() throws Exception {
+        final Path sourceFile = tempDir.resolve("strict-native-try-catch.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                class TaskRunner {
+                  attempts: number;
+
+                  constructor() {
+                    this.attempts = 0;
+                  }
+
+                  run(shouldFail: boolean) {
+                    try {
+                      if (shouldFail) {
+                        throw "boom";
+                      }
+                      return "ok";
+                    } catch (error) {
+                      return "error=" + error;
+                    } finally {
+                      this.attempts = this.attempts + 1;
+                    }
+                  }
+
+                  total() {
+                    return this.attempts;
+                  }
+                }
+                """,
+                UTF_8
+        );
+
+        final Path outDir = tempDir.resolve("strict-native-try-catch-out");
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(
+                sourceFile,
+                outDir,
+                JvmOptimizationOptions.defaults(),
+                JvmBytecodeCompiler.BackendMode.JVM_STRICT
+        );
+
+        assertEquals("jvm-native-class-subset", artifact.strictLoweringPath());
+        try (URLClassLoader classLoader = new URLClassLoader(new URL[]{artifact.outputDirectory().toUri().toURL()})) {
+            final Class<?> runnerClass = Class.forName("dev.tsj.generated.TaskRunner__TsjStrictNative", true, classLoader);
+            final Object runner = runnerClass.getDeclaredConstructor().newInstance();
+
+            assertEquals("ok", runnerClass.getDeclaredMethod("run", Boolean.class).invoke(runner, false));
+            assertEquals("error=boom", runnerClass.getDeclaredMethod("run", Boolean.class).invoke(runner, true));
+            assertEquals(2.0d, ((Number) runnerClass.getDeclaredMethod("total").invoke(runner)).doubleValue());
+        }
+    }
+
+    @Test
+    void strictJvmNativeSubsetSupportsWhileLoopInClassMethodBody() throws Exception {
+        final Path sourceFile = tempDir.resolve("strict-native-while.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                class Accumulator {
+                  total: number;
+
+                  constructor() {
+                    this.total = 0;
+                  }
+
+                  sum(limit: number) {
+                    let current = 0;
+                    while (current < limit) {
+                      current = current + 1;
+                      this.total = this.total + current;
+                    }
+                    return this.total;
+                  }
+                }
+                """,
+                UTF_8
+        );
+
+        final Path outDir = tempDir.resolve("strict-native-while-out");
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(
+                sourceFile,
+                outDir,
+                JvmOptimizationOptions.defaults(),
+                JvmBytecodeCompiler.BackendMode.JVM_STRICT
+        );
+
+        assertEquals("jvm-native-class-subset", artifact.strictLoweringPath());
+        try (URLClassLoader classLoader = new URLClassLoader(new URL[]{artifact.outputDirectory().toUri().toURL()})) {
+            final Class<?> accumulatorClass = Class.forName(
+                    "dev.tsj.generated.Accumulator__TsjStrictNative",
+                    true,
+                    classLoader
+            );
+            final Object accumulator = accumulatorClass.getDeclaredConstructor().newInstance();
+            final Object result = accumulatorClass.getDeclaredMethod("sum", Number.class).invoke(accumulator, 4);
+            assertEquals(10.0d, ((Number) result).doubleValue());
+        }
+    }
+
+    @Test
+    void strictJvmNativeSubsetSupportsDerivedClassWithSuperConstructorAndInheritedDispatch() throws Exception {
+        final Path sourceFile = tempDir.resolve("strict-native-inheritance.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                class PersonBase {
+                  name: string;
+
+                  constructor(name: string) {
+                    this.name = name;
+                  }
+
+                  greet(prefix: string) {
+                    return prefix + this.name;
+                  }
+                }
+
+                class PersonController extends PersonBase {
+                  constructor(name: string) {
+                    super(name);
+                  }
+
+                  handle() {
+                    return this.greet("hi ");
+                  }
+                }
+                """,
+                UTF_8
+        );
+
+        final Path outDir = tempDir.resolve("strict-native-inheritance-out");
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(
+                sourceFile,
+                outDir,
+                JvmOptimizationOptions.defaults(),
+                JvmBytecodeCompiler.BackendMode.JVM_STRICT
+        );
+
+        assertEquals("jvm-native-class-subset", artifact.strictLoweringPath());
+        try (URLClassLoader classLoader = new URLClassLoader(new URL[]{artifact.outputDirectory().toUri().toURL()})) {
+            final Object handled = invokeStrictInstanceMethod(
+                    classLoader,
+                    "PersonController",
+                    "handle",
+                    new Object[]{"Ada"},
+                    new Object[0]
+            );
+            final Object greeted = invokeStrictInstanceMethod(
+                    classLoader,
+                    "PersonController",
+                    "greet",
+                    new Object[]{"Ada"},
+                    new Object[]{"hello "}
+            );
+
+            assertEquals("hi Ada", handled);
+            assertEquals("hello Ada", greeted);
+        }
+    }
+
+    @Test
+    void strictJvmNativeSubsetSupportsSuperMemberCallsInDerivedMethods() throws Exception {
+        final Path sourceFile = tempDir.resolve("strict-native-super-member.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                class PersonBase {
+                  greet(prefix: string) {
+                    return prefix + "Ada";
+                  }
+                }
+
+                class PersonController extends PersonBase {
+                  greet(prefix: string) {
+                    return super.greet(prefix) + "!";
+                  }
+                }
+                """,
+                UTF_8
+        );
+
+        final Path outDir = tempDir.resolve("strict-native-super-member-out");
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(
+                sourceFile,
+                outDir,
+                JvmOptimizationOptions.defaults(),
+                JvmBytecodeCompiler.BackendMode.JVM_STRICT
+        );
+
+        assertEquals("jvm-native-class-subset", artifact.strictLoweringPath());
+        try (URLClassLoader classLoader = new URLClassLoader(new URL[]{artifact.outputDirectory().toUri().toURL()})) {
+            final Object greeted = invokeStrictInstanceMethod(
+                    classLoader,
+                    "PersonController",
+                    "greet",
+                    new Object[0],
+                    new Object[]{"hi "}
+            );
+
+            assertEquals("hi Ada!", greeted);
+        }
+    }
+
+    @Test
+    void strictJvmNativeSubsetSupportsLexicalArrowFunctionInsideClassMethod() throws Exception {
+        final Path sourceFile = tempDir.resolve("strict-native-arrow.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                class Calculator {
+                  base: number;
+
+                  constructor(base: number) {
+                    this.base = base;
+                  }
+
+                  compute(input: number) {
+                    const addBase = (value: number) => {
+                      return value + this.base;
+                    };
+                    return addBase(input);
+                  }
+                }
+                """,
+                UTF_8
+        );
+
+        final Path outDir = tempDir.resolve("strict-native-arrow-out");
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(
+                sourceFile,
+                outDir,
+                JvmOptimizationOptions.defaults(),
+                JvmBytecodeCompiler.BackendMode.JVM_STRICT
+        );
+
+        assertEquals("jvm-native-class-subset", artifact.strictLoweringPath());
+        try (URLClassLoader classLoader = new URLClassLoader(new URL[]{artifact.outputDirectory().toUri().toURL()})) {
+            final Object result = invokeStrictInstanceMethod(
+                    classLoader,
+                    "Calculator",
+                    "compute",
+                    new Object[]{2},
+                    new Object[]{40}
+            );
+
+            assertEquals(42.0d, ((Number) result).doubleValue());
+        }
+    }
+
+    @Test
+    void strictJvmNativeSubsetSupportsLexicalArrowCapturingOuterLocalAndParameter() throws Exception {
+        final Path sourceFile = tempDir.resolve("strict-native-arrow-capture.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                class Calculator {
+                  compute(input: number) {
+                    const offset = 1;
+                    const addBoth = (value: number) => {
+                      return value + input + offset;
+                    };
+                    return addBoth(1);
+                  }
+                }
+                """,
+                UTF_8
+        );
+
+        final Path outDir = tempDir.resolve("strict-native-arrow-capture-out");
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(
+                sourceFile,
+                outDir,
+                JvmOptimizationOptions.defaults(),
+                JvmBytecodeCompiler.BackendMode.JVM_STRICT
+        );
+
+        assertEquals("jvm-native-class-subset", artifact.strictLoweringPath());
+        try (URLClassLoader classLoader = new URLClassLoader(new URL[]{artifact.outputDirectory().toUri().toURL()})) {
+            final Object result = invokeStrictInstanceMethod(
+                    classLoader,
+                    "Calculator",
+                    "compute",
+                    new Object[0],
+                    new Object[]{40}
+            );
+
+            assertEquals(42.0d, ((Number) result).doubleValue());
+        }
+    }
+
+    @Test
+    void strictJvmNativeSubsetSupportsFunctionExpressionWithCapturedLocalAndDynamicThis() throws Exception {
+        final Path sourceFile = tempDir.resolve("strict-native-function-expression.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                class Calculator {
+                  compute(input: number) {
+                    const offset = 1;
+                    const holder = {
+                      base: 10,
+                      add: function(value: number) {
+                        this.base = this.base + offset;
+                        return this.base + value;
+                      }
+                    };
+                    return holder.add(input);
+                  }
+                }
+                """,
+                UTF_8
+        );
+
+        final Path outDir = tempDir.resolve("strict-native-function-expression-out");
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(
+                sourceFile,
+                outDir,
+                JvmOptimizationOptions.defaults(),
+                JvmBytecodeCompiler.BackendMode.JVM_STRICT
+        );
+
+        assertEquals("jvm-native-class-subset", artifact.strictLoweringPath());
+        try (URLClassLoader classLoader = new URLClassLoader(new URL[]{artifact.outputDirectory().toUri().toURL()})) {
+            final Object result = invokeStrictInstanceMethod(
+                    classLoader,
+                    "Calculator",
+                    "compute",
+                    new Object[0],
+                    new Object[]{31}
+            );
+
+            assertEquals(42.0d, ((Number) result).doubleValue());
+        }
+    }
+
+    @Test
+    void strictJvmNativeSubsetSupportsBreakAndContinueInWhileLoop() throws Exception {
+        final Path sourceFile = tempDir.resolve("strict-native-break-continue.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                class Calculator {
+                  compute() {
+                    let total = 0;
+                    let index = 0;
+                    while (index < 5) {
+                      index = index + 1;
+                      if (index == 2) {
+                        continue;
+                      }
+                      if (index == 5) {
+                        break;
+                      }
+                      total = total + index;
+                    }
+                    return total;
+                  }
+                }
+                """,
+                UTF_8
+        );
+
+        final Path outDir = tempDir.resolve("strict-native-break-continue-out");
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(
+                sourceFile,
+                outDir,
+                JvmOptimizationOptions.defaults(),
+                JvmBytecodeCompiler.BackendMode.JVM_STRICT
+        );
+
+        assertEquals("jvm-native-class-subset", artifact.strictLoweringPath());
+        try (URLClassLoader classLoader = new URLClassLoader(new URL[]{artifact.outputDirectory().toUri().toURL()})) {
+            final Object result = invokeStrictInstanceMethod(
+                    classLoader,
+                    "Calculator",
+                    "compute",
+                    new Object[0],
+                    new Object[0]
+            );
+
+            assertEquals(8.0d, ((Number) result).doubleValue());
+        }
+    }
+
+    @Test
+    void strictJvmNativeSubsetSupportsDoWhileLoopWithoutContinue() throws Exception {
+        final Path sourceFile = tempDir.resolve("strict-native-do-while.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                class Calculator {
+                  compute() {
+                    let total = 0;
+                    let index = 0;
+                    do {
+                      total = total + index;
+                      index = index + 1;
+                    } while (index < 3);
+                    return total;
+                  }
+                }
+                """,
+                UTF_8
+        );
+
+        final Path outDir = tempDir.resolve("strict-native-do-while-out");
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(
+                sourceFile,
+                outDir,
+                JvmOptimizationOptions.defaults(),
+                JvmBytecodeCompiler.BackendMode.JVM_STRICT
+        );
+
+        assertEquals("jvm-native-class-subset", artifact.strictLoweringPath());
+        try (URLClassLoader classLoader = new URLClassLoader(new URL[]{artifact.outputDirectory().toUri().toURL()})) {
+            final Object result = invokeStrictInstanceMethod(
+                    classLoader,
+                    "Calculator",
+                    "compute",
+                    new Object[0],
+                    new Object[0]
+            );
+
+            assertEquals(3.0d, ((Number) result).doubleValue());
+        }
+    }
+
+    @Test
+    void strictJvmNativeSubsetSupportsLocalFunctionDeclarationHoistingAndCapture() throws Exception {
+        final Path sourceFile = tempDir.resolve("strict-native-local-function.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                class Calculator {
+                  compute(input: number) {
+                    const offset = 1;
+                    const result = add(input);
+
+                    function add(value: number) {
+                      return value + offset;
+                    }
+
+                    return result;
+                  }
+                }
+                """,
+                UTF_8
+        );
+
+        final Path outDir = tempDir.resolve("strict-native-local-function-out");
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(
+                sourceFile,
+                outDir,
+                JvmOptimizationOptions.defaults(),
+                JvmBytecodeCompiler.BackendMode.JVM_STRICT
+        );
+
+        assertEquals("jvm-native-class-subset", artifact.strictLoweringPath());
+        try (URLClassLoader classLoader = new URLClassLoader(new URL[]{artifact.outputDirectory().toUri().toURL()})) {
+            final Object result = invokeStrictInstanceMethod(
+                    classLoader,
+                    "Calculator",
+                    "compute",
+                    new Object[0],
+                    new Object[]{41}
+            );
+
+            assertEquals(42.0d, ((Number) result).doubleValue());
+        }
+    }
+
+    @Test
+    void strictJvmNativeSubsetSupportsForOfLoopOverArrayLiteral() throws Exception {
+        final Path sourceFile = tempDir.resolve("strict-native-for-of.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                class Calculator {
+                  compute() {
+                    let total = 0;
+                    for (const value of [1, 2, 3]) {
+                      total = total + value;
+                    }
+                    return total;
+                  }
+                }
+                """,
+                UTF_8
+        );
+
+        final Path outDir = tempDir.resolve("strict-native-for-of-out");
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(
+                sourceFile,
+                outDir,
+                JvmOptimizationOptions.defaults(),
+                JvmBytecodeCompiler.BackendMode.JVM_STRICT
+        );
+
+        assertEquals("jvm-native-class-subset", artifact.strictLoweringPath());
+        try (URLClassLoader classLoader = new URLClassLoader(new URL[]{artifact.outputDirectory().toUri().toURL()})) {
+            final Object result = invokeStrictInstanceMethod(
+                    classLoader,
+                    "Calculator",
+                    "compute",
+                    new Object[0],
+                    new Object[0]
+            );
+
+            assertEquals(6.0d, ((Number) result).doubleValue());
+        }
+    }
+
+    @Test
+    void strictJvmNativeSubsetSupportsForInLoopOverObjectLiteral() throws Exception {
+        final Path sourceFile = tempDir.resolve("strict-native-for-in.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                class Calculator {
+                  compute() {
+                    let keys = "";
+                    for (const key in { first: 1, second: 2 }) {
+                      keys = keys + key + ";";
+                    }
+                    return keys;
+                  }
+                }
+                """,
+                UTF_8
+        );
+
+        final Path outDir = tempDir.resolve("strict-native-for-in-out");
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(
+                sourceFile,
+                outDir,
+                JvmOptimizationOptions.defaults(),
+                JvmBytecodeCompiler.BackendMode.JVM_STRICT
+        );
+
+        assertEquals("jvm-native-class-subset", artifact.strictLoweringPath());
+        try (URLClassLoader classLoader = new URLClassLoader(new URL[]{artifact.outputDirectory().toUri().toURL()})) {
+            final Object result = invokeStrictInstanceMethod(
+                    classLoader,
+                    "Calculator",
+                    "compute",
+                    new Object[0],
+                    new Object[0]
+            );
+
+            assertEquals("first;second;", result);
+        }
+    }
+
+    @Test
+    void strictJvmNativeSubsetSupportsForOfLoopWithDestructuredArrayBinding() throws Exception {
+        final Path sourceFile = tempDir.resolve("strict-native-for-of-destructure.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                class Calculator {
+                  compute() {
+                    let total = 0;
+                    for (const [left, right] of [[1, 2], [3, 4]]) {
+                      total = total + left + right;
+                    }
+                    return total;
+                  }
+                }
+                """,
+                UTF_8
+        );
+
+        final Path outDir = tempDir.resolve("strict-native-for-of-destructure-out");
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(
+                sourceFile,
+                outDir,
+                JvmOptimizationOptions.defaults(),
+                JvmBytecodeCompiler.BackendMode.JVM_STRICT
+        );
+
+        assertEquals("jvm-native-class-subset", artifact.strictLoweringPath());
+        try (URLClassLoader classLoader = new URLClassLoader(new URL[]{artifact.outputDirectory().toUri().toURL()})) {
+            final Object result = invokeStrictInstanceMethod(
+                    classLoader,
+                    "Calculator",
+                    "compute",
+                    new Object[0],
+                    new Object[0]
+            );
+
+            assertEquals(10.0d, ((Number) result).doubleValue());
+        }
+    }
+
+    @Test
+    void strictJvmNativeSubsetSupportsForOfLoopWithDestructuredObjectBinding() throws Exception {
+        final Path sourceFile = tempDir.resolve("strict-native-for-of-object-destructure.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                class Calculator {
+                  compute() {
+                    let total = 0;
+                    for (const { left, right } of [{ left: 1, right: 2 }, { left: 3, right: 4 }]) {
+                      total = total + left + right;
+                    }
+                    return total;
+                  }
+                }
+                """,
+                UTF_8
+        );
+
+        final Path outDir = tempDir.resolve("strict-native-for-of-object-destructure-out");
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(
+                sourceFile,
+                outDir,
+                JvmOptimizationOptions.defaults(),
+                JvmBytecodeCompiler.BackendMode.JVM_STRICT
+        );
+
+        assertEquals("jvm-native-class-subset", artifact.strictLoweringPath());
+        try (URLClassLoader classLoader = new URLClassLoader(new URL[]{artifact.outputDirectory().toUri().toURL()})) {
+            final Object result = invokeStrictInstanceMethod(
+                    classLoader,
+                    "Calculator",
+                    "compute",
+                    new Object[0],
+                    new Object[0]
+            );
+
+            assertEquals(10.0d, ((Number) result).doubleValue());
+        }
+    }
+
+    @Test
+    void strictJvmNativeSubsetSupportsLabeledBreakAndContinueInWhileLoops() throws Exception {
+        final Path sourceFile = tempDir.resolve("strict-native-labeled-loop-control.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                class Calculator {
+                  compute() {
+                    let outer = 0;
+                    let total = 0;
+
+                    outerLoop: while (outer < 4) {
+                      outer = outer + 1;
+                      let inner = 0;
+
+                      while (inner < 4) {
+                        inner = inner + 1;
+                        if (inner == 2) {
+                          continue outerLoop;
+                        }
+                        if (outer == 4) {
+                          break outerLoop;
+                        }
+                        total = total + 1;
+                      }
+                    }
+
+                    return total;
+                  }
+                }
+                """,
+                UTF_8
+        );
+
+        final Path outDir = tempDir.resolve("strict-native-labeled-loop-control-out");
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(
+                sourceFile,
+                outDir,
+                JvmOptimizationOptions.defaults(),
+                JvmBytecodeCompiler.BackendMode.JVM_STRICT
+        );
+
+        assertEquals("jvm-native-class-subset", artifact.strictLoweringPath());
+        try (URLClassLoader classLoader = new URLClassLoader(new URL[]{artifact.outputDirectory().toUri().toURL()})) {
+            final Object result = invokeStrictInstanceMethod(
+                    classLoader,
+                    "Calculator",
+                    "compute",
+                    new Object[0],
+                    new Object[0]
+            );
+
+            assertEquals(3.0d, ((Number) result).doubleValue());
+        }
+    }
+
+    @Test
+    void strictJvmNativeSubsetSupportsDoWhileLoopWithContinue() throws Exception {
+        final Path sourceFile = tempDir.resolve("strict-native-do-while-continue.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                class Calculator {
+                  compute() {
+                    let total = 0;
+                    let index = 0;
+                    do {
+                      index = index + 1;
+                      if (index == 2) {
+                        continue;
+                      }
+                      total = total + index;
+                    } while (index < 4);
+                    return total;
+                  }
+                }
+                """,
+                UTF_8
+        );
+
+        final Path outDir = tempDir.resolve("strict-native-do-while-continue-out");
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(
+                sourceFile,
+                outDir,
+                JvmOptimizationOptions.defaults(),
+                JvmBytecodeCompiler.BackendMode.JVM_STRICT
+        );
+
+        assertEquals("jvm-native-class-subset", artifact.strictLoweringPath());
+        try (URLClassLoader classLoader = new URLClassLoader(new URL[]{artifact.outputDirectory().toUri().toURL()})) {
+            final Object result = invokeStrictInstanceMethod(
+                    classLoader,
+                    "Calculator",
+                    "compute",
+                    new Object[0],
+                    new Object[0]
+            );
+
+            assertEquals(8.0d, ((Number) result).doubleValue());
+        }
+    }
+
+    @Test
+    void strictJvmNativeSubsetSupportsLocalObjectPropertyMutation() throws Exception {
+        final Path sourceFile = tempDir.resolve("strict-native-local-object-mutation.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                class Calculator {
+                  compute() {
+                    const state = { count: 1 };
+                    state.count = state.count + 41;
+                    return state.count;
+                  }
+                }
+                """,
+                UTF_8
+        );
+
+        final Path outDir = tempDir.resolve("strict-native-local-object-mutation-out");
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(
+                sourceFile,
+                outDir,
+                JvmOptimizationOptions.defaults(),
+                JvmBytecodeCompiler.BackendMode.JVM_STRICT
+        );
+
+        assertEquals("jvm-native-class-subset", artifact.strictLoweringPath());
+        try (URLClassLoader classLoader = new URLClassLoader(new URL[]{artifact.outputDirectory().toUri().toURL()})) {
+            final Object result = invokeStrictInstanceMethod(
+                    classLoader,
+                    "Calculator",
+                    "compute",
+                    new Object[0],
+                    new Object[0]
+            );
+
+            assertEquals(42.0d, ((Number) result).doubleValue());
+        }
+    }
+
+    @Test
+    void strictJvmNativeSubsetSupportsIndexAssignmentTargets() throws Exception {
+        final Path sourceFile = tempDir.resolve("strict-native-index-assignment.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                class Calculator {
+                  compute() {
+                    const key = "count";
+                    const state = { count: 1 };
+                    state[key] = state[key] + 41;
+                    const values = [0, 0, 0];
+                    values[1] = 5;
+                    return state["count"] + values[1];
+                  }
+                }
+                """,
+                UTF_8
+        );
+
+        final Path outDir = tempDir.resolve("strict-native-index-assignment-out");
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(
+                sourceFile,
+                outDir,
+                JvmOptimizationOptions.defaults(),
+                JvmBytecodeCompiler.BackendMode.JVM_STRICT
+        );
+
+        assertEquals("jvm-native-class-subset", artifact.strictLoweringPath());
+        try (URLClassLoader classLoader = new URLClassLoader(new URL[]{artifact.outputDirectory().toUri().toURL()})) {
+            final Object result = invokeStrictInstanceMethod(
+                    classLoader,
+                    "Calculator",
+                    "compute",
+                    new Object[0],
+                    new Object[0]
+            );
+
+            assertEquals(47.0d, ((Number) result).doubleValue());
+        }
+    }
+
+    @Test
+    void strictJvmNativeSubsetSupportsAssignmentExpressionResult() throws Exception {
+        final Path sourceFile = tempDir.resolve("strict-native-assignment-expression.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                class Calculator {
+                  compute() {
+                    const state = { count: 1 };
+                    return (state.count = state.count + 41);
+                  }
+                }
+                """,
+                UTF_8
+        );
+
+        final Path outDir = tempDir.resolve("strict-native-assignment-expression-out");
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(
+                sourceFile,
+                outDir,
+                JvmOptimizationOptions.defaults(),
+                JvmBytecodeCompiler.BackendMode.JVM_STRICT
+        );
+
+        assertEquals("jvm-native-class-subset", artifact.strictLoweringPath());
+        try (URLClassLoader classLoader = new URLClassLoader(new URL[]{artifact.outputDirectory().toUri().toURL()})) {
+            final Object result = invokeStrictInstanceMethod(
+                    classLoader,
+                    "Calculator",
+                    "compute",
+                    new Object[0],
+                    new Object[0]
+            );
+
+            assertEquals(42.0d, ((Number) result).doubleValue());
+        }
+    }
+
+    @Test
+    void strictJvmNativeSubsetSupportsCompoundAssignmentExpressionResults() throws Exception {
+        final Path sourceFile = tempDir.resolve("strict-native-compound-assignment-expression.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                class Calculator {
+                  compute() {
+                    let total = 1;
+                    const state = { count: 1 };
+                    const key = "count";
+                    const values = [0, 0];
+                    return (total += 40) + (state.count += 1) + (state[key] += 2) + (values[1] += 3);
+                  }
+                }
+                """,
+                UTF_8
+        );
+
+        final Path outDir = tempDir.resolve("strict-native-compound-assignment-expression-out");
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(
+                sourceFile,
+                outDir,
+                JvmOptimizationOptions.defaults(),
+                JvmBytecodeCompiler.BackendMode.JVM_STRICT
+        );
+
+        assertEquals("jvm-native-class-subset", artifact.strictLoweringPath());
+        try (URLClassLoader classLoader = new URLClassLoader(new URL[]{artifact.outputDirectory().toUri().toURL()})) {
+            final Object result = invokeStrictInstanceMethod(
+                    classLoader,
+                    "Calculator",
+                    "compute",
+                    new Object[0],
+                    new Object[0]
+            );
+
+            assertEquals(50.0d, ((Number) result).doubleValue());
+        }
+    }
+
+    @Test
+    void strictJvmNativeSubsetSupportsLogicalCompoundAssignmentExpressionResults() throws Exception {
+        final Path sourceFile = tempDir.resolve("strict-native-logical-compound-assignment-expression.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                class Calculator {
+                  compute() {
+                    let nullable = undefined;
+                    let seeded = "seed";
+                    let zero = 0;
+                    return "" + (nullable ??= "fallback")
+                      + "|"
+                      + (seeded &&= "next")
+                      + "|"
+                      + (zero ||= 5);
+                  }
+                }
+                """,
+                UTF_8
+        );
+
+        final Path outDir = tempDir.resolve("strict-native-logical-compound-assignment-expression-out");
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(
+                sourceFile,
+                outDir,
+                JvmOptimizationOptions.defaults(),
+                JvmBytecodeCompiler.BackendMode.JVM_STRICT
+        );
+
+        assertEquals("jvm-native-class-subset", artifact.strictLoweringPath());
+        try (URLClassLoader classLoader = new URLClassLoader(new URL[]{artifact.outputDirectory().toUri().toURL()})) {
+            final Object result = invokeStrictInstanceMethod(
+                    classLoader,
+                    "Calculator",
+                    "compute",
+                    new Object[0],
+                    new Object[0]
+            );
+
+            assertEquals("fallback|next|5", result);
+        }
+    }
+
+    @Test
+    void strictJvmNativeSubsetSupportsOptionalMemberAccessAndOptionalCall() throws Exception {
+        final Path sourceFile = tempDir.resolve("strict-native-optional-chain.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                class Reader {
+                  compute() {
+                    const holder = {
+                      value: 4,
+                      read: () => "ok"
+                    };
+                    const missing = undefined;
+                    const missingFn = undefined;
+                    return "" + holder?.value
+                      + "|"
+                      + missing?.value
+                      + "|"
+                      + holder.read?.()
+                      + "|"
+                      + missingFn?.();
+                  }
+                }
+                """,
+                UTF_8
+        );
+
+        final Path outDir = tempDir.resolve("strict-native-optional-chain-out");
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(
+                sourceFile,
+                outDir,
+                JvmOptimizationOptions.defaults(),
+                JvmBytecodeCompiler.BackendMode.JVM_STRICT
+        );
+
+        assertEquals("jvm-native-class-subset", artifact.strictLoweringPath());
+        try (URLClassLoader classLoader = new URLClassLoader(new URL[]{artifact.outputDirectory().toUri().toURL()})) {
+            final Object result = invokeStrictInstanceMethod(
+                    classLoader,
+                    "Reader",
+                    "compute",
+                    new Object[0],
+                    new Object[0]
+            );
+
+            assertEquals("4|undefined|ok|undefined", result);
+        }
+    }
+
+    @Test
+    void strictJvmNativeSubsetSupportsNewExpressionForStrictNativeClassNames() throws Exception {
+        final Path sourceFile = tempDir.resolve("strict-native-new-expression.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                class Point {
+                  x: number;
+                  y: number;
+
+                  constructor(x: number, y: number) {
+                    this.x = x;
+                    this.y = y;
+                  }
+
+                  sum() {
+                    return this.x + this.y;
+                  }
+                }
+
+                class Factory {
+                  compute() {
+                    const point = new Point(20, 22);
+                    return point.sum();
+                  }
+                }
+                """,
+                UTF_8
+        );
+
+        final Path outDir = tempDir.resolve("strict-native-new-expression-out");
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(
+                sourceFile,
+                outDir,
+                JvmOptimizationOptions.defaults(),
+                JvmBytecodeCompiler.BackendMode.JVM_STRICT
+        );
+
+        assertEquals("jvm-native-class-subset", artifact.strictLoweringPath());
+        try (URLClassLoader classLoader = new URLClassLoader(new URL[]{artifact.outputDirectory().toUri().toURL()})) {
+            final Object result = invokeStrictInstanceMethod(
+                    classLoader,
+                    "Factory",
+                    "compute",
+                    new Object[0],
+                    new Object[0]
+            );
+
+            assertEquals(42.0d, ((Number) result).doubleValue());
+        }
+    }
+
+    @Test
+    void strictJvmNativeSubsetSupportsTopLevelConstAndFunctionBindings() throws Exception {
+        final Path sourceFile = tempDir.resolve("strict-native-top-level-bindings.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                const BASE = 41;
+
+                function next(value: number) {
+                  return value + 1;
+                }
+
+                class Calculator {
+                  compute() {
+                    return next(BASE);
+                  }
+                }
+                """,
+                UTF_8
+        );
+
+        final Path outDir = tempDir.resolve("strict-native-top-level-bindings-out");
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(
+                sourceFile,
+                outDir,
+                JvmOptimizationOptions.defaults(),
+                JvmBytecodeCompiler.BackendMode.JVM_STRICT
+        );
+
+        assertEquals("jvm-native-class-subset", artifact.strictLoweringPath());
+        try (URLClassLoader classLoader = new URLClassLoader(new URL[]{artifact.outputDirectory().toUri().toURL()})) {
+            final Object result = invokeStrictInstanceMethod(
+                    classLoader,
+                    "Calculator",
+                    "compute",
+                    new Object[0],
+                    new Object[0]
+            );
+
+            assertEquals(42.0d, ((Number) result).doubleValue());
+        }
+    }
+
+    @Test
+    void strictJvmNativeSubsetSupportsTopLevelLetMutation() throws Exception {
+        final Path sourceFile = tempDir.resolve("strict-native-top-level-let-mutation.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                let total = 40;
+
+                class Counter {
+                  compute() {
+                    total = total + 1;
+                    return total;
+                  }
+                }
+                """,
+                UTF_8
+        );
+
+        final Path outDir = tempDir.resolve("strict-native-top-level-let-mutation-out");
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(
+                sourceFile,
+                outDir,
+                JvmOptimizationOptions.defaults(),
+                JvmBytecodeCompiler.BackendMode.JVM_STRICT
+        );
+
+        assertEquals("jvm-native-class-subset", artifact.strictLoweringPath());
+        try (URLClassLoader classLoader = new URLClassLoader(new URL[]{artifact.outputDirectory().toUri().toURL()})) {
+            final Object first = invokeStrictInstanceMethod(
+                    classLoader,
+                    "Counter",
+                    "compute",
+                    new Object[0],
+                    new Object[0]
+            );
+            final Object second = invokeStrictInstanceMethod(
+                    classLoader,
+                    "Counter",
+                    "compute",
+                    new Object[0],
+                    new Object[0]
+            );
+
+            assertEquals(41.0d, ((Number) first).doubleValue());
+            assertEquals(42.0d, ((Number) second).doubleValue());
+        }
+    }
+
+    @Test
+    void strictJvmNativeSubsetSupportsImportedConstAndFunctionBindings() throws Exception {
+        final Path helperFile = tempDir.resolve("strict-native-imported-bindings-helper.ts");
+        Files.writeString(
+                helperFile,
+                """
+                export const BASE = 41;
+
+                export function next(value: number) {
+                  return value + 1;
+                }
+                """,
+                UTF_8
+        );
+        final Path sourceFile = tempDir.resolve("strict-native-imported-bindings-main.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                import { BASE, next } from "./strict-native-imported-bindings-helper";
+
+                class Calculator {
+                  compute() {
+                    return next(BASE);
+                  }
+                }
+                """,
+                UTF_8
+        );
+
+        final Path outDir = tempDir.resolve("strict-native-imported-bindings-out");
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(
+                sourceFile,
+                outDir,
+                JvmOptimizationOptions.defaults(),
+                JvmBytecodeCompiler.BackendMode.JVM_STRICT
+        );
+
+        assertEquals("jvm-native-class-subset", artifact.strictLoweringPath());
+        try (URLClassLoader classLoader = new URLClassLoader(new URL[]{artifact.outputDirectory().toUri().toURL()})) {
+            final Object result = invokeStrictInstanceMethod(
+                    classLoader,
+                    "Calculator",
+                    "compute",
+                    new Object[0],
+                    new Object[0]
+            );
+
+            assertEquals(42.0d, ((Number) result).doubleValue());
+        }
+    }
+
+    @Test
+    void strictJvmNativeSubsetKeepsModuleBindingScopesSeparatedAcrossModules() throws Exception {
+        final Path leftFile = tempDir.resolve("strict-native-module-scope-left.ts");
+        Files.writeString(
+                leftFile,
+                """
+                const BASE = 40;
+
+                export class LeftCalculator {
+                  compute() {
+                    return BASE + 1;
+                  }
+                }
+                """,
+                UTF_8
+        );
+        final Path rightFile = tempDir.resolve("strict-native-module-scope-right.ts");
+        Files.writeString(
+                rightFile,
+                """
+                const BASE = 7;
+
+                export class RightCalculator {
+                  compute() {
+                    return BASE + 1;
+                  }
+                }
+                """,
+                UTF_8
+        );
+        final Path sourceFile = tempDir.resolve("strict-native-module-scope-main.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                import { LeftCalculator } from "./strict-native-module-scope-left";
+                import { RightCalculator } from "./strict-native-module-scope-right";
+
+                export { LeftCalculator, RightCalculator };
+                """,
+                UTF_8
+        );
+
+        final Path outDir = tempDir.resolve("strict-native-module-scope-out");
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(
+                sourceFile,
+                outDir,
+                JvmOptimizationOptions.defaults(),
+                JvmBytecodeCompiler.BackendMode.JVM_STRICT
+        );
+
+        assertEquals("jvm-native-class-subset", artifact.strictLoweringPath());
+        try (URLClassLoader classLoader = new URLClassLoader(new URL[]{artifact.outputDirectory().toUri().toURL()})) {
+            final Object left = invokeStrictInstanceMethod(
+                    classLoader,
+                    "LeftCalculator",
+                    "compute",
+                    new Object[0],
+                    new Object[0]
+            );
+            final Object right = invokeStrictInstanceMethod(
+                    classLoader,
+                    "RightCalculator",
+                    "compute",
+                    new Object[0],
+                    new Object[0]
+            );
+
+            assertEquals(41.0d, ((Number) left).doubleValue());
+            assertEquals(8.0d, ((Number) right).doubleValue());
+        }
+    }
+
+    @Test
+    void strictJvmNativeSubsetPreservesLiveImportedLetBindingsAcrossModuleCalls() throws Exception {
+        final Path helperFile = tempDir.resolve("strict-native-live-import-helper.ts");
+        Files.writeString(
+                helperFile,
+                """
+                export let total = 40;
+
+                export function bump() {
+                  total = total + 1;
+                  return total;
+                }
+                """,
+                UTF_8
+        );
+        final Path sourceFile = tempDir.resolve("strict-native-live-import-main.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                import { total, bump } from "./strict-native-live-import-helper";
+
+                class Counter {
+                  compute() {
+                    bump();
+                    return total;
+                  }
+                }
+                """,
+                UTF_8
+        );
+
+        final Path outDir = tempDir.resolve("strict-native-live-import-out");
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(
+                sourceFile,
+                outDir,
+                JvmOptimizationOptions.defaults(),
+                JvmBytecodeCompiler.BackendMode.JVM_STRICT
+        );
+
+        assertEquals("jvm-native-class-subset", artifact.strictLoweringPath());
+        try (URLClassLoader classLoader = new URLClassLoader(new URL[]{artifact.outputDirectory().toUri().toURL()})) {
+            final Object first = invokeStrictInstanceMethod(
+                    classLoader,
+                    "Counter",
+                    "compute",
+                    new Object[0],
+                    new Object[0]
+            );
+            final Object second = invokeStrictInstanceMethod(
+                    classLoader,
+                    "Counter",
+                    "compute",
+                    new Object[0],
+                    new Object[0]
+            );
+
+            assertEquals(41.0d, ((Number) first).doubleValue());
+            assertEquals(42.0d, ((Number) second).doubleValue());
+        }
+    }
+
+    @Test
+    void strictJvmNativeSubsetSupportsNewExpressionForImportedStrictNativeClassAlias() throws Exception {
+        final Path helperFile = tempDir.resolve("strict-native-imported-constructor-helper.ts");
+        Files.writeString(
+                helperFile,
+                """
+                export class Point {
+                  x: number;
+                  y: number;
+
+                  constructor(x: number, y: number) {
+                    this.x = x;
+                    this.y = y;
+                  }
+
+                  sum() {
+                    return this.x + this.y;
+                  }
+                }
+                """,
+                UTF_8
+        );
+        final Path sourceFile = tempDir.resolve("strict-native-imported-constructor-main.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                import { Point as ImportedPoint } from "./strict-native-imported-constructor-helper";
+
+                class Factory {
+                  compute() {
+                    const point = new ImportedPoint(20, 22);
+                    return point.sum();
+                  }
+                }
+                """,
+                UTF_8
+        );
+
+        final Path outDir = tempDir.resolve("strict-native-imported-constructor-out");
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(
+                sourceFile,
+                outDir,
+                JvmOptimizationOptions.defaults(),
+                JvmBytecodeCompiler.BackendMode.JVM_STRICT
+        );
+
+        assertEquals("jvm-native-class-subset", artifact.strictLoweringPath());
+        try (URLClassLoader classLoader = new URLClassLoader(new URL[]{artifact.outputDirectory().toUri().toURL()})) {
+            final Object result = invokeStrictInstanceMethod(
+                    classLoader,
+                    "Factory",
+                    "compute",
+                    new Object[0],
+                    new Object[0]
+            );
+
+            assertEquals(42.0d, ((Number) result).doubleValue());
+        }
+    }
+
+    @Test
+    void strictJvmExecutableClassSupportsStaticMethodEmission() throws Exception {
+        final Path sourceFile = tempDir.resolve("strict-native-static-method.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                class Metrics {
+                  static twice(value: number) {
+                    return value * 2;
+                  }
+                }
+                """,
+                UTF_8
+        );
+
+        final Path outDir = tempDir.resolve("strict-native-static-method-out");
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(
+                sourceFile,
+                outDir,
+                JvmOptimizationOptions.defaults(),
+                JvmBytecodeCompiler.BackendMode.JVM_STRICT
+        );
+
+        assertEquals("jvm-native-class-subset", artifact.strictLoweringPath());
+        try (URLClassLoader classLoader = new URLClassLoader(new URL[]{artifact.outputDirectory().toUri().toURL()})) {
+            final Class<?> metricsClass = Class.forName("dev.tsj.generated.Metrics__TsjStrictNative", true, classLoader);
+            final Method twice = metricsClass.getDeclaredMethod("twice", Number.class);
+            assertTrue(Modifier.isStatic(twice.getModifiers()));
+            assertEquals(42.0d, ((Number) twice.invoke(null, 21)).doubleValue());
+        }
+    }
+
+    @Test
+    void strictJvmExecutableClassCanPassSelfAsJavaLangClassToInteropCall() throws Exception {
+        final Path sourceFile = tempDir.resolve("strict-native-application-class-value.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                import { describeApplicationClass } from "java:dev.tsj.compiler.backend.jvm.fixtures.boot.StrictAppInteropProbe";
+
+                class BootApp {
+                  static describe() {
+                    return describeApplicationClass(BootApp);
+                  }
+                }
+                """,
+                UTF_8
+        );
+
+        final Path outDir = tempDir.resolve("strict-native-application-class-value-out");
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(
+                sourceFile,
+                outDir,
+                JvmOptimizationOptions.defaults(),
+                JvmBytecodeCompiler.BackendMode.JVM_STRICT
+        );
+
+        assertEquals("jvm-native-class-subset", artifact.strictLoweringPath());
+        try (URLClassLoader classLoader = new URLClassLoader(new URL[]{artifact.outputDirectory().toUri().toURL()})) {
+            final Class<?> bootAppClass = Class.forName("dev.tsj.generated.BootApp__TsjStrictNative", true, classLoader);
+            final Method describe = bootAppClass.getDeclaredMethod("describe");
+            assertTrue(Modifier.isStatic(describe.getModifiers()));
+            assertEquals("dev.tsj.generated.BootApp__TsjStrictNative", describe.invoke(null));
+        }
+    }
+
+    @Test
+    void strictJvmExecutableClassCanExposeJvmMainSignature() throws Exception {
+        final Path sourceFile = tempDir.resolve("strict-native-application-main.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                class BootApp {
+                  static main(args: string[]) {
+                  }
+                }
+                """,
+                UTF_8
+        );
+
+        final Path outDir = tempDir.resolve("strict-native-application-main-out");
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(
+                sourceFile,
+                outDir,
+                JvmOptimizationOptions.defaults(),
+                JvmBytecodeCompiler.BackendMode.JVM_STRICT
+        );
+
+        assertEquals("jvm-native-class-subset", artifact.strictLoweringPath());
+        try (URLClassLoader classLoader = new URLClassLoader(new URL[]{artifact.outputDirectory().toUri().toURL()})) {
+            final Class<?> bootAppClass = Class.forName("dev.tsj.generated.BootApp__TsjStrictNative", true, classLoader);
+            final Method main = bootAppClass.getDeclaredMethod("main", String[].class);
+            assertTrue(Modifier.isPublic(main.getModifiers()));
+            assertTrue(Modifier.isStatic(main.getModifiers()));
+            assertEquals(void.class, main.getReturnType());
+        }
+    }
+
+    @Test
+    void strictJvmNativeSubsetSupportsInstanceFieldInitializers() throws Exception {
+        final Path sourceFile = tempDir.resolve("strict-native-field-initializers.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                class Counter {
+                  base: number = 40;
+                  extra: number = 2;
+
+                  total() {
+                    return this.base + this.extra;
+                  }
+                }
+                """,
+                UTF_8
+        );
+
+        final Path outDir = tempDir.resolve("strict-native-field-initializers-out");
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(
+                sourceFile,
+                outDir,
+                JvmOptimizationOptions.defaults(),
+                JvmBytecodeCompiler.BackendMode.JVM_STRICT
+        );
+
+        assertEquals("jvm-native-class-subset", artifact.strictLoweringPath());
+        try (URLClassLoader classLoader = new URLClassLoader(new URL[]{artifact.outputDirectory().toUri().toURL()})) {
+            final Object result = invokeStrictInstanceMethod(
+                    classLoader,
+                    "Counter",
+                    "total",
+                    new Object[0],
+                    new Object[0]
+            );
+
+            assertEquals(42.0d, ((Number) result).doubleValue());
+        }
+    }
+
+    @Test
+    void strictJvmExecutableClassSupportsStaticFieldEmissionAndInitialization() throws Exception {
+        final Path sourceFile = tempDir.resolve("strict-native-static-field.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                class Metrics {
+                  static base: number = 42;
+                }
+                """,
+                UTF_8
+        );
+
+        final Path outDir = tempDir.resolve("strict-native-static-field-out");
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(
+                sourceFile,
+                outDir,
+                JvmOptimizationOptions.defaults(),
+                JvmBytecodeCompiler.BackendMode.JVM_STRICT
+        );
+
+        assertEquals("jvm-native-class-subset", artifact.strictLoweringPath());
+        try (URLClassLoader classLoader = new URLClassLoader(new URL[]{artifact.outputDirectory().toUri().toURL()})) {
+            final Class<?> metricsClass = Class.forName("dev.tsj.generated.Metrics__TsjStrictNative", true, classLoader);
+            final Field base = metricsClass.getDeclaredField("base");
+            base.setAccessible(true);
+            assertTrue(Modifier.isStatic(base.getModifiers()));
+            assertEquals(42.0d, ((Number) base.get(null)).doubleValue());
+        }
+    }
+
+    @Test
+    void strictJvmNativeSubsetSupportsStaticMemberAccessByClassName() throws Exception {
+        final Path sourceFile = tempDir.resolve("strict-native-static-member-access.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                class Metrics {
+                  static base: number = 40;
+
+                  static twice(value: number) {
+                    return value * 2;
+                  }
+
+                  static total() {
+                    return Metrics.base + Metrics.twice(1);
+                  }
+                }
+                """,
+                UTF_8
+        );
+
+        final Path outDir = tempDir.resolve("strict-native-static-member-access-out");
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(
+                sourceFile,
+                outDir,
+                JvmOptimizationOptions.defaults(),
+                JvmBytecodeCompiler.BackendMode.JVM_STRICT
+        );
+
+        assertEquals("jvm-native-class-subset", artifact.strictLoweringPath());
+        try (URLClassLoader classLoader = new URLClassLoader(new URL[]{artifact.outputDirectory().toUri().toURL()})) {
+            final Class<?> metricsClass = Class.forName("dev.tsj.generated.Metrics__TsjStrictNative", true, classLoader);
+            final Method total = metricsClass.getDeclaredMethod("total");
+            assertTrue(Modifier.isStatic(total.getModifiers()));
+            assertEquals(42.0d, ((Number) total.invoke(null)).doubleValue());
+        }
+    }
+
+    @Test
+    void strictJvmNativeSubsetSupportsStaticWritesAndCrossClassStaticAccess() throws Exception {
+        final Path sourceFile = tempDir.resolve("strict-native-cross-class-static.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                class Counter {
+                  static total: number = 40;
+
+                  static inc() {
+                    Counter.total = Counter.total + 1;
+                    return Counter.total;
+                  }
+                }
+
+                class Reporter {
+                  static read() {
+                    return Counter.total + Counter.inc();
+                  }
+                }
+                """,
+                UTF_8
+        );
+
+        final Path outDir = tempDir.resolve("strict-native-cross-class-static-out");
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(
+                sourceFile,
+                outDir,
+                JvmOptimizationOptions.defaults(),
+                JvmBytecodeCompiler.BackendMode.JVM_STRICT
+        );
+
+        assertEquals("jvm-native-class-subset", artifact.strictLoweringPath());
+        try (URLClassLoader classLoader = new URLClassLoader(new URL[]{artifact.outputDirectory().toUri().toURL()})) {
+            final Class<?> reporterClass = Class.forName("dev.tsj.generated.Reporter__TsjStrictNative", true, classLoader);
+            final Method read = reporterClass.getDeclaredMethod("read");
+            assertTrue(Modifier.isStatic(read.getModifiers()));
+            assertEquals(81.0d, ((Number) read.invoke(null)).doubleValue());
+        }
+    }
+
+    @Test
+    void strictJvmNativeRegistersTopLevelClassesFromBundledModuleInitializers() throws Exception {
         final Path moduleFile = tempDir.resolve("strict-runtime-carrier-controller.ts");
         final Path entryFile = tempDir.resolve("strict-runtime-carrier-main.ts");
         Files.writeString(
@@ -354,18 +2567,10 @@ class JvmBytecodeCompilerTest {
                 JvmBytecodeCompiler.BackendMode.JVM_STRICT
         );
 
-        assertEquals("runtime-carrier", artifact.strictLoweringPath());
+        assertEquals("jvm-native-class-subset", artifact.strictLoweringPath());
         try (URLClassLoader classLoader = new URLClassLoader(new URL[]{artifact.outputDirectory().toUri().toURL()})) {
-            final Class<?> programClass = Class.forName(artifact.className(), true, classLoader);
-            final java.lang.reflect.Method invokeClass = programClass.getDeclaredMethod(
-                    "__tsjInvokeClass",
-                    String.class,
-                    String.class,
-                    Object[].class,
-                    Object[].class
-            );
-            final Object result = invokeClass.invoke(
-                    null,
+            final Object result = invokeStrictInstanceMethod(
+                    classLoader,
                     "PetClinicController",
                     "listOwners",
                     new Object[0],
@@ -388,9 +2593,8 @@ class JvmBytecodeCompilerTest {
                     this.value = initial;
                   }
 
-                  update(transform: any) {
-                    this.value = transform(this.value);
-                    return this.value;
+                  reset() {
+                    return delete this.value;
                   }
                 }
                 """,
@@ -627,6 +2831,66 @@ class JvmBytecodeCompilerTest {
             final RichMark methodParameterMark = method.getParameters()[0].getAnnotation(RichMark.class);
             assertEquals("param-name", methodParameterMark.name());
             assertEquals(9, methodParameterMark.count());
+        }
+    }
+
+    @Test
+    void emitsImportedRuntimeAnnotationsOnMetadataCarrierForMultilineCtorMethodAndDefiniteField() throws Exception {
+        final Path sourceFile = tempDir.resolve("carrier-multiline-annotations.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                import { TypeMark } from "java:dev.tsj.compiler.backend.jvm.fixtures.annotations.TypeMark";
+                import { FieldMark } from "java:dev.tsj.compiler.backend.jvm.fixtures.annotations.FieldMark";
+                import { CtorMark } from "java:dev.tsj.compiler.backend.jvm.fixtures.annotations.CtorMark";
+                import { MethodMark } from "java:dev.tsj.compiler.backend.jvm.fixtures.annotations.MethodMark";
+                import { ParamMark } from "java:dev.tsj.compiler.backend.jvm.fixtures.annotations.ParamMark";
+
+                @TypeMark
+                class ComplexCarrierTarget {
+                  @FieldMark
+                  value!: number;
+
+                  @CtorMark
+                  constructor(
+                    @ParamMark name: string,
+                  ) {
+                    this.value = 2;
+                  }
+
+                  @MethodMark
+                  greet(
+                    @ParamMark prefix: string,
+                  ) {
+                    return prefix + this.value;
+                  }
+                }
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact =
+                new JvmBytecodeCompiler().compile(sourceFile, tempDir.resolve("carrier-multiline-annotations-out"));
+        final Path carrierClass = artifact.outputDirectory()
+                .resolve("dev/tsj/generated/metadata/ComplexCarrierTargetTsjCarrier.class");
+        assertTrue(Files.exists(carrierClass));
+
+        try (URLClassLoader classLoader = new URLClassLoader(new URL[]{artifact.outputDirectory().toUri().toURL()})) {
+            final Class<?> carrierClassType = Class.forName(
+                    "dev.tsj.generated.metadata.ComplexCarrierTargetTsjCarrier",
+                    true,
+                    classLoader
+            );
+            assertTrue(carrierClassType.isAnnotationPresent(TypeMark.class));
+            assertTrue(carrierClassType.getDeclaredField("value").isAnnotationPresent(FieldMark.class));
+
+            final java.lang.reflect.Constructor<?> constructor = carrierClassType.getDeclaredConstructor(Object.class);
+            assertTrue(constructor.isAnnotationPresent(CtorMark.class));
+            assertTrue(constructor.getParameters()[0].isAnnotationPresent(ParamMark.class));
+
+            final java.lang.reflect.Method method = carrierClassType.getDeclaredMethod("greet", Object.class);
+            assertTrue(method.isAnnotationPresent(MethodMark.class));
+            assertTrue(method.getParameters()[0].isAnnotationPresent(ParamMark.class));
         }
     }
 
@@ -6564,6 +8828,78 @@ class JvmBytecodeCompilerTest {
         );
     }
 
+    private static Object invokeStrictInstanceMethod(
+            final URLClassLoader classLoader,
+            final String simpleName,
+            final String methodName,
+            final Object[] constructorArgs,
+            final Object[] methodArgs
+    ) throws Exception {
+        final Class<?> strictClass = Class.forName(
+                "dev.tsj.generated." + simpleName + "__TsjStrictNative",
+                true,
+                classLoader
+        );
+        final Object instance = resolveCompatibleConstructor(strictClass, constructorArgs).newInstance(constructorArgs);
+        final Method method = resolveCompatibleMethod(strictClass, methodName, methodArgs);
+        return method.invoke(instance, methodArgs);
+    }
+
+    private static Constructor<?> resolveCompatibleConstructor(final Class<?> type, final Object[] args)
+            throws NoSuchMethodException {
+        for (final Constructor<?> constructor : type.getDeclaredConstructors()) {
+            if (isCompatibleExecutable(constructor.getParameterTypes(), args)) {
+                constructor.setAccessible(true);
+                return constructor;
+            }
+        }
+        throw new NoSuchMethodException(type.getName() + "#<init>(" + args.length + ")");
+    }
+
+    private static Method resolveCompatibleMethod(final Class<?> type, final String methodName, final Object[] args)
+            throws NoSuchMethodException {
+        Class<?> cursor = type;
+        while (cursor != null) {
+            for (final Method method : cursor.getDeclaredMethods()) {
+                if (method.getName().equals(methodName) && isCompatibleExecutable(method.getParameterTypes(), args)) {
+                    method.setAccessible(true);
+                    return method;
+                }
+            }
+            cursor = cursor.getSuperclass();
+        }
+        throw new NoSuchMethodException(type.getName() + "#" + methodName + "(" + args.length + ")");
+    }
+
+    private static boolean isCompatibleExecutable(final Class<?>[] parameterTypes, final Object[] args) {
+        if (parameterTypes.length != args.length) {
+            return false;
+        }
+        for (int index = 0; index < parameterTypes.length; index++) {
+            if (!isCompatibleParameter(parameterTypes[index], args[index])) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static boolean isCompatibleParameter(final Class<?> parameterType, final Object arg) {
+        if (arg == null) {
+            return !parameterType.isPrimitive();
+        }
+        if (!parameterType.isPrimitive()) {
+            return parameterType.isInstance(arg);
+        }
+        return (parameterType == boolean.class && arg instanceof Boolean)
+                || (parameterType == byte.class && arg instanceof Byte)
+                || (parameterType == short.class && arg instanceof Short)
+                || (parameterType == int.class && arg instanceof Integer)
+                || (parameterType == long.class && arg instanceof Long)
+                || (parameterType == float.class && arg instanceof Float)
+                || (parameterType == double.class && arg instanceof Double)
+                || (parameterType == char.class && arg instanceof Character);
+    }
+
     private static void restoreSystemProperty(final String key, final String value) {
         if (value == null) {
             System.clearProperty(key);
@@ -6582,6 +8918,28 @@ class JvmBytecodeCompilerTest {
             cursor = cursor.getParent();
         }
         throw new IllegalStateException("Could not locate repository root for grammar-proof example.");
+    }
+
+    private static boolean hasParameterAnnotation(
+            final JavaClassfileReader.RawMethodInfo method,
+            final int index,
+            final String descriptor
+    ) {
+        if (index < method.runtimeVisibleParameterAnnotations().size()
+                && hasAnnotation(method.runtimeVisibleParameterAnnotations().get(index), List.of(), descriptor)) {
+            return true;
+        }
+        return index < method.runtimeInvisibleParameterAnnotations().size()
+                && hasAnnotation(method.runtimeInvisibleParameterAnnotations().get(index), List.of(), descriptor);
+    }
+
+    private static boolean hasAnnotation(
+            final List<JavaClassfileReader.RawAnnotationInfo> visible,
+            final List<JavaClassfileReader.RawAnnotationInfo> invisible,
+            final String descriptor
+    ) {
+        return visible.stream().anyMatch(annotation -> descriptor.equals(annotation.descriptor()))
+                || invisible.stream().anyMatch(annotation -> descriptor.equals(annotation.descriptor()));
     }
 
     private static void assertUnsupportedFeature(

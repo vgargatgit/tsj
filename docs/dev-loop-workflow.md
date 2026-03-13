@@ -12,7 +12,7 @@ Provide a reproducible CLI workflow for TS-authored Spring app iteration:
 ```bash
 tsj compile src/main.ts --out .tsj/out
 tsj run src/main.ts --out .tsj/run
-tsj spring-package src/main.ts --out .tsj/pkg --resource-dir src/main/resources --smoke-run
+tsj package src/main.ts --out .tsj/pkg --resource-dir src/main/resources --smoke-run
 ```
 
 For fast iteration after edits, rerun the same three commands against the updated source.
@@ -21,8 +21,8 @@ For fast iteration after edits, rerun the same three commands against the update
 
 1. `TSJ-COMPILE-SUCCESS`
 2. `TSJ-RUN-SUCCESS`
-3. `TSJ-SPRING-PACKAGE-SUCCESS`
-4. `TSJ-SPRING-SMOKE-SUCCESS`
+3. `TSJ-PACKAGE-SUCCESS`
+4. `TSJ-PACKAGE-SMOKE-SUCCESS`
 
 ## CI Gate
 

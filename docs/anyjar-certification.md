@@ -1,4 +1,4 @@
-# TSJ Any-JAR Certification Guide (TSJ-44 through TSJ-44d)
+# TSJ Any-JAR Certification Guide (TSJ-44 through TSJ-92)
 
 This guide is the single source for TSJ any-jar compatibility certification.
 
@@ -10,6 +10,36 @@ This guide is the single source for TSJ any-jar compatibility certification.
 4. `TSJ-44c`: real-app workload gate
 5. `TSJ-44d`: governance/signoff gate
 6. `TSJ-75`: annotation-survival certification gate (framework-agnostic metadata path)
+7. `TSJ-92`: final no-hacks certification gate (real TS-only framework apps through generic TSJ commands)
+
+## TSJ-92 Final No-Hacks Certification
+
+Gate suite:
+
+1. `TSJ-92-anyjar-nohacks-certification`
+2. report artifact: `cli/target/tsj92-anyjar-nohacks-certification.json`
+
+Required scenario families:
+
+1. generic no-hacks baseline (`TSJ-85`)
+2. Spring packaged web/DI app
+3. Spring AOP proxy/transaction scenario
+4. Hibernate/JPA executable entity introspection with H2
+5. Jackson executable DTO round-trip
+6. Bean Validation executable DTO inspection
+7. non-Spring reflection-consumer jar
+
+Supported contract proven by TSJ-92:
+
+1. TS-only applications authored in TypeScript
+2. imported `java:` annotations and classes
+3. ordinary jars/resources supplied through generic `tsj compile`, `tsj run`, and `tsj package`
+4. no TSJ-owned Spring adapters, boot launchers, or framework-specific compiler/CLI switches
+
+Generic fixes validated by the gate:
+
+1. plain JVM objects are readable through TSJ property access via JavaBean/record accessors
+2. decorator-only `java:` imports do not generate bogus runtime interop bridge targets
 
 ## TSJ-75 Annotation Survival Certification
 
@@ -36,13 +66,13 @@ Non-goals (outside TSJ-75 certification scope):
 1. Stage-3/legacy decorator forms outside current extractor/backend supported subset.
 2. JVM metadata on runtime `TsjObject` instances directly (metadata is exposed via generated carrier classes).
 3. Framework-internal behavior not represented by generic reflection-consumer fixtures.
-4. Automatic Spring adapter generation in default `compile`/`run`.
+4. TSJ-owned framework adapter generation in default `compile`/`run`.
 
 Migration from legacy Spring-specific paths:
 
 1. Use default `tsj compile`/`tsj run` for generic any-jar annotation/reflection flow.
-2. Use `--legacy-spring-adapters` only for legacy compatibility scenarios that still require generated Spring adapters.
-3. Use `tsj spring-package` when packaging legacy Spring adapter outputs into runnable jars.
+2. Use `tsj package` as the public packaged-app command surface.
+3. Prefer executable strict-native classes plus imported `java:` annotations when framework reflection must see the authored class directly.
 
 ## TSJ-44 Baseline Matrix
 
@@ -141,12 +171,13 @@ Generated reports:
 3. `cli/target/tsj44b-version-range-certification.json`
 4. `cli/target/tsj44c-real-app-certification.json`
 5. `cli/target/tsj44d-anyjar-governance.json`
+6. `cli/target/tsj92-anyjar-nohacks-certification.json`
 
 ## Local Run
 
 ```bash
 mvn -B -ntp -pl cli -am \
-  -Dtest=TsjAnyJarCertificationTest,TsjVersionRangeCertificationTest,TsjRealAppCertificationTest,TsjAnyJarGovernanceCertificationTest \
+  -Dtest=TsjAnyJarCertificationTest,TsjVersionRangeCertificationTest,TsjRealAppCertificationTest,TsjAnyJarGovernanceCertificationTest,TsjAnyJarNoHacksCertificationTest \
   -Dsurefire.failIfNoSpecifiedTests=false test
 ```
 

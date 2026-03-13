@@ -26,8 +26,8 @@ class TsjDevLoopParityTest {
         assertTrue(json.contains("\"suite\":\"TSJ-36c-dev-loop-parity\""));
         assertTrue(json.contains("\"id\":\"compile\""));
         assertTrue(json.contains("\"id\":\"run\""));
-        assertTrue(json.contains("\"id\":\"spring-package\""));
-        assertTrue(json.contains("\"id\":\"spring-smoke\""));
+        assertTrue(json.contains("\"id\":\"package\""));
+        assertTrue(json.contains("\"id\":\"package-smoke\""));
         assertTrue(json.contains("\"id\":\"incremental-iteration\""));
     }
 
@@ -49,7 +49,7 @@ class TsjDevLoopParityTest {
 
         assertTrue(report.workflowHints().stream().anyMatch(hint -> hint.startsWith("tsj compile")));
         assertTrue(report.workflowHints().stream().anyMatch(hint -> hint.startsWith("tsj run")));
-        assertTrue(report.workflowHints().stream().anyMatch(hint -> hint.startsWith("tsj spring-package")));
+        assertTrue(report.workflowHints().stream().anyMatch(hint -> hint.startsWith("tsj package")));
         assertTrue(report.nonGoals().stream().anyMatch(goal -> goal.contains("hot-reload")));
         assertTrue(report.nonGoals().stream().anyMatch(goal -> goal.contains("IDE")));
     }

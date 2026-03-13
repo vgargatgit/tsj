@@ -3,6 +3,11 @@ package dev.tsj.runtime;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.RoundingMode;
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
+import java.lang.reflect.RecordComponent;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
@@ -68,6 +73,7 @@ public final class TsjRuntime {
     private static final TsjObject PROMISE_BUILTIN = createPromiseBuiltin();
     private static final Map<String, Integer> REGEXP_LITERAL_LAST_INDEX = new IdentityHashMap<>();
     private static final Object COERCION_NOT_CALLABLE = new Object();
+    private static final Object JAVA_PROPERTY_NOT_FOUND = new Object();
     private static final ThreadLocal<TsjGeneratorObject> ACTIVE_GENERATOR = new ThreadLocal<>();
     private static Consumer<Object> unhandledRejectionReporter = TsjRuntime::defaultUnhandledRejectionReporter;
 
@@ -382,6 +388,10 @@ public final class TsjRuntime {
             }
             return undefined();
         }
+        final Object javaProperty = readJavaProperty(target, key);
+        if (javaProperty != JAVA_PROPERTY_NOT_FOUND) {
+            return javaProperty;
+        }
         throw new IllegalArgumentException("Cannot get property `" + key + "` from " + toDisplayString(target));
     }
 
@@ -410,12 +420,163 @@ public final class TsjRuntime {
             tsjClass.setStaticMember(key, value);
             return value;
         }
+        final Object javaWriteResult = writeJavaProperty(target, key, value);
+        if (javaWriteResult != JAVA_PROPERTY_NOT_FOUND) {
+            return javaWriteResult;
+        }
         throw new IllegalArgumentException("Cannot set property `" + key + "` on " + toDisplayString(target));
     }
 
     public static Object setPropertyDynamic(final Object target, final Object key, final Object value) {
         final String normalizedKey = propertyToKey(key);
         return setProperty(target, normalizedKey, value);
+    }
+
+    private static Object readJavaProperty(final Object target, final String key) {
+        if (target == null || target == TsjUndefined.INSTANCE || key == null || key.isBlank()) {
+            return JAVA_PROPERTY_NOT_FOUND;
+        }
+        final Method accessor = resolveJavaPropertyReader(target.getClass(), key);
+        if (accessor != null) {
+            try {
+                return TsjInteropCodec.fromJava(accessor.invoke(target));
+            } catch (final IllegalAccessException | InvocationTargetException exception) {
+                throw new IllegalArgumentException(
+                        "Cannot get property `" + key + "` from " + toDisplayString(target),
+                        exception
+                );
+            }
+        }
+        final Field field = resolveJavaPropertyField(target.getClass(), key);
+        if (field != null) {
+            try {
+                return TsjInteropCodec.fromJava(field.get(target));
+            } catch (final IllegalAccessException exception) {
+                throw new IllegalArgumentException(
+                        "Cannot get property `" + key + "` from " + toDisplayString(target),
+                        exception
+                );
+            }
+        }
+        return JAVA_PROPERTY_NOT_FOUND;
+    }
+
+    private static Object writeJavaProperty(final Object target, final String key, final Object value) {
+        if (target == null || target == TsjUndefined.INSTANCE || key == null || key.isBlank()) {
+            return JAVA_PROPERTY_NOT_FOUND;
+        }
+        final Method setter = resolveJavaPropertyWriter(target.getClass(), key);
+        if (setter != null) {
+            final Object converted = TsjInteropCodec.toJava(value, setter.getGenericParameterTypes()[0]);
+            try {
+                setter.invoke(target, converted);
+                return TsjInteropCodec.fromJava(converted);
+            } catch (final IllegalAccessException | InvocationTargetException exception) {
+                throw new IllegalArgumentException(
+                        "Cannot set property `" + key + "` on " + toDisplayString(target),
+                        exception
+                );
+            }
+        }
+        final Field field = resolveJavaPropertyField(target.getClass(), key);
+        if (field != null && !Modifier.isFinal(field.getModifiers())) {
+            final Object converted = TsjInteropCodec.toJava(value, field.getGenericType());
+            try {
+                field.set(target, converted);
+                return TsjInteropCodec.fromJava(converted);
+            } catch (final IllegalAccessException exception) {
+                throw new IllegalArgumentException(
+                        "Cannot set property `" + key + "` on " + toDisplayString(target),
+                        exception
+                );
+            }
+        }
+        return JAVA_PROPERTY_NOT_FOUND;
+    }
+
+    private static Method resolveJavaPropertyReader(final Class<?> targetClass, final String key) {
+        final Method recordAccessor = resolveJavaRecordAccessor(targetClass, key);
+        if (recordAccessor != null) {
+            return recordAccessor;
+        }
+        final String capitalized = capitalizeJavaPropertyKey(key);
+        final Method getter = resolvePublicJavaMethod(targetClass, "get" + capitalized, 0);
+        if (getter != null && getter.getReturnType() != Void.TYPE) {
+            return getter;
+        }
+        final Method booleanGetter = resolvePublicJavaMethod(targetClass, "is" + capitalized, 0);
+        if (booleanGetter != null
+                && (booleanGetter.getReturnType() == Boolean.TYPE
+                || booleanGetter.getReturnType() == Boolean.class)) {
+            return booleanGetter;
+        }
+        return null;
+    }
+
+    private static Method resolveJavaRecordAccessor(final Class<?> targetClass, final String key) {
+        if (!targetClass.isRecord()) {
+            return null;
+        }
+        for (RecordComponent component : targetClass.getRecordComponents()) {
+            if (!key.equals(component.getName())) {
+                continue;
+            }
+            return component.getAccessor();
+        }
+        return null;
+    }
+
+    private static Method resolveJavaPropertyWriter(final Class<?> targetClass, final String key) {
+        final String setterName = "set" + capitalizeJavaPropertyKey(key);
+        for (Method method : targetClass.getMethods()) {
+            if (!setterName.equals(method.getName())
+                    || method.getParameterCount() != 1
+                    || Modifier.isStatic(method.getModifiers())
+                    || method.isSynthetic()) {
+                continue;
+            }
+            return method;
+        }
+        return null;
+    }
+
+    private static Method resolvePublicJavaMethod(
+            final Class<?> targetClass,
+            final String methodName,
+            final int parameterCount
+    ) {
+        for (Method method : targetClass.getMethods()) {
+            if (!methodName.equals(method.getName())
+                    || method.getParameterCount() != parameterCount
+                    || Modifier.isStatic(method.getModifiers())
+                    || method.isSynthetic()) {
+                continue;
+            }
+            return method;
+        }
+        return null;
+    }
+
+    private static Field resolveJavaPropertyField(final Class<?> targetClass, final String key) {
+        for (Field field : targetClass.getFields()) {
+            if (!key.equals(field.getName())
+                    || Modifier.isStatic(field.getModifiers())
+                    || field.isSynthetic()) {
+                continue;
+            }
+            return field;
+        }
+        return null;
+    }
+
+    private static String capitalizeJavaPropertyKey(final String key) {
+        if (key == null || key.isEmpty()) {
+            return "";
+        }
+        if (key.length() == 1) {
+            return key.toUpperCase();
+        }
+        return Character.toUpperCase(key.charAt(0)) + key.substring(1);
     }
 
     public static Object defineAccessorProperty(

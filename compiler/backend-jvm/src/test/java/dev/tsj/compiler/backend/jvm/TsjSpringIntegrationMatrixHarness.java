@@ -5,11 +5,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import dev.tsj.runtime.TsjRuntime;
 
-import javax.tools.DiagnosticCollector;
-import javax.tools.JavaCompiler;
-import javax.tools.JavaFileObject;
-import javax.tools.StandardJavaFileManager;
-import javax.tools.ToolProvider;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -103,26 +98,26 @@ final class TsjSpringIntegrationMatrixHarness {
     ) {
         final String fixture = relativizeFixture(entryFile);
         try {
-            final JvmCompiledArtifact compiledArtifact = new JvmBytecodeCompiler().compile(entryFile, outputDir.resolve("program"));
-            final TsjSpringWebControllerArtifact controllerArtifact = new TsjSpringWebControllerGenerator().generate(
+            final JvmCompiledArtifact compiledArtifact = new JvmBytecodeCompiler().compile(
                     entryFile,
-                    compiledArtifact.className(),
-                    outputDir.resolve("generated")
+                    outputDir.resolve("program"),
+                    JvmOptimizationOptions.defaults(),
+                    JvmBytecodeCompiler.BackendMode.JVM_STRICT
             );
-            compileGeneratedSources(controllerArtifact.sourceFiles(), compiledArtifact.outputDirectory());
 
-            final String generatedClassName = "dev.tsj.generated.web.WebMatrixControllerTsjController";
+            final String generatedClassName = "dev.tsj.generated.WebMatrixController__TsjStrictNative";
             try (URLClassLoader classLoader = new URLClassLoader(
                     new URL[]{compiledArtifact.outputDirectory().toUri().toURL()},
                     getClass().getClassLoader()
             )) {
                 final Class<?> controllerClass = Class.forName(generatedClassName, true, classLoader);
                 final Object controller = controllerClass.getDeclaredConstructor().newInstance();
-                final Object actual = controllerClass.getMethod("echo", Object.class).invoke(controller, "matrix");
+                final Method echoMethod = findSingleParameterMethod(controllerClass, "echo");
+                final Object actual = echoMethod.invoke(controller, "matrix");
                 final Object expected = new ReferenceWebController().echo("matrix");
 
                 final RequestMapping requestMapping = controllerClass.getAnnotation(RequestMapping.class);
-                final GetMapping getMapping = controllerClass.getMethod("echo", Object.class).getAnnotation(GetMapping.class);
+                final GetMapping getMapping = echoMethod.getAnnotation(GetMapping.class);
                 final boolean matches = String.valueOf(actual).equals(String.valueOf(expected))
                         && requestMapping != null
                         && "/api".equals(requestMapping.value())
@@ -160,6 +155,15 @@ final class TsjSpringIntegrationMatrixHarness {
                     exception.getClass().getSimpleName() + ": " + exception.getMessage()
             );
         }
+    }
+
+    private static Method findSingleParameterMethod(final Class<?> owner, final String methodName) {
+        for (Method method : owner.getMethods()) {
+            if (method.getName().equals(methodName) && method.getParameterCount() == 1) {
+                return method;
+            }
+        }
+        throw new IllegalStateException("Method not found: " + owner.getName() + "#" + methodName);
     }
 
     private TsjSpringIntegrationMatrixReport.ModuleResult runValidationModule(
@@ -209,9 +213,11 @@ final class TsjSpringIntegrationMatrixHarness {
 
             final JvmCompiledArtifact compiledArtifact = new JvmBytecodeCompiler().compile(
                     supportedFixture,
-                    outputDir.resolve("program")
+                    outputDir.resolve("program"),
+                    JvmOptimizationOptions.defaults(),
+                    JvmBytecodeCompiler.BackendMode.JVM_STRICT
             );
-            invokeClassMethod(
+            invokeStrictNativeClassMethod(
                     compiledArtifact,
                     validatedMethod.className(),
                     validatedMethod.methodName(),
@@ -295,35 +301,29 @@ final class TsjSpringIntegrationMatrixHarness {
 
             final JvmCompiledArtifact compiledArtifact = new JvmBytecodeCompiler().compile(
                     supportedFixture,
-                    outputDir.resolve("program")
+                    outputDir.resolve("program"),
+                    JvmOptimizationOptions.defaults(),
+                    JvmBytecodeCompiler.BackendMode.JVM_STRICT
             );
             final Map<String, ActuatorObservedOperation> observedByEndpoint = new LinkedHashMap<>();
-            try (URLClassLoader classLoader = new URLClassLoader(
-                    new URL[]{compiledArtifact.outputDirectory().toUri().toURL()},
-                    getClass().getClassLoader()
-            )) {
-                final Class<?> programClass = Class.forName(compiledArtifact.className(), true, classLoader);
-                final Method invokeClass = programClass.getMethod(
-                        "__tsjInvokeClass",
-                        String.class,
-                        String.class,
-                        Object[].class,
-                        Object[].class
+            for (ActuatorReadOperation operation : operations) {
+                final Object value = invokeStrictNativeClassMethod(
+                        compiledArtifact,
+                        operation.className(),
+                        operation.methodName(),
+                        new Object[0]
                 );
-                for (ActuatorReadOperation operation : operations) {
-                    final Object value = invokeActuatorOperation(invokeClass, operation);
-                    final String body = TsjRuntime.toDisplayString(value);
-                    final int statusCode = statusCodeForActuator(operation.endpointId(), body);
-                    observedByEndpoint.put(
-                            operation.endpointId(),
-                            new ActuatorObservedOperation(
-                                    "/actuator/" + operation.endpointId(),
-                                    operation.methodName(),
-                                    body,
-                                    statusCode
-                            )
-                    );
-                }
+                final String body = TsjRuntime.toDisplayString(value);
+                final int statusCode = statusCodeForActuator(operation.endpointId(), body);
+                observedByEndpoint.put(
+                        operation.endpointId(),
+                        new ActuatorObservedOperation(
+                                "/actuator/" + operation.endpointId(),
+                                operation.methodName(),
+                                body,
+                                statusCode
+                        )
+                );
             }
 
             final boolean baselineParity = actuatorBaselineMatches(expectedByEndpoint, observedByEndpoint);
@@ -383,16 +383,18 @@ final class TsjSpringIntegrationMatrixHarness {
                     evaluator.analyze(new TsDecoratorModelExtractor().extract(supportedFixture), supportedFixture);
             final JvmCompiledArtifact compiledArtifact = new JvmBytecodeCompiler().compile(
                     supportedFixture,
-                    outputDir.resolve("program")
+                    outputDir.resolve("program"),
+                    JvmOptimizationOptions.defaults(),
+                    JvmBytecodeCompiler.BackendMode.JVM_STRICT
             );
 
-            final Object countByStatus = invokeClassMethod(
+            final Object countByStatus = invokeStrictNativeClassMethod(
                     compiledArtifact,
                     subset.repositoryClassName(),
                     "countByStatus",
                     new Object[]{"OPEN"}
             );
-            final Object findById = invokeClassMethod(
+            final Object findById = invokeStrictNativeClassMethod(
                     compiledArtifact,
                     subset.repositoryClassName(),
                     "findById",
@@ -401,7 +403,7 @@ final class TsjSpringIntegrationMatrixHarness {
 
             final boolean hasReportMethod = subset.transactionalServiceMethods().contains("reportOpenCount");
             final Object serviceCount = hasReportMethod
-                    ? invokeClassMethod(
+                    ? invokeStrictNativeClassMethod(
                     compiledArtifact,
                     subset.serviceClassName(),
                     "reportOpenCount",
@@ -491,11 +493,13 @@ final class TsjSpringIntegrationMatrixHarness {
 
             final JvmCompiledArtifact compiledArtifact = new JvmBytecodeCompiler().compile(
                     supportedFixture,
-                    outputDir.resolve("program")
+                    outputDir.resolve("program"),
+                    JvmOptimizationOptions.defaults(),
+                    JvmBytecodeCompiler.BackendMode.JVM_STRICT
             );
             final Map<String, String> routeBodies = new LinkedHashMap<>();
             for (TsjSecuritySubsetEvaluator.SecuredRoute route : routes) {
-                final Object value = invokeClassMethod(
+                final Object value = invokeStrictNativeClassMethod(
                         compiledArtifact,
                         route.className(),
                         route.methodName(),
@@ -726,7 +730,7 @@ final class TsjSpringIntegrationMatrixHarness {
         }
     }
 
-    private Object invokeClassMethod(
+    private Object invokeStrictNativeClassMethod(
             final JvmCompiledArtifact compiledArtifact,
             final String className,
             final String methodName,
@@ -736,32 +740,39 @@ final class TsjSpringIntegrationMatrixHarness {
                 new URL[]{compiledArtifact.outputDirectory().toUri().toURL()},
                 getClass().getClassLoader()
         )) {
-            final Class<?> programClass = Class.forName(compiledArtifact.className(), true, classLoader);
-            final Method invokeClass = programClass.getMethod(
-                    "__tsjInvokeClass",
-                    String.class,
-                    String.class,
-                    Object[].class,
-                    Object[].class
-            );
-            return invokeClassMethod(invokeClass, className, methodName, args);
+            final Class<?> owner = Class.forName(strictNativeClassName(className), true, classLoader);
+            final Object instance = owner.getDeclaredConstructor().newInstance();
+            final Method method = findMethod(owner, methodName, args.length);
+            return invokeInstanceMethod(instance, method, args);
         }
     }
 
-    private static Object invokeClassMethod(
-            final Method invokeClass,
-            final String className,
+    private static String strictNativeClassName(final String className) {
+        return "dev.tsj.generated." + className + "__TsjStrictNative";
+    }
+
+    private static Method findMethod(
+            final Class<?> owner,
             final String methodName,
+            final int parameterCount
+    ) {
+        for (Method method : owner.getMethods()) {
+            if (method.getName().equals(methodName) && method.getParameterCount() == parameterCount) {
+                return method;
+            }
+        }
+        throw new IllegalStateException(
+                "Method not found: " + owner.getName() + "#" + methodName + "/" + parameterCount
+        );
+    }
+
+    private static Object invokeInstanceMethod(
+            final Object instance,
+            final Method method,
             final Object[] args
     ) throws Exception {
         try {
-            return invokeClass.invoke(
-                    null,
-                    className,
-                    methodName,
-                    new Object[0],
-                    args
-            );
+            return method.invoke(instance, args);
         } catch (final InvocationTargetException invocationTargetException) {
             final Throwable target = invocationTargetException.getTargetException();
             if (target instanceof Exception exception) {
@@ -850,27 +861,6 @@ final class TsjSpringIntegrationMatrixHarness {
             );
         }
         return normalized;
-    }
-
-    private static Object invokeActuatorOperation(
-            final Method invokeClass,
-            final ActuatorReadOperation operation
-    ) throws Exception {
-        try {
-            return invokeClass.invoke(
-                    null,
-                    operation.className(),
-                    operation.methodName(),
-                    new Object[0],
-                    new Object[0]
-            );
-        } catch (final InvocationTargetException invocationTargetException) {
-            final Throwable target = invocationTargetException.getTargetException();
-            if (target instanceof Exception exception) {
-                throw exception;
-            }
-            throw new RuntimeException(target);
-        }
     }
 
     private static int statusCodeForActuator(final String endpointId, final String body) {
@@ -999,39 +989,6 @@ final class TsjSpringIntegrationMatrixHarness {
             String diagnosticCode,
             String notes
     ) {
-    }
-
-    private static void compileGeneratedSources(final List<Path> sourceFiles, final Path outputDir) throws Exception {
-        if (sourceFiles.isEmpty()) {
-            return;
-        }
-        final JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
-        if (compiler == null) {
-            throw new IllegalStateException("JDK compiler is unavailable.");
-        }
-        final DiagnosticCollector<JavaFileObject> diagnostics = new DiagnosticCollector<>();
-        try (StandardJavaFileManager fileManager = compiler.getStandardFileManager(diagnostics, null, UTF_8)) {
-            final Iterable<? extends JavaFileObject> units = fileManager.getJavaFileObjectsFromPaths(sourceFiles);
-            String classPath = System.getProperty("java.class.path", "");
-            if (classPath.isBlank()) {
-                classPath = outputDir.toString();
-            } else {
-                classPath = classPath + java.io.File.pathSeparator + outputDir;
-            }
-            final List<String> options = List.of(
-                    "--release",
-                    "21",
-                    "-parameters",
-                    "-classpath",
-                    classPath,
-                    "-d",
-                    outputDir.toString()
-            );
-            final Boolean success = compiler.getTask(null, fileManager, diagnostics, options, null, units).call();
-            if (!Boolean.TRUE.equals(success)) {
-                throw new IllegalStateException("Failed to compile generated web adapter sources: " + diagnostics.getDiagnostics());
-            }
-        }
     }
 
     private static Path resolveFixtureRoot() {

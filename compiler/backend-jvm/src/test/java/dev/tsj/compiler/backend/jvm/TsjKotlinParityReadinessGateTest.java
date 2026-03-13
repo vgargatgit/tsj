@@ -69,6 +69,20 @@ class TsjKotlinParityReadinessGateTest {
     }
 
     @Test
+    void readinessGateUsesExecutableClassParityLanguageForWebSignal() throws Exception {
+        final Path reportPath = tempDir.resolve("tsj38-kotlin-parity-readiness.json");
+        final TsjKotlinParityReadinessGateReport report = new TsjKotlinParityReadinessGateHarness().run(reportPath);
+
+        final TsjKotlinParityReadinessGateReport.Criterion webCriterion = report.criteria().stream()
+                .filter(criterion -> "web-module-parity-signal".equals(criterion.id()))
+                .findFirst()
+                .orElseThrow();
+
+        assertFalse(webCriterion.notes().toLowerCase().contains("adapter"), webCriterion.notes());
+        assertTrue(webCriterion.notes().contains("web parity signal"), webCriterion.notes());
+    }
+
+    @Test
     void readinessGateBootstrapsWorkspacePerformanceBaselineWhenRepoBaselineIsMissing() throws Exception {
         final Path reportPath = tempDir.resolve("tsj38-kotlin-parity-readiness.json");
         final Path missingBaselinePath = tempDir.resolve("missing-benchmark-baseline.json");

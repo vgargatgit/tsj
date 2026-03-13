@@ -20,8 +20,7 @@ Use root quickstart in `README.md`.
 Note:
 
 1. `tsj run` currently does not forward program argv to TS entrypoints.
-2. `tsj compile` and `tsj run` do not generate Spring adapters by default.
-   Use `--legacy-spring-adapters` only for legacy compatibility flows, or use `tsj spring-package`.
+2. `tsj package` is the packaged-app command.
 
 ### Understand why code fails
 

@@ -2,8 +2,12 @@ package dev.tsj.compiler.backend.jvm;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.aop.framework.ProxyFactory;
+import org.springframework.aop.support.AopUtils;
 
 import javax.tools.DiagnosticCollector;
 import javax.tools.JavaCompiler;
@@ -96,6 +100,13 @@ final class TsjMetadataParityCertificationHarness {
             Files.writeString(
                     entryFile,
                     """
+                    import { Service } from "java:org.springframework.stereotype.Service";
+                    import { Transactional } from "java:org.springframework.transaction.annotation.Transactional";
+                    import { RestController } from "java:org.springframework.web.bind.annotation.RestController";
+                    import { RequestMapping } from "java:org.springframework.web.bind.annotation.RequestMapping";
+                    import { GetMapping } from "java:org.springframework.web.bind.annotation.GetMapping";
+                    import { RequestParam } from "java:org.springframework.web.bind.annotation.RequestParam";
+
                     @Service
                     class BillingService {
                       @Transactional
@@ -120,15 +131,11 @@ final class TsjMetadataParityCertificationHarness {
                     entryFile,
                     workDir.resolve("program")
             );
-            final TsjSpringComponentArtifact componentArtifact = new TsjSpringComponentGenerator().generate(
+            final JvmCompiledArtifact strictArtifact = new JvmBytecodeCompiler().compile(
                     entryFile,
-                    compiledArtifact.className(),
-                    workDir.resolve("generated-components")
-            );
-            final TsjSpringWebControllerArtifact controllerArtifact = new TsjSpringWebControllerGenerator().generate(
-                    entryFile,
-                    compiledArtifact.className(),
-                    workDir.resolve("generated-web")
+                    workDir.resolve("strict-program"),
+                    JvmOptimizationOptions.defaults(),
+                    JvmBytecodeCompiler.BackendMode.JVM_STRICT
             );
             final Path interopSpec = workDir.resolve("interop.properties");
             Files.writeString(
@@ -146,13 +153,14 @@ final class TsjMetadataParityCertificationHarness {
             );
 
             final List<Path> generatedSources = new ArrayList<>();
-            generatedSources.addAll(componentArtifact.sourceFiles());
-            generatedSources.addAll(controllerArtifact.sourceFiles());
             generatedSources.addAll(bridgeArtifact.sourceFiles());
             compileSources(generatedSources, compiledArtifact.outputDirectory());
 
             try (URLClassLoader classLoader = new URLClassLoader(
-                    new URL[]{compiledArtifact.outputDirectory().toUri().toURL()},
+                    new URL[]{
+                            compiledArtifact.outputDirectory().toUri().toURL(),
+                            strictArtifact.outputDirectory().toUri().toURL()
+                    },
                     getClass().getClassLoader()
             )) {
                 final Class<?> programClass = Class.forName(compiledArtifact.className(), true, classLoader);
@@ -160,39 +168,39 @@ final class TsjMetadataParityCertificationHarness {
                 final boolean programParamNames = programMain.getParameters()[0].isNamePresent()
                         && "args".equals(programMain.getParameters()[0].getName());
 
-                final Class<?> componentClass = Class.forName(
-                        "dev.tsj.generated.spring.BillingServiceTsjComponent",
+                final Class<?> strictComponentClass = Class.forName(
+                        "dev.tsj.generated.BillingService__TsjStrictNative",
                         true,
                         classLoader
                 );
-                final Method chargeMethod = componentClass.getMethod("charge", Object.class);
-                final boolean componentParamNames = chargeMethod.getParameters()[0].isNamePresent()
-                        && "amount".equals(chargeMethod.getParameters()[0].getName());
-                final boolean componentAnnotations = componentClass.isAnnotationPresent(Service.class)
-                        && chargeMethod.isAnnotationPresent(Transactional.class);
+                final Method strictChargeMethod = strictComponentClass.getMethod("charge", Object.class);
+                final boolean strictComponentParamNames = strictChargeMethod.getParameters()[0].isNamePresent()
+                        && "amount".equals(strictChargeMethod.getParameters()[0].getName());
+                final boolean strictComponentAnnotations = strictComponentClass.isAnnotationPresent(Service.class)
+                        && strictChargeMethod.isAnnotationPresent(Transactional.class);
+                final Object strictProxyTarget = strictComponentClass.getDeclaredConstructor().newInstance();
+                final ProxyFactory proxyFactory = new ProxyFactory(strictProxyTarget);
+                proxyFactory.setProxyTargetClass(true);
+                final Object strictProxy = proxyFactory.getProxy(classLoader);
+                final boolean strictProxyWorks = AopUtils.isCglibProxy(strictProxy)
+                        && strictProxy.getClass().getSuperclass().equals(strictComponentClass)
+                        && !Modifier.isFinal(strictComponentClass.getModifiers());
 
-                final Class<?> proxyClass = Class.forName(
-                        "dev.tsj.generated.spring.BillingServiceTsjComponentApi",
+                final Class<?> strictWebControllerClass = Class.forName(
+                        "dev.tsj.generated.EchoController__TsjStrictNative",
                         true,
                         classLoader
                 );
-                final Method proxyCharge = proxyClass.getMethod("charge", Object.class);
-                final boolean proxyParamNames = proxyCharge.getParameters()[0].isNamePresent()
-                        && "amount".equals(proxyCharge.getParameters()[0].getName());
-
-                final Class<?> webControllerClass = Class.forName(
-                        "dev.tsj.generated.web.EchoControllerTsjController",
-                        true,
-                        classLoader
-                );
-                final Method echoMethod = webControllerClass.getMethod("echo", Object.class);
-                final Parameter echoParameter = echoMethod.getParameters()[0];
-                final RequestParam requestParam = echoParameter.getAnnotation(RequestParam.class);
-                final boolean webParamNames = echoParameter.isNamePresent()
-                        && "query".equals(echoParameter.getName());
-                final boolean webAnnotations = webControllerClass.isAnnotationPresent(RestController.class)
-                        && requestParam != null
-                        && "q".equals(requestParam.value());
+                final Method strictEchoMethod = strictWebControllerClass.getMethod("echo", Object.class);
+                final Parameter strictEchoParameter = strictEchoMethod.getParameters()[0];
+                final RequestParam strictRequestParam = strictEchoParameter.getAnnotation(RequestParam.class);
+                final boolean strictWebParamNames = strictEchoParameter.isNamePresent()
+                        && "query".equals(strictEchoParameter.getName());
+                final boolean strictWebAnnotations = strictWebControllerClass.isAnnotationPresent(RestController.class)
+                        && strictWebControllerClass.isAnnotationPresent(RequestMapping.class)
+                        && strictEchoMethod.isAnnotationPresent(GetMapping.class)
+                        && strictRequestParam != null
+                        && "q".equals(strictRequestParam.value());
 
                 final Path bridgeSource = bridgeArtifact.sourceFiles().getFirst();
                 final String bridgeSimpleName = bridgeSource.getFileName().toString().replace(".java", "");
@@ -212,22 +220,22 @@ final class TsjMetadataParityCertificationHarness {
                                 "Program class retains main parameter metadata."
                         ),
                         familyResult(
-                                "component",
-                                componentParamNames,
-                                componentAnnotations,
-                                "Generated Spring component retains parameter and decorator metadata."
+                                "strict-component",
+                                strictComponentParamNames,
+                                strictComponentAnnotations,
+                                "Strict executable component class retains parameter and decorator metadata."
                         ),
                         familyResult(
-                                "proxy",
-                                proxyParamNames,
-                                true,
-                                "Generated transactional proxy API retains parameter metadata."
+                                "strict-proxy-target",
+                                strictComponentParamNames,
+                                strictProxyWorks,
+                                "Strict executable component class is class-proxyable by Spring AOP."
                         ),
                         familyResult(
-                                "web-controller",
-                                webParamNames,
-                                webAnnotations,
-                                "Generated web controller retains request-parameter and controller metadata."
+                                "strict-web-controller",
+                                strictWebParamNames,
+                                strictWebAnnotations,
+                                "Strict executable web controller class retains request-parameter and controller metadata."
                         ),
                         familyResult(
                                 "interop-bridge",
@@ -261,9 +269,9 @@ final class TsjMetadataParityCertificationHarness {
         final String notes = exception.getClass().getSimpleName() + ": " + String.valueOf(exception.getMessage());
         return List.of(
                 new TsjMetadataParityCertificationReport.FamilyResult("program", false, false, false, notes),
-                new TsjMetadataParityCertificationReport.FamilyResult("component", false, false, false, notes),
-                new TsjMetadataParityCertificationReport.FamilyResult("proxy", false, false, false, notes),
-                new TsjMetadataParityCertificationReport.FamilyResult("web-controller", false, false, false, notes),
+                new TsjMetadataParityCertificationReport.FamilyResult("strict-component", false, false, false, notes),
+                new TsjMetadataParityCertificationReport.FamilyResult("strict-proxy-target", false, false, false, notes),
+                new TsjMetadataParityCertificationReport.FamilyResult("strict-web-controller", false, false, false, notes),
                 new TsjMetadataParityCertificationReport.FamilyResult("interop-bridge", false, false, false, notes)
         );
     }

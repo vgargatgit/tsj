@@ -1003,6 +1003,8 @@
         "fieldNames" : [ "value" ],
         "methods" : [ ],
         "name" : "Box",
+        "staticFields" : [ ],
+        "staticMethods" : [ ],
         "superClassName" : null
       },
       "kind" : "ClassDeclarationStatement",

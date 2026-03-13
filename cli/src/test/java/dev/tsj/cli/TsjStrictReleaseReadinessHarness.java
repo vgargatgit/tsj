@@ -65,7 +65,7 @@ final class TsjStrictReleaseReadinessHarness {
                         "strict-cli-matrix",
                         cliContract.contains("--mode default|jvm-strict")
                                 && cliContract.contains("TSJ-STRICT-UNSUPPORTED")
-                                && cliContract.contains("spring-package <entry.ts>"),
+                                && cliContract.contains("package <entry.ts>"),
                         CLI_CONTRACT_RELATIVE_PATH.toString()
                 ),
                 new TsjStrictReleaseReadinessReport.ReleaseCriterion(

@@ -15,7 +15,8 @@ This guide describes the current migration path from Kotlin/Java Spring code to 
    - `@Transactional` on class/method declarations
    - interface-based proxy compatibility path
 4. Packaging/startup subset:
-   - `tsj spring-package <entry.ts> --out <dir> [--smoke-run]`
+   - `tsj package <entry.ts> --out <dir> [--smoke-run]`
+   - packaged applications use the same generic command surface as other TSJ apps
 
 ## Recommended Migration Sequence
 

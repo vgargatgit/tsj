@@ -16,20 +16,16 @@ TSJ guarantees reflection-visible metadata for generated classes in supported pa
 
 1. Generated program classes
 2. Interop bridge classes
-3. TS-authored Spring component/web adapter classes
-4. Generated proxy/interface artifacts in supported flows
+3. Strict executable TS classes
+4. Proxy-friendly strict executable targets in supported flows
 
 Guaranteed behaviors:
 
 1. Runtime-visible class/method annotations configured by interop spec are emitted.
 2. Parameter names are retained (`-parameters` compile path).
-3. Generic return/parameter signatures are preserved for supported typed bridge methods.
+3. Imported runtime annotations, parameter names, and proxy-visible shapes are preserved on supported strict executable classes.
 4. Introspector matrix scenarios are tracked in:
    `compiler/backend-jvm/target/tsj39b-introspector-matrix.json`.
-
-Targeted metadata diagnostic:
-
-1. `TSJ-INTEROP-METADATA` (`featureId=TSJ39-ABI-METADATA`) for unsupported signature shapes.
 
 ## Invocation/Conversion Guarantees (TSJ-41 Family)
 

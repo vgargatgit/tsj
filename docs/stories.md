@@ -819,20 +819,9 @@
   - Integration fixtures boot a Spring context and assert bean graph correctness.
 - Notes:
   - Initial subset prioritizes constructor injection and does not include field injection.
-  - Added interop-spec Spring bridge subset keys:
-    `springConfiguration=true` and
-    `springBeanTargets=<class>#<binding>,...`.
-  - For Spring bean targets, generated bridge classes emit:
-    `@org.springframework.context.annotation.Configuration`
-    and generated bean methods emit:
-    `@org.springframework.context.annotation.Bean`.
-  - Bean method signatures are typed from reflected constructor/static method signatures (non-primitive parameter and return constraints).
-  - Added explicit diagnostics for unsupported Spring bridge targets:
-    `TSJ-INTEROP-SPRING` + `featureId=TSJ33-SPRING-BEAN`.
-  - Test coverage includes:
-    bridge-source unit tests,
-    CLI interop command coverage, and
-    constructor-injection integration via Spring-compatible context harness.
+  - Spring DI support is now certified through TS-authored executable classes with imported `java:` annotations,
+    not through Spring-specific interop bridge generation.
+  - TSJ-91 retired the old Spring bridge-spec keys and their generator/integration tests from the supported path.
   - Parent completion gate:
     TSJ-33 can move from `Complete (Subset)` to `Complete` only when TSJ-33a through TSJ-33f
     are `Complete`, and this story no longer carries a remaining-gap note.
@@ -975,33 +964,18 @@
   - Error handling path supports mapped HTTP responses for supported exception flows.
   - End-to-end web integration tests validate startup and HTTP behavior.
 - Notes:
-  - Interop-spec path remains supported for Java-target bridges via:
-    `springWebController=true`,
-    `springWebBasePath`,
-    `springRequestMappings.<binding>=<HTTP_METHOD> <path>`,
-    `springErrorMappings=<exceptionFqcn>:<statusCode>,...`.
   - TS-authored controller decorator subset is now supported in compile flow:
     `@RestController`, `@RequestMapping("/base")`,
     `@GetMapping|@PostMapping|@PutMapping|@DeleteMapping|@PatchMapping`,
     `@ExceptionHandler("<exceptionFqcn>")`,
     `@ResponseStatus(<statusCode>)`.
   - Backend parser strips supported TSJ-34 decorator lines and lowers class/method bodies normally.
-  - Compile now auto-generates Spring adapter sources under:
-    `<out>/generated-web/dev/tsj/generated/web/*.java`,
-    delegating into generated TSJ program class via `__tsjInvokeController(...)`
-    or `__tsjInvokeClassWithInjection(...)` for constructor-injected controllers.
-  - Generated adapter methods emit Spring web annotations:
-    `@RestController`, `@RequestMapping`, route mapping annotations, `@RequestParam`,
-    and mapped `@ExceptionHandler` + `@ResponseStatus`.
-  - Added explicit diagnostics for unsupported Spring web configurations:
-    `TSJ-INTEROP-WEB` + `featureId=TSJ34-SPRING-WEB` (interop-spec path) and
-    `TSJ-WEB-CONTROLLER` (TS-authored decorator path).
+  - The supported path now relies on executable strict-native classes carrying imported Spring annotations directly.
+  - TSJ-91 retired the old Spring web interop-bridge subset and generator-backed adapter path from the supported contract.
   - Test coverage includes:
-    interop bridge-source unit tests,
-    TS-decorator web adapter generator unit tests,
-    TS-authored web dispatch integration test,
+    TS-authored executable controller metadata/integration tests,
     backend parser decorator acceptance/diagnostic tests,
-    and CLI compile coverage for generated TS web adapters.
+    and HTTP packaging smoke coverage.
   - Parent completion gate:
     TSJ-34 can move from `Complete (Subset)` to `Complete` only when TSJ-34a through TSJ-34f
     are `Complete`, and this story no longer carries a remaining-gap note.
@@ -1250,7 +1224,7 @@
   - TSJ-36 subset adds CLI command:
     `tsj spring-package <entry.ts> --out <dir> ...`.
   - Packaging path compiles entry via existing TSJ compile pipeline and emits jar artifact:
-    default `<out>/tsj-spring-app.jar` (override with `--boot-jar`).
+    default `<out>/tsj-app.jar` (override with `--boot-jar`).
   - Jar packaging now includes compiled TSJ classes and compile artifact metadata
     (`META-INF/tsj/program.tsj.properties`).
   - Resource handling subset supports:
@@ -1260,9 +1234,9 @@
     `stage=compile` for TSJ compile failures,
     `stage=bridge` for interop bridge/classload failures,
     `stage=package` for jar/resource packaging failures,
-    `stage=runtime` with `TSJ-SPRING-BOOT` for smoke-run startup failures.
+    `stage=runtime` with `TSJ-PACKAGE-BOOT` for smoke-run startup failures.
   - Optional smoke startup validation:
-    `--smoke-run` launches packaged main class and emits `TSJ-SPRING-SMOKE-SUCCESS` on success.
+    `--smoke-run` launches packaged main class and emits `TSJ-PACKAGE-SMOKE-SUCCESS` on success.
   - CI template now includes dedicated TSJ-36 spring-package smoke step.
   - TSJ-36c dev-loop parity closure is implemented with dedicated harness/report coverage:
     `TsjDevLoopParityHarness`,
@@ -1301,7 +1275,7 @@
     `--smoke-endpoint-url`, `--smoke-timeout-ms`, `--smoke-poll-ms`.
   - Endpoint smoke supports HTTP probes and deterministic `stdout://<marker>` probes for constrained CI/test
     environments; startup vs endpoint failures are separated via
-    `TSJ-SPRING-BOOT` (`failureKind=startup`) and `TSJ-SPRING-ENDPOINT` (`failureKind=endpoint`).
+    `TSJ-PACKAGE-BOOT` (`failureKind=startup`) and `TSJ-PACKAGE-ENDPOINT` (`failureKind=endpoint`).
   - Smoke success diagnostics now include reproducible `reproCommand` and runtime context
     (`runtimeMs`, endpoint URL/port/status when available).
   - CLI coverage includes healthy and controlled-failure endpoint smoke scenarios plus option-validation checks in
@@ -1614,13 +1588,8 @@
   - Docs define metadata guarantees and non-goals for broad-jar mode.
 - Notes:
   - Extends TSJ-32 parity from Spring-focused needs to general third-party library expectations.
-  - TSJ-39 subset extends interop bridge signature emission to preserve parameterized
-    generic metadata for Spring bean/web typed bridge methods when signatures are concrete.
-  - New metadata-gap diagnostics:
-    `TSJ-INTEROP-METADATA` with `featureId=TSJ39-ABI-METADATA`
-    for bridged signatures that include unresolved generic type variables.
-  - Compatibility tests now validate metadata via reflection on compiled generated bridges:
-    generic return/parameter type names and parameter-name retention.
+  - Current certification centers on executable strict-native classes, generic interop bridge annotations,
+    and proxy-visible shapes instead of framework-specific typed interop bridges.
   - Documentation now defines metadata guarantees/non-goals for broad-jar mode in:
     `docs/interop-compatibility-guide.md`.
   - Parent completion gate:
@@ -3536,7 +3505,7 @@ Full async parity is reached when:
     or TS application workarounds specific to Spring.
   - Baseline report captures current blockers with deterministic diagnostics and links them to the concrete core-path code responsible.
   - CI stores the red-baseline report as an artifact so progression is measurable story by story.
-- Status: `Planned`.
+- Status: `Complete`.
 - Dependencies: TSJ-75, TSJ-84.
 
 ### TSJ-86: Frontend-backed JVM declaration model replaces regex decorator extraction
@@ -3558,7 +3527,7 @@ Full async parity is reached when:
   - Core native path no longer depends on `TsDecoratorModelExtractor` or `TsDecoratorAnnotationMapping`.
   - Declaration-model snapshots/tests cover multiline, nested, generic, and non-trivial class syntax used in real framework apps.
   - Diagnostics for unresolved/invalid declarations remain deterministic and source-mapped.
-- Status: `Planned`.
+- Status: `Complete`.
 - Dependencies: TSJ-85, TSJ-71, TSJ-79.
 
 ### TSJ-87: Executable JVM class emission for TS classes
@@ -3574,7 +3543,7 @@ Full async parity is reached when:
     stable generic signatures,
     and non-final proxyable defaults where required.
   - Integration tests prove that framework/runtime consumers interact with emitted classes directly rather than via `__tsjInvokeClass*` helper indirection.
-- Status: `Planned`.
+- Status: `Complete`.
 - Dependencies: TSJ-80, TSJ-86.
 
 ### TSJ-88: Expand native lowering from strict subset to framework-complete application subset
@@ -3594,7 +3563,7 @@ Full async parity is reached when:
   - Unsupported native constructs fail with deterministic `TSJ-STRICT-*` or successor diagnostics and clear migration guidance.
   - Pet-clinic-class workloads compile as direct JVM classes without adapter generation or manual Java fixtures.
   - Readiness corpus expands from DTO/controller micro-cases to multi-class application scenarios.
-- Status: `Planned`.
+- Status: `Complete`.
 - Dependencies: TSJ-87, TSJ-82.
 
 ### TSJ-89: Generic annotation, signature, and proxy fidelity on executable classes
@@ -3613,10 +3582,10 @@ Full async parity is reached when:
     arrays,
     repeated annotations,
     and nested-annotation subset where JVM syntax allows it.
-  - Generic signatures, parameter names, nullability annotations, and bean-property conventions are preserved on executable classes.
-  - Hibernate/JPA entity reflection, Spring AOP proxy inspection, Jackson serialization, and Bean Validation introspection work without TSJ-specific adapters/converters.
-  - Existing metadata-carrier-only certification is replaced with executable-class certification.
-- Status: `Planned`.
+- Generic signatures, parameter names, nullability annotations, and bean-property conventions are preserved on executable classes.
+- Hibernate/JPA entity reflection, Spring AOP proxy inspection, Jackson serialization, and Bean Validation introspection work without TSJ-specific adapters/converters.
+- Existing metadata-carrier-only certification is replaced with executable-class certification.
+- Status: `Complete`.
 - Dependencies: TSJ-87, TSJ-88.
 
 ### TSJ-90: Generic package/run/jar contract replaces `spring-package`
@@ -3627,7 +3596,7 @@ Full async parity is reached when:
   - User TS code supplies the application entrypoint in a framework-neutral way (for example through ordinary `java:` API calls and/or generic manifest/main-class configuration).
   - `compile`, `run`, and packaged-jar execution share one classpath/resource model.
   - CI proves a Spring Boot app and a non-Spring packaged app launch successfully through the same generic packaging contract.
-- Status: `Planned`.
+- Status: `Complete`.
 - Dependencies: TSJ-88, TSJ-89.
 
 ### TSJ-91: Remove framework-specific core-path code, flags, and tests
@@ -3645,7 +3614,7 @@ Full async parity is reached when:
   - Tests are rewritten around generic native behavior instead of Spring-specific adapter assertions.
   - CI includes a deterministic guard preventing reintroduction of framework-specific branches into the native core path.
   - Documentation marks retired compatibility paths clearly or removes them entirely.
-- Status: `Planned`.
+- Status: `Complete`.
 - Dependencies: TSJ-89, TSJ-90.
 
 ### TSJ-92: Any-jar no-hacks certification closure and user contract
@@ -3662,7 +3631,7 @@ Full async parity is reached when:
   - No certified scenario requires TSJ-specific framework decorators, adapter generators, boot launchers, or manual Java fixture application logic.
   - User-facing mode/packaging contract is finalized and documented as the supported any-jar path.
   - Release gate publishes deterministic certification artifacts and blocks regressions in CI.
-- Status: `Planned`.
+- Status: `Complete`.
 - Dependencies: TSJ-91.
 
 ## Planned Story Implementation Sequence (Epic O)
@@ -3680,20 +3649,20 @@ Full async parity is reached when:
 
 ### Sprint P26: Target Contract + Declaration Model
 - TSJ-85, TSJ-86
-- Status: `Planned`
-- Progress: `TSJ-85 Planned; TSJ-86 Planned`
+- Status: `Complete`
+- Progress: `TSJ-85 Complete; TSJ-86 Complete`
 
 ### Sprint P27: Executable Class Path + Native Lowering Expansion
 - TSJ-87, TSJ-88
-- Status: `Planned`
-- Progress: `TSJ-87 Planned; TSJ-88 Planned`
+- Status: `Complete`
+- Progress: `TSJ-87 Complete; TSJ-88 Complete`
 
 ### Sprint P28: Metadata Fidelity + Generic Packaging
 - TSJ-89, TSJ-90
-- Status: `Planned`
-- Progress: `TSJ-89 Planned; TSJ-90 Planned`
+- Status: `Complete`
+- Progress: `TSJ-89 Complete; TSJ-90 Complete`
 
 ### Sprint P29: Decommission Legacy Spring Path + Final Certification
 - TSJ-91, TSJ-92
-- Status: `Planned`
-- Progress: `TSJ-91 Planned; TSJ-92 Planned`
+- Status: `Complete`
+- Progress: `TSJ-91 Complete; TSJ-92 Complete`

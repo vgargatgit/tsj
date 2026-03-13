@@ -37,8 +37,8 @@ final class TsjDevLoopParityHarness {
         final List<TsjDevLoopParityReport.ScenarioResult> scenarios = new ArrayList<>();
         scenarios.add(runCompileScenario(workRoot.resolve("compile"), entryFile));
         scenarios.add(runRunScenario(workRoot.resolve("run"), entryFile, "devloop-v1"));
-        scenarios.add(runSpringPackageScenario(workRoot.resolve("package"), entryFile, resourcesDir));
-        scenarios.add(runSpringSmokeScenario(workRoot.resolve("smoke"), entryFile));
+        scenarios.add(runPackageScenario(workRoot.resolve("package"), entryFile, resourcesDir));
+        scenarios.add(runPackageSmokeScenario(workRoot.resolve("smoke"), entryFile));
 
         Files.writeString(entryFile, "console.log(\"devloop-v2\");\n", UTF_8);
         scenarios.add(runIncrementalIterationScenario(workRoot.resolve("iterate"), entryFile));
@@ -47,7 +47,7 @@ final class TsjDevLoopParityHarness {
         final List<String> workflowHints = List.of(
                 "tsj compile <entry.ts> --out <dir>",
                 "tsj run <entry.ts> --out <dir>",
-                "tsj spring-package <entry.ts> --out <dir> [--smoke-run]"
+                "tsj package <entry.ts> --out <dir> [--smoke-run]"
         );
         final List<String> nonGoals = List.of(
                 "Continuous hot-reload process management.",
@@ -101,33 +101,33 @@ final class TsjDevLoopParityHarness {
         return scenario("run", passed, result);
     }
 
-    private TsjDevLoopParityReport.ScenarioResult runSpringPackageScenario(
+    private TsjDevLoopParityReport.ScenarioResult runPackageScenario(
             final Path outDir,
             final Path entryFile,
             final Path resourcesDir
     ) {
         final CommandResult result = execute(
-                "spring-package",
+                "package",
                 entryFile.toString(),
                 "--out",
                 outDir.toString(),
                 "--resource-dir",
                 resourcesDir.toString()
         );
-        final Path packagedJar = outDir.resolve("tsj-spring-app.jar");
+        final Path packagedJar = outDir.resolve("tsj-app.jar");
         final boolean passed = result.exitCode() == 0
                 && Files.exists(packagedJar)
-                && result.stdout().contains("\"code\":\"TSJ-SPRING-PACKAGE-SUCCESS\"")
+                && result.stdout().contains("\"code\":\"TSJ-PACKAGE-SUCCESS\"")
                 && result.stderr().isBlank();
-        return scenario("spring-package", passed, result);
+        return scenario("package", passed, result);
     }
 
-    private TsjDevLoopParityReport.ScenarioResult runSpringSmokeScenario(
+    private TsjDevLoopParityReport.ScenarioResult runPackageSmokeScenario(
             final Path outDir,
             final Path entryFile
     ) {
         final CommandResult result = execute(
-                "spring-package",
+                "package",
                 entryFile.toString(),
                 "--out",
                 outDir.toString(),
@@ -136,10 +136,10 @@ final class TsjDevLoopParityHarness {
                 "stdout://devloop-v1"
         );
         final boolean passed = result.exitCode() == 0
-                && result.stdout().contains("\"code\":\"TSJ-SPRING-SMOKE-SUCCESS\"")
-                && result.stdout().contains("\"code\":\"TSJ-SPRING-SMOKE-ENDPOINT-SUCCESS\"")
+                && result.stdout().contains("\"code\":\"TSJ-PACKAGE-SMOKE-SUCCESS\"")
+                && result.stdout().contains("\"code\":\"TSJ-PACKAGE-SMOKE-ENDPOINT-SUCCESS\"")
                 && result.stderr().isBlank();
-        return scenario("spring-smoke", passed, result);
+        return scenario("package-smoke", passed, result);
     }
 
     private TsjDevLoopParityReport.ScenarioResult runIncrementalIterationScenario(

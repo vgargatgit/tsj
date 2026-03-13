@@ -110,6 +110,96 @@ class TsjGenericReflectionConsumerParityTest {
         );
     }
 
+    @Test
+    void supportsGenericDiAndMetadataReflectionConsumersFromExternalJarAgainstStrictExecutableClasses() throws Exception {
+        final Path fixtureJar = buildFixtureJar();
+        final Path sourceFile = tempDir.resolve("generic-reflection-consumers-strict.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                import { Component } from "java:sample.reflect.Component";
+                import { Inject } from "java:sample.reflect.Inject";
+                import { Route } from "java:sample.reflect.Route";
+                import { Named } from "java:sample.reflect.Named";
+                import { loadClass } from "java:sample.reflect.TypeLocator";
+                import { hasComponent, countInjectFields } from "java:sample.reflect.DiConsumer";
+                import {
+                  routePath,
+                  countNamedParameters,
+                  countNamedConstructorParameters
+                } from "java:sample.reflect.MetadataConsumer";
+
+                @Component
+                class Repo {
+                }
+
+                @Component
+                @Route("/orders")
+                class Controller {
+                  @Inject
+                  repo: Repo;
+
+                  constructor(@Named("repoCtor") repo: Repo) {
+                    this.repo = repo;
+                  }
+
+                  find(@Named("id") id: string): string {
+                    return id;
+                  }
+                }
+
+                const type = loadClass("dev.tsj.generated.Controller__TsjStrictNative");
+                console.log("component=" + hasComponent(type));
+                console.log("injectFields=" + countInjectFields(type));
+                console.log("route=" + routePath(type));
+                console.log("ctorNamedParams=" + countNamedConstructorParameters(type));
+                console.log("namedParams=" + countNamedParameters(type, "find"));
+                """,
+                UTF_8
+        );
+
+        final String previousAdditionalClasspath = System.getProperty(BACKEND_ADDITIONAL_CLASSPATH_PROPERTY);
+        final JvmCompiledArtifact artifact;
+        if (previousAdditionalClasspath == null || previousAdditionalClasspath.isBlank()) {
+            System.setProperty(BACKEND_ADDITIONAL_CLASSPATH_PROPERTY, fixtureJar.toString());
+        } else {
+            System.setProperty(
+                    BACKEND_ADDITIONAL_CLASSPATH_PROPERTY,
+                    previousAdditionalClasspath + java.io.File.pathSeparator + fixtureJar
+            );
+        }
+        try {
+            artifact = new JvmBytecodeCompiler().compile(
+                    sourceFile,
+                    tempDir.resolve("strict-out"),
+                    JvmOptimizationOptions.defaults(),
+                    JvmBytecodeCompiler.BackendMode.JVM_STRICT
+            );
+        } finally {
+            if (previousAdditionalClasspath == null || previousAdditionalClasspath.isBlank()) {
+                System.clearProperty(BACKEND_ADDITIONAL_CLASSPATH_PROPERTY);
+            } else {
+                System.setProperty(BACKEND_ADDITIONAL_CLASSPATH_PROPERTY, previousAdditionalClasspath);
+            }
+        }
+
+        assertEquals("jvm-native-class-subset", artifact.strictLoweringPath());
+
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, List.of(fixtureJar), new PrintStream(stdout), System.err);
+
+        assertEquals(
+                """
+                component=true
+                injectFields=1
+                route=/orders
+                ctorNamedParams=1
+                namedParams=1
+                """,
+                stdout.toString(UTF_8)
+        );
+    }
+
     private Path buildFixtureJar() throws Exception {
         final Map<String, String> sources = Map.of(
                 "sample/reflect/Component.java",
@@ -181,6 +271,23 @@ class TsjGenericReflectionConsumerParityTest {
                             return Class.forName(className, true, context);
                         } catch (final ClassNotFoundException exception) {
                             throw new IllegalStateException("Carrier class not found: " + className, exception);
+                        }
+                    }
+                }
+                """,
+                "sample/reflect/TypeLocator.java",
+                """
+                package sample.reflect;
+
+                public final class TypeLocator {
+                    private TypeLocator() {}
+
+                    public static Class<?> loadClass(final String className) {
+                        try {
+                            final ClassLoader context = Thread.currentThread().getContextClassLoader();
+                            return Class.forName(className, true, context);
+                        } catch (final ClassNotFoundException exception) {
+                            throw new IllegalStateException("Class not found: " + className, exception);
                         }
                     }
                 }

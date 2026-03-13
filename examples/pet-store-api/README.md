@@ -43,13 +43,14 @@ Expected stdout marker:
 tsj-pet-store-boot
 ```
 
-## Package as Spring-style jar
+## Package as runnable jar
 
-`spring-package` compiles generated Spring adapter sources, so you must provide Spring jars
-on classpath (or equivalent stubs).
+`package` is the public packaged-app command surface.
+In the current transition path it still uses the existing packaging pipeline, so for this Spring-style sample
+you must still provide Spring jars on classpath (or equivalent stubs).
 
 ```bash
 mvn -B -ntp -f cli/pom.xml exec:java \
   -Dexec.mainClass=dev.tsj.cli.TsjCli \
-  -Dexec.args="spring-package examples/pet-store-api/main.ts --out examples/pet-store-api/.tsj-package --classpath /path/to/spring-web.jar:/path/to/spring-context.jar --smoke-run --smoke-endpoint-url stdout://tsj-pet-store-boot"
+  -Dexec.args="package examples/pet-store-api/main.ts --out examples/pet-store-api/.tsj-package --classpath /path/to/spring-web.jar:/path/to/spring-context.jar --smoke-run --smoke-endpoint-url stdout://tsj-pet-store-boot"
 ```
