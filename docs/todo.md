@@ -4051,3 +4051,217 @@
 - Replaced the stale open `Next:` checklist items left inside the completed `TSJ-89` slice log with explicit closure notes,
   so the plan document no longer implies that executable-class metadata/proxy follow-up work is still open.
 - This was a documentation-state cleanup only; no compiler, runtime, or CLI behavior changed.
+
+## Review: 2026-03-13 Pet Clinic gap discovery on generic Spring JPA wiring
+- Focused package verification for
+  `cli/src/test/java/dev/tsj/cli/TsjPetClinicExampleTest.java`
+  showed that the current generic any-jar path still has one real compiler gap for TS-authored Spring/JPA components:
+  a strict-native constructor parameter typed as an imported `java:` simple-name alias
+  (for example `EntityManager`)
+  is emitted as JVM type `Object`.
+- Observed runtime failure:
+  Spring attempted to construct
+  `dev.tsj.generated.ClinicRepository__TsjStrictNative`
+  and rejected constructor parameter `0`
+  because it saw bean type `java.lang.Object`,
+  producing `UnsatisfiedDependencyException` / `NoUniqueBeanDefinitionException`.
+- This is not a pet-clinic-specific workaround case.
+  The frontend bridge already records file-local `java:` import aliases;
+  the remaining gap is that strict-native JVM signature rendering only consults built-ins,
+  strict-native TS classes,
+  and fully qualified names,
+  so imported aliases currently collapse to `Object`.
+- Required fix direction:
+  thread the existing generic `java:` import binding map into strict-native field,
+  parameter,
+  return-type,
+  extends,
+  and generic-bound resolution,
+  then re-run the pet-clinic package gate without changing the application wiring model.
+
+## Review: 2026-03-13 Pet Clinic gap discovery on duplicate equivalent Java interop methods
+- After fixing strict-native imported Java alias signatures,
+  the packaged pet-clinic application started successfully:
+  Spring Boot,
+  Tomcat,
+  Hibernate/JPA,
+  H2,
+  and Springdoc OpenAPI all initialized on the generic package path.
+- The next live request to
+  `/api/petclinic/owners?lastName=Frank`
+  failed inside Java interop dispatch,
+  not inside Spring wiring or sample-specific code.
+- Observed runtime failure:
+  `TsjJavaInterop` reported
+  `Ambiguous interop candidates for createQuery with argument types [java.lang.string, java.lang.class]`
+  even though the target Java API call shape is the ordinary
+  `EntityManager#createQuery(String, Class)`.
+- This indicates a remaining generic runtime gap:
+  duplicate equivalent inherited/proxy-visible Java methods can survive candidate collection and then tie in overload
+  resolution instead of collapsing to one logical invocation target.
+- Required fix direction:
+  deduplicate equivalent Java method candidates by invocation shape
+  (parameter signature, then specificity/declaring-class preference for deterministic winner choice)
+  in the generic runtime interop layer,
+  then re-run the pet-clinic package gate without changing repository code or adding preselected/JPA-specific calls.
+
+## Review: 2026-03-13 Pet Clinic gap discovery on strict-native Java collection return preservation
+- After fixing imported Java alias signatures and duplicate equivalent interop methods,
+  the packaged pet-clinic application now starts through the generic package path:
+  Spring Boot,
+  Tomcat,
+  Hibernate/JPA,
+  H2,
+  and Springdoc all initialize successfully.
+- The next failure is at the web serialization boundary:
+  repeated requests to
+  `/api/petclinic/owners?lastName=Frank`
+  fail with
+  `HttpMediaTypeNotAcceptableException: No acceptable representation`
+  and return `406 Not Acceptable`.
+- The current generic root cause is that strict-native fallback member calls still use the TS runtime member-dispatch
+  path, which routes Java results through `TsjInteropCodec.fromJava(...)`.
+  That is fine for ordinary TS execution,
+  but it converts Java collections like `List<Owner>` into TSJ wrappers before they reach Spring MVC/Jackson.
+- This is not a sample-specific fix case.
+  The right fix is to preserve raw Java results for Java receiver member calls on the strict-native path,
+  so chained framework-facing results stay as JVM objects until they leave TSJ code.
+- Required fix direction:
+  add a strict-native-only raw Java member-call path,
+  prove it with red/green tests on Java list-returning member-call chains,
+  then re-run the pet-clinic package gate without changing the TS Spring/JPA wiring.
+
+## Review: 2026-03-13 Pet Clinic fixed via strict-native raw Java member-call preservation
+- Implemented a strict-native-only raw Java member-call path instead of changing the global TS runtime conversion
+  rules.
+- Product changes:
+  `runtime/src/main/java/dev/tsj/runtime/TsjJavaInterop.java`,
+  `runtime/src/main/java/dev/tsj/runtime/TsjRuntime.java`,
+  `compiler/backend-jvm/src/main/java/dev/tsj/compiler/backend/jvm/JvmBytecodeCompiler.java`.
+- Added focused red/green coverage:
+  `runtime/src/test/java/dev/tsj/runtime/TsjJavaInteropTest.java`,
+  `runtime/src/test/java/dev/tsj/runtime/TsjRuntimeTest.java`,
+  `compiler/backend-jvm/src/test/java/dev/tsj/compiler/backend/jvm/JvmBytecodeCompilerTest.java`,
+  `compiler/backend-jvm/src/test/java/dev/tsj/compiler/backend/jvm/fixtures/JavaQueryInteropFixture.java`.
+- Verified end-to-end with
+  `TsjPetClinicExampleTest#petClinicPackagesRunsWithH2AndPublishesOpenApi`.
+  The packaged TS-only app now:
+  starts through the generic `package` path,
+  uses Spring Boot + Spring Data JPA + Hibernate + H2 + Springdoc jars,
+  serves `/api/petclinic/owners`,
+  serves `/api/petclinic/owners/{ownerId}/pets`,
+  accepts pet creation,
+  and exposes `/v3/api-docs` plus Swagger UI.
+
+## Review: 2026-03-13 residual cleanup gap on legacy strict-native class-name references
+- While validating the pet-clinic slice,
+  focused backend verification exposed a separate test/doc drift issue:
+  several tests and review notes still assume executable class names end with `__TsjStrictNative`.
+- Current product code now emits logical executable class names instead.
+- This is cleanup noise rather than a sample/runtime bug,
+  but it should be retired so the test and doc layer describes the current strict-native contract accurately.
+
+## Review: 2026-03-13 full regression confirmed legacy strict-native naming drift
+- Full root regression with
+  `mvn -B -ntp test`
+  is not green yet.
+- The dominant failure mode is test/certification drift, not a new product regression:
+  backend and parity harnesses still try to load classes such as
+  `dev.tsj.generated.Person__TsjStrictNative`,
+  `dev.tsj.generated.Controller__TsjStrictNative`,
+  and
+  `dev.tsj.generated.BillingService__TsjStrictNative`.
+- The current compiler emits logical executable class names instead,
+  so those tests fail with
+  `ClassNotFoundException`
+  and then trip higher-level parity/certification gates.
+- Required fix direction:
+  retire the stale `__TsjStrictNative` literals from backend and CLI tests/harnesses,
+  then rerun backend regression first and full root regression second.
+
+## Review: 2026-03-13 full regression restored after logical strict-native naming cleanup
+- Retired legacy executable strict-native suffix assumptions from backend and CLI tests/harnesses so they now assert
+  the current logical executable-class contract.
+- This cleanup covered:
+  `compiler/backend-jvm/src/test/java/dev/tsj/compiler/backend/jvm/JvmBytecodeCompilerTest.java`,
+  `compiler/backend-jvm/src/test/java/dev/tsj/compiler/backend/jvm/TsjSpringIntegrationMatrixHarness.java`,
+  `compiler/backend-jvm/src/test/java/dev/tsj/compiler/backend/jvm/TsjIntrospectorCompatibilityMatrixHarness.java`,
+  `compiler/backend-jvm/src/test/java/dev/tsj/compiler/backend/jvm/TsjGenericReflectionConsumerParityTest.java`,
+  `compiler/backend-jvm/src/test/java/dev/tsj/compiler/backend/jvm/TsjSpringAopExecutableProxyParityTest.java`,
+  `compiler/backend-jvm/src/test/java/dev/tsj/compiler/backend/jvm/TsjMetadataParityCertificationHarness.java`,
+  `cli/src/test/java/dev/tsj/cli/TsjSpringPackagedWebConformanceTest.java`,
+  `cli/src/test/java/dev/tsj/cli/TsjAnyJarNoHacksBaselineHarness.java`,
+  `cli/src/test/java/dev/tsj/cli/TsjAnyJarNoHacksCertificationHarness.java`,
+  `cli/src/test/java/dev/tsj/cli/TsjStrictReadinessHarness.java`,
+  and
+  `cli/src/test/java/dev/tsj/cli/TsjAnyJarNoHacksBaselineTest.java`.
+- Validation sequence:
+  `mvn -B -ntp test -rf :compiler-backend-jvm`
+  then
+  `mvn -B -ntp test`.
+- Final full regression state:
+  `compiler-frontend` `16` tests, `0` failures;
+  `compiler-ir` `7` tests, `0` failures;
+  `runtime` `181` tests, `0` failures;
+  `compiler-backend-jvm` `421` tests, `0` failures;
+  `cli` `332` tests, `0` failures.
+
+## Review: 2026-03-13 generic package jar publication hardened for mounted paths
+- Root cause isolated at the generic `package` layer:
+  the final fat-jar path could be observed on mounted paths before durable jar publication had completed,
+  which produced structurally invalid jars even though the CLI emitted
+  `TSJ-PACKAGE-SUCCESS`.
+- The fix stayed generic:
+  package output is now written to a staging jar,
+  `finish()`ed,
+  flushed,
+  forced,
+  validated with `JarFile`,
+  and only then moved into place.
+- Coverage and verification:
+  `TsjCliTest#packageSupportsCustomJarPathAndExplicitResourceDirectory`
+  now also asserts that no staging jar leaks beside the published jar,
+  and
+  `TsjPetClinicExampleTest`
+  remained green on the packaged Spring Boot + H2 + Swagger path.
+- Measured startup figures on the current machine:
+  pet-clinic package step took about
+  `62045 ms`,
+  and the already-packaged jar reached
+  `/v3/api-docs`
+  in about
+  `4797 ms`.
+- Important interpretation:
+  `examples/pet-clinic/scripts/run-http.sh`
+  is dominated by dependency resolution and Maven rebuild/package work,
+  so it is much slower than the actual Spring Boot server startup.
+
+## Review: 2026-03-13 native-temp pet-clinic runner
+- Added
+  `examples/pet-clinic/scripts/run-http-native.sh`
+  as an alternate HTTP runner that stages dependencies and packaged output under
+  `/tmp/tsj-pet-clinic-http`
+  instead of the mounted repo path.
+- The script also prints explicit phase start/running/done messages with elapsed milliseconds,
+  so long silent waits are replaced by visible progress.
+- Dependency resolution is reused when
+  `examples/pet-clinic/pom.xml`
+  has not changed, using a simple fingerprint stamp under the native temp root.
+- Measured result on the current machine:
+  total HTTP readiness in about
+  `155491 ms`,
+  composed of roughly
+  `30015 ms`
+  dependency copy,
+  `90029 ms`
+  reactor install,
+  `30014 ms`
+  package,
+  and about
+  `4-5 s`
+  Spring Boot startup.
+- This confirms two things:
+  the native temp path is materially better than the slow mounted-path packaging case,
+  and the largest remaining cost is still the forced
+  `mvn -pl cli -am -DskipTests install`
+  step rather than Spring Boot startup.

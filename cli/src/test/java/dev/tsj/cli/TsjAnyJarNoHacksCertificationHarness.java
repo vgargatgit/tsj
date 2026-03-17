@@ -168,9 +168,9 @@ final class TsjAnyJarNoHacksCertificationHarness {
                 List.of(packagedJar),
                 SPRING_CHILD_FIRST_PREFIXES
         )) {
-            final String repositoryClassName = resolveGeneratedClassName(outDir, "OwnerRepository__TsjStrictNative");
-            final String serviceClassName = resolveGeneratedClassName(outDir, "ClinicService__TsjStrictNative");
-            final String controllerClassName = resolveGeneratedClassName(outDir, "ClinicController__TsjStrictNative");
+            final String repositoryClassName = resolveGeneratedClassName(outDir, "OwnerRepository");
+            final String serviceClassName = resolveGeneratedClassName(outDir, "ClinicService");
+            final String controllerClassName = resolveGeneratedClassName(outDir, "ClinicController");
             final Class<?> repositoryClass = Class.forName(repositoryClassName, true, classLoader);
             final Class<?> serviceClass = Class.forName(serviceClassName, true, classLoader);
             final Class<?> controllerClass = Class.forName(controllerClassName, true, classLoader);
@@ -263,9 +263,9 @@ final class TsjAnyJarNoHacksCertificationHarness {
                 springCompileScenarioClasspath(repoRoot, classesDir),
                 SPRING_CHILD_FIRST_PREFIXES
         )) {
-            final String payloadClassName = resolveGeneratedClassName(classesDir, "AuditPayload__TsjStrictNative");
-            final String serviceClassName = resolveGeneratedClassName(classesDir, "AuditService__TsjStrictNative");
-            final String controllerClassName = resolveGeneratedClassName(classesDir, "AuditController__TsjStrictNative");
+            final String payloadClassName = resolveGeneratedClassName(classesDir, "AuditPayload");
+            final String serviceClassName = resolveGeneratedClassName(classesDir, "AuditService");
+            final String controllerClassName = resolveGeneratedClassName(classesDir, "AuditController");
             final Class<?> payloadClass = Class.forName(payloadClassName, true, classLoader);
             final Class<?> serviceClass = Class.forName(serviceClassName, true, classLoader);
             final Class<?> controllerClass = Class.forName(controllerClassName, true, classLoader);
@@ -352,7 +352,7 @@ final class TsjAnyJarNoHacksCertificationHarness {
                 List.of(classesDir),
                 List.of("dev.tsj.generated.")
         )) {
-            final String entityClassName = resolveGeneratedClassName(classesDir, "HibernateMatrixPerson__TsjStrictNative");
+            final String entityClassName = resolveGeneratedClassName(classesDir, "HibernateMatrixPerson");
             final Class<?> entityClass = Class.forName(entityClassName, true, classLoader);
             final BootstrapServiceRegistry bootstrapServiceRegistry = new BootstrapServiceRegistryBuilder()
                     .applyClassLoader(classLoader)
@@ -436,7 +436,7 @@ final class TsjAnyJarNoHacksCertificationHarness {
                 List.of(classesDir),
                 List.of("dev.tsj.generated.")
         )) {
-            final String dtoClassName = resolveGeneratedClassName(classesDir, "JacksonMatrixPerson__TsjStrictNative");
+            final String dtoClassName = resolveGeneratedClassName(classesDir, "JacksonMatrixPerson");
             final Class<?> dtoClass = Class.forName(dtoClassName, true, classLoader);
             final Object dto = dtoClass.getDeclaredConstructor().newInstance();
             dtoClass.getMethod("setId", String.class).invoke(dto, "p-1");
@@ -497,7 +497,7 @@ final class TsjAnyJarNoHacksCertificationHarness {
                 List.of(classesDir),
                 List.of("dev.tsj.generated.")
         )) {
-            final String dtoClassName = resolveGeneratedClassName(classesDir, "ValidationMatrixPerson__TsjStrictNative");
+            final String dtoClassName = resolveGeneratedClassName(classesDir, "ValidationMatrixPerson");
             final Class<?> dtoClass = Class.forName(dtoClassName, true, classLoader);
             final Object invalid = dtoClass.getDeclaredConstructor().newInstance();
             final ValidatorFactory validatorFactory = Validation.byProvider(HibernateValidator.class)
@@ -563,7 +563,7 @@ final class TsjAnyJarNoHacksCertificationHarness {
                   }
                 }
 
-                const type = loadClass("dev.tsj.generated.Controller__TsjStrictNative");
+                const type = loadClass("dev.tsj.generated.Controller");
                 console.log("component=" + hasComponent(type));
                 console.log("injectFields=" + countInjectFields(type));
                 console.log("route=" + routePath(type));

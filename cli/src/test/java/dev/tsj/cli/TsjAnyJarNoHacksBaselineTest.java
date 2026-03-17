@@ -20,7 +20,7 @@ class TsjAnyJarNoHacksBaselineTest {
     void baselineReportCapturesCurrentNoHacksBlockers() throws Exception {
         final TsjAnyJarNoHacksBaselineReport report = loadReport();
 
-        assertFalse(report.gatePassed());
+        assertTrue(report.gatePassed());
         assertTrue(Files.exists(REPORT_PATH));
 
         final Map<String, TsjAnyJarNoHacksBaselineReport.Blocker> blockers = report.blockers().stream().collect(
@@ -36,8 +36,8 @@ class TsjAnyJarNoHacksBaselineTest {
         assertFalse(blockers.get("requires-generated-boot-launcher").present());
         assertFalse(blockers.get("requires-legacy-spring-adapter-flag").present());
         assertFalse(blockers.get("requires-framework-glue-helper-entrypoints").present());
-        assertTrue(blockers.get("annotations-land-on-metadata-carrier").present());
-        assertTrue(blockers.get("executable-class-missing-runtime-annotations").present());
+        assertFalse(blockers.get("annotations-land-on-metadata-carrier").present());
+        assertFalse(blockers.get("executable-class-missing-runtime-annotations").present());
     }
 
     @Test
@@ -61,12 +61,13 @@ class TsjAnyJarNoHacksBaselineTest {
         assertTrue(scenarios.get("spring-aop-web-di-generic-compile").observed().contains("noLegacyWebAdapters=0"));
         assertTrue(scenarios.get("spring-aop-web-di-generic-compile").observed().contains("retiredLegacyFlagCode=TSJ-CLI-005"));
         assertEquals("TSJ-COMPILE-SUCCESS", scenarios.get("runtime-annotation-on-executable-class").diagnosticCode());
-        assertTrue(scenarios.get("runtime-annotation-on-executable-class").observed().contains("carrierAnnotated=true"));
-        assertTrue(scenarios.get("runtime-annotation-on-executable-class").observed().contains("nativeAnnotated=false"));
+        assertTrue(scenarios.get("runtime-annotation-on-executable-class").observed().contains("carrierExists=false"));
+        assertTrue(scenarios.get("runtime-annotation-on-executable-class").observed().contains("carrierAnnotated=false"));
+        assertTrue(scenarios.get("runtime-annotation-on-executable-class").observed().contains("nativeAnnotated=true"));
 
         final String persisted = Files.readString(REPORT_PATH);
         assertTrue(persisted.contains("\"suite\":\"TSJ-85-anyjar-nohacks-baseline\""));
-        assertTrue(persisted.contains("\"gatePassed\":false"));
+        assertTrue(persisted.contains("\"gatePassed\":true"));
     }
 
     private static synchronized TsjAnyJarNoHacksBaselineReport loadReport() throws Exception {

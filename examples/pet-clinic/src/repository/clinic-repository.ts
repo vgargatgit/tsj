@@ -1,51 +1,44 @@
 import type { EntityManager } from "java:jakarta.persistence.EntityManager";
-import { createEntityManagerFactory } from "java:jakarta.persistence.Persistence";
-import type { Repository } from "java:org.springframework.stereotype.Repository";
+import { randomUUID } from "java:java.util.UUID";
+import { Repository } from "java:org.springframework.stereotype.Repository";
+
+import { Owner } from "../domain/owner";
+import { Pet } from "../domain/pet";
 
 @Repository
 export class ClinicRepository {
   entityManager: EntityManager;
 
-  constructor() {
-    this.entityManager = createEntityManagerFactory("petclinic").createEntityManager();
+  constructor(entityManager: EntityManager) {
+    this.entityManager = entityManager;
   }
 
   findOwnersByLastName(lastName: string) {
     return this.entityManager
-      .createNativeQuery("select id, first_name, last_name from owners where lower(last_name) like lower(concat('%', ?1, '%')) order by id")
-      .setParameter(1, lastName)
+      .createQuery(
+        "select o from Owner o where o.lastName like :lastName order by o.id",
+        Owner
+      )
+      .setParameter("lastName", "%" + lastName + "%")
       .getResultList();
   }
 
   findPetsByOwner(ownerId: string) {
     return this.entityManager
-      .createNativeQuery("select id, owner_id, name, type, birth_date from pets where owner_id = ?1 order by id")
-      .setParameter(1, ownerId)
+      .createQuery(
+        "select p from Pet p where p.ownerId = :ownerId order by p.id",
+        Pet
+      )
+      .setParameter("ownerId", ownerId)
       .getResultList();
   }
 
-  addPet(ownerId: string, name: string, type: string, birthDate: string) {
-    const tx = this.entityManager.getTransaction();
-    tx.begin();
+  nextPetId() {
+    return randomUUID().toString();
+  }
 
-    const nextId = this.entityManager
-      .createNativeQuery("select coalesce(max(id), 100) + 1 from pets")
-      .getSingleResult();
-
-    this.entityManager
-      .createNativeQuery("insert into pets(id, owner_id, name, type, birth_date) values (?1, ?2, ?3, ?4, ?5)")
-      .setParameter(1, nextId)
-      .setParameter(2, ownerId)
-      .setParameter(3, name)
-      .setParameter(4, type)
-      .setParameter(5, birthDate)
-      .executeUpdate();
-
-    tx.commit();
-
-    return this.entityManager
-      .createNativeQuery("select id, owner_id, name, type, birth_date from pets where id = ?1")
-      .setParameter(1, nextId)
-      .getSingleResult();
+  savePet(pet: Pet) {
+    this.entityManager.persist(pet);
+    return pet;
   }
 }

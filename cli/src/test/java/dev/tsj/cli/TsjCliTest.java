@@ -8740,6 +8740,7 @@ class TsjCliTest {
         assertEquals("", stderr.toString(UTF_8));
         assertTrue(stdout.toString(UTF_8).contains("\"code\":\"TSJ-PACKAGE-SUCCESS\""));
         assertTrue(Files.exists(bootJar));
+        assertFalse(Files.exists(bootJar.resolveSibling(bootJar.getFileName().toString() + ".tmp")));
         try (JarFile jarFile = new JarFile(bootJar.toFile())) {
             assertNotNull(jarFile.getJarEntry("application.yml"));
             assertNotNull(jarFile.getJarEntry("static/info.txt"));

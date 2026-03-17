@@ -1,52 +1,41 @@
-import type { Qualifier } from "java:org.springframework.beans.factory.annotation.Qualifier";
-import type { GetMapping } from "java:org.springframework.web.bind.annotation.GetMapping";
-import type { PathVariable } from "java:org.springframework.web.bind.annotation.PathVariable";
-import type { PostMapping } from "java:org.springframework.web.bind.annotation.PostMapping";
-import type { RequestMapping } from "java:org.springframework.web.bind.annotation.RequestMapping";
-import type { RequestParam } from "java:org.springframework.web.bind.annotation.RequestParam";
-import type { RestController } from "java:org.springframework.web.bind.annotation.RestController";
+import { Operation } from "java:io.swagger.v3.oas.annotations.Operation";
+import { Tag } from "java:io.swagger.v3.oas.annotations.tags.Tag";
+import { GetMapping } from "java:org.springframework.web.bind.annotation.GetMapping";
+import { PathVariable } from "java:org.springframework.web.bind.annotation.PathVariable";
+import { PostMapping } from "java:org.springframework.web.bind.annotation.PostMapping";
+import { RequestBody } from "java:org.springframework.web.bind.annotation.RequestBody";
+import { RequestMapping } from "java:org.springframework.web.bind.annotation.RequestMapping";
+import { RequestParam } from "java:org.springframework.web.bind.annotation.RequestParam";
+import { RestController } from "java:org.springframework.web.bind.annotation.RestController";
 
-type ClinicServicePort = {
-  findOwners(lastName: string): OwnerRow[];
-  findPets(ownerId: string): PetRow[];
-  addPet(ownerId: string, name: string, type: string, birthDate: string): PetRow;
-};
-
-type OwnerRow = {
-  id: string;
-  firstName: string;
-  lastName: string;
-};
-
-type PetRow = {
-  id: number;
-  ownerId: string;
-  name: string;
-  type: string;
-  birthDate: string;
-};
+import { ClinicService } from "../service/clinic-service";
+import { NewPetRequest } from "./new-pet-request";
 
 @RestController
 @RequestMapping("/api/petclinic")
+@Tag({ name: "pet-clinic", description: "Owners and pets managed by the TSJ pet clinic sample." })
 export class PetClinicController {
-  service: ClinicServicePort;
+  service: ClinicService;
 
-  constructor(@Qualifier("clinicServiceTsjComponent") service: ClinicServicePort) {
+  constructor(service: ClinicService) {
     this.service = service;
   }
 
+  @Operation({ summary: "List owners by last name." })
   @GetMapping("/owners")
   listOwners(@RequestParam("lastName") lastName: string) {
     return this.service.findOwners(lastName);
   }
 
+  @Operation({ summary: "List pets belonging to an owner." })
   @GetMapping("/owners/{ownerId}/pets")
   petsByOwner(@PathVariable("ownerId") ownerId: string) {
     return this.service.findPets(ownerId);
   }
 
+  @Operation({ summary: "Add a pet for an owner." })
   @PostMapping("/owners/{ownerId}/pets")
-  addPet(@PathVariable("ownerId") ownerId: string, @RequestParam("name") name: string, @RequestParam("type") type: string, @RequestParam("birthDate") birthDate: string) {
-    return this.service.addPet(ownerId, name, type, birthDate);
+  addPet(@PathVariable("ownerId") ownerId: string, @RequestBody request: NewPetRequest) {
+    return this.service.addPet(ownerId, request);
   }
 }

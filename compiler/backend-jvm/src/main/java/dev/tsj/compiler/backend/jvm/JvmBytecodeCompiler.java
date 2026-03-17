@@ -3324,6 +3324,8 @@ public final class JvmBytecodeCompiler {
             final String initFunctionName = initFunctionByModule.get(module.sourceFile());
             final boolean asyncInit = module.requiresAsyncInit();
             final List<ImportRefreshBinding> importRefreshBindings = new ArrayList<>();
+            boolean pendingDecoratedDeclaration = false;
+            int pendingDecoratorDelimiterDepth = 0;
             appendBundledLine(builder, lineOrigins, "// module: " + module.sourceFile(), null, -1);
             appendBundledLine(
                     builder,
@@ -3390,7 +3392,14 @@ public final class JvmBytecodeCompiler {
             }
 
             for (int index = 0; index < module.bodyLines().size(); index++) {
-                if (isTopLevelModuleLine(module.bodyLines().get(index))
+                final String bodyLine = module.bodyLines().get(index);
+                final String trimmedBodyLine = bodyLine.trim();
+                final boolean topLevelModuleLine = isTopLevelModuleLine(bodyLine);
+                final boolean decoratorSequenceLine = topLevelModuleLine && (
+                        trimmedBodyLine.startsWith("@") || pendingDecoratedDeclaration
+                );
+                if (topLevelModuleLine
+                        && !decoratorSequenceLine
                         && shouldRefreshImportBindingsBeforeLine(module.bodyLines(), index)) {
                     for (ImportRefreshBinding refreshBinding : importRefreshBindings) {
                         appendBundledLine(
@@ -3399,16 +3408,41 @@ public final class JvmBytecodeCompiler {
                                 "  " + refreshBinding.localName() + " = " + refreshBinding.exportSymbol() + ";",
                                 null,
                                 -1
-                        );
+                            );
                     }
                 }
                 appendBundledLine(
                         builder,
                         lineOrigins,
-                        "  " + module.bodyLines().get(index),
+                        "  " + bodyLine,
                         module.sourceFile(),
                         module.bodyLineNumbers().get(index)
                 );
+                if (topLevelModuleLine && trimmedBodyLine.startsWith("@")) {
+                    pendingDecoratedDeclaration = true;
+                    pendingDecoratorDelimiterDepth = Math.max(
+                            0,
+                            countDelimiterBalance(trimmedBodyLine.substring(1))
+                    );
+                    continue;
+                }
+                if (!pendingDecoratedDeclaration) {
+                    continue;
+                }
+                if (pendingDecoratorDelimiterDepth > 0) {
+                    pendingDecoratorDelimiterDepth = Math.max(
+                            0,
+                            pendingDecoratorDelimiterDepth + countDelimiterBalance(trimmedBodyLine)
+                    );
+                    continue;
+                }
+                if (trimmedBodyLine.isEmpty()) {
+                    pendingDecoratedDeclaration = false;
+                    continue;
+                }
+                if (topLevelModuleLine && !isContinuationLineStart(trimmedBodyLine)) {
+                    pendingDecoratedDeclaration = false;
+                }
             }
 
             final Map<String, String> moduleExports = exportSymbolsByModule.get(module.sourceFile());
@@ -3537,6 +3571,38 @@ public final class JvmBytecodeCompiler {
             appendBundledLine(builder, lineOrigins, "", null, -1);
         }
         return new BundleResult(builder.toString(), List.copyOf(lineOrigins));
+    }
+
+    private static int countDelimiterBalance(final String line) {
+        int balance = 0;
+        boolean inString = false;
+        char quote = 0;
+        for (int index = 0; index < line.length(); index++) {
+            final char current = line.charAt(index);
+            if (inString) {
+                if (current == '\\' && index + 1 < line.length()) {
+                    index++;
+                    continue;
+                }
+                if (current == quote) {
+                    inString = false;
+                }
+                continue;
+            }
+            if (current == '"' || current == '\'' || current == '`') {
+                inString = true;
+                quote = current;
+                continue;
+            }
+            if (current == '(' || current == '[' || current == '{') {
+                balance++;
+                continue;
+            }
+            if (current == ')' || current == ']' || current == '}') {
+                balance--;
+            }
+        }
+        return balance;
     }
 
     private static boolean isTopLevelModuleLine(final String line) {
@@ -8789,7 +8855,7 @@ public final class JvmBytecodeCompiler {
                 final ClassDeclaration declaration = topLevelClass.declaration();
                 final String nativeClassSimpleName = allocateUniqueName(
                         classNameCounts,
-                        sanitizeJavaIdentifier(declaration.name()) + "__TsjStrictNative"
+                        sanitizeJavaIdentifier(declaration.name())
                 );
                 final Map<String, String> fieldNameMap = new LinkedHashMap<>();
                 final Map<String, Integer> fieldNameCounts = new LinkedHashMap<>();
@@ -8894,12 +8960,17 @@ public final class JvmBytecodeCompiler {
             final Map<String, String> importedDecoratorBindings = metadataDeclaration == null
                     ? Map.of()
                     : metadataDeclaration.importedDecoratorBindings();
+            final Map<String, String> importedJavaBindings = importedDecoratorBindings;
             final Set<String> classTypeParameters = decoratedClass == null
                     ? Set.of()
                     : extractStrictNativeTypeParameterNames(decoratedClass.genericParameters());
             final String superClassType = model.declaration().superClassName() == null
                     ? null
-                    : resolveStrictNativeRawBaseType(model.declaration().superClassName(), Set.of());
+                    : resolveStrictNativeRawBaseType(
+                            model.declaration().superClassName(),
+                            Set.of(),
+                            importedJavaBindings
+                    );
 
             builder.append("package ").append(packageName).append(";\n\n");
             appendAnnotationLines(
@@ -8913,7 +8984,8 @@ public final class JvmBytecodeCompiler {
                     .append(model.nativeClassSimpleName())
                     .append(renderStrictNativeTypeParameterDeclaration(
                             decoratedClass == null ? List.of() : decoratedClass.genericParameters(),
-                            Set.of()
+                            Set.<String>of(),
+                            importedJavaBindings
                     ));
             if (superClassType != null && !"Object".equals(superClassType)) {
                 builder.append(" extends ").append(superClassType);
@@ -8948,7 +9020,8 @@ public final class JvmBytecodeCompiler {
                 final String fieldType = resolveStrictNativeFieldType(
                         fieldName,
                         decoratedFieldsByName.get(fieldName),
-                        classTypeParameters
+                        classTypeParameters,
+                        importedJavaBindings
                 );
                 fieldTypesByName.put(fieldName, fieldType);
                 appendAnnotationLines(
@@ -9063,7 +9136,8 @@ public final class JvmBytecodeCompiler {
                 final List<String> constructorParameterTypes = resolveStrictNativeParameterTypes(
                         constructorMethod.parameters(),
                         decoratedConstructor == null ? List.of() : decoratedConstructor.parameters(),
-                        classTypeParameters
+                        classTypeParameters,
+                        importedJavaBindings
                 );
                 appendAnnotationLines(
                         builder,
@@ -9197,11 +9271,13 @@ public final class JvmBytecodeCompiler {
                 final List<String> methodParameterTypes = resolveStrictNativeParameterTypes(
                         method.parameters(),
                         decoratedMethod == null ? List.of() : decoratedMethod.parameters(),
-                        visibleMethodTypeParameters
+                        visibleMethodTypeParameters,
+                        importedJavaBindings
                 );
                 final String returnType = resolveStrictNativeJavaType(
                         decoratedMethod == null ? null : decoratedMethod.returnTypeAnnotation(),
-                        visibleMethodTypeParameters
+                        visibleMethodTypeParameters,
+                        importedJavaBindings
                 );
                 appendAnnotationLines(
                         builder,
@@ -9226,7 +9302,8 @@ public final class JvmBytecodeCompiler {
                 builder.append("    public ")
                         .append(renderStrictNativeTypeParameterDeclaration(
                                 decoratedMethod == null ? List.of() : decoratedMethod.genericParameters(),
-                                classTypeParameters
+                                classTypeParameters,
+                                importedJavaBindings
                         ));
                 if (decoratedMethod != null && !decoratedMethod.genericParameters().isEmpty()) {
                     builder.append(' ');
@@ -9295,11 +9372,13 @@ public final class JvmBytecodeCompiler {
                 final List<String> methodParameterTypes = resolveStrictNativeParameterTypes(
                         method.parameters(),
                         decoratedMethod == null ? List.of() : decoratedMethod.parameters(),
-                        visibleMethodTypeParameters
+                        visibleMethodTypeParameters,
+                        importedJavaBindings
                 );
                 final String returnType = resolveStrictNativeJavaType(
                         decoratedMethod == null ? null : decoratedMethod.returnTypeAnnotation(),
-                        visibleMethodTypeParameters
+                        visibleMethodTypeParameters,
+                        importedJavaBindings
                 );
                 appendAnnotationLines(
                         builder,
@@ -9324,7 +9403,8 @@ public final class JvmBytecodeCompiler {
                 builder.append("    public static ")
                         .append(renderStrictNativeTypeParameterDeclaration(
                                 decoratedMethod == null ? List.of() : decoratedMethod.genericParameters(),
-                                classTypeParameters
+                                classTypeParameters,
+                                importedJavaBindings
                         ));
                 if (decoratedMethod != null && !decoratedMethod.genericParameters().isEmpty()) {
                     builder.append(' ');
@@ -9424,7 +9504,8 @@ public final class JvmBytecodeCompiler {
                             : resolveStrictNativeParameterTypes(
                             method.parameters(),
                             decoratedMethod == null ? List.of() : decoratedMethod.parameters(),
-                            visibleMethodTypeParameters
+                            visibleMethodTypeParameters,
+                            importedJavaBindings
                     );
                     builder.append("            case \"")
                             .append(escapeJava(entry.getKey()))
@@ -9690,14 +9771,19 @@ public final class JvmBytecodeCompiler {
         private String resolveStrictNativeFieldType(
                 final String fieldName,
                 final List<TsDecoratedField> decoratedFields,
-                final Set<String> visibleTypeParameters
+                final Set<String> visibleTypeParameters,
+                final Map<String, String> importedJavaBindings
         ) {
             if (decoratedFields == null || decoratedFields.isEmpty()) {
                 return "Object";
             }
             for (TsDecoratedField field : decoratedFields) {
                 if (fieldName.equals(field.fieldName())) {
-                    return resolveStrictNativeJavaType(field.typeAnnotation(), visibleTypeParameters);
+                    return resolveStrictNativeJavaType(
+                            field.typeAnnotation(),
+                            visibleTypeParameters,
+                            importedJavaBindings
+                    );
                 }
             }
             return "Object";
@@ -9706,7 +9792,8 @@ public final class JvmBytecodeCompiler {
         private List<String> resolveStrictNativeParameterTypes(
                 final List<String> parameterNames,
                 final List<TsDecoratedParameter> decoratedParameters,
-                final Set<String> visibleTypeParameters
+                final Set<String> visibleTypeParameters,
+                final Map<String, String> importedJavaBindings
         ) {
             final List<String> parameterTypes = new ArrayList<>(java.util.Collections.nCopies(parameterNames.size(), "Object"));
             for (TsDecoratedParameter parameter : decoratedParameters) {
@@ -9715,7 +9802,11 @@ public final class JvmBytecodeCompiler {
                 }
                 parameterTypes.set(
                         parameter.index(),
-                        resolveStrictNativeJavaType(parameter.typeAnnotation(), visibleTypeParameters)
+                        resolveStrictNativeJavaType(
+                                parameter.typeAnnotation(),
+                                visibleTypeParameters,
+                                importedJavaBindings
+                        )
                 );
             }
             return List.copyOf(parameterTypes);
@@ -9723,7 +9814,8 @@ public final class JvmBytecodeCompiler {
 
         private String resolveStrictNativeJavaType(
                 final String typeAnnotation,
-                final Set<String> visibleTypeParameters
+                final Set<String> visibleTypeParameters,
+                final Map<String, String> importedJavaBindings
         ) {
             if (typeAnnotation == null || typeAnnotation.isBlank()) {
                 return "Object";
@@ -9752,14 +9844,20 @@ public final class JvmBytecodeCompiler {
             }
             if (base.endsWith("[]") && base.length() > 2) {
                 final String elementType = base.substring(0, base.length() - 2).trim();
-                return "java.util.List<" + resolveStrictNativeJavaType(elementType, visibleTypeParameters) + ">";
+                return "java.util.List<"
+                        + resolveStrictNativeJavaType(elementType, visibleTypeParameters, importedJavaBindings)
+                        + ">";
             }
             if (base.startsWith("Array<") && base.endsWith(">")) {
                 final String inner = base.substring("Array<".length(), base.length() - 1);
                 final List<String> arguments = splitStrictNativeTopLevel(inner, ',');
                 if (arguments.size() == 1) {
                     return "java.util.List<"
-                            + resolveStrictNativeJavaType(arguments.getFirst().trim(), visibleTypeParameters)
+                            + resolveStrictNativeJavaType(
+                            arguments.getFirst().trim(),
+                            visibleTypeParameters,
+                            importedJavaBindings
+                    )
                             + ">";
                 }
                 return "Object";
@@ -9771,7 +9869,11 @@ public final class JvmBytecodeCompiler {
                     final String keyType = stripStrictNativeOuterParens(arguments.getFirst().trim());
                     if ("string".equals(keyType)) {
                         return "java.util.Map<String, "
-                                + resolveStrictNativeJavaType(arguments.get(1).trim(), visibleTypeParameters)
+                                + resolveStrictNativeJavaType(
+                                arguments.get(1).trim(),
+                                visibleTypeParameters,
+                                importedJavaBindings
+                        )
                                 + ">";
                     }
                 }
@@ -9781,22 +9883,31 @@ public final class JvmBytecodeCompiler {
             if (genericStart > 0 && base.endsWith(">")) {
                 final String rawBase = base.substring(0, genericStart).trim();
                 final String rawArgs = base.substring(genericStart + 1, base.length() - 1);
-                final String javaBase = resolveStrictNativeRawBaseType(rawBase, visibleTypeParameters);
+                final String javaBase = resolveStrictNativeRawBaseType(
+                        rawBase,
+                        visibleTypeParameters,
+                        importedJavaBindings
+                );
                 if ("Object".equals(javaBase)) {
                     return "Object";
                 }
                 final List<String> javaArguments = new ArrayList<>();
                 for (String argument : splitStrictNativeTopLevel(rawArgs, ',')) {
-                    javaArguments.add(resolveStrictNativeJavaType(argument.trim(), visibleTypeParameters));
+                    javaArguments.add(resolveStrictNativeJavaType(
+                            argument.trim(),
+                            visibleTypeParameters,
+                            importedJavaBindings
+                    ));
                 }
                 return javaBase + "<" + String.join(", ", javaArguments) + ">";
             }
-            return resolveStrictNativeRawBaseType(base, visibleTypeParameters);
+            return resolveStrictNativeRawBaseType(base, visibleTypeParameters, importedJavaBindings);
         }
 
         private String resolveStrictNativeRawBaseType(
                 final String base,
-                final Set<String> visibleTypeParameters
+                final Set<String> visibleTypeParameters,
+                final Map<String, String> importedJavaBindings
         ) {
             final String normalized = stripStrictNativeOuterParens(base.trim());
             if (normalized.isBlank()) {
@@ -9809,6 +9920,10 @@ public final class JvmBytecodeCompiler {
                 if (model.tsClassName().equals(normalized)) {
                     return model.nativeClassSimpleName();
                 }
+            }
+            final String importedJavaType = importedJavaBindings.get(normalized);
+            if (importedJavaType != null && !importedJavaType.isBlank()) {
+                return importedJavaType;
             }
             return switch (normalized) {
                 case "string", "String" -> "String";
@@ -9825,7 +9940,8 @@ public final class JvmBytecodeCompiler {
 
         private String renderStrictNativeTypeParameterDeclaration(
                 final List<String> rawTypeParameters,
-                final Set<String> visibleOuterTypeParameters
+                final Set<String> visibleOuterTypeParameters,
+                final Map<String, String> importedJavaBindings
         ) {
             if (rawTypeParameters.isEmpty()) {
                 return "";
@@ -9847,7 +9963,11 @@ public final class JvmBytecodeCompiler {
                 final String rawBound = normalized.substring(extendsIndex + " extends ".length()).trim();
                 final List<String> renderedBounds = new ArrayList<>();
                 for (String bound : splitStrictNativeTopLevel(rawBound, '&')) {
-                    renderedBounds.add(resolveStrictNativeJavaType(bound.trim(), visible));
+                    renderedBounds.add(resolveStrictNativeJavaType(
+                            bound.trim(),
+                            visible,
+                            importedJavaBindings
+                    ));
                 }
                 rendered.add(identifier + " extends " + String.join(" & ", renderedBounds));
                 visible.add(identifier);
@@ -11784,9 +11904,13 @@ public final class JvmBytecodeCompiler {
                 );
                 final String methodName = "\"" + escapeJava(memberAccessExpression.member()) + "\"";
                 if (renderedArgs.isEmpty()) {
-                    return "dev.tsj.runtime.TsjRuntime.invokeMember(" + receiver + ", " + methodName + ")";
+                    return "dev.tsj.runtime.TsjRuntime.invokeMemberPreservingJava("
+                            + receiver
+                            + ", "
+                            + methodName
+                            + ")";
                 }
-                return "dev.tsj.runtime.TsjRuntime.invokeMember("
+                return "dev.tsj.runtime.TsjRuntime.invokeMemberPreservingJava("
                         + receiver
                         + ", "
                         + methodName

@@ -1,7 +1,7 @@
-import type { Column } from "java:jakarta.persistence.Column";
-import type { Entity } from "java:jakarta.persistence.Entity";
-import type { Id } from "java:jakarta.persistence.Id";
-import type { Table } from "java:jakarta.persistence.Table";
+import { Column } from "java:jakarta.persistence.Column";
+import { Entity } from "java:jakarta.persistence.Entity";
+import { Id } from "java:jakarta.persistence.Id";
+import { Table } from "java:jakarta.persistence.Table";
 
 @Entity
 @Table({ name: "owners" })

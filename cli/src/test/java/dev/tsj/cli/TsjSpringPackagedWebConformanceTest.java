@@ -359,11 +359,11 @@ class TsjSpringPackagedWebConformanceTest {
         assertTrue(Files.exists(packagedJar));
         try (JarFile jarFile = new JarFile(packagedJar.toFile())) {
             assertEquals(
-                    "dev.tsj.generated.TsjBootApp__TsjStrictNative",
+                    "dev.tsj.generated.TsjBootApp",
                     jarFile.getManifest().getMainAttributes().getValue("Main-Class")
             );
             assertTrue(
-                    jarFile.getJarEntry("dev/tsj/generated/TsjBootApp__TsjStrictNative.class") != null,
+                    jarFile.getJarEntry("dev/tsj/generated/TsjBootApp.class") != null,
                     "Expected TS-authored strict-native boot application class in packaged jar."
             );
             assertTrue(
@@ -379,7 +379,7 @@ class TsjSpringPackagedWebConformanceTest {
         final ProcessResult run = runJarAndCaptureOutput(packagedJar);
         assertEquals(0, run.exitCode(), run.output());
         assertTrue(
-                run.output().contains("spring-run=dev.tsj.generated.TsjBootApp__TsjStrictNative;args=0"),
+                run.output().contains("spring-run=dev.tsj.generated.TsjBootApp;args=0"),
                 run.output()
         );
     }
@@ -407,7 +407,7 @@ class TsjSpringPackagedWebConformanceTest {
                         "jvm-strict",
                         "--smoke-run",
                         "--smoke-endpoint-url",
-                        "stdout://spring-run=dev.tsj.generated.TsjBootApp__TsjStrictNative;args=0"
+                        "stdout://spring-run=dev.tsj.generated.TsjBootApp;args=0"
                 },
                 new PrintStream(stdout),
                 new PrintStream(stderr)
@@ -461,11 +461,11 @@ class TsjSpringPackagedWebConformanceTest {
         assertTrue(Files.exists(packagedJar));
         try (JarFile jarFile = new JarFile(packagedJar.toFile())) {
             assertEquals(
-                    "dev.tsj.generated.TsjBootApp__TsjStrictNative",
+                    "dev.tsj.generated.TsjBootApp",
                     jarFile.getManifest().getMainAttributes().getValue("Main-Class")
             );
             assertTrue(
-                    jarFile.getJarEntry("dev/tsj/generated/TsjBootApp__TsjStrictNative.class") != null,
+                    jarFile.getJarEntry("dev/tsj/generated/TsjBootApp.class") != null,
                     "Expected TS-authored strict-native boot application class in packaged jar."
             );
             assertTrue(
@@ -502,7 +502,7 @@ class TsjSpringPackagedWebConformanceTest {
                         "jvm-strict",
                         "--smoke-run",
                         "--smoke-endpoint-url",
-                        "stdout://spring-run=dev.tsj.generated.TsjBootApp__TsjStrictNative;args=0"
+                        "stdout://spring-run=dev.tsj.generated.TsjBootApp;args=0"
                 },
                 new PrintStream(stdout),
                 new PrintStream(stderr)
@@ -557,7 +557,7 @@ class TsjSpringPackagedWebConformanceTest {
         assertTrue(Files.exists(packagedJar));
         try (JarFile jarFile = new JarFile(packagedJar.toFile())) {
             assertTrue(
-                    jarFile.getJarEntry("dev/tsj/generated/ImportedEchoController__TsjStrictNative.class") != null,
+                    jarFile.getJarEntry("dev/tsj/generated/ImportedEchoController.class") != null,
                     "Expected authored strict-native controller class from java:-imported decorators."
             );
             assertTrue(
@@ -617,7 +617,7 @@ class TsjSpringPackagedWebConformanceTest {
 
         try (JarFile jarFile = new JarFile(packagedJar.toFile())) {
             assertTrue(
-                    jarFile.getJarEntry("dev/tsj/generated/EchoController__TsjStrictNative.class") != null,
+                    jarFile.getJarEntry("dev/tsj/generated/EchoController.class") != null,
                     "Expected authored strict-native controller class in packaged jar."
             );
             assertTrue(
@@ -632,7 +632,7 @@ class TsjSpringPackagedWebConformanceTest {
 
         runPackagedHarnessScenarios(
                 packagedJar,
-                "dev.tsj.generated.EchoController__TsjStrictNative",
+                "dev.tsj.generated.EchoController",
                 scenarioOutput
         );
         assertTrue(Files.exists(scenarioOutput));

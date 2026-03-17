@@ -50,7 +50,7 @@ class TsjSpringAopExecutableProxyParityTest {
                 getClass().getClassLoader()
         )) {
             final Class<?> targetClass = Class.forName(
-                    "dev.tsj.generated.BillingService__TsjStrictNative",
+                    "dev.tsj.generated.BillingService",
                     true,
                     classLoader
             );

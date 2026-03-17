@@ -950,6 +950,19 @@ public final class TsjRuntime {
     }
 
     public static Object invokeMember(final Object target, final String methodName, final Object... args) {
+        return invokeMember(target, methodName, false, args);
+    }
+
+    public static Object invokeMemberPreservingJava(final Object target, final String methodName, final Object... args) {
+        return invokeMember(target, methodName, true, args);
+    }
+
+    private static Object invokeMember(
+            final Object target,
+            final String methodName,
+            final boolean preserveJavaResults,
+            final Object... args
+    ) {
         if (target instanceof TsjObject tsjObject) {
             final Object member = getProperty(tsjObject, methodName);
             if (isUndefined(member)) {
@@ -997,7 +1010,9 @@ public final class TsjRuntime {
             return callableMemberResult;
         }
         if (target != null && target != TsjUndefined.INSTANCE) {
-            return TsjJavaInterop.invokeInstanceMember(target, methodName, args);
+            return preserveJavaResults
+                    ? TsjJavaInterop.invokeInstanceMemberRaw(target, methodName, args)
+                    : TsjJavaInterop.invokeInstanceMember(target, methodName, args);
         }
         throw new IllegalArgumentException("Cannot invoke member `" + methodName + "` on " + toDisplayString(target));
     }

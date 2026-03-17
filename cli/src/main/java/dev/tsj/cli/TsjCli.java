@@ -24,8 +24,12 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.io.File;
+import java.nio.channels.Channels;
+import java.nio.channels.FileChannel;
+import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -98,6 +102,7 @@ public final class TsjCli {
     private static final String OPTION_WARMUP = "--warmup";
     private static final String OPTION_ITERATIONS = "--iterations";
     private static final String OPTION_SMOKE = "--smoke";
+    private static final String PACKAGE_STAGING_SUFFIX = ".tmp";
     private static final String SYSTEM_PROPERTY_GLOBAL_POLICY_PATH = "tsj.interop.globalPolicy";
     private static final String SYSTEM_PROPERTY_BACKEND_ADDITIONAL_CLASSPATH = "tsj.backend.additionalClasspath";
     private static final String ENV_GLOBAL_POLICY_PATH = "TSJ_INTEROP_GLOBAL_POLICY";
@@ -1696,6 +1701,7 @@ public final class TsjCli {
             if (parent != null) {
                 Files.createDirectories(parent);
             }
+            Files.deleteIfExists(stagedPackageJarPath(jarPath));
         } catch (final IOException ioException) {
             throw packageFailure(
                     metadata,
@@ -1717,7 +1723,15 @@ public final class TsjCli {
         int dependencyEntryCount = 0;
         final Set<String> writtenEntries = new LinkedHashSet<>();
         final MergedJarMetadata mergedJarMetadata = new MergedJarMetadata();
-        try (JarOutputStream jarOutputStream = new JarOutputStream(Files.newOutputStream(jarPath), manifest)) {
+        final Path stagedJarPath = stagedPackageJarPath(jarPath);
+        try (FileChannel stagedChannel = FileChannel.open(
+                stagedJarPath,
+                StandardOpenOption.CREATE,
+                StandardOpenOption.TRUNCATE_EXISTING,
+                StandardOpenOption.WRITE
+        );
+             OutputStream stagedOutputStream = Channels.newOutputStream(stagedChannel);
+             JarOutputStream jarOutputStream = new JarOutputStream(stagedOutputStream, manifest)) {
             try {
                 writeDirectoryToJar(
                         jarOutputStream,
@@ -1796,7 +1810,11 @@ public final class TsjCli {
                 }
             }
             dependencyEntryCount += writeMergedMetadataToJar(jarOutputStream, writtenEntries, mergedJarMetadata);
+            jarOutputStream.finish();
+            jarOutputStream.flush();
+            stagedChannel.force(true);
         } catch (final IOException ioException) {
+            deleteQuietly(stagedJarPath);
             throw packageFailure(
                     metadata,
                     "manifest",
@@ -1806,6 +1824,8 @@ public final class TsjCli {
                     Map.of()
             );
         }
+        validatePackagedJar(stagedJarPath, jarPath, artifact.entryPath(), metadata);
+        publishPackagedJar(stagedJarPath, jarPath, artifact.entryPath(), metadata);
         return new PackagedJarResult(
                 jarPath,
                 mainClassName,
@@ -1814,6 +1834,79 @@ public final class TsjCli {
                 dependencyEntryCount,
                 dependencySources
         );
+    }
+
+    private static Path stagedPackageJarPath(final Path jarPath) {
+        return jarPath.resolveSibling(jarPath.getFileName().toString() + PACKAGE_STAGING_SUFFIX);
+    }
+
+    private static void validatePackagedJar(
+            final Path stagedJarPath,
+            final Path jarPath,
+            final Path entryPath,
+            final PackageCommandMetadata metadata
+    ) {
+        try (JarFile ignored = new JarFile(stagedJarPath.toFile())) {
+            // structural validation only
+        } catch (final IOException ioException) {
+            deleteQuietly(stagedJarPath);
+            throw packageFailure(
+                    metadata,
+                    "repackage",
+                    "Packaged jar validation failed: " + ioException.getMessage(),
+                    jarPath,
+                    entryPath,
+                    Map.of("stagedJar", stagedJarPath.toString())
+            );
+        }
+    }
+
+    private static void publishPackagedJar(
+            final Path stagedJarPath,
+            final Path jarPath,
+            final Path entryPath,
+            final PackageCommandMetadata metadata
+    ) {
+        try {
+            Files.move(
+                    stagedJarPath,
+                    jarPath,
+                    StandardCopyOption.REPLACE_EXISTING,
+                    StandardCopyOption.ATOMIC_MOVE
+            );
+        } catch (final AtomicMoveNotSupportedException atomicMoveNotSupportedException) {
+            try {
+                Files.move(stagedJarPath, jarPath, StandardCopyOption.REPLACE_EXISTING);
+            } catch (final IOException ioException) {
+                deleteQuietly(stagedJarPath);
+                throw packageFailure(
+                        metadata,
+                        "repackage",
+                        "Failed to publish packaged jar: " + ioException.getMessage(),
+                        jarPath,
+                        entryPath,
+                        Map.of("stagedJar", stagedJarPath.toString())
+                );
+            }
+        } catch (final IOException ioException) {
+            deleteQuietly(stagedJarPath);
+            throw packageFailure(
+                    metadata,
+                    "repackage",
+                    "Failed to publish packaged jar: " + ioException.getMessage(),
+                    jarPath,
+                    entryPath,
+                    Map.of("stagedJar", stagedJarPath.toString())
+            );
+        }
+    }
+
+    private static void deleteQuietly(final Path path) {
+        try {
+            Files.deleteIfExists(path);
+        } catch (final IOException ignored) {
+            // Best-effort cleanup only.
+        }
     }
 
     private static String resolvePackagedMainClassName(
@@ -1862,16 +1955,19 @@ public final class TsjCli {
         }
         try (Stream<Path> paths = Files.walk(normalizedClassesDir);
              URLClassLoader classLoader = new URLClassLoader(urls.toArray(URL[]::new), TsjCli.class.getClassLoader())) {
-            final List<Path> strictNativeClassFiles = paths
+            final List<Path> classFiles = paths
                     .filter(Files::isRegularFile)
-                    .filter(path -> path.getFileName().toString().endsWith("__TsjStrictNative.class"))
+                    .filter(path -> path.getFileName().toString().endsWith(".class"))
                     .filter(path -> !path.getFileName().toString().contains("$"))
                     .sorted()
                     .toList();
-            for (Path classFile : strictNativeClassFiles) {
+            for (Path classFile : classFiles) {
                 final String className = toPackagedClassName(normalizedClassesDir, classFile);
                 try {
                     final Class<?> classType = Class.forName(className, false, classLoader);
+                    if (!isStrictNativePackagedEntrypointClass(classType)) {
+                        continue;
+                    }
                     final java.lang.reflect.Method mainMethod = classType.getDeclaredMethod("main", String[].class);
                     final int modifiers = mainMethod.getModifiers();
                     if (java.lang.reflect.Modifier.isPublic(modifiers)
@@ -2039,6 +2135,15 @@ public final class TsjCli {
                 // Ignore cleanup failures for temporary smoke logs.
             }
         }
+    }
+
+    private static boolean isStrictNativePackagedEntrypointClass(final Class<?> classType) {
+        for (Class<?> implementedInterface : classType.getInterfaces()) {
+            if ("__TsjStrictNativeInstance".equals(implementedInterface.getSimpleName())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static PackageSmokeResult runEndpointSmoke(

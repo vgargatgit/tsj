@@ -2,8 +2,11 @@ package dev.tsj.runtime;
 
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -182,6 +185,19 @@ class TsjRuntimeTest {
         }));
 
         assertEquals(4, hits[0]);
+    }
+
+    @Test
+    void invokeMemberPreservingJavaKeepsJavaCollectionResultsRaw() {
+        final JavaCollectionFixture fixture = new JavaCollectionFixture();
+        final Object query = TsjRuntime.invokeMemberPreservingJava(fixture, "query");
+        final Object filtered = TsjRuntime.invokeMemberPreservingJava(query, "setParameter", "lastName", "Frank");
+        final Object result = TsjRuntime.invokeMemberPreservingJava(filtered, "getResultList");
+
+        final List<?> rows = assertInstanceOf(List.class, result);
+        assertEquals(1, rows.size());
+        final Object first = rows.getFirst();
+        assertEquals("Frank", TsjRuntime.invokeMemberPreservingJava(first, "getLastName"));
     }
 
     @Test
@@ -1092,5 +1108,38 @@ class TsjRuntimeTest {
     }
 
     private record SampleRecord(String message) {
+    }
+
+    private static final class JavaCollectionFixture {
+        public Query query() {
+            return new Query();
+        }
+    }
+
+    private static final class Query {
+        private String lastName = "";
+
+        public Query setParameter(final String name, final Object value) {
+            if ("lastName".equals(name)) {
+                this.lastName = String.valueOf(value);
+            }
+            return this;
+        }
+
+        public List<Row> getResultList() {
+            return List.of(new Row(lastName));
+        }
+    }
+
+    private static final class Row {
+        private final String lastName;
+
+        private Row(final String lastName) {
+            this.lastName = lastName;
+        }
+
+        public String getLastName() {
+            return lastName;
+        }
     }
 }

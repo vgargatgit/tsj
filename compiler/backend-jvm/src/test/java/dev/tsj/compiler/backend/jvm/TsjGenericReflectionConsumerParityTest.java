@@ -148,7 +148,7 @@ class TsjGenericReflectionConsumerParityTest {
                   }
                 }
 
-                const type = loadClass("dev.tsj.generated.Controller__TsjStrictNative");
+                const type = loadClass("dev.tsj.generated.Controller");
                 console.log("component=" + hasComponent(type));
                 console.log("injectFields=" + countInjectFields(type));
                 console.log("route=" + routePath(type));

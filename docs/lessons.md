@@ -70,3 +70,9 @@
 - Pattern: I let overlapping long-running Maven/test sessions accumulate until they consumed the available exec slots and obscured the real regression state.
 - Rule: Before starting another long regression or module rerun, check whether an equivalent run is already active; reuse it if valid or terminate the older duplicate before launching a replacement.
 - Guardrail: Keep at most one active long-running regression per module/goal. If a rerun is needed, stop the stale process tree first and then restart cleanly.
+- Pattern: While upgrading `examples/pet-clinic`, I began shaping the example aggressively toward green before first restating that any failure must expose a generic TSJ/Spring/JPA/OpenAPI gap rather than be papered over locally.
+- Rule: For example upgrades that are intended to validate any-jar support, do not introduce example-only bootstrapping tricks or test-only masking; either use ordinary framework APIs or record the remaining generic blocker explicitly.
+- Guardrail: Before each fix in an any-jar example, ask: `would this same change be needed for arbitrary framework consumers, or am I just making the sample pass?` If it is sample-only, stop and document the gap instead.
+- Pattern: I initially focused on pet-clinic startup symptoms before isolating the generic package publication behavior across filesystems.
+- Rule: When an example fails on the generic path, reduce it first to the smallest product-level invariant (here: `package` must publish a structurally valid jar everywhere) before reasoning about the framework stack above it.
+- Guardrail: For packaged-app failures, validate the jar artifact itself with `JarFile`/`jar tf` before touching any framework integration code or example scripts.

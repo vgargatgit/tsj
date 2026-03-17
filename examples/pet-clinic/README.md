@@ -14,6 +14,7 @@ This example is TS-only application code:
 - `spring-boot-starter-web`
 - `spring-boot-starter-data-jpa`
 - `h2`
+- `springdoc-openapi-starter-webmvc-ui`
 
 ## Quick Verification (compile + run)
 
@@ -32,16 +33,30 @@ Expected:
 bash examples/pet-clinic/scripts/run-http.sh
 ```
 
+Alternative runner with native Linux temp staging and phase timers:
+
+```bash
+bash examples/pet-clinic/scripts/run-http-native.sh
+```
+
 In another shell:
 
 ```bash
 curl 'http://127.0.0.1:8080/api/petclinic/owners?lastName=Frank'
 curl 'http://127.0.0.1:8080/api/petclinic/owners/1/pets'
+curl 'http://127.0.0.1:8080/v3/api-docs'
+open 'http://127.0.0.1:8080/swagger-ui/index.html'
 ```
 
 ## Notes
 
 - `run-http.sh` uses `tsj package ... --mode jvm-strict` and runs the packaged jar.
+- `run-http-native.sh` stages dependency jars and packaged output under `/tmp/tsj-pet-clinic-http`,
+  prints phase timers, and was measured at about:
+  - `30s` dependency copy
+  - `90s` reactor install
+  - `30s` package
+  - `4-5s` Spring Boot HTTP readiness
 - H2 is configured through `examples/pet-clinic/resources/application.properties`.
 - schema/data initialization is in:
   - `examples/pet-clinic/resources/schema.sql`

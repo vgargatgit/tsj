@@ -199,7 +199,7 @@ final class TsjIntrospectorCompatibilityMatrixHarness {
                     JvmBytecodeCompiler.BackendMode.JVM_STRICT
             );
 
-            final String strictClassName = "dev.tsj.generated.StrictWebMatrixController__TsjStrictNative";
+            final String strictClassName = "dev.tsj.generated.StrictWebMatrixController";
             try (URLClassLoader classLoader = new URLClassLoader(
                     new URL[]{compiledArtifact.outputDirectory().toUri().toURL()},
                     getClass().getClassLoader()
@@ -267,7 +267,7 @@ final class TsjIntrospectorCompatibilityMatrixHarness {
                     JvmBytecodeCompiler.BackendMode.JVM_STRICT
             );
 
-            final String className = "dev.tsj.generated.JacksonMatrixPerson__TsjStrictNative";
+            final String className = "dev.tsj.generated.JacksonMatrixPerson";
             try (URLClassLoader classLoader = new URLClassLoader(
                     new URL[]{compiledArtifact.outputDirectory().toUri().toURL()},
                     getClass().getClassLoader()
@@ -344,7 +344,7 @@ final class TsjIntrospectorCompatibilityMatrixHarness {
                          .messageInterpolator(new ParameterMessageInterpolator())
                          .buildValidatorFactory()) {
                 final Class<?> dtoClass = Class.forName(
-                        "dev.tsj.generated.ValidationMatrixPerson__TsjStrictNative",
+                        "dev.tsj.generated.ValidationMatrixPerson",
                         true,
                         classLoader
                 );
@@ -423,7 +423,7 @@ final class TsjIntrospectorCompatibilityMatrixHarness {
                         .applySetting("hibernate.temp.use_jdbc_metadata_defaults", "false")
                         .build();
                 final Class<?> entityClass = Class.forName(
-                        "dev.tsj.generated.HibernateMatrixPerson__TsjStrictNative",
+                        "dev.tsj.generated.HibernateMatrixPerson",
                         true,
                         classLoader
                 );

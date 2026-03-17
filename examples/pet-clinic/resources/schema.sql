@@ -5,7 +5,7 @@ create table if not exists owners (
 );
 
 create table if not exists pets (
-  id bigint primary key,
+  id varchar(64) primary key,
   owner_id varchar(32) not null,
   name varchar(128) not null,
   type varchar(64) not null,

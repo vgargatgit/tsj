@@ -264,7 +264,7 @@ final class TsjStrictReadinessHarness {
                 TsjStrictReadinessHarness.class.getClassLoader()
         )) {
             final Class<?> dtoClass = Class.forName(
-                    "dev.tsj.generated.SerializableOwner__TsjStrictNative",
+                    "dev.tsj.generated.SerializableOwner",
                     true,
                     classLoader
             );

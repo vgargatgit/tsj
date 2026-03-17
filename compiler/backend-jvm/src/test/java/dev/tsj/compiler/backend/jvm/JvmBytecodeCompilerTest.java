@@ -33,6 +33,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -110,7 +111,7 @@ class JvmBytecodeCompilerTest {
 
         assertEquals("jvm-native-class-subset", artifact.strictLoweringPath());
         final Path executableClass = artifact.outputDirectory()
-                .resolve("dev/tsj/generated/Counter__TsjStrictNative.class");
+                .resolve("dev/tsj/generated/Counter.class");
         assertTrue(Files.exists(executableClass));
 
         try (URLClassLoader classLoader = new URLClassLoader(new URL[]{artifact.outputDirectory().toUri().toURL()})) {
@@ -164,7 +165,7 @@ class JvmBytecodeCompilerTest {
             );
 
             assertNotEquals("dev.tsj.runtime.TsjObject", result.getClass().getName());
-            assertTrue(result.getClass().getName().contains("Person__TsjStrictNative"));
+            assertTrue(result.getClass().getName().contains("Person"));
         }
     }
 
@@ -209,7 +210,7 @@ class JvmBytecodeCompilerTest {
 
         assertEquals("jvm-native-class-subset", artifact.strictLoweringPath());
         final Path executableClass = artifact.outputDirectory()
-                .resolve("dev/tsj/generated/Person__TsjStrictNative.class");
+                .resolve("dev/tsj/generated/Person.class");
         final Path metadataCarrier = artifact.outputDirectory()
                 .resolve("dev/tsj/generated/metadata/PersonTsjCarrier.class");
         assertTrue(Files.exists(executableClass));
@@ -217,7 +218,7 @@ class JvmBytecodeCompilerTest {
 
         try (URLClassLoader classLoader = new URLClassLoader(new URL[]{artifact.outputDirectory().toUri().toURL()})) {
             final Class<?> executableClassType = Class.forName(
-                    "dev.tsj.generated.Person__TsjStrictNative",
+                    "dev.tsj.generated.Person",
                     true,
                     classLoader
             );
@@ -265,7 +266,7 @@ class JvmBytecodeCompilerTest {
 
         try (URLClassLoader classLoader = new URLClassLoader(new URL[]{artifact.outputDirectory().toUri().toURL()})) {
             final Class<?> executableClassType = Class.forName(
-                    "dev.tsj.generated.Service__TsjStrictNative",
+                    "dev.tsj.generated.Service",
                     true,
                     classLoader
             );
@@ -273,6 +274,48 @@ class JvmBytecodeCompilerTest {
             assertEquals(1, executableClassType.getConstructors().length);
 
             final Constructor<?> typedConstructor = executableClassType.getDeclaredConstructor(String.class);
+            assertTrue(Modifier.isPublic(typedConstructor.getModifiers()));
+            assertThrows(NoSuchMethodException.class, () -> executableClassType.getDeclaredConstructor(Object.class));
+        }
+    }
+
+    @Test
+    void strictJvmExecutableClassResolvesImportedJavaAliasTypesInFieldsAndConstructorParameters() throws Exception {
+        final Path sourceFile = tempDir.resolve("strict-native-imported-java-alias-types.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                import type { StringBuilder } from "java:java.lang.StringBuilder";
+
+                class Repository {
+                  dependency: StringBuilder;
+
+                  constructor(dependency: StringBuilder) {
+                    this.dependency = dependency;
+                  }
+                }
+                """,
+                UTF_8
+        );
+
+        final Path outDir = tempDir.resolve("strict-native-imported-java-alias-types-out");
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(
+                sourceFile,
+                outDir,
+                JvmOptimizationOptions.defaults(),
+                JvmBytecodeCompiler.BackendMode.JVM_STRICT
+        );
+
+        try (URLClassLoader classLoader = new URLClassLoader(new URL[]{artifact.outputDirectory().toUri().toURL()})) {
+            final Class<?> executableClassType = Class.forName(
+                    "dev.tsj.generated.Repository",
+                    true,
+                    classLoader
+            );
+
+            assertEquals(StringBuilder.class, executableClassType.getDeclaredField("dependency").getType());
+
+            final Constructor<?> typedConstructor = executableClassType.getDeclaredConstructor(StringBuilder.class);
             assertTrue(Modifier.isPublic(typedConstructor.getModifiers()));
             assertThrows(NoSuchMethodException.class, () -> executableClassType.getDeclaredConstructor(Object.class));
         }
@@ -353,12 +396,12 @@ class JvmBytecodeCompilerTest {
 
         assertEquals("jvm-native-class-subset", artifact.strictLoweringPath());
         final Path executableClass = artifact.outputDirectory()
-                .resolve("dev/tsj/generated/AnnotatedShape__TsjStrictNative.class");
+                .resolve("dev/tsj/generated/AnnotatedShape.class");
         assertTrue(Files.exists(executableClass));
 
         try (URLClassLoader classLoader = new URLClassLoader(new URL[]{artifact.outputDirectory().toUri().toURL()})) {
             final Class<?> executableClassType = Class.forName(
-                    "dev.tsj.generated.AnnotatedShape__TsjStrictNative",
+                    "dev.tsj.generated.AnnotatedShape",
                     true,
                     classLoader
             );
@@ -433,7 +476,7 @@ class JvmBytecodeCompilerTest {
 
         try (URLClassLoader classLoader = new URLClassLoader(new URL[]{artifact.outputDirectory().toUri().toURL()})) {
             final Class<?> executableClassType = Class.forName(
-                    "dev.tsj.generated.RepeatableShape__TsjStrictNative",
+                    "dev.tsj.generated.RepeatableShape",
                     true,
                     classLoader
             );
@@ -486,7 +529,7 @@ class JvmBytecodeCompilerTest {
 
         try (URLClassLoader classLoader = new URLClassLoader(new URL[]{artifact.outputDirectory().toUri().toURL()})) {
             final Class<?> executableClassType = Class.forName(
-                    "dev.tsj.generated.NestedShape__TsjStrictNative",
+                    "dev.tsj.generated.NestedShape",
                     true,
                     classLoader
             );
@@ -540,7 +583,7 @@ class JvmBytecodeCompilerTest {
 
         try (URLClassLoader classLoader = new URLClassLoader(new URL[]{artifact.outputDirectory().toUri().toURL()})) {
             final Class<?> executableClassType = Class.forName(
-                    "dev.tsj.generated.BeanShape__TsjStrictNative",
+                    "dev.tsj.generated.BeanShape",
                     true,
                     classLoader
             );
@@ -611,7 +654,7 @@ class JvmBytecodeCompilerTest {
 
         assertEquals("jvm-native-class-subset", artifact.strictLoweringPath());
         final JavaClassfileReader.RawClassInfo executableClass = new JavaClassfileReader().read(
-                artifact.outputDirectory().resolve("dev/tsj/generated/CustomerProfile__TsjStrictNative.class")
+                artifact.outputDirectory().resolve("dev/tsj/generated/CustomerProfile.class")
         );
 
         final String nonNull = "Ljavax/annotation/Nonnull;";
@@ -686,7 +729,7 @@ class JvmBytecodeCompilerTest {
         assertEquals("jvm-native-class-subset", artifact.strictLoweringPath());
         try (URLClassLoader classLoader = new URLClassLoader(new URL[]{artifact.outputDirectory().toUri().toURL()})) {
             final Class<?> executableClassType = Class.forName(
-                    "dev.tsj.generated.OwnerDirectory__TsjStrictNative",
+                    "dev.tsj.generated.OwnerDirectory",
                     true,
                     classLoader
             );
@@ -734,7 +777,7 @@ class JvmBytecodeCompilerTest {
 
         assertEquals("jvm-native-class-subset", artifact.strictLoweringPath());
         try (URLClassLoader classLoader = new URLClassLoader(new URL[]{artifact.outputDirectory().toUri().toURL()})) {
-            final Class<?> dtoClass = Class.forName("dev.tsj.generated.PersonDto__TsjStrictNative", true, classLoader);
+            final Class<?> dtoClass = Class.forName("dev.tsj.generated.PersonDto", true, classLoader);
             final Object dto = dtoClass.getDeclaredConstructor().newInstance();
             dtoClass.getDeclaredMethod("setId", String.class).invoke(dto, "42");
             dtoClass.getDeclaredMethod("setName", String.class).invoke(dto, "Ada");
@@ -749,6 +792,63 @@ class JvmBytecodeCompilerTest {
             final java.lang.reflect.Method getName = dtoClass.getDeclaredMethod("getName");
             assertEquals("42", getId.invoke(rebound));
             assertEquals("Ada", getName.invoke(rebound));
+        }
+    }
+
+    @Test
+    void strictJvmNativeJavaMemberCallChainPreservesRawJavaListResult() throws Exception {
+        final Path sourceFile = tempDir.resolve("strict-native-java-list-return.ts");
+        Files.writeString(
+                sourceFile,
+                """
+                import type { JavaQueryInteropFixture } from "java:dev.tsj.compiler.backend.jvm.fixtures.JavaQueryInteropFixture";
+
+                class Owner {
+                  id: string = "";
+                }
+
+                class OwnerDirectory {
+                  fixture: JavaQueryInteropFixture;
+
+                  constructor(fixture: JavaQueryInteropFixture) {
+                    this.fixture = fixture;
+                  }
+
+                  findByLastName(lastName: string) {
+                    return this.fixture
+                      .query(Owner)
+                      .setParameter("lastName", lastName)
+                      .getResultList();
+                  }
+                }
+                """,
+                UTF_8
+        );
+
+        final Path outDir = tempDir.resolve("strict-native-java-list-return-out");
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(
+                sourceFile,
+                outDir,
+                JvmOptimizationOptions.defaults(),
+                JvmBytecodeCompiler.BackendMode.JVM_STRICT
+        );
+
+        assertEquals("jvm-native-class-subset", artifact.strictLoweringPath());
+        try (URLClassLoader classLoader = new URLClassLoader(new URL[]{artifact.outputDirectory().toUri().toURL()})) {
+            final Class<?> ownerDirectoryClass = Class.forName("dev.tsj.generated.OwnerDirectory", true, classLoader);
+            final Object ownerDirectory = ownerDirectoryClass
+                    .getDeclaredConstructor(dev.tsj.compiler.backend.jvm.fixtures.JavaQueryInteropFixture.class)
+                    .newInstance(new dev.tsj.compiler.backend.jvm.fixtures.JavaQueryInteropFixture());
+            final Object result = ownerDirectoryClass
+                    .getDeclaredMethod("findByLastName", String.class)
+                    .invoke(ownerDirectory, "Frank");
+
+            final List<?> rows = assertInstanceOf(List.class, result);
+            assertEquals(1, rows.size());
+            final Object row = rows.getFirst();
+            final Class<?> rowType = row.getClass();
+            assertEquals("Owner", rowType.getDeclaredMethod("getEntity").invoke(row));
+            assertEquals("Frank", rowType.getDeclaredMethod("getFilter").invoke(row));
         }
     }
 
@@ -894,15 +994,15 @@ class JvmBytecodeCompilerTest {
 
         assertEquals("jvm-native-class-subset", artifact.strictLoweringPath());
         try (URLClassLoader classLoader = new URLClassLoader(new URL[]{artifact.outputDirectory().toUri().toURL()})) {
-            final Class<?> repoClass = Class.forName("dev.tsj.generated.Repo__TsjStrictNative", true, classLoader);
+            final Class<?> repoClass = Class.forName("dev.tsj.generated.Repo", true, classLoader);
             final Object repo = repoClass.getDeclaredConstructor().newInstance();
 
-            final Class<?> serviceClass = Class.forName("dev.tsj.generated.Service__TsjStrictNative", true, classLoader);
+            final Class<?> serviceClass = Class.forName("dev.tsj.generated.Service", true, classLoader);
             final Object service = serviceClass.getDeclaredConstructor().newInstance();
             serviceClass.getDeclaredMethod("setRepo", repoClass).invoke(service, repo);
 
             final Class<?> controllerClass = Class.forName(
-                    "dev.tsj.generated.Controller__TsjStrictNative",
+                    "dev.tsj.generated.Controller",
                     true,
                     classLoader
             );
@@ -960,7 +1060,7 @@ class JvmBytecodeCompilerTest {
 
         assertEquals("jvm-native-class-subset", artifact.strictLoweringPath());
         try (URLClassLoader classLoader = new URLClassLoader(new URL[]{artifact.outputDirectory().toUri().toURL()})) {
-            final Class<?> runnerClass = Class.forName("dev.tsj.generated.TaskRunner__TsjStrictNative", true, classLoader);
+            final Class<?> runnerClass = Class.forName("dev.tsj.generated.TaskRunner", true, classLoader);
             final Object runner = runnerClass.getDeclaredConstructor().newInstance();
 
             assertEquals("ok", runnerClass.getDeclaredMethod("run", Boolean.class).invoke(runner, false));
@@ -1006,7 +1106,7 @@ class JvmBytecodeCompilerTest {
         assertEquals("jvm-native-class-subset", artifact.strictLoweringPath());
         try (URLClassLoader classLoader = new URLClassLoader(new URL[]{artifact.outputDirectory().toUri().toURL()})) {
             final Class<?> accumulatorClass = Class.forName(
-                    "dev.tsj.generated.Accumulator__TsjStrictNative",
+                    "dev.tsj.generated.Accumulator",
                     true,
                     classLoader
             );
@@ -2319,7 +2419,7 @@ class JvmBytecodeCompilerTest {
 
         assertEquals("jvm-native-class-subset", artifact.strictLoweringPath());
         try (URLClassLoader classLoader = new URLClassLoader(new URL[]{artifact.outputDirectory().toUri().toURL()})) {
-            final Class<?> metricsClass = Class.forName("dev.tsj.generated.Metrics__TsjStrictNative", true, classLoader);
+            final Class<?> metricsClass = Class.forName("dev.tsj.generated.Metrics", true, classLoader);
             final Method twice = metricsClass.getDeclaredMethod("twice", Number.class);
             assertTrue(Modifier.isStatic(twice.getModifiers()));
             assertEquals(42.0d, ((Number) twice.invoke(null, 21)).doubleValue());
@@ -2353,10 +2453,10 @@ class JvmBytecodeCompilerTest {
 
         assertEquals("jvm-native-class-subset", artifact.strictLoweringPath());
         try (URLClassLoader classLoader = new URLClassLoader(new URL[]{artifact.outputDirectory().toUri().toURL()})) {
-            final Class<?> bootAppClass = Class.forName("dev.tsj.generated.BootApp__TsjStrictNative", true, classLoader);
+            final Class<?> bootAppClass = Class.forName("dev.tsj.generated.BootApp", true, classLoader);
             final Method describe = bootAppClass.getDeclaredMethod("describe");
             assertTrue(Modifier.isStatic(describe.getModifiers()));
-            assertEquals("dev.tsj.generated.BootApp__TsjStrictNative", describe.invoke(null));
+            assertEquals("dev.tsj.generated.BootApp", describe.invoke(null));
         }
     }
 
@@ -2384,7 +2484,7 @@ class JvmBytecodeCompilerTest {
 
         assertEquals("jvm-native-class-subset", artifact.strictLoweringPath());
         try (URLClassLoader classLoader = new URLClassLoader(new URL[]{artifact.outputDirectory().toUri().toURL()})) {
-            final Class<?> bootAppClass = Class.forName("dev.tsj.generated.BootApp__TsjStrictNative", true, classLoader);
+            final Class<?> bootAppClass = Class.forName("dev.tsj.generated.BootApp", true, classLoader);
             final Method main = bootAppClass.getDeclaredMethod("main", String[].class);
             assertTrue(Modifier.isPublic(main.getModifiers()));
             assertTrue(Modifier.isStatic(main.getModifiers()));
@@ -2455,7 +2555,7 @@ class JvmBytecodeCompilerTest {
 
         assertEquals("jvm-native-class-subset", artifact.strictLoweringPath());
         try (URLClassLoader classLoader = new URLClassLoader(new URL[]{artifact.outputDirectory().toUri().toURL()})) {
-            final Class<?> metricsClass = Class.forName("dev.tsj.generated.Metrics__TsjStrictNative", true, classLoader);
+            final Class<?> metricsClass = Class.forName("dev.tsj.generated.Metrics", true, classLoader);
             final Field base = metricsClass.getDeclaredField("base");
             base.setAccessible(true);
             assertTrue(Modifier.isStatic(base.getModifiers()));
@@ -2494,7 +2594,7 @@ class JvmBytecodeCompilerTest {
 
         assertEquals("jvm-native-class-subset", artifact.strictLoweringPath());
         try (URLClassLoader classLoader = new URLClassLoader(new URL[]{artifact.outputDirectory().toUri().toURL()})) {
-            final Class<?> metricsClass = Class.forName("dev.tsj.generated.Metrics__TsjStrictNative", true, classLoader);
+            final Class<?> metricsClass = Class.forName("dev.tsj.generated.Metrics", true, classLoader);
             final Method total = metricsClass.getDeclaredMethod("total");
             assertTrue(Modifier.isStatic(total.getModifiers()));
             assertEquals(42.0d, ((Number) total.invoke(null)).doubleValue());
@@ -2535,7 +2635,7 @@ class JvmBytecodeCompilerTest {
 
         assertEquals("jvm-native-class-subset", artifact.strictLoweringPath());
         try (URLClassLoader classLoader = new URLClassLoader(new URL[]{artifact.outputDirectory().toUri().toURL()})) {
-            final Class<?> reporterClass = Class.forName("dev.tsj.generated.Reporter__TsjStrictNative", true, classLoader);
+            final Class<?> reporterClass = Class.forName("dev.tsj.generated.Reporter", true, classLoader);
             final Method read = reporterClass.getDeclaredMethod("read");
             assertTrue(Modifier.isStatic(read.getModifiers()));
             assertEquals(81.0d, ((Number) read.invoke(null)).doubleValue());
@@ -7833,6 +7933,57 @@ class JvmBytecodeCompilerTest {
     }
 
     @Test
+    void bundledModuleGraphDoesNotSplitDecoratorStackFromDecoratedClassDeclaration() throws Exception {
+        final Path petModule = tempDir.resolve("pet.ts");
+        final Path serviceModule = tempDir.resolve("service.ts");
+        final Path entryFile = tempDir.resolve("main.ts");
+        Files.writeString(
+                petModule,
+                """
+                export class Pet {
+                  name: string;
+
+                  constructor() {
+                    this.name = "Nova";
+                  }
+                }
+                """,
+                UTF_8
+        );
+        Files.writeString(
+                serviceModule,
+                """
+                import { Pet } from "./pet.ts";
+
+                @Service
+                export class ClinicService {
+                  make() {
+                    const pet = new Pet();
+                    return pet.name;
+                  }
+                }
+                """,
+                UTF_8
+        );
+        Files.writeString(
+                entryFile,
+                """
+                import { ClinicService } from "./service.ts";
+
+                const service = new ClinicService();
+                console.log(service.make());
+                """,
+                UTF_8
+        );
+
+        final JvmCompiledArtifact artifact = new JvmBytecodeCompiler().compile(entryFile, tempDir.resolve("out34a"));
+        final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        new JvmBytecodeRunner().run(artifact, new PrintStream(stdout));
+
+        assertEquals("Nova\n", stdout.toString(UTF_8));
+    }
+
+    @Test
     void stripsSupportedParameterDecoratorsBeforeBackendParsing() throws Exception {
         final Path sourceFile = tempDir.resolve("decorated-controller-params.ts");
         Files.writeString(
@@ -8836,7 +8987,7 @@ class JvmBytecodeCompilerTest {
             final Object[] methodArgs
     ) throws Exception {
         final Class<?> strictClass = Class.forName(
-                "dev.tsj.generated." + simpleName + "__TsjStrictNative",
+                "dev.tsj.generated." + simpleName,
                 true,
                 classLoader
         );

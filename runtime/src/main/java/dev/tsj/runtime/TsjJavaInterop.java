@@ -12,6 +12,7 @@ import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -74,7 +75,7 @@ public final class TsjJavaInterop {
                 result = writeStaticField(targetClass, fieldName, normalizedArgs);
             } else if (bindingName.startsWith(BINDING_INSTANCE_PREFIX)) {
                 final String methodName = requireBindingSuffix(bindingName, BINDING_INSTANCE_PREFIX);
-                result = invokeInstance(targetClass, methodName, normalizedArgs);
+                result = invokeInstance(targetClass, methodName, normalizedArgs, true);
             } else if (bindingName.startsWith("$")) {
                 throw new IllegalArgumentException(
                         "Unsupported interop binding `" + bindingName + "` on " + className + "."
@@ -192,6 +193,19 @@ public final class TsjJavaInterop {
     }
 
     public static Object invokeInstanceMember(final Object receiver, final String methodName, final Object... tsArgs) {
+        return invokeInstanceMember(receiver, methodName, false, tsArgs);
+    }
+
+    public static Object invokeInstanceMemberRaw(final Object receiver, final String methodName, final Object... tsArgs) {
+        return invokeInstanceMember(receiver, methodName, true, tsArgs);
+    }
+
+    private static Object invokeInstanceMember(
+            final Object receiver,
+            final String methodName,
+            final boolean preserveJavaResult,
+            final Object... tsArgs
+    ) {
         Objects.requireNonNull(receiver, "receiver");
         Objects.requireNonNull(methodName, "methodName");
 
@@ -203,7 +217,7 @@ public final class TsjJavaInterop {
         invocationArgs[0] = receiver;
         System.arraycopy(normalizedArgs, 0, invocationArgs, 1, normalizedArgs.length);
         try {
-            final Object result = invokeInstance(receiverClass, methodName, invocationArgs);
+            final Object result = invokeInstance(receiverClass, methodName, invocationArgs, !preserveJavaResult);
             traceSuccess(receiverClass.getName(), bindingName, result);
             return result;
         } catch (final RuntimeException runtimeException) {
@@ -530,7 +544,8 @@ public final class TsjJavaInterop {
     private static Object invokeInstance(
             final Class<?> targetClass,
             final String methodName,
-            final Object[] tsArgs
+            final Object[] tsArgs,
+            final boolean convertJavaResult
     ) {
         if (tsArgs.length == 0) {
             throw new IllegalArgumentException(
@@ -571,7 +586,7 @@ public final class TsjJavaInterop {
         final Method method = resolved.member();
         try {
             final Object result = method.invoke(receiver, resolved.arguments());
-            return TsjInteropCodec.fromJava(result);
+            return convertJavaResult ? TsjInteropCodec.fromJava(result) : result;
         } catch (final IllegalAccessException illegalAccessException) {
             throw new IllegalArgumentException(
                     "Java interop instance method not accessible: " + targetClass.getName() + "#" + methodName,
@@ -807,6 +822,13 @@ public final class TsjJavaInterop {
                 + executableDescriptor(member);
     }
 
+    private static String executableInvocationKey(final Member member) {
+        final Class<?>[] parameterTypes = member instanceof Method method
+                ? method.getParameterTypes()
+                : ((Constructor<?>) member).getParameterTypes();
+        return member.getName() + parameterDescriptor(parameterTypes);
+    }
+
     private static String executableDescriptor(final Member member) {
         if (member instanceof Method method) {
             return methodDescriptor(method);
@@ -897,13 +919,14 @@ public final class TsjJavaInterop {
             final String memberName,
             final Object[] tsArgs
     ) {
-        if (candidates.isEmpty()) {
+        final List<M> distinctCandidates = deduplicateEquivalentExecutableCandidates(candidates);
+        if (distinctCandidates.isEmpty()) {
             throw new IllegalArgumentException("No interop member candidates found for `" + memberName + "`.");
         }
 
         final List<ResolvedExecutable<M>> resolved = new ArrayList<>();
         final List<String> mismatchReasons = new ArrayList<>();
-        for (M candidate : candidates) {
+        for (M candidate : distinctCandidates) {
             final Class<?>[] parameterTypes = candidate instanceof Method method
                     ? method.getParameterTypes()
                     : ((Constructor<?>) candidate).getParameterTypes();
@@ -929,7 +952,7 @@ public final class TsjJavaInterop {
         }
         if (resolved.isEmpty()) {
             final String argTypes = describeTsArgTypes(tsArgs);
-            final String candidatesSummary = summarizeCandidates(candidates);
+            final String candidatesSummary = summarizeCandidates(distinctCandidates);
             mismatchReasons.sort(String::compareTo);
             final String mismatchSummary = mismatchReasons.isEmpty()
                     ? ""
@@ -959,6 +982,59 @@ public final class TsjJavaInterop {
         }
 
         throw new IllegalArgumentException(ambiguousCandidatesDiagnostic(memberName, tsArgs, bestCandidates));
+    }
+
+    private static <M extends Member> List<M> deduplicateEquivalentExecutableCandidates(final List<M> candidates) {
+        if (candidates.isEmpty()) {
+            return List.of();
+        }
+        final LinkedHashMap<String, M> distinct = new LinkedHashMap<>();
+        for (M candidate : candidates) {
+            final String invocationKey = executableInvocationKey(candidate);
+            final M existing = distinct.get(invocationKey);
+            if (existing == null) {
+                distinct.put(invocationKey, candidate);
+                continue;
+            }
+            distinct.put(invocationKey, preferEquivalentExecutableCandidate(existing, candidate));
+        }
+        return List.copyOf(distinct.values());
+    }
+
+    private static <M extends Member> M preferEquivalentExecutableCandidate(final M current, final M contender) {
+        if (current == contender) {
+            return current;
+        }
+        if (current instanceof Method currentMethod && contender instanceof Method contenderMethod) {
+            final boolean currentPlainMethod = !currentMethod.isBridge() && !currentMethod.isSynthetic();
+            final boolean contenderPlainMethod = !contenderMethod.isBridge() && !contenderMethod.isSynthetic();
+            if (currentPlainMethod != contenderPlainMethod) {
+                return contenderPlainMethod ? contender : current;
+            }
+
+            final Class<?> currentDeclaringClass = currentMethod.getDeclaringClass();
+            final Class<?> contenderDeclaringClass = contenderMethod.getDeclaringClass();
+            if (currentDeclaringClass != contenderDeclaringClass) {
+                if (currentDeclaringClass.isAssignableFrom(contenderDeclaringClass)) {
+                    return contender;
+                }
+                if (contenderDeclaringClass.isAssignableFrom(currentDeclaringClass)) {
+                    return current;
+                }
+            }
+
+            final Class<?> currentReturnType = currentMethod.getReturnType();
+            final Class<?> contenderReturnType = contenderMethod.getReturnType();
+            if (currentReturnType != contenderReturnType) {
+                if (currentReturnType.isAssignableFrom(contenderReturnType)) {
+                    return contender;
+                }
+                if (contenderReturnType.isAssignableFrom(currentReturnType)) {
+                    return current;
+                }
+            }
+        }
+        return executableOrderKey(current).compareTo(executableOrderKey(contender)) <= 0 ? current : contender;
     }
 
     private static ConversionAttempt convertArguments(
@@ -1608,23 +1684,20 @@ public final class TsjJavaInterop {
     }
 
     private static String constructorDescriptor(final Constructor<?> constructor) {
-        final StringBuilder builder = new StringBuilder();
-        builder.append("(");
-        for (Class<?> parameterType : constructor.getParameterTypes()) {
-            builder.append(descriptorFor(parameterType));
-        }
-        builder.append(")V");
-        return builder.toString();
+        return parameterDescriptor(constructor.getParameterTypes()) + "V";
     }
 
     private static String methodDescriptor(final Method method) {
+        return parameterDescriptor(method.getParameterTypes()) + descriptorFor(method.getReturnType());
+    }
+
+    private static String parameterDescriptor(final Class<?>[] parameterTypes) {
         final StringBuilder builder = new StringBuilder();
         builder.append("(");
-        for (Class<?> parameterType : method.getParameterTypes()) {
+        for (Class<?> parameterType : parameterTypes) {
             builder.append(descriptorFor(parameterType));
         }
         builder.append(")");
-        builder.append(descriptorFor(method.getReturnType()));
         return builder.toString();
     }
 

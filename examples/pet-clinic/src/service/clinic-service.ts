@@ -1,31 +1,15 @@
-import type { Qualifier } from "java:org.springframework.beans.factory.annotation.Qualifier";
-import type { Service } from "java:org.springframework.stereotype.Service";
+import { Transactional } from "java:org.springframework.transaction.annotation.Transactional";
+import { Service } from "java:org.springframework.stereotype.Service";
 
-type ClinicRepositoryPort = {
-  findOwnersByLastName(lastName: string): OwnerRow[];
-  findPetsByOwner(ownerId: string): PetRow[];
-  addPet(ownerId: string, name: string, type: string, birthDate: string): PetRow;
-};
-
-type OwnerRow = {
-  id: string;
-  firstName: string;
-  lastName: string;
-};
-
-type PetRow = {
-  id: number;
-  ownerId: string;
-  name: string;
-  type: string;
-  birthDate: string;
-};
+import { Pet } from "../domain/pet";
+import { ClinicRepository } from "../repository/clinic-repository";
+import { NewPetRequest } from "../web/new-pet-request";
 
 @Service
 export class ClinicService {
-  repository: ClinicRepositoryPort;
+  repository: ClinicRepository;
 
-  constructor(@Qualifier("clinicRepositoryTsjComponent") repository: ClinicRepositoryPort) {
+  constructor(repository: ClinicRepository) {
     this.repository = repository;
   }
 
@@ -37,7 +21,14 @@ export class ClinicService {
     return this.repository.findPetsByOwner(ownerId);
   }
 
-  addPet(ownerId: string, name: string, type: string, birthDate: string) {
-    return this.repository.addPet(ownerId, name, type, birthDate);
+  @Transactional
+  addPet(ownerId: string, request: NewPetRequest) {
+    const pet = new Pet();
+    pet.id = this.repository.nextPetId();
+    pet.ownerId = ownerId;
+    pet.name = request.name;
+    pet.type = request.type;
+    pet.birthDate = request.birthDate;
+    return this.repository.savePet(pet);
   }
 }

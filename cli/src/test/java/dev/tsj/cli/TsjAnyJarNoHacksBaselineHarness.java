@@ -209,7 +209,7 @@ final class TsjAnyJarNoHacksBaselineHarness {
 
         if (result.exitCode() == 0) {
             final Path classesDir = outDir.resolve("classes");
-            nativeClassName = findGeneratedClassName(classesDir, "ReflectedEntity__TsjStrictNative.class").orElse("");
+            nativeClassName = findGeneratedClassName(classesDir, "ReflectedEntity.class").orElse("");
             try (URLClassLoader classLoader = new URLClassLoader(
                     new URL[]{classesDir.toUri().toURL(), supportJar.toUri().toURL()},
                     getClass().getClassLoader()

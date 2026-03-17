@@ -2211,3 +2211,113 @@ Progress update:
   (disable backend incremental parse cache inside the in-process harness command runners)
   and a packaged-web conformance harness update so annotation attributes are read reflectively across both stub
   and real Spring signatures.
+
+## 2026-03-13 Pet Clinic Any-Jar Boot + H2 + Swagger Closure
+
+- Active gap discovered while executing this plan:
+  strict-native executable signatures currently collapse imported `java:` simple-name aliases like `EntityManager`
+  to `Object`, which breaks constructor autowiring on the generic Spring path.
+- Active gap discovered after fixing strict-native imported Java type signatures:
+  Java interop overload resolution still treats duplicate equivalent inherited methods as separate winners in some
+  framework proxies, which makes ordinary calls like `EntityManager#createQuery(String, Class)` fail as ambiguous on
+  the generic any-jar path.
+- Active gap discovered after fixing imported Java alias signatures and equivalent-method resolution:
+  strict-native fallback member calls still route Java collection results through TSJ value conversion, so ordinary
+  Java results like `List<Owner>` become TSJ wrappers before they cross MVC/Jackson framework boundaries, producing
+  `406 Not Acceptable` on the generic packaged path.
+- Cleanup gap discovered while validating this slice:
+  parts of the test/docs layer still refer to legacy `__TsjStrictNative` executable class names even though the
+  current strict-native emitter uses logical class names. This is drift/noise, not a pet-clinic product blocker.
+- [x] `Red`: capture the real current `examples/pet-clinic` behavior through the generic `package` path:
+  verify packaged Boot startup, existing REST endpoints, H2-backed persistence behavior, and expected Swagger/OpenAPI endpoints.
+- [x] `Green`: convert `examples/pet-clinic` into a TS-authored Spring Boot application entrypoint that runs through the generic any-jar contract only:
+  `java:` imports, `tsj package`, strict/native classes, no Java fixture app logic.
+- [x] `Green`: replace the manual `Persistence.createEntityManagerFactory(...)` repository pattern with Spring-managed persistence wiring suitable for the current supported any-jar path.
+- [x] `Green`: add Swagger/OpenAPI support with ordinary jars/resources and prove the docs endpoint comes up from the packaged jar.
+- [x] `Green`: preserve raw Java member-call results on the strict-native path so framework boundaries see JVM objects instead of TSJ wrappers.
+- [x] `Refactor`: simplify the example so the README, scripts, resources, and TS sources describe one coherent supported path only.
+- [x] Verify end-to-end:
+  `bash examples/pet-clinic/scripts/run-http.sh`
+  plus live HTTP checks for
+  `/api/petclinic/owners`,
+  `/api/petclinic/owners/{ownerId}/pets`,
+  and the Swagger/OpenAPI endpoint.
+
+## 2026-03-13 Full Regression Cleanup for Logical Strict-Native Class Names
+
+- Active regression gap discovered during full root regression:
+  backend and certification tests still hardcode legacy executable strict-native names like
+  `Foo__TsjStrictNative`,
+  while the current compiler emits logical executable class names like `Foo`.
+- [x] `Red`: reproduce the full regression failure from `mvn -B -ntp test` and confirm the failure set is dominated by
+  legacy strict-native class-name assumptions in tests and harnesses.
+- [x] `Green`: retire legacy `__TsjStrictNative` assumptions from backend/CLI tests and certification harnesses so
+  they assert the current logical executable-class contract.
+- [x] `Refactor`: keep shared helpers/harnesses aligned on one executable-class naming rule instead of ad hoc literals.
+- [x] Verify with:
+  `mvn -B -ntp test -rf :compiler-backend-jvm`
+  then
+  `mvn -B -ntp test`
+
+## 2026-03-13 Packaged Jar Integrity On Mounted Paths
+
+- Active packaging gap discovered from
+  `examples/pet-clinic/scripts/run-http.sh`:
+  the generic `package` command can report
+  `TSJ-PACKAGE-SUCCESS`
+  yet publish a structurally invalid fat jar on mounted paths like
+  `/mnt/d/...`,
+  while the same package flow to `/tmp/...` produces a valid jar.
+- Working hypothesis:
+  the final jar path is exposed before fat-jar publication is durably finalized on that filesystem.
+- [x] `Red`: reproduce the difference between package output on `/tmp` and package output under the repo-mounted path,
+  and capture it with jar-open validation rather than a framework-specific symptom.
+- [x] `Green`: change the generic package path to publish jars atomically:
+  write to a temp jar, finish/flush/force it, validate it as a jar, then move it into place.
+- [x] `Refactor`: keep the packaging contract generic and remove any opportunity for consumers to observe a partial jar at the final path.
+- [x] Verify with:
+  targeted CLI packaging tests,
+  `cli/src/test/java/dev/tsj/cli/TsjPetClinicExampleTest.java`,
+  plus direct timing/validation probes.
+
+  Measured after the fix:
+  package-to-jar on the current machine took about
+  `62045 ms`
+  for the pet-clinic package command,
+  and the packaged jar reached
+  `/v3/api-docs`
+  in about
+  `4797 ms`
+  from `java -jar`.
+  The Spring log reported
+  `Started PetClinicApplication in 3.993 seconds`.
+  `run-http.sh`
+  is not a pure startup benchmark because it also performs dependency resolution and a reactor install before packaging.
+
+## 2026-03-13 Native Temp Pet Clinic Runner Comparison
+
+- Goal:
+  compare the default mounted-path HTTP runner with an alternate shell runner that stages dependency jars and
+  package output on a native Linux temp path.
+- [x] Implement `examples/pet-clinic/scripts/run-http-native.sh` with:
+  native temp staging,
+  dependency cache reuse keyed by `examples/pet-clinic/pom.xml`,
+  and visible phase timers/heartbeats.
+- [x] Verify by running the new script to first successful
+  `/v3/api-docs`
+  response.
+
+  Measured on the current machine:
+  `run-http-native.sh`
+  reached HTTP readiness in about
+  `155491 ms`
+  total, with internal phase timings of about
+  `30015 ms`
+  for dependency copy,
+  `90029 ms`
+  for reactor install,
+  `30014 ms`
+  for package,
+  and about
+  `4-5 s`
+  for Spring Boot startup.

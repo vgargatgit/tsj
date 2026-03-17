@@ -169,7 +169,7 @@ final class TsjMetadataParityCertificationHarness {
                         && "args".equals(programMain.getParameters()[0].getName());
 
                 final Class<?> strictComponentClass = Class.forName(
-                        "dev.tsj.generated.BillingService__TsjStrictNative",
+                        "dev.tsj.generated.BillingService",
                         true,
                         classLoader
                 );
@@ -187,7 +187,7 @@ final class TsjMetadataParityCertificationHarness {
                         && !Modifier.isFinal(strictComponentClass.getModifiers());
 
                 final Class<?> strictWebControllerClass = Class.forName(
-                        "dev.tsj.generated.EchoController__TsjStrictNative",
+                        "dev.tsj.generated.EchoController",
                         true,
                         classLoader
                 );

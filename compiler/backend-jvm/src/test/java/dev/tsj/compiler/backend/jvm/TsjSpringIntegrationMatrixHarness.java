@@ -105,7 +105,7 @@ final class TsjSpringIntegrationMatrixHarness {
                     JvmBytecodeCompiler.BackendMode.JVM_STRICT
             );
 
-            final String generatedClassName = "dev.tsj.generated.WebMatrixController__TsjStrictNative";
+            final String generatedClassName = "dev.tsj.generated.WebMatrixController";
             try (URLClassLoader classLoader = new URLClassLoader(
                     new URL[]{compiledArtifact.outputDirectory().toUri().toURL()},
                     getClass().getClassLoader()
@@ -748,7 +748,7 @@ final class TsjSpringIntegrationMatrixHarness {
     }
 
     private static String strictNativeClassName(final String className) {
-        return "dev.tsj.generated." + className + "__TsjStrictNative";
+        return "dev.tsj.generated." + className;
     }
 
     private static Method findMethod(
